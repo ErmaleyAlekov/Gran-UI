@@ -1,4 +1,4 @@
-# Gran UI — руководство
+# Грань UI — руководство
 
 **Русский** · [English](guide.en.md)
 
@@ -25,7 +25,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Window title="Привет" width="420" height="220" background="#0f1117" color="#e6e8ee" fontSize="14">
   <Stack padding="24" spacing="12">
-    <Text fontSize="20" fontWeight="600">Привет, Gran UI</Text>
+    <Text fontSize="20" fontWeight="600">Привет, Грань UI</Text>
     <Input id="name" placeholder="Как вас зовут?"/>
     <Stack orientation="horizontal" spacing="12" align="center">
       <Button text="Поздороваться" onClick="greet"/>

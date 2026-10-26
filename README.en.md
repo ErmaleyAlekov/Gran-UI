@@ -6,7 +6,7 @@
 
 The XML markup is parsed and validated by the XML library [Beresta](https://github.com/ErmaleyAlekov/beresta) by the same author: the XSD 1.1 schema is built into the engine, and any markup error is visible with the line, column, and path even before the window is created.
 
-The name comes from the Russian word *gran* — a facet: the interface is built from clear-cut blocks, like a crystal.
+The name comes from the Russian word *gran* — a facet: the interface is built from clear-cut blocks, like a crystal. In Russian the engine is called **Грань UI**.
 
 ![Gran UI Showcase](docs/images/showcase.png)
 
@@ -37,6 +37,31 @@ return app.run();
 - [Building and Integration](docs/building.en.md)
 - [Engine Architecture](docs/architecture.en.md)
 - [Project Structure, Tests, and Coding Rules](docs/development.en.md)
+
+---
+
+## Advantages
+
+### Lightweight
+- **No browser, no JavaScript, no garbage collector.** The program is a single executable file without accompanying DLLs (only system ones): the engine, Beresta, and C++ runtime are statically linked. The example chat weighs about **3 MB** after `strip`.
+- **The engine's own memory with an open window is about 5 MB**; the rest is taken by the graphics card driver.
+- **Fast startup:** the first frame of the 47-element showcase takes tens of milliseconds (parsing with the schema 4–8 ms, styles and layout 5–16 ms, scene about 9 ms).
+- **0% CPU when idle:** a frame is drawn only when something changes or there is an animation.
+- **No third-party dependencies:** nothing to update, nothing to break in someone else's package.
+
+### Strict about markup
+- **Each file is checked against the XSD 1.1 schema right during parsing** — before the window is created. HTML silently forgives errors and draws whatever comes out; Gran UI will not load a window with an error.
+- **It catches what on the web shows up only on screen:** a typo in an element or attribute name, an incorrect color or length, a reference to an undeclared style, a duplicate `id`, `minWidth` greater than `maxWidth`, a `Grid` row number beyond the tracks, `Scroll` with two children, a button without text.
+- **All errors at once, each with its location:**
+  `line 21, column 7: /Window/Stack/Grid/Box[2]: attribute "transformOrigin": value "center" does not match the pattern …`
+- **Unified rules:** the same attribute names for all elements (camelCase), a predictable box model without margin collapsing, `minWidth`/`maxWidth` are always respected.
+
+### Secure
+- **Markup is only data.** It has no scripts or expressions: `onClick`, `onChange`, `onSubmit` are just action names, and only what the program itself has bound to C++ functions runs. An unknown action does nothing.
+- **No built-in browser and no network:** markup, fonts, and images are read only from local files.
+- **Secure XML parsing:** Beresta does not load external DTDs or XInclude, limits entity expansion (protection against "billion laughs") and nesting depth (no more than 256 levels).
+- **Custom parsers check every byte:** PNG — CRC of each chunk, image size limits (16,384 pixels per side, 32 Mpixels), inflate with a limit on the result size; TrueType — boundary checks at each read and a limit on the nesting of composite glyphs. A damaged file gives an error, not an out-of-bounds memory access.
+- **Careful work with the graphics card:** each write to the GPU buffer is checked against capacity, the resource is deleted only when the GPU is done with it, the D3D12 debug layer is on in frame checks.
 
 ---
 
