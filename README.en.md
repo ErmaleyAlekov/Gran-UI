@@ -37,6 +37,7 @@ return app.run();
 - [Building and Integration](docs/building.en.md)
 - [Engine Architecture](docs/architecture.en.md)
 - [Project Structure, Tests, and Coding Rules](docs/development.en.md)
+- [Contributing](CONTRIBUTING.en.md) · [Code of Conduct](CODE_OF_CONDUCT.en.md) · [Security Policy](SECURITY.en.md)
 
 ---
 

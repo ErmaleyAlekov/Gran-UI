@@ -42,6 +42,7 @@ return app.run();
 - [Сборка и подключение](docs/building.md)
 - [Архитектура движка](docs/architecture.md)
 - [Устройство проекта, тесты и правила кода](docs/development.md)
+- [Как участвовать](CONTRIBUTING.md) · [Кодекс поведения](CODE_OF_CONDUCT.md) · [Политика безопасности](SECURITY.md)
 
 ---
 
