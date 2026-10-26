@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Тема по умолчанию: стили видов элементов (как стили браузера по умолчанию для <button>, <input>).
+  Имя стиля = имя элемента. Встраивается в библиотеку (gen/markup/default_theme.cpp) и проверяется
+  той же схемой, что и разметка приложения. Атрибуты <Window> — умолчания окна.
+
+  The default theme: the element kind styles (like the browser default styles for <button>, <input>).
+  The style name = the element name. It is embedded into the library (gen/markup/default_theme.cpp) and checked
+  by the same schema as the application markup. The <Window> attributes are the window defaults.
+-->
+<Window background="#ffffff" color="#101828" fontFamily="system-ui" fontSize="14" accentColor="#2563eb">
+  <Resources>
+    <Style name="Button" orientation="horizontal" justify="center" align="center" spacing="8" padding="8 16"
+           borderRadius="8" background="#2563eb" color="#ffffff" fontWeight="600" textAlign="center" cursor="pointer"
+           transition="background 0.15s ease, boxShadow 0.15s ease, transform 0.1s ease">
+      <Hover background="#1d4ed8"/>
+      <Pressed background="#1e40af" transform="scale(0.98)"/>
+      <Focused boxShadow="0 0 0 3 rgba(37, 99, 235, 0.35)"/>
+      <Disabled opacity="0.5"/>
+    </Style>
+    <Style name="Input" overflow="hidden" padding="8 12" borderWidth="1" borderColor="#d0d5dd" borderRadius="8" background="#ffffff"
+           color="#101828" cursor="text" transition="borderColor 0.15s ease, boxShadow 0.15s ease">
+      <Hover borderColor="#98a2b3"/>
+      <Focused borderColor="#2563eb" boxShadow="0 0 0 3 rgba(37, 99, 235, 0.2)"/>
+      <Disabled opacity="0.5"/>
+    </Style>
+    <Style name="TextArea" basedOn="Input" lineHeight="1.4"/>
+    <Style name="CheckBox" cursor="pointer">
+      <Disabled opacity="0.5"/>
+    </Style>
+    <Style name="Slider" cursor="pointer" minWidth="80">
+      <Disabled opacity="0.5"/>
+    </Style>
+    <Style name="Scroll" overflow="hidden"/>
+    <!-- Всплывающие слои: меню (Popup + MenuItem) и подсказка tooltip (стиль Tooltip ставит движок) -->
+    <!-- Popup layers: a menu (Popup + MenuItem) and a tooltip (the engine sets the Tooltip style) -->
+    <Style name="Popup" padding="4" spacing="1" minWidth="168" background="#ffffff" color="#101828" borderWidth="1"
+           borderColor="#e4e7ec" borderRadius="10" boxShadow="0 10 28 rgba(16, 24, 40, 0.18), 0 2 6 rgba(16, 24, 40, 0.08)"
+           fontSize="13.5"/>
+    <Style name="MenuItem" padding="7 12" borderRadius="6" cursor="pointer" transition="background 0.1s ease">
+      <Hover background="#eef2ff"/>
+      <Pressed background="#e0e7ff"/>
+      <Focused background="#eef2ff"/>
+      <Disabled opacity="0.4"/>
+    </Style>
+    <Style name="Tooltip" padding="5 9" minWidth="0" spacing="0" background="#1f2937" color="#f9fafb" borderWidth="0"
+           borderRadius="6" boxShadow="0 4 12 rgba(0, 0, 0, 0.25)" fontSize="12.5"/>
+  </Resources>
+  <Box/>
+</Window>

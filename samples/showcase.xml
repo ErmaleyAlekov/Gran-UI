@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Витрина возможностей Gran UI / The Gran UI feature showcase -->
+<Window title="Gran UI — витрина" width="960" height="620" background="#0f1117" color="#e6e8ee" fontSize="14">
+  <Resources>
+    <Theme>
+      <Token name="card" value="#171a23"/>
+      <Token name="line" value="rgba(255, 255, 255, 0.08)"/>
+      <Token name="muted" value="#8b93a7"/>
+      <Token name="accent" value="#6d5dfc"/>
+      <Token name="radius" value="16"/>
+    </Theme>
+    <Style name="card" background="$card" borderWidth="1" borderColor="$line" borderRadius="$radius" padding="20"
+           spacing="12" boxShadow="0 10 30 rgba(0, 0, 0, 0.45)"/>
+    <Style name="title" fontSize="18" fontWeight="600" color="#ffffff"/>
+    <Style name="muted" color="$muted" fontSize="13"/>
+    <Style name="ghost" basedOn="primary" background="transparent" borderWidth="1" borderColor="rgba(255, 255, 255, 0.18)" color="#e6e8ee">
+      <Hover background="rgba(255, 255, 255, 0.06)"/>
+    </Style>
+    <Style name="primary" background="linear-gradient(135deg, #6d5dfc, #b05cff)" boxShadow="0 6 18 rgba(109, 93, 252, 0.45)"/>
+  </Resources>
+  <Grid rows="auto, 1fr" columns="1fr, 1fr, 1fr" rowSpacing="20" columnSpacing="20" padding="28">
+    <Stack gridColumnSpan="3" orientation="horizontal" align="center" justify="space-between">
+      <Stack spacing="4">
+        <Text fontSize="26" fontWeight="700" color="#ffffff">Добро пожаловать в Gran UI</Text>
+        <Text style="muted">XML-разметка + XSD 1.1 → Direct3D 12. Без браузера, без сборщика мусора.</Text>
+      </Stack>
+      <Stack orientation="horizontal" spacing="10">
+        <Button style="ghost" text="Документация"/>
+        <Button style="primary" text="Начать →"/>
+      </Stack>
+    </Stack>
+    <Stack gridRow="1" style="card">
+      <Text style="title">Профиль</Text>
+      <Text style="muted">Имя пользователя</Text>
+      <Input id="name" value="Анна Смирнова" maxLength="40" background="#0f1117" borderColor="rgba(255, 255, 255, 0.12)" color="#e6e8ee"/>
+      <Text style="muted">Электронная почта</Text>
+      <Input placeholder="name@example.com" background="#0f1117" borderColor="rgba(255, 255, 255, 0.12)" color="#e6e8ee"/>
+      <CheckBox text="Получать новости" checked="true" accentColor="$accent"/>
+      <CheckBox text="Двухфакторная защита"/>
+      <Stack orientation="horizontal" spacing="12" align="center">
+        <Button style="primary" text="Сохранить" onClick="save"/>
+        <Text id="status" style="muted" shrink="1" textWrap="nowrap" textOverflow="ellipsis">Не сохранено</Text>
+      </Stack>
+    </Stack>
+    <Stack gridRow="1" gridColumn="1" style="card">
+      <Text style="title">Производительность</Text>
+      <Stack orientation="horizontal" spacing="12">
+        <Stack grow="1" padding="14" borderRadius="12" background="linear-gradient(160deg, #1f2a44, #182033)" spacing="2">
+          <Text style="muted">Старт окна</Text>
+          <Text fontSize="28" fontWeight="700" color="#7ee0b8">12 мс</Text>
+        </Stack>
+        <Stack grow="1" padding="14" borderRadius="12" background="linear-gradient(160deg, #3a1f44, #261833)" spacing="2">
+          <Text style="muted">Память</Text>
+          <Text fontSize="28" fontWeight="700" color="#f5a3ff">14 МБ</Text>
+        </Stack>
+      </Stack>
+      <Text style="muted">Громкость</Text>
+      <Slider min="0" max="100" value="68" accentColor="$accent"/>
+      <Text style="muted">Яркость</Text>
+      <Slider min="0" max="100" value="35" accentColor="#22c55e"/>
+      <Box height="64" borderRadius="12" background="radial-gradient(circle at 30% 20%, #6d5dfc, #0f1117)"/>
+    </Stack>
+    <Stack gridRow="1" gridColumn="2" style="card" spacing="10">
+      <Text style="title">Уведомления</Text>
+      <Stack orientation="horizontal" spacing="12" align="center" padding="12" borderRadius="12" background="rgba(255, 255, 255, 0.04)">
+        <Box width="36" height="36" borderRadius="18" background="conic-gradient(from 0deg, #6d5dfc, #22c55e, #f59e0b, #6d5dfc)"/>
+        <Stack grow="1" shrink="1" spacing="2">
+          <Text fontWeight="600">Сборка завершена</Text>
+          <Text style="muted" textOverflow="ellipsis" textWrap="nowrap">Все 31 тест прошли, отладочный слой D3D12 без ошибок</Text>
+        </Stack>
+      </Stack>
+      <Stack orientation="horizontal" spacing="12" align="center" padding="12" borderRadius="12" background="rgba(255, 255, 255, 0.04)">
+        <Box width="36" height="36" borderRadius="10" background="#f59e0b" transform="rotate(12deg)"/>
+        <Stack grow="1" shrink="1" spacing="2">
+          <Text fontWeight="600">Схема XSD 1.1</Text>
+          <Text style="muted">Утверждения xs:assert проверяют интерфейс прямо при разборе разметки.</Text>
+        </Stack>
+      </Stack>
+      <Box height="1" background="$line"/>
+      <Text style="muted" textAlign="justify">Текст переносится по словам, выравнивается по ширине, поддерживает кернинг и подпиксельное позиционирование глифов, кириллицу и 中文.</Text>
+    </Stack>
+  </Grid>
+</Window>

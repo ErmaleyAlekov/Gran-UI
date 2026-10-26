@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Gran Chat — окно чата с локальной моделью (Ollama). Код ищет элементы по id; пузыри сообщений
+  создаются копированием скрытых шаблонов userTemplate и modelTemplate (Text id="userBody" и "modelBody").
+
+  Gran Chat — the window of a chat with a local model (Ollama). The code finds the elements by id; the message bubbles
+  are created by copying the hidden userTemplate and modelTemplate templates (Text id="userBody" and "modelBody").
+-->
+<Window title="Gran Chat" width="920" height="760" minWidth="520" minHeight="420"
+        background="#0b0d12" color="#e6e8ee" fontSize="14">
+  <Resources>
+    <Theme>
+      <Token name="panel" value="#10131a"/>
+      <Token name="card" value="#171a23"/>
+      <Token name="line" value="rgba(255, 255, 255, 0.07)"/>
+      <Token name="muted" value="#8b93a7"/>
+      <Token name="accent" value="#7c6cff"/>
+    </Theme>
+    <Style name="muted" color="$muted" fontSize="12.5"/>
+    <Style name="avatar" width="30" height="30" borderRadius="15" align="center" justify="center"
+           background="linear-gradient(135deg, #7c6cff, #22d3ee)" boxShadow="0 4 14 rgba(124, 108, 255, 0.35)"/>
+    <Style name="avatarLetter" color="#ffffff" fontSize="13" fontWeight="700"/>
+    <Style name="userBubble" background="linear-gradient(135deg, #6d5dfc, #9b5cf6)" borderRadius="18 18 5 18"
+           padding="10 15" maxWidth="620" shrink="1" boxShadow="0 6 18 rgba(109, 93, 252, 0.25)"/>
+    <Style name="modelBubble" background="$card" borderWidth="1" borderColor="$line" borderRadius="5 18 18 18"
+           padding="11 15" maxWidth="680" shrink="1"/>
+    <Style name="bubbleText" lineHeight="1.5" color="#e9ebf2"/>
+    <Style name="userText" basedOn="bubbleText" color="#ffffff"/>
+    <Style name="errorText" basedOn="bubbleText" color="#fca5a5"/>
+    <Style name="pendingText" basedOn="bubbleText" color="$muted"/>
+    <!-- Markdown ответа: участки и блоки создаёт код (chat_view_markdown.cpp) / The reply Markdown: the code creates the runs and blocks -->
+    <Style name="mdBold" fontWeight="700" color="#ffffff"/>
+    <Style name="mdItalic" fontStyle="italic"/>
+    <Style name="mdBoldItalic" basedOn="mdBold" fontStyle="italic"/>
+    <Style name="mdCode" fontFamily="Consolas" fontSize="13" color="#f5b4ff" background="rgba(255, 255, 255, 0.08)"/>
+    <Style name="mdHeading" basedOn="bubbleText" fontSize="16" fontWeight="700" color="#ffffff"/>
+    <Style name="codeBlock" background="#0b0e14" borderWidth="1" borderColor="$line" borderRadius="10"
+           padding="10 14" spacing="6"/>
+    <Style name="codeLanguage" color="$muted" fontSize="11.5"/>
+    <Style name="codeText" fontFamily="Consolas" fontSize="13" lineHeight="1.45" color="#d6deeb"/>
+    <Style name="dot" width="8" height="8" borderRadius="4" transition="background 250ms ease"/>
+    <Style name="dotIdle" basedOn="dot" background="#6b7280"/>
+    <Style name="dotReady" basedOn="dot" background="#22c55e" boxShadow="0 0 8 rgba(34, 197, 94, 0.6)"/>
+    <Style name="dotBusy" basedOn="dot" background="#f59e0b" boxShadow="0 0 8 rgba(245, 158, 11, 0.6)"/>
+    <Style name="dotError" basedOn="dot" background="#ef4444" boxShadow="0 0 8 rgba(239, 68, 68, 0.6)"/>
+    <Style name="primary" background="linear-gradient(135deg, #6d5dfc, #9b5cf6)" color="#ffffff" borderRadius="12"
+           padding="9 18" fontWeight="600" boxShadow="0 6 16 rgba(109, 93, 252, 0.35)" transition="opacity 150ms ease">
+      <Hover opacity="0.9"/>
+      <Pressed opacity="0.75"/>
+    </Style>
+    <Style name="danger" basedOn="primary" background="#2a1d24" color="#fca5a5" borderWidth="1"
+           borderColor="rgba(239, 68, 68, 0.45)" boxShadow="none">
+      <Hover background="#3a222b"/>
+    </Style>
+    <Style name="hint" padding="7 12" borderRadius="10" background="rgba(255, 255, 255, 0.04)" borderWidth="1"
+           borderColor="$line" color="#c3c8d6" fontSize="12.5"/>
+  </Resources>
+
+  <Grid rows="auto, 1fr, auto" columns="1fr">
+    <!-- Заголовок: модель и состояние / The header: the model and the state -->
+    <Stack orientation="horizontal" align="center" spacing="12" padding="14 22" background="$panel"
+           borderWidth="0 0 1 0" borderColor="$line">
+      <Stack style="avatar" width="36" height="36" borderRadius="18">
+        <Text style="avatarLetter" fontSize="15">G</Text>
+      </Stack>
+      <Stack spacing="2" grow="1" shrink="1">
+        <Text fontSize="15" fontWeight="600" color="#ffffff">Gran Chat</Text>
+        <Text id="modelName" style="muted" textWrap="nowrap" textOverflow="ellipsis">модель</Text>
+      </Stack>
+      <Stack orientation="horizontal" align="center" spacing="8" padding="6 12" borderRadius="999"
+             background="rgba(255, 255, 255, 0.04)" borderWidth="1" borderColor="$line" shrink="1">
+        <Box id="statusDot" style="dotIdle"/>
+        <Text id="status" style="muted" textWrap="nowrap" textOverflow="ellipsis" shrink="1">…</Text>
+      </Stack>
+    </Stack>
+
+    <!-- Лента сообщений / The message feed -->
+    <Scroll id="feedScroll" gridRow="1">
+      <Stack id="feed" padding="24 28 12 28" spacing="16">
+        <Stack id="welcome" align="center" spacing="10" margin="70 0 0 0">
+          <Stack style="avatar" width="56" height="56" borderRadius="28">
+            <Text style="avatarLetter" fontSize="24">G</Text>
+          </Stack>
+          <Text fontSize="22" fontWeight="600" color="#ffffff">Чем могу помочь?</Text>
+          <Text style="muted" fontSize="13.5" textAlign="center">Локальная модель через Ollama — переписка не покидает этот компьютер.</Text>
+          <Stack orientation="horizontal" spacing="8" margin="10 0 0 0" wrap="true" justify="center">
+            <Text style="hint">Enter — отправить, Shift+Enter — новая строка</Text>
+            <Text style="hint">Текст ответа выделяется мышью, Ctrl+C — копировать</Text>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Scroll>
+
+    <!-- Поле ввода / The composer -->
+    <Stack gridRow="2" padding="10 28 20 28">
+      <Stack orientation="horizontal" align="end" spacing="8" padding="6 6 6 6" borderRadius="16"
+             background="#151821" borderWidth="1" borderColor="rgba(255, 255, 255, 0.09)"
+             boxShadow="0 10 30 rgba(0, 0, 0, 0.35)">
+        <!-- Как в мессенджерах: Enter — отправить, Shift+Enter — новая строка; поле растёт до 8 строк -->
+        <!-- As in messengers: Enter sends, Shift+Enter is a new line; the field grows up to 8 lines -->
+        <TextArea id="prompt" grow="1" shrink="1" rows="1" maxHeight="178" submitKey="enter"
+                  placeholder="Напишите сообщение…" onSubmit="send" background="transparent" borderWidth="0"
+                  color="#e6e8ee" padding="9 10" accentColor="$accent" lineHeight="1.4"/>
+        <Button id="send" style="primary" text="Отправить" onClick="send"/>
+        <Button id="stop" style="danger" text="Остановить" onClick="stop" visible="false"/>
+      </Stack>
+    </Stack>
+
+    <!-- Шаблоны пузырей (скрыты, копируются кодом) / The bubble templates (hidden, copied by the code) -->
+    <Stack id="templates" gridRow="2" visible="false">
+      <Stack id="userTemplate" orientation="horizontal" justify="end">
+        <Stack style="userBubble">
+          <Text id="userBody" style="userText"/>
+        </Stack>
+      </Stack>
+      <Stack id="modelTemplate" orientation="horizontal" spacing="10" align="start">
+        <Stack style="avatar">
+          <Text style="avatarLetter">G</Text>
+        </Stack>
+        <Stack style="modelBubble">
+          <Stack id="modelBody" spacing="10">
+            <Text style="pendingText">…</Text>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Stack>
+  </Grid>
+</Window>

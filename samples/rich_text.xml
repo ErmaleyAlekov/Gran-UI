@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Оформленный текст: участки Span внутри одного Text / Styled text: Span runs inside one Text -->
+<Window title="Gran UI — оформленный текст" width="640" height="300" background="#ffffff" fontSize="15">
+  <Resources>
+    <Style name="code" fontFamily="Consolas" fontSize="14" background="#eef0f4" color="#b42318"/>
+    <Style name="link" color="#2563eb" textDecoration="underline" cursor="pointer">
+      <Hover color="#1d4ed8"/>
+    </Style>
+  </Resources>
+  <Stack padding="24" spacing="14">
+    <Text id="rich" lineHeight="1.6">Обычный текст, <Span fontWeight="700">жирный участок</Span>,
+      <Span fontStyle="italic">курсив</Span>, вызов <Span style="code">layoutRuns(text, runs)</Span> и
+      <Span style="link" onClick="open">ссылка на документацию</Span>. Перенос строк идёт через границы
+      участков: <Span fontWeight="700" color="#7c3aed">длинный жирный фиолетовый участок, который не помещается в одну строку</Span>
+      и <Span textDecoration="lineThrough">зачёркнутое</Span>.</Text>
+    <Text fontSize="13" color="#667085">Выделение и копирование работают через границы участков.</Text>
+  </Stack>
+</Window>

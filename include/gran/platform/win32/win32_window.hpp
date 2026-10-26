@@ -1,0 +1,121 @@
+#ifndef GRAN_PLATFORM_WIN32_WIN32_WINDOW_HPP
+#define GRAN_PLATFORM_WIN32_WIN32_WINDOW_HPP
+
+#include "gran/platform/window.hpp"
+
+// Широкие (UTF-16) версии API и макросов (IDC_*, LoadCursor) / The wide (UTF-16) API and macro versions (IDC_*, LoadCursor)
+// Без макросов min/max из <windows.h>: они ломают std::min/std::max (MSVC) / Without the min/max macros of <windows.h>: they break std::min/std::max (MSVC)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef UNICODE
+#define UNICODE
+#endif
+#ifndef _UNICODE
+#define _UNICODE
+#endif
+#include <windows.h>
+
+#include <deque>
+#include <memory>
+
+namespace gran::platform::win32
+{
+    // Связь окна с деревом доступности (internal/uia_element.hpp) / The window link to the accessibility tree (internal/uia_element.hpp)
+    struct UiaHost;
+
+    /*
+    ** Окно Win32 с поддержкой DPI per-monitor v2. Оконная процедура (handleMessage) noexcept:
+    ** события складываются в очередь, исключения внутри неё гасятся — они не должны
+    ** пересекать границу ОС (правило gpu_rules.md, п. 3).
+    **
+    ** A Win32 window with per-monitor v2 DPI support. The window procedure (handleMessage) is noexcept:
+    ** events are queued, exceptions inside it are swallowed — they must not cross
+    ** the OS boundary (gpu_rules.md, item 3).
+    */
+    class Win32Window final : public Window
+    {
+    public:
+        // ---- win32_window.cpp ----
+        explicit Win32Window(const WindowDesc& desc);
+        ~Win32Window() override;
+        void* nativeHandle() const override;
+
+        // ---- win32_events.cpp ----
+        bool pollEvent(Event& event) override;
+        void waitEvents(double timeout) override;
+        Size pixelSize() const override;
+        void setLiveResize(std::function<void()> callback) override;
+
+        // ---- win32_system.cpp ----
+        float scale() const override;
+        void show() override;
+        void setCursor(CursorShape shape) override;
+        std::string clipboardText() override;
+        void setClipboardText(const std::string& text) override;
+
+        // ---- win32_access.cpp ----
+        void setAccessTree(a11y::AccessTree* tree) override;
+        void accessFocusChanged() override;
+
+        // ---- win32_wake.cpp ----
+        void wake() noexcept override;
+
+        // ---- win32_procedure.cpp ----
+        // Обработка сообщения ОС (вызывается оконной процедурой) / Handling an OS message (called by the window procedure)
+        LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) noexcept;
+
+        // ---- win32_events.cpp ----
+        // Событие в очередь (нехватка памяти — событие теряется, а не исключение) / An event into the queue (out of memory — the event is lost, not an exception)
+        void push(const Event& event) noexcept;
+
+        // Состояние для обработчиков сообщений / The state for the message handlers
+        HWND window = nullptr;
+        float currentScale = 1.0f;
+        bool sizing = false;
+        bool trackingLeave = false;
+        char16_t highSurrogate = 0;
+        CursorShape cursor = CursorShape::ARROW;
+        std::function<void()> liveResize;
+        WindowDesc desc;
+        // Провайдер UI Automation создаётся при первом setAccessTree / The UI Automation provider is created on the first setAccessTree
+        std::shared_ptr<UiaHost> access;
+
+    private:
+        std::deque<Event> _events;
+    };
+
+    // ---- win32_input.cpp: перевод сообщений ввода / translating the input messages ----
+
+    // Сообщения мыши; false — это не сообщение мыши / Mouse messages; false — it is not a mouse message
+    bool translateMouse(Win32Window& window, UINT message, WPARAM wParam, LPARAM lParam);
+
+    // ---- win32_keyboard.cpp ----
+
+    // Сообщения клавиатуры и символов; false — не они / Keyboard and character messages; false — not them
+    bool translateKeyboard(Win32Window& window, UINT message, WPARAM wParam);
+
+    // Нажатые модификаторы (биты Modifier) / The pressed modifiers (Modifier bits)
+    std::uint8_t currentModifiers() noexcept;
+
+    // ---- win32_access.cpp ----
+
+    // Ответ на WM_GETOBJECT (корень UI Automation) / The answer to WM_GETOBJECT (the UI Automation root)
+    LRESULT answerAccessRequest(Win32Window& window, WPARAM wParam, LPARAM lParam) noexcept;
+
+    // Отключение провайдеров перед уничтожением окна / Disconnecting the providers before the window is destroyed
+    void disconnectAccess(Win32Window& window) noexcept;
+
+    // ---- win32_text.cpp: строки UTF-8 ↔ UTF-16 / UTF-8 ↔ UTF-16 strings ----
+
+    // UTF-8 → UTF-16 / UTF-8 → UTF-16
+    std::wstring toWide(const std::string& text);
+
+    // UTF-16 → UTF-8 / UTF-16 → UTF-8
+    std::string toUtf8(const wchar_t* text);
+
+    // Однократная настройка процесса: DPI per-monitor v2 / The one-time process setup: DPI per-monitor v2
+    void enableDpiAwareness() noexcept;
+}
+
+#endif

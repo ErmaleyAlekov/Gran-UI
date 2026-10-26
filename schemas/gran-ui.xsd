@@ -1,0 +1,730 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Схема разметки Gran UI (XML Schema 1.1). Встраивается в библиотеку и проверяет документ
+  во время разбора «Берёстой»: лексика значений — типами и шаблонами, ограничения интерфейса —
+  утверждениями xs:assert, ссылки на стили и уникальность id — xs:key / xs:keyref / xs:unique.
+  Значение вида $имя — ссылка на значение темы (<Theme><Token name="имя" value="…"/>).
+
+  The Gran UI markup schema (XML Schema 1.1). It is embedded into the library and checks a document
+  while Beresta parses it: the value lexis by types and patterns, the interface constraints by
+  xs:assert assertions, the style references and id uniqueness by xs:key / xs:keyref / xs:unique.
+  A value like $name refers to a theme value (<Theme><Token name="name" value="…"/>).
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+           vc:minVersion="1.1" elementFormDefault="qualified">
+
+  <!-- ================= Простые типы / Simple types ================= -->
+
+  <!-- Ссылка на значение темы / A theme value reference -->
+  <xs:simpleType name="TokenRef">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="$[a-zA-Z_][a-zA-Z0-9_\-]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Неотрицательное число (размеры, отступы между детьми) / A non-negative number (sizes, gaps) -->
+  <xs:simpleType name="NonNegativeNumber">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Размер в пикселях или ссылка темы / A size in pixels or a theme reference -->
+  <xs:simpleType name="Size">
+    <xs:union memberTypes="NonNegativeNumber TokenRef"/>
+  </xs:simpleType>
+
+  <!-- Число со знаком или ссылка темы / A signed number or a theme reference -->
+  <xs:simpleType name="Number">
+    <xs:union memberTypes="xs:decimal TokenRef"/>
+  </xs:simpleType>
+
+  <!-- Непрозрачность 0..1 / An opacity 0..1 -->
+  <xs:simpleType name="UnitInterval">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Opacity">
+    <xs:union memberTypes="UnitInterval TokenRef"/>
+  </xs:simpleType>
+
+  <!-- Длина: auto, пиксели, проценты / A length: auto, pixels, percent -->
+  <xs:simpleType name="Length">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="auto|([0-9]+(\.[0-9]*)?|\.[0-9]+)(px|%)?|$[a-zA-Z_][a-zA-Z0-9_\-]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Отступы: 1–4 числа через пробелы или запятые / Insets: 1–4 numbers separated by spaces or commas -->
+  <xs:simpleType name="Insets">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(-?([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)([ ,]+(-?([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)){0,3}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Радиусы углов: 1–4 неотрицательных числа / Corner radii: 1–4 non-negative numbers -->
+  <xs:simpleType name="Radii">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)([ ,]+(([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)){0,3}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Цвет: #hex, rgb()/rgba()/hsl()/hsla(), имя CSS, ссылка темы / A color: #hex, rgb()/rgba()/hsl()/hsla(), a CSS name, a theme reference -->
+  <xs:simpleType name="Color">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgba?|hsla?)\([^()]+\)|[a-zA-Z]+|$[a-zA-Z_][a-zA-Z0-9_\-]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Заливка: none, цвет или градиент CSS / A fill: none, a color or a CSS gradient -->
+  <xs:simpleType name="Paint">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgba?|hsla?)\([^()]+\)|[a-zA-Z]+|$[a-zA-Z_][a-zA-Z0-9_\-]*|(linear|radial|conic)-gradient\(.+\)"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Тени box-shadow: смысл проверяет парсер (точные сообщения) / box-shadow shadows: the parser checks the meaning -->
+  <xs:simpleType name="Shadows">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Дорожки сетки только через запятые: число дорожек нужно утверждениям Grid -->
+  <!-- Grid tracks separated only by commas: the Grid assertions need the track count -->
+  <xs:simpleType name="Tracks">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(auto|([0-9]+(\.[0-9]*)?|\.[0-9]+)(px|fr)?|minmax\([^(),]+,[^(),]+\))( *, *(auto|([0-9]+(\.[0-9]*)?|\.[0-9]+)(px|fr)?|minmax\([^(),]+,[^(),]+\)))*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Переходы: "свойство длительность [кривая] [задержка], ..." / Transitions: "property duration [curve] [delay], ..." -->
+  <xs:simpleType name="Transitions">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[a-zA-Z][a-zA-Z\-]* +[0-9.]+m?s.*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Преобразования: none или функции подряд / Transforms: none or functions in a row -->
+  <xs:simpleType name="Transform">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="none|( *[a-zA-Z]+\([^()]*\) *)+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Точка начала преобразования: доли или ключевые слова / The transform origin: fractions or keywords -->
+  <xs:simpleType name="Origin">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(left|center|right|[0-9.]+%?) +(top|center|bottom|[0-9.]+%?)"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Имя действия приложения (onClick="onContinue") / An application action name -->
+  <xs:simpleType name="Action">
+    <xs:restriction base="xs:NCName"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="Orientation">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="horizontal"/>
+      <xs:enumeration value="vertical"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Justify">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="start"/>
+      <xs:enumeration value="center"/>
+      <xs:enumeration value="end"/>
+      <xs:enumeration value="space-between"/>
+      <xs:enumeration value="space-around"/>
+      <xs:enumeration value="space-evenly"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Align">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="start"/>
+      <xs:enumeration value="center"/>
+      <xs:enumeration value="end"/>
+      <xs:enumeration value="stretch"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="AlignSelf">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="auto"/>
+      <xs:enumeration value="start"/>
+      <xs:enumeration value="center"/>
+      <xs:enumeration value="end"/>
+      <xs:enumeration value="stretch"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TextAlign">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="start"/>
+      <xs:enumeration value="center"/>
+      <xs:enumeration value="end"/>
+      <xs:enumeration value="justify"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Overflow">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="visible"/>
+      <xs:enumeration value="hidden"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="Cursor">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="default"/>
+      <xs:enumeration value="pointer"/>
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="move"/>
+      <xs:enumeration value="not-allowed"/>
+      <xs:enumeration value="grab"/>
+      <xs:enumeration value="ew-resize"/>
+      <xs:enumeration value="ns-resize"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ImageFit">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="fill"/>
+      <xs:enumeration value="contain"/>
+      <xs:enumeration value="cover"/>
+      <xs:enumeration value="none"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ScrollDirection">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="vertical"/>
+      <xs:enumeration value="horizontal"/>
+      <xs:enumeration value="both"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Клавиша отправки TextArea: ctrlEnter — Ctrl+Enter, enter — Enter (Shift+Enter — новая строка) -->
+  <!-- The TextArea submit key: ctrlEnter — Ctrl+Enter, enter — Enter (Shift+Enter is a new line) -->
+  <xs:simpleType name="SubmitKey">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="ctrlEnter"/>
+      <xs:enumeration value="enter"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="FontStyle">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="normal"/>
+      <xs:enumeration value="italic"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="FontWeightName">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="normal"/>
+      <xs:enumeration value="bold"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="FontWeightNumber">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="1"/>
+      <xs:maxInclusive value="1000"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="FontWeight">
+    <xs:union memberTypes="FontWeightName FontWeightNumber"/>
+  </xs:simpleType>
+
+  <xs:simpleType name="TextWrap">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="wrap"/>
+      <xs:enumeration value="nowrap"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Линия оформления: подчёркивание (ссылки) или зачёркивание / The decoration line: an underline (links) or a line-through -->
+  <xs:simpleType name="TextDecoration">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="underline"/>
+      <xs:enumeration value="lineThrough"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TextOverflow">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="clip"/>
+      <xs:enumeration value="ellipsis"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ================= Группы атрибутов / Attribute groups ================= -->
+
+  <!-- Размер и место блока в родителе / The box size and its place in the parent -->
+  <xs:attributeGroup name="BoxAttributes">
+    <xs:attribute name="width" type="Length"/>
+    <xs:attribute name="height" type="Length"/>
+    <xs:attribute name="minWidth" type="Size"/>
+    <xs:attribute name="maxWidth" type="Size"/>
+    <xs:attribute name="minHeight" type="Size"/>
+    <xs:attribute name="maxHeight" type="Size"/>
+    <xs:attribute name="margin" type="Insets"/>
+    <xs:attribute name="padding" type="Insets"/>
+    <xs:attribute name="grow" type="NonNegativeNumber"/>
+    <xs:attribute name="shrink" type="NonNegativeNumber"/>
+    <xs:attribute name="alignSelf" type="AlignSelf"/>
+    <xs:attribute name="gridRow" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="gridColumn" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="gridRowSpan" type="xs:positiveInteger"/>
+    <xs:attribute name="gridColumnSpan" type="xs:positiveInteger"/>
+    <xs:attribute name="left" type="Number"/>
+    <xs:attribute name="top" type="Number"/>
+    <xs:attribute name="right" type="Number"/>
+    <xs:attribute name="bottom" type="Number"/>
+    <xs:attribute name="zIndex" type="xs:integer"/>
+  </xs:attributeGroup>
+
+  <!-- Внешний вид (разрешён и в состояниях) / The appearance (also allowed in states) -->
+  <xs:attributeGroup name="VisualAttributes">
+    <xs:attribute name="background" type="Paint"/>
+    <xs:attribute name="borderColor" type="Color"/>
+    <xs:attribute name="borderWidth" type="Radii"/>
+    <xs:attribute name="borderRadius" type="Radii"/>
+    <xs:attribute name="boxShadow" type="Shadows"/>
+    <xs:attribute name="opacity" type="Opacity"/>
+    <xs:attribute name="transform" type="Transform"/>
+    <xs:attribute name="transformOrigin" type="Origin"/>
+    <xs:attribute name="backdropBlur" type="Size"/>
+    <xs:attribute name="cursor" type="Cursor"/>
+  </xs:attributeGroup>
+
+  <!-- Текст: наследуется от родителя, как в CSS / Text: inherited from the parent, as in CSS -->
+  <xs:attributeGroup name="TextAttributes">
+    <xs:attribute name="color" type="Color"/>
+    <xs:attribute name="fontFamily" type="xs:string"/>
+    <xs:attribute name="fontSize" type="Size"/>
+    <xs:attribute name="fontWeight" type="FontWeight"/>
+    <xs:attribute name="fontStyle" type="FontStyle"/>
+    <xs:attribute name="lineHeight" type="Size"/>
+    <xs:attribute name="letterSpacing" type="Number"/>
+    <xs:attribute name="textAlign" type="TextAlign"/>
+    <xs:attribute name="textWrap" type="TextWrap"/>
+    <xs:attribute name="textOverflow" type="TextOverflow"/>
+    <xs:attribute name="maxLines" type="xs:positiveInteger"/>
+    <xs:attribute name="textDecoration" type="TextDecoration"/>
+    <xs:attribute name="accentColor" type="Color"/>
+  </xs:attributeGroup>
+
+  <!-- Расположение детей стека / The stack children arrangement -->
+  <xs:attributeGroup name="StackAttributes">
+    <xs:attribute name="orientation" type="Orientation"/>
+    <xs:attribute name="spacing" type="Size"/>
+    <xs:attribute name="justify" type="Justify"/>
+    <xs:attribute name="align" type="Align"/>
+    <xs:attribute name="wrap" type="xs:boolean"/>
+  </xs:attributeGroup>
+
+  <!-- Дорожки сетки / The grid tracks -->
+  <xs:attributeGroup name="GridAttributes">
+    <xs:attribute name="rows" type="Tracks"/>
+    <xs:attribute name="columns" type="Tracks"/>
+    <xs:attribute name="rowSpacing" type="Size"/>
+    <xs:attribute name="columnSpacing" type="Size"/>
+  </xs:attributeGroup>
+
+  <!-- Всё, что можно задать стилем / Everything a style can set -->
+  <xs:attributeGroup name="StyleAttributes">
+    <xs:attributeGroup ref="BoxAttributes"/>
+    <xs:attributeGroup ref="VisualAttributes"/>
+    <xs:attributeGroup ref="TextAttributes"/>
+    <xs:attributeGroup ref="StackAttributes"/>
+    <xs:attributeGroup ref="GridAttributes"/>
+    <xs:attribute name="overflow" type="Overflow"/>
+    <xs:attribute name="transition" type="Transitions"/>
+  </xs:attributeGroup>
+
+  <!-- ================= Состояния / States ================= -->
+
+  <!-- Состояние меняет только вид, не компоновку: hover никогда не двигает соседей -->
+  <!-- A state changes only the look, not the layout: hover never moves the neighbours -->
+  <xs:complexType name="StateType">
+    <xs:attributeGroup ref="VisualAttributes"/>
+    <xs:attributeGroup ref="TextAttributes"/>
+  </xs:complexType>
+
+  <xs:group name="States">
+    <xs:sequence>
+      <xs:element name="Hover" type="StateType" minOccurs="0"/>
+      <xs:element name="Pressed" type="StateType" minOccurs="0"/>
+      <xs:element name="Focused" type="StateType" minOccurs="0"/>
+      <xs:element name="Disabled" type="StateType" minOccurs="0"/>
+      <xs:element name="Checked" type="StateType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:group>
+
+  <!-- ================= Элементы интерфейса / UI elements ================= -->
+
+  <xs:group name="UiElement">
+    <xs:choice>
+      <xs:element name="Stack" type="StackType"/>
+      <xs:element name="Box" type="StackType"/>
+      <xs:element name="Grid" type="GridType"/>
+      <xs:element name="Canvas" type="CanvasType"/>
+      <xs:element name="Scroll" type="ScrollType"/>
+      <xs:element name="Text" type="TextType"/>
+      <xs:element name="Image" type="ImageType"/>
+      <xs:element name="Button" type="ButtonType"/>
+      <xs:element name="Input" type="InputType"/>
+      <xs:element name="CheckBox" type="CheckBoxType"/>
+      <xs:element name="Slider" type="SliderType"/>
+      <xs:element name="TextArea" type="TextAreaType"/>
+      <xs:element name="Popup" type="PopupType"/>
+      <xs:element name="MenuItem" type="MenuItemType"/>
+    </xs:choice>
+  </xs:group>
+
+  <!--
+    Основа всех элементов. mixed="true" нужен Text и Button (текст внутри тега); контейнерам
+    текст запрещают утверждения типов-контейнеров. Утверждения основы наследуются всеми элементами.
+    The base of all elements. mixed="true" is needed by Text and Button (text inside the tag);
+    the container type assertions forbid text in containers. The base assertions are inherited by all elements.
+  -->
+  <xs:complexType name="ElementBase" mixed="true">
+    <xs:group ref="States"/>
+    <xs:attribute name="id" type="xs:NCName"/>
+    <xs:attribute name="style" type="xs:NCName"/>
+    <xs:attribute name="visible" type="xs:boolean"/>
+    <xs:attribute name="enabled" type="xs:boolean"/>
+    <xs:attribute name="tooltip" type="xs:string"/>
+    <xs:attribute name="onClick" type="Action"/>
+    <xs:attribute name="overflow" type="Overflow"/>
+    <xs:attribute name="transition" type="Transitions"/>
+    <xs:attributeGroup ref="BoxAttributes"/>
+    <xs:attributeGroup ref="VisualAttributes"/>
+    <xs:attributeGroup ref="TextAttributes"/>
+    <!-- Минимум не больше максимума (ссылки темы проверяются после подстановки) -->
+    <!-- The minimum is not above the maximum (theme references are checked after substitution) -->
+    <xs:assert test="not(@minWidth and @maxWidth) or starts-with(@minWidth, '$') or starts-with(@maxWidth, '$')
+                     or number(@minWidth) &lt;= number(@maxWidth)"/>
+    <xs:assert test="not(@minHeight and @maxHeight) or starts-with(@minHeight, '$') or starts-with(@maxHeight, '$')
+                     or number(@minHeight) &lt;= number(@maxHeight)"/>
+    <!-- Канвас задаёт либо left, либо right (иначе ширина неоднозначна вместе с width) -->
+    <!-- A canvas child sets left or right, not both together with width (the width would be ambiguous) -->
+    <xs:assert test="not(@left and @right and @width)"/>
+    <xs:assert test="not(@top and @bottom and @height)"/>
+  </xs:complexType>
+
+  <!--
+    Общая основа контейнеров: к ElementBase добавляет модель «любые элементы интерфейса».
+    Текст внутри тега контейнеры запрещают сами (Button его разрешает).
+    The common container base: adds the "any UI elements" model to ElementBase.
+    Containers forbid text inside the tag themselves (Button allows it).
+  -->
+  <xs:complexType name="ContainerBase" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:group ref="UiElement" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="CanvasType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="StackType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Сетка: строка и столбец ребёнка (с учётом span) помещаются в объявленные дорожки.
+    Число дорожек = число запятых − число '(' (у каждой minmax одна запятая внутри) + 1.
+    A grid: a child's row and column (with span) fit into the declared tracks.
+    The track count = the comma count − the '(' count (each minmax has one comma inside) + 1.
+  -->
+  <xs:complexType name="GridType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attributeGroup ref="GridAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+        <xs:assert test="every $c in * satisfies (not($c/@gridRow) or
+            $c/@gridRow + (if ($c/@gridRowSpan) then $c/@gridRowSpan else 1)
+            &lt;= string-length(@rows) - string-length(translate(@rows, ',', ''))
+               - (string-length(@rows) - string-length(translate(@rows, '(', ''))) + 1)"/>
+        <xs:assert test="every $c in * satisfies (not($c/@gridColumn) or
+            $c/@gridColumn + (if ($c/@gridColumnSpan) then $c/@gridColumnSpan else 1)
+            &lt;= string-length(@columns) - string-length(translate(@columns, ',', ''))
+               - (string-length(@columns) - string-length(translate(@columns, '(', ''))) + 1)"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Прокрутка: ровно один элемент содержимого / A scroll: exactly one content element -->
+  <xs:complexType name="ScrollType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:group ref="UiElement"/>
+        <xs:attribute name="direction" type="ScrollDirection"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Текст: из атрибута value или из содержимого тега, но не из обоих. Содержимое может состоять
+    из участков <Span> (жирный, моноширинный, цвет, ссылка onClick) вперемешку с обычным текстом.
+    Text: from the value attribute or from the tag content, but not from both. The content may consist
+    of <Span> runs (bold, monospace, a color, an onClick link) mixed with plain text.
+  -->
+  <xs:complexType name="TextType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="Span" type="SpanType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:assert test="not(@value and normalize-space(.) != '')"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Участок текста: только текст и состояния (Hover у ссылки); свойства блока (размеры, отступы,
+    рамки) у участка не действуют — он часть строки, а не блок.
+    A text run: text and states only (Hover of a link); the box properties (sizes, paddings,
+    borders) do not act on a run — it is a part of a line, not a box.
+  -->
+  <xs:complexType name="SpanType" mixed="true">
+    <xs:sequence>
+      <xs:group ref="States"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:NCName"/>
+    <xs:attribute name="style" type="xs:NCName"/>
+    <xs:attribute name="tooltip" type="xs:string"/>
+    <xs:attribute name="onClick" type="Action"/>
+    <xs:attribute name="background" type="Paint"/>
+    <xs:attribute name="cursor" type="Cursor"/>
+    <xs:attributeGroup ref="TextAttributes"/>
+  </xs:complexType>
+
+  <xs:complexType name="ImageType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="source" type="xs:string" use="required"/>
+        <xs:attribute name="fit" type="ImageFit"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Кнопка: подпись из text, из текста тега или из детей (значок + подпись) -->
+  <!-- A button: the label from text, from the tag text or from children (an icon + a label) -->
+  <xs:complexType name="ButtonType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attribute name="text" type="xs:string"/>
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="@text or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
+                         or self::Focused or self::Disabled or self::Checked)]"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Поле ввода: длина значения не больше maxLength / An input: the value length is not above maxLength -->
+  <xs:complexType name="InputType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="placeholder" type="xs:string"/>
+        <xs:attribute name="maxLength" type="xs:positiveInteger"/>
+        <xs:attribute name="password" type="xs:boolean"/>
+        <xs:attribute name="readOnly" type="xs:boolean"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:attribute name="onSubmit" type="Action"/>
+        <xs:assert test="not(@maxLength) or not(@value) or string-length(@value) &lt;= @maxLength"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Многострочное поле: значение из value или из текста тега (переводы строк сохраняются), не из обоих;
+    rows — наименьшая высота в строках, дальше поле растёт по содержимому до maxHeight и прокручивается.
+    A multi-line input: the value from value or from the tag text (line breaks are kept), not from both;
+    rows is the least height in lines, beyond it the field grows with the content up to maxHeight and scrolls.
+  -->
+  <xs:complexType name="TextAreaType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="placeholder" type="xs:string"/>
+        <xs:attribute name="maxLength" type="xs:positiveInteger"/>
+        <xs:attribute name="readOnly" type="xs:boolean"/>
+        <xs:attribute name="rows" type="xs:positiveInteger"/>
+        <xs:attribute name="submitKey" type="SubmitKey"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:attribute name="onSubmit" type="Action"/>
+        <xs:assert test="not(@value and text()[normalize-space(.)])"/>
+        <xs:assert test="not(@maxLength) or not(@value) or string-length(@value) &lt;= @maxLength"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Всплывающий слой: скрыт, пока код не откроет его (Application::showPopup у узла или в точке);
+    в компоновке родителя не участвует, рисуется поверх всего. Закрывается Esc и щелчком мимо.
+    A popup layer: hidden until the code opens it (Application::showPopup at a node or at a point);
+    it does not take part in the parent layout and is painted over everything. Esc and a click outside close it.
+  -->
+  <xs:complexType name="PopupType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Пункт меню: подпись text, действие onClick; выбор закрывает меню / A menu item: the text label, the onClick action; choosing it closes the menu -->
+  <xs:complexType name="MenuItemType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="text" type="xs:string" use="required"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="CheckBoxType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="checked" type="xs:boolean"/>
+        <xs:attribute name="text" type="xs:string"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Ползунок: min < max, min ≤ value ≤ max, шаг положителен и не больше диапазона -->
+  <!-- A slider: min < max, min ≤ value ≤ max, the step is positive and not above the range -->
+  <xs:complexType name="SliderType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="min" type="xs:decimal" default="0"/>
+        <xs:attribute name="max" type="xs:decimal" default="100"/>
+        <xs:attribute name="value" type="xs:decimal"/>
+        <xs:attribute name="step" type="xs:decimal"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:assert test="@min lt @max"/>
+        <xs:assert test="not(@value) or (@value ge @min and @value le @max)"/>
+        <xs:assert test="not(@step) or (@step gt 0 and @step le @max - @min)"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- ================= Ресурсы / Resources ================= -->
+
+  <xs:complexType name="TokenType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+    <!-- Значение темы не ссылается на другое: подстановка в один проход / A theme value does not refer to another -->
+    <xs:assert test="not(contains(@value, '$'))"/>
+  </xs:complexType>
+
+  <xs:complexType name="ThemeType">
+    <xs:sequence>
+      <xs:element name="Token" type="TokenType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="FontType">
+    <xs:attribute name="family" type="xs:string" use="required"/>
+    <xs:attribute name="source" type="xs:string" use="required"/>
+    <xs:attribute name="weight" type="FontWeight"/>
+    <xs:attribute name="italic" type="xs:boolean"/>
+  </xs:complexType>
+
+  <!-- Стиль: именованный набор свойств, может наследовать другой (basedOn) / A style: a named property set, may inherit another -->
+  <xs:complexType name="StyleType">
+    <xs:group ref="States"/>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="basedOn" type="xs:NCName"/>
+    <xs:attributeGroup ref="StyleAttributes"/>
+    <xs:assert test="not(@basedOn = @name)"/>
+  </xs:complexType>
+
+  <xs:complexType name="ResourcesType">
+    <xs:sequence>
+      <xs:element name="Theme" type="ThemeType" minOccurs="0"/>
+      <xs:element name="Font" type="FontType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- ================= Окно / Window ================= -->
+
+  <xs:complexType name="WindowType">
+    <xs:sequence>
+      <xs:element name="Resources" type="ResourcesType" minOccurs="0"/>
+      <xs:group ref="UiElement"/>
+    </xs:sequence>
+    <xs:attribute name="title" type="xs:string"/>
+    <xs:attribute name="width" type="NonNegativeNumber" default="800"/>
+    <xs:attribute name="height" type="NonNegativeNumber" default="600"/>
+    <xs:attribute name="minWidth" type="NonNegativeNumber"/>
+    <xs:attribute name="minHeight" type="NonNegativeNumber"/>
+    <xs:attribute name="resizable" type="xs:boolean"/>
+    <xs:attribute name="background" type="Paint"/>
+    <xs:attributeGroup ref="TextAttributes"/>
+    <xs:assert test="not(@minWidth) or @minWidth le @width"/>
+    <xs:assert test="not(@minHeight) or @minHeight le @height"/>
+  </xs:complexType>
+
+  <xs:element name="Window" type="WindowType">
+    <!-- id уникальны в окне / ids are unique in a window -->
+    <xs:unique name="uniqueId">
+      <xs:selector xpath=".//*"/>
+      <xs:field xpath="@id"/>
+    </xs:unique>
+    <!-- Имена значений темы уникальны / Theme value names are unique -->
+    <xs:unique name="uniqueToken">
+      <xs:selector xpath="Resources/Theme/Token"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <!-- Стили объявлены один раз; style и basedOn ссылаются только на объявленные -->
+    <!-- Styles are declared once; style and basedOn refer only to declared ones -->
+    <xs:key name="styleKey">
+      <xs:selector xpath="Resources/Style"/>
+      <xs:field xpath="@name"/>
+    </xs:key>
+    <xs:keyref name="styleRef" refer="styleKey">
+      <xs:selector xpath=".//*"/>
+      <xs:field xpath="@style"/>
+    </xs:keyref>
+    <xs:keyref name="basedOnRef" refer="styleKey">
+      <xs:selector xpath="Resources/Style"/>
+      <xs:field xpath="@basedOn"/>
+    </xs:keyref>
+  </xs:element>
+</xs:schema>

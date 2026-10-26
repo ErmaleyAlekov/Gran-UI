@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Стекло (backdropBlur), картинки и прокрутка / Glass (backdropBlur), images and scrolling -->
+<Window title="Gran UI — стекло" width="760" height="480" background="#0b0d14" color="#f1f3f9" fontSize="14">
+  <Canvas>
+    <Box left="40" top="40" width="260" height="260" borderRadius="130"
+         background="radial-gradient(circle, #ff5f8f, rgba(255, 95, 143, 0))"/>
+    <Box left="380" top="170" width="320" height="280" borderRadius="160"
+         background="radial-gradient(circle, #4f8bff, rgba(79, 139, 255, 0))"/>
+    <Box left="250" top="10" width="200" height="200" borderRadius="100"
+         background="linear-gradient(135deg, #ffd166, #06d6a0)"/>
+    <Image left="560" top="30" width="128" height="128" source="assets/orb.png"/>
+    <Stack left="120" top="120" width="520" height="260" padding="24" spacing="14"
+           background="rgba(255, 255, 255, 0.10)" borderWidth="1" borderColor="rgba(255, 255, 255, 0.25)"
+           borderRadius="20" backdropBlur="24" boxShadow="0 20 50 rgba(0, 0, 0, 0.45)">
+      <Text fontSize="22" fontWeight="700">Матовое стекло</Text>
+      <Text color="rgba(241, 243, 249, 0.75)">backdropBlur размывает всё, что нарисовано под карточкой: двойной Kawase на GPU.</Text>
+      <Scroll height="120" background="rgba(0, 0, 0, 0.18)" borderRadius="12" padding="10">
+        <Stack spacing="8">
+          <Text>Строка 1 — прокрутка колесом</Text>
+          <Text>Строка 2</Text>
+          <Text>Строка 3</Text>
+          <Text>Строка 4</Text>
+          <Text>Строка 5</Text>
+          <Text>Строка 6</Text>
+          <Text>Строка 7</Text>
+          <Text>Строка 8</Text>
+        </Stack>
+      </Scroll>
+    </Stack>
+  </Canvas>
+</Window>

@@ -1,0 +1,7 @@
+Метка для Makefile и CMakeLists.txt: gran_chat собирается как оконная программа Windows без консоли
+(подсистема WINDOWS: -mwindows в MinGW, WIN32_EXECUTABLE + /ENTRY:mainCRTStartup в MSVC).
+Фатальные ошибки показываются окном сообщения (platform/fatal_error.cpp).
+
+A marker for the Makefile and CMakeLists.txt: gran_chat is built as a Windows windowed program without a console
+(the WINDOWS subsystem: -mwindows in MinGW, WIN32_EXECUTABLE + /ENTRY:mainCRTStartup in MSVC).
+Fatal errors are shown in a message box (platform/fatal_error.cpp).

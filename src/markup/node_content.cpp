@@ -1,0 +1,101 @@
+#include "gran/markup/internal/build_context.hpp"
+#include "gran/style/value_parsers.hpp"
+
+namespace gran::markup::internal
+{
+    namespace
+    {
+        using C = ui::NodeContent;
+
+        // Строковые поля содержимого / The string content fields
+        const struct { const char* name; std::string C::* member; } STRINGS[] = {
+            {"text", &C::text}, {"placeholder", &C::placeholder}, {"source", &C::source},
+            {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
+            {"onSubmit", &C::onSubmit}};
+
+        // Числовые поля / The numeric fields
+        const struct { const char* name; float C::* member; } NUMBERS[] = {
+            {"min", &C::minimum}, {"max", &C::maximum}, {"step", &C::step}};
+
+        // Логические поля / The boolean fields
+        const struct { const char* name; bool C::* member; } BOOLEANS[] = {
+            {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}};
+
+        // Перечисления (fit у Image, direction у Scroll, submitKey у TextArea) и целые числа
+    // The enumerations (fit of Image, direction of Scroll, submitKey of TextArea) and the integers
+        bool readEnumeration(ui::Node& node, std::string_view name, const std::string& value)
+        {
+            static const style::Keyword FITS[] = {{"fill", 0}, {"contain", 1}, {"cover", 2}, {"none", 3}};
+            static const style::Keyword DIRECTIONS[] = {{"vertical", 0}, {"horizontal", 1}, {"both", 2}};
+            static const style::Keyword SUBMITS[] = {{"ctrlEnter", 0}, {"enter", 1}};
+
+            if (name == "fit")
+                node.content.fit = static_cast<ui::ImageFit>(style::parseKeyword(value, FITS, 4));
+            else if (name == "direction")
+                node.content.direction = static_cast<ui::ScrollDirection>(style::parseKeyword(value, DIRECTIONS, 3));
+            else if (name == "submitKey")
+                node.content.submitKey = static_cast<ui::SubmitKey>(style::parseKeyword(value, SUBMITS, 2));
+            else if (name == "maxLength")
+                node.content.maxLength = static_cast<std::size_t>(style::parseNumber(value));
+            else if (name == "rows" && node.kind == ui::ElementKind::TEXT_AREA)
+                node.content.rows = static_cast<std::size_t>(style::parseNumber(value));
+            else
+                return false;
+            return true;
+        }
+
+        // value: число у Slider, текст у прочих / value: a number for Slider, a text for the others
+        void readValue(ui::Node& node, const std::string& value)
+        {
+            if (node.kind == ui::ElementKind::SLIDER)
+                node.content.value = style::parseNumber(value);
+            else
+                node.content.text = value;
+        }
+
+        // Поле из таблиц строк, чисел и логических значений; false — имени в таблицах нет
+        // A field from the string, number and boolean tables; false — the name is not in the tables
+        bool readField(ui::NodeContent& content, std::string_view name, const std::string& value)
+        {
+            for (const auto& field : STRINGS)
+            {
+                if (name == field.name)
+                {
+                    content.*field.member = value;
+                    return true;
+                }
+            }
+            for (const auto& field : NUMBERS)
+            {
+                if (name == field.name)
+                {
+                    content.*field.member = style::parseNumber(value);
+                    return true;
+                }
+            }
+            for (const auto& field : BOOLEANS)
+            {
+                if (name == field.name)
+                {
+                    content.*field.member = style::parseBoolean(value);
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    // Атрибут содержимого по таблицам; значения уже проверены схемой
+    // A content attribute by the tables; the values are already checked by the schema
+    bool readContentAttribute(ui::Node& node, std::string_view name, const std::string& value)
+    {
+        if (name == "value")
+        {
+            readValue(node, value);
+            return true;
+        }
+        if (readField(node.content, name, value))
+            return true;
+        return readEnumeration(node, name, value);
+    }
+}

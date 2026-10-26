@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Многострочные поля: рост по содержимому, maxHeight с прокруткой, подсказка / Multi-line inputs: growing with the content, maxHeight with scrolling, a placeholder -->
+<Window title="Gran UI — TextArea" width="640" height="460" background="#f5f6f8">
+  <Stack padding="24" spacing="14">
+    <Text fontSize="18" fontWeight="600">Многострочное поле</Text>
+    <TextArea id="note" rows="3">Первая строка
+Вторая строка — длинная, она переносится по ширине поля, а не уходит за его край вправо.
+
+После пустой строки.</TextArea>
+    <TextArea id="log" rows="1" maxHeight="96" submitKey="enter">1. Строка
+2. Строка
+3. Строка
+4. Строка
+5. Строка
+6. Строка</TextArea>
+    <TextArea id="empty" rows="2" placeholder="Напишите сообщение… (Ctrl+Enter — отправить)"/>
+    <Stack orientation="horizontal" spacing="8" align="end">
+      <TextArea id="chat" rows="1" maxHeight="120" grow="1" submitKey="enter" placeholder="Сообщение"/>
+      <Button text="Отправить"/>
+    </Stack>
+  </Stack>
+</Window>

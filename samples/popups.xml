@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Всплывающие слои: выпадающее меню у кнопки (Popup + MenuItem), подсказки tooltip, контекстное меню
+  текста и полей (правый щелчок). Запуск: gran_gallery samples/popups.xml
+
+  Popup layers: a drop-down menu at a button (Popup + MenuItem), tooltips, the context menu
+  of texts and fields (a right click). Run: gran_gallery samples/popups.xml
+-->
+<Window title="Gran UI — всплывающие слои" width="640" height="420" background="#f5f6f8">
+  <Stack padding="24" spacing="14">
+    <Stack orientation="horizontal" spacing="10" align="center">
+      <Button id="more" text="Файл ▾" onClick="more" tooltip="Меню действий с файлом"/>
+      <Button text="Сохранить" onClick="save" tooltip="Сохранить имя из поля ниже"/>
+      <Text id="status" color="#667085" tooltip="Строка состояния">Готово</Text>
+    </Stack>
+    <Input id="name" placeholder="Имя файла" value="отчёт.txt"/>
+    <TextArea id="notes" rows="3" placeholder="Заметки…">Правый щелчок по полю или тексту открывает
+контекстное меню: Копировать, Вставить, Выделить всё.</TextArea>
+    <Text id="para" lineHeight="1.5">Этот абзац тоже можно выделить мышью и скопировать через контекстное меню.
+      Наведите мышь на кнопки — через полсекунды появится подсказка.</Text>
+    <Popup id="moreMenu">
+      <MenuItem text="Новый" onClick="new"/>
+      <MenuItem text="Открыть…" onClick="open"/>
+      <MenuItem text="Сохранить" onClick="save"/>
+      <MenuItem text="Экспорт в PDF" enabled="false"/>
+    </Popup>
+  </Stack>
+</Window>

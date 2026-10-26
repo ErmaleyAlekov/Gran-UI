@@ -1,0 +1,298 @@
+# ============================================================================
+#  Gran UI — кроссплатформенный Makefile (GCC / Clang / MinGW)
+#
+#  Цели:
+#    make               — библиотека bin/libgran.a, примеры и инструменты
+#    make test          — собрать и запустить модульные тесты
+#    make shaders       — HLSL → DXIL (+ SPIR-V при VULKAN=1) → src/rhi/shaders_gen/*.cpp (нужен dxc)
+#    make beresta       — собрать статическую «Берёсту» в BERESTA_DIR
+#    make clean / fclean / re / platform
+#
+#  Переменные:
+#    BERESTA_DIR=путь   — каталог «Берёсты» (по умолчанию ../Dom lib C++)
+#    DEBUG=1            — -O0 -g, отладочные слои D3D12 / Vulkan
+#    VULKAN=1           — собрать бэкенд Vulkan (нужен Vulkan SDK: VULKAN_SDK)
+#    DXC=путь           — компилятор шейдеров dxc
+# ============================================================================
+#  Gran UI — a cross-platform Makefile (GCC / Clang / MinGW)
+#
+#  Targets:
+#    make               — the bin/libgran.a library, the examples and the tools
+#    make test          — build and run the unit tests
+#    make shaders       — HLSL → DXIL (+ SPIR-V with VULKAN=1) → src/rhi/shaders_gen/*.cpp (needs dxc)
+#    make beresta       — build the static Beresta library in BERESTA_DIR
+#    make clean / fclean / re / platform
+#
+#  Variables:
+#    BERESTA_DIR=path   — the Beresta directory (default ../Dom lib C++)
+#    DEBUG=1            — -O0 -g, the D3D12 / Vulkan debug layers
+#    VULKAN=1           — build the Vulkan backend (needs the Vulkan SDK: VULKAN_SDK)
+#    DXC=path           — the dxc shader compiler
+# ============================================================================
+
+# ---- Имена и каталоги -------------------------------------------------------
+# ---- Names and directories -------------------------------------------------------
+NAME        := libgran.a
+SRC_DIR     := src
+INC_DIR     := include
+OBJ_DIR     := obj
+DEP_DIR     := dep
+BIN_DIR     := bin
+GEN_DIR     := gen
+TEST_DIR    := tests
+EXAMPLE_DIR := examples
+TOOL_DIR    := tools
+
+# Путь к «Берёсте» может содержать пробелы: он используется только в кавычках
+# The Beresta path may contain spaces: it is used only inside quotes
+BERESTA_DIR ?= ../Dom lib C++
+BERESTA_LIB  = "$(BERESTA_DIR)/bin/libberesta.a"
+
+DEBUG       ?= 0
+VULKAN      ?= 0
+
+# ---- Компилятор и флаги -------------------------------------------------------
+# ---- The compiler and flags -------------------------------------------------------
+ifeq ($(origin CXX),default)
+    CXX     := g++
+endif
+CXXFLAGS    := -std=c++17 -Wall -Wextra -Wpedantic -Wshadow
+INCLUDES    := -I$(INC_DIR) -I"$(BERESTA_DIR)/include"
+ifeq ($(DEBUG),1)
+    CXXFLAGS += -O0 -g -DGRAN_DEBUG=1
+else
+    CXXFLAGS += -O2 -DNDEBUG
+endif
+ifeq ($(VULKAN),1)
+    CXXFLAGS += -DGRAN_WITH_VULKAN=1
+    INCLUDES += -I"$(VULKAN_SDK)/Include" -I"$(VULKAN_SDK)/include"
+endif
+ARFLAGS     := rcs
+
+# ---- Определение ОС ----------------------------------------------------------
+# На Windows явно используется cmd.exe: поведение не зависит от sh.exe в PATH
+# On Windows cmd.exe is used explicitly: the behavior does not depend on sh.exe in PATH
+ifeq ($(OS),Windows_NT)
+    PLATFORM_OS := windows
+else
+    UNAME_S     := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+        PLATFORM_OS := macos
+    else
+        PLATFORM_OS := linux
+    endif
+endif
+
+# ---- Платформенные особенности -------------------------------------------------
+# PLATFORM_DIRS — подкаталоги src/, которые собираются только на этой ОС
+# PLATFORM_DIRS — the src/ subdirectories that are built only on this OS
+ifeq ($(PLATFORM_OS),windows)
+    SHELL          := cmd.exe
+    .SHELLFLAGS    := /C
+    EXE            := .exe
+    PLATFORM_DIRS  := platform/win32 rhi/dx12
+    SYSTEM_LIBS    := -static -ld3d12 -ldxgi -ldxguid -ldwmapi -lshcore -limm32 \
+                      -luiautomationcore -loleaut32 -lole32 -luuid -luser32 -lgdi32 -lshell32
+    native          = $(subst /,\,$(1))
+    MKDIR           = if not exist "$(call native,$(1))" mkdir "$(call native,$(1))"
+    RMDIR           = if exist "$(call native,$(1))" rmdir /S /Q "$(call native,$(1))"
+    RMFILE          = if exist "$(call native,$(1))" del /Q "$(call native,$(1))"
+    DXC            ?= C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/dxc.exe
+else
+    EXE            :=
+    native          = $(1)
+    MKDIR           = mkdir -p "$(1)"
+    RMDIR           = rm -rf "$(1)"
+    RMFILE          = rm -f "$(1)"
+    DXC            ?= dxc
+    ifeq ($(PLATFORM_OS),macos)
+        PLATFORM_DIRS := platform/cocoa
+        SYSTEM_LIBS   := -framework Cocoa -framework QuartzCore
+    else
+        PLATFORM_DIRS := platform/x11
+        SYSTEM_LIBS   := -ldl -pthread
+    endif
+endif
+ifeq ($(VULKAN),1)
+    PLATFORM_DIRS += rhi/vulkan
+endif
+
+# Все платформенные каталоги: из общего набора исходников они исключаются
+# All platform directories: they are excluded from the common source set
+ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa rhi/dx12 rhi/vulkan
+
+# ---- Вспомогательные функции ------------------------------------------------
+# Рекурсивный поиск файлов средствами самого make (без внешней утилиты find)
+# A recursive file search with make itself (without the external find utility)
+rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+
+# Путь к .d-файлу для объектного файла: obj/x/y.o -> dep/x/y.d
+# The path to the .d file for an object file: obj/x/y.o -> dep/x/y.d
+dep_of    = $(patsubst $(OBJ_DIR)/%.o,$(DEP_DIR)/%.d,$(1))
+
+# Каталог файла без завершающего слеша: obj/x/y.o -> obj/x
+# The file directory without the trailing slash: obj/x/y.o -> obj/x
+dir_of    = $(patsubst %/,%,$(dir $(1)))
+
+# ---- Наборы исходников -------------------------------------------------------
+# ---- Source sets -------------------------------------------------------
+ALL_LIB_SRC   := $(call rwildcard,$(SRC_DIR),*.cpp)
+EXCLUDED_SRC  := $(foreach d,$(ALL_PLATFORM_DIRS),$(filter $(SRC_DIR)/$(d)/%,$(ALL_LIB_SRC)))
+INCLUDED_SRC  := $(foreach d,$(PLATFORM_DIRS),$(filter $(SRC_DIR)/$(d)/%,$(ALL_LIB_SRC)))
+LIB_SRC       := $(filter-out $(EXCLUDED_SRC),$(ALL_LIB_SRC)) $(INCLUDED_SRC)
+LIB_OBJ       := $(LIB_SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+
+# Сгенерированные исходники: встроенная схема разметки (всегда) из schemas/
+# Generated sources: the embedded markup schema (always) from schemas/
+SCHEMA_XSD    := schemas/gran-ui.xsd
+SCHEMA_CPP    := $(GEN_DIR)/markup/gran_ui_schema.cpp
+SCHEMA_OBJ    := $(OBJ_DIR)/$(GEN_DIR)/markup/gran_ui_schema.o
+THEME_XML     := schemas/default_theme.xml
+THEME_CPP     := $(GEN_DIR)/markup/default_theme.cpp
+THEME_OBJ     := $(OBJ_DIR)/$(GEN_DIR)/markup/default_theme.o
+LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ)
+
+# Инструмент встраивания файлов в C++ (собирается первым, без библиотеки)
+# The tool that embeds files into C++ (built first, without the library)
+EMBED_SRC     := $(TOOL_DIR)/embed/embed_main.cpp
+EMBED_OBJ     := $(OBJ_DIR)/$(TOOL_DIR)/embed/embed_main.o
+EMBED_BIN     := $(BIN_DIR)/gran_embed$(EXE)
+
+TEST_SRC      := $(call rwildcard,$(TEST_DIR)/src,*.cpp)
+TEST_OBJ      := $(TEST_SRC:$(TEST_DIR)/src/%.cpp=$(OBJ_DIR)/$(TEST_DIR)/%.o)
+TEST_BIN      := $(BIN_DIR)/gran_tests$(EXE)
+
+# Переносимая часть примера chat (JSON, chunked, NDJSON, HTTP) проверяется модульными тестами
+# The portable part of the chat example (JSON, chunked, NDJSON, HTTP) is checked by the unit tests
+CHAT_DIR      := $(EXAMPLE_DIR)/chat
+CHAT_COMMON   := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(CHAT_DIR)/common,*.cpp))
+
+# Примеры: каждый подкаталог examples/<имя>/ — отдельная программа bin/gran_<имя>
+# Examples: each examples/<name>/ subdirectory is a separate program bin/gran_<name>
+EXAMPLES      := $(notdir $(patsubst %/,%,$(wildcard $(EXAMPLE_DIR)/*/)))
+ifneq ($(PLATFORM_OS),windows)
+    EXAMPLES  := $(filter-out gallery snapshot chat,$(EXAMPLES))
+endif
+EXAMPLE_BINS  := $(foreach e,$(EXAMPLES),$(BIN_DIR)/gran_$(e)$(EXE))
+
+# Свои системные библиотеки примера: по имени в строке файла examples/<имя>/system_libs.txt
+# The example's own system libraries: one name per line of the examples/<name>/system_libs.txt file
+example_libs  = $(if $(wildcard $(EXAMPLE_DIR)/$(1)/system_libs.txt),$(addprefix -l,$(strip $(file < $(EXAMPLE_DIR)/$(1)/system_libs.txt))))
+
+# Оконная программа без консоли (подсистема WINDOWS): пример с файлом-меткой examples/<имя>/windows_gui.txt
+# A windowed program without a console (the WINDOWS subsystem): an example with the examples/<name>/windows_gui.txt marker file
+example_gui   = $(if $(and $(filter windows,$(PLATFORM_OS)),$(wildcard $(EXAMPLE_DIR)/$(1)/windows_gui.txt)),-mwindows)
+
+LIB_BIN       := $(BIN_DIR)/$(NAME)
+ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(CHAT_COMMON) \
+                 $(foreach e,$(EXAMPLES),$(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(e),*.cpp)))
+ALL_DEP       := $(call dep_of,$(ALL_OBJ))
+ALL_DIRS      := $(sort $(call dir_of,$(ALL_OBJ) $(ALL_DEP) $(SCHEMA_CPP)) $(BIN_DIR))
+
+# -MMD/-MP: зависимости от заголовков в dep/, удалённый заголовок не ломает сборку
+# -MMD/-MP: the header dependencies go to dep/, a removed header does not break the build
+DEPFLAGS      = -MMD -MP -MF $(call dep_of,$@) -MT $@
+
+# ---- Основные цели ----------------------------------------------------------
+# ---- Main targets ----------------------------------------------------------
+.PHONY: all test shaders beresta platform clean fclean re
+
+all: $(LIB_BIN) $(EXAMPLE_BINS)
+
+test: $(TEST_BIN)
+	$(call native,$(TEST_BIN))
+
+# Статическая «Берёста» собирается её собственным Makefile
+# The static Beresta is built by its own Makefile
+beresta:
+	$(MAKE) -C "$(BERESTA_DIR)" bin/libberesta.a
+
+# Архив собирается заново, чтобы объекты удалённых исходников не остались в нём
+# The archive is rebuilt so that the objects of removed sources do not stay in it
+$(LIB_BIN): $(LIB_OBJ) | $(BIN_DIR)
+	@$(call RMFILE,$@)
+	$(AR) $(ARFLAGS) $@ $(LIB_OBJ)
+
+$(TEST_BIN): $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+
+# Шаблон компоновки примера: его объекты + библиотека + «Берёста» + системные библиотеки
+# The example link template: its objects + the library + Beresta + the system libraries
+define EXAMPLE_RULE
+$(BIN_DIR)/gran_$(1)$(EXE): $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(1),*.cpp)) $(LIB_BIN) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $$(filter %.o,$$^) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) $(call example_libs,$(1)) $(call example_gui,$(1)) -o $$@
+endef
+$(foreach e,$(EXAMPLES),$(eval $(call EXAMPLE_RULE,$(e))))
+
+$(EMBED_BIN): $(EMBED_OBJ) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(EMBED_OBJ) -o $@
+
+# Схема разметки превращается в массив байтов gran::generated::GRAN_UI_SCHEMA
+# The markup schema becomes the byte array gran::generated::GRAN_UI_SCHEMA
+$(SCHEMA_CPP): $(SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(SCHEMA_CPP))
+	$(call native,$(EMBED_BIN)) $(SCHEMA_XSD) $@ GRAN_UI_SCHEMA
+
+# Тема по умолчанию — разметка, встроенная как DEFAULT_THEME / The default theme is markup embedded as DEFAULT_THEME
+$(THEME_CPP): $(THEME_XML) $(EMBED_BIN) | $(call dir_of,$(THEME_CPP))
+	$(call native,$(EMBED_BIN)) $(THEME_XML) $@ DEFAULT_THEME
+
+# ---- Шейдеры (по запросу, нужен dxc) ------------------------------------------
+# ---- Shaders (on request, needs dxc) ------------------------------------------
+SHADER_SRC    := shaders/hlsl/ui.hlsl
+SHADER_OUT    := $(SRC_DIR)/rhi/shaders_gen
+SHADER_TMP    := $(OBJ_DIR)/shaders
+
+shaders: $(EMBED_BIN)
+	@$(call MKDIR,$(SHADER_TMP))
+	"$(DXC)" -nologo -T vs_6_0 -E vsMain -O3 -Fo $(SHADER_TMP)/ui_vs.dxil $(SHADER_SRC)
+	"$(DXC)" -nologo -T ps_6_0 -E psMain -O3 -Fo $(SHADER_TMP)/ui_ps.dxil $(SHADER_SRC)
+	"$(DXC)" -nologo -T ps_6_0 -E psBlurDown -O3 -Fo $(SHADER_TMP)/blur_down_ps.dxil $(SHADER_SRC)
+	"$(DXC)" -nologo -T ps_6_0 -E psBlurUp -O3 -Fo $(SHADER_TMP)/blur_up_ps.dxil $(SHADER_SRC)
+	"$(DXC)" -nologo -T vs_6_0 -E vsFullscreen -O3 -Fo $(SHADER_TMP)/fullscreen_vs.dxil $(SHADER_SRC)
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/ui_vs.dxil $(SHADER_OUT)/ui_vs_dxil.cpp UI_VS_DXIL
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/ui_ps.dxil $(SHADER_OUT)/ui_ps_dxil.cpp UI_PS_DXIL
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/blur_down_ps.dxil $(SHADER_OUT)/blur_down_ps_dxil.cpp BLUR_DOWN_PS_DXIL
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/blur_up_ps.dxil $(SHADER_OUT)/blur_up_ps_dxil.cpp BLUR_UP_PS_DXIL
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/fullscreen_vs.dxil $(SHADER_OUT)/fullscreen_vs_dxil.cpp FULLSCREEN_VS_DXIL
+
+# ---- Правила компиляции -----------------------------------------------------
+# ---- Compilation rules -----------------------------------------------------
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/$(GEN_DIR)/%.o: $(GEN_DIR)/%.cpp | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/$(TEST_DIR)/%.o: $(TEST_DIR)/src/%.cpp | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I$(TEST_DIR)/include -I$(CHAT_DIR) $(DEPFLAGS) -c $< -o $@
+
+# Корень примера (examples/<имя>) — в путях включения: его заголовки подключаются от корня
+# The example root (examples/<name>) is in the include paths: its headers are included from the root
+$(OBJ_DIR)/$(EXAMPLE_DIR)/%.o: $(EXAMPLE_DIR)/%.cpp | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -I$(EXAMPLE_DIR)/$(word 2,$(subst /, ,$<)) $(DEPFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/$(TOOL_DIR)/%.o: $(TOOL_DIR)/%.cpp | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
+
+$(ALL_DIRS):
+	@$(call MKDIR,$@)
+
+# ---- Служебные цели -----------------------------------------------------------
+# ---- Service targets -----------------------------------------------------------
+platform:
+	@echo OS: $(PLATFORM_OS)
+	@echo Platform sources: $(PLATFORM_DIRS)
+	@echo Beresta: $(BERESTA_DIR)
+
+clean:
+	@$(call RMDIR,$(OBJ_DIR))
+	@$(call RMDIR,$(DEP_DIR))
+	@$(call RMDIR,$(GEN_DIR))
+
+fclean: clean
+	@$(call RMDIR,$(BIN_DIR))
+
+re: fclean
+	$(MAKE) all
+
+-include $(ALL_DEP)
