@@ -47,6 +47,10 @@ namespace gran::i18n
             {Message::MENU_COPY, "Copy"},
             {Message::MENU_PASTE, "Paste"},
             {Message::MENU_SELECT_ALL, "Select all"},
+            {Message::DATA_INDEX_OUT_OF_RANGE, "record {0} is outside a list of {1} records"},
+            {Message::MARKUP_FRAGMENT_PARENT, "a markup fragment cannot be inserted into {0}: this element has no element children"},
+            {Message::WEBVIEW_WRONG_NODE, "element {0} is not a WebView"},
+            {Message::WEBVIEW_UNAVAILABLE, "the embedded browser is unavailable (code 0x{0}): WebView2Loader.dll next to the program and the WebView2 Runtime are needed"},
             {Message::PLATFORM_WINDOW_FAILED, "failed to create window: {0}"}
         };
     }

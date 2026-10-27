@@ -18,6 +18,8 @@ namespace gran::ui
             copy->enabled = node.enabled;
             copy->line = node.line;
             copy->column = node.column;
+            if (node.itemTemplate)
+                copy->itemTemplate = copyTree(*node.itemTemplate);
             for (const std::unique_ptr<Node>& child : node.children)
                 appendChild(*copy, copyTree(*child));
             return copy;

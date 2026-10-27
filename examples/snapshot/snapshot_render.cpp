@@ -71,8 +71,7 @@ namespace snapshot
 
         registerFonts(document, arguments.markup, fonts);
         start = std::chrono::steady_clock::now();
-        gran::ui::resolveStyles(*document.root, window, theme.kinds);
-        gran::layout::layoutTree(*document.root, size, renderer.measurer());
+        layoutDocument(document, window, size, renderer.measurer());
         double laidOut = elapsed(start);
         start = std::chrono::steady_clock::now();
         renderer.render(*document.root, window, arguments.scale);

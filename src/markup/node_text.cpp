@@ -42,11 +42,11 @@ namespace gran::markup::internal
     /*
     ** Текст внутри тега по виду элемента: Text с Span — участки (дети уже построены, true),
     ** Span — как есть (пробелы схлопнет Text), Text и Button — со схлопнутыми пробелами,
-    ** TextArea — с переводами строк. Popup из разметки всегда начинается скрытым.
+    ** TextArea — с переводами строк, WebView — HTML страницы как есть. Popup из разметки всегда начинается скрытым.
     **
     ** The text inside the tag by the element kind: a Text with Spans — runs (the children are built already, true),
     ** a Span — as is (the Text collapses the spaces), a Text and a Button — with collapsed spaces,
-    ** a TextArea — with line breaks. A Popup from the markup always starts hidden.
+    ** a TextArea — with line breaks, a WebView — the page HTML as it is. A Popup from the markup always starts hidden.
     */
     bool readTagText(const beresta::Element& element, ui::Node& node, BuildContext& context)
     {
@@ -65,6 +65,8 @@ namespace gran::markup::internal
             node.content.text = collapseSpaces(element.getTextContent());
         if (kind == ui::ElementKind::TEXT_AREA && node.content.text.empty())
             node.content.text = fieldText(element.getTextContent());
+        if (kind == ui::ElementKind::WEB_VIEW)
+            node.content.text = element.getTextContent();
         return false;
     }
 }

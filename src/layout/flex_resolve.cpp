@@ -91,16 +91,27 @@ namespace gran::layout::internal
         }
     }
 
-    // Цикл §9.7: распределить, проверить пределы, заморозить; не больше n + 1 итераций
-    // The §9.7 loop: distribute, check the limits, freeze; at most n + 1 iterations
+    /*
+    ** Цикл §9.7: распределить, проверить пределы, заморозить; не больше n + 1 итераций.
+    ** Свободное место в пределах погрешности округления (доли пикселя на всю строку) — ноль:
+    ** иначе длинный список «сжимался» бы на 1e-5 px на элемент, и каждый элемент перемерялся
+    ** бы заново, вытесняя кэш измерений.
+    **
+    ** The §9.7 loop: distribute, check the limits, freeze; at most n + 1 iterations.
+    ** Free space within the rounding error (pixel fractions over the whole line) is zero:
+    ** otherwise a long list would "shrink" by 1e-5 px per item, and every item would be measured
+    ** anew, evicting the measurement cache.
+    */
     void resolveFlexibleLengths(std::vector<FlexItem>& items, std::size_t first, std::size_t last, float available)
     {
-        float sumBase = 0.0f;
+        double sumBase = 0.0;
 
         if (!std::isfinite(available))
             return;
         for (std::size_t index = first; index < last; ++index)
             sumBase += items[index].base;
+        if (std::fabs(available - sumBase) <= 1.0e-6 * std::fabs(sumBase) + 0.01)
+            return;
         bool growing = available >= sumBase;
         freezeInflexible(items, first, last, growing);
         for (std::size_t iteration = first; iteration <= last; ++iteration)

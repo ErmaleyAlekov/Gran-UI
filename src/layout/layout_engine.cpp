@@ -5,45 +5,6 @@
 
 namespace gran::layout::internal
 {
-    namespace
-    {
-        // Измерение из кэша текущего прохода / A measurement from the current pass cache
-        bool findCached(const ui::Node& node, Size available, std::uint32_t generation, Size& result) noexcept
-        {
-            if (node.layout.generation != generation)
-                return false;
-            for (std::uint8_t index = 0; index < node.layout.cacheCount; ++index)
-            {
-                const ui::MeasureEntry& entry = node.layout.cache[index];
-                if (entry.available.width == available.width && entry.available.height == available.height)
-                {
-                    result = entry.result;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Два последних измерения: гибкий стек меряет ребёнка дважды (гипотеза и итог)
-        // The two last measurements: a flexible stack measures a child twice (the hypothesis and the final)
-        void storeCache(ui::Node& node, Size available, Size result, std::uint32_t generation) noexcept
-        {
-            if (node.layout.generation != generation)
-            {
-                node.layout.generation = generation;
-                node.layout.cacheCount = 0;
-            }
-            std::uint8_t slot = node.layout.cacheCount;
-            if (slot >= 2)
-            {
-                node.layout.cache[0] = node.layout.cache[1];
-                slot = 1;
-            }
-            node.layout.cache[slot] = ui::MeasureEntry{available, result};
-            node.layout.cacheCount = static_cast<std::uint8_t>(slot + 1);
-        }
-    }
-
     /*
     ** Размер рамки: явный размер или содержимое + padding + border, затем min/max.
     ** Содержимое меряется в пределах явного размера или доступного места и maxWidth/maxHeight.
@@ -77,10 +38,12 @@ namespace gran::layout::internal
         return result;
     }
 
-    // Рамка запоминается, дети размещаются в прямоугольнике содержимого
-    // The frame is remembered, the children are placed in the content rectangle
+    // Рамка запоминается, дети размещаются в прямоугольнике содержимого; чистая ветвь того же размера — только сдвиг
+    // The frame is remembered, the children are placed in the content rectangle; a clean branch of the same size is only shifted
     void arrangeNode(ui::Node& node, Rect frame, LayoutPass& pass)
     {
+        if (reuseArrangement(node, frame))
+            return;
         node.layout.frame = frame;
         node.dirty = static_cast<std::uint8_t>((node.dirty & ~ui::DIRTY_LAYOUT) | ui::DIRTY_PAINT);
         arrangeContent(node, rectDeflate(frame, contentInsets(node.computed)), pass);

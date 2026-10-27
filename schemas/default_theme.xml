@@ -43,6 +43,8 @@
       <Focused background="#eef2ff"/>
       <Disabled opacity="0.4"/>
     </Style>
+    <!-- Подложка страницы, пока браузер не готов (или недоступен) / The page backdrop while the browser is not ready (or unavailable) -->
+    <Style name="WebView" background="#ffffff" borderWidth="1" borderColor="#e4e7ec"/>
     <Style name="Tooltip" padding="5 9" minWidth="0" spacing="0" background="#1f2937" color="#f9fafb" borderWidth="0"
            borderRadius="6" boxShadow="0 4 12 rgba(0, 0, 0, 0.25)" fontSize="12.5"/>
   </Resources>

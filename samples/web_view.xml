@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Гибрид: интерфейс рисует Грань UI, а веб-содержимое показывает браузер системы только внутри <WebView>.
+  Браузер создаётся при первом показе элемента; страница общается с программой строками:
+  window.chrome.webview.postMessage("…") → onMessage, Application::postWebMessage → событие message.
+  Запуск: gran_gallery samples/web_view.xml (сборка с WEBVIEW2_SDK; без него — белая подложка).
+
+  A hybrid: Gran UI draws the interface, and the system browser shows web content only inside <WebView>.
+  The browser is created when the element is first shown; the page talks to the program with strings:
+  window.chrome.webview.postMessage("…") → onMessage, Application::postWebMessage → the message event.
+  Run: gran_gallery samples/web_view.xml (a build with WEBVIEW2_SDK; without it — a white backdrop).
+-->
+<Window title="Gran UI — WebView" width="720" height="480" background="#f5f6f8">
+  <Grid rows="auto, 1fr" columns="1fr" padding="16" rowSpacing="12">
+    <Stack orientation="horizontal" spacing="10" align="center">
+      <Text fontSize="18" fontWeight="700" grow="1">Нативный интерфейс + веб-страница</Text>
+      <Text id="status" color="#667085">Ждём страницу…</Text>
+    </Stack>
+    <WebView id="page" gridRow="1" onMessage="fromPage"><![CDATA[<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  body { font: 15px system-ui; margin: 24px; color: #101828; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 0; background: #2563eb; color: #fff; }
+  #reply { margin-top: 12px; color: #067647; }
+</style></head><body>
+  <h2>Это HTML внутри &lt;WebView&gt;</h2>
+  <p>Страница живёт в отдельном процессе браузера. С программой она обменивается только строками.</p>
+  <button onclick="window.chrome.webview.postMessage('click')">Сообщить программе</button>
+  <div id="reply"></div>
+  <script>
+    window.chrome.webview.addEventListener('message', function (event) {
+      document.getElementById('reply').textContent = 'Программа ответила: ' + event.data;
+    });
+    window.chrome.webview.postMessage('ready');
+  </script>
+</body></html>]]></WebView>
+  </Grid>
+</Window>

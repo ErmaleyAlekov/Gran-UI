@@ -4,6 +4,8 @@
 
 #include "beresta.hpp"
 
+#include <utility>
+
 namespace gran::markup::internal
 {
     namespace
@@ -81,6 +83,7 @@ namespace gran::markup::internal
             document.root = buildNode(*child, context);
         document.nodeCount = context.nodeCount;
         document.baseDirectory = options.baseDirectory;
+        document.tokens = std::move(context.tokens);
         return document;
     }
 }

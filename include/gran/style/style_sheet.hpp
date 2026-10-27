@@ -57,6 +57,9 @@ namespace gran::style
         // Правило по имени или nullptr / A rule by name or nullptr
         StyleRule* find(std::string_view name) const noexcept;
 
+        // Имена всех правил в порядке объявления (для проверки фрагментов разметки) / The names of all rules in the declaration order (for checking markup fragments)
+        std::vector<std::string_view> names() const;
+
     private:
         std::vector<std::unique_ptr<StyleRule>> _rules;
     };

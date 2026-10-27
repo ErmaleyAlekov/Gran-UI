@@ -72,7 +72,7 @@ namespace gran
             ui::resolveStyles(root, state.windowStyle, theme.kinds, &state.animator);
             state.animating = state.animator.tick();
             if ((root.dirty & ui::DIRTY_LAYOUT) != 0)
-                layout::layoutTree(root, Size{pixels.width / scale, pixels.height / scale}, state.renderer->measurer());
+                layoutFrame(state, Size{pixels.width / scale, pixels.height / scale});
             revealCaret(state);
             if (caret == nullptr || !ui::isTextField(*caret) || !state.caretVisible)
                 caret = nullptr;
@@ -81,6 +81,7 @@ namespace gran
                 recreateGraphics(state);
             state.window->setCursor(state.router->cursor());
             syncAccessFocus(state);
+            syncWebViews(state);
         }
     }
 }

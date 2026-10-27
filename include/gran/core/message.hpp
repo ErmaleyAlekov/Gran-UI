@@ -64,6 +64,10 @@ namespace gran::i18n
         MENU_COPY,
         MENU_PASTE,
         MENU_SELECT_ALL,
+        DATA_INDEX_OUT_OF_RANGE,
+        MARKUP_FRAGMENT_PARENT,
+        WEBVIEW_WRONG_NODE,
+        WEBVIEW_UNAVAILABLE,
 
         COUNT
     };

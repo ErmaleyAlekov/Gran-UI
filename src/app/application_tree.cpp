@@ -6,68 +6,30 @@
 
 namespace gran
 {
-    namespace
-    {
-        // Анимации всех узлов поддерева снимаются (аниматор хранит указатели) / The animations of all subtree nodes are dropped (the animator keeps pointers)
-        void forgetAnimations(animation::Animator& animator, const ui::Node& node)
-        {
-            animator.forget(node);
-            for (const std::unique_ptr<ui::Node>& child : node.children)
-                forgetAnimations(animator, *child);
-        }
-
-        // Лежит ли узел в поддереве / Whether the node lies in the subtree
-        bool insideTree(const ui::Node* node, const ui::Node& subtree) noexcept
-        {
-            for (const ui::Node* current = node; current != nullptr; current = current->parent)
-            {
-                if (current == &subtree)
-                    return true;
-            }
-            return false;
-        }
-    }
-
     /*
     ** Новый узел «грязный» целиком; markDirty поднимает DIRTY_DESCENDANT и DIRTY_LAYOUT
-    ** к корню — проход стилей найдёт его, компоновка пересчитает ветвь.
+    ** к корню — проход стилей найдёт его, компоновка пересчитает ветвь. Списки items="…"
+    ** в нём привязываются к моделям.
     **
     ** A new node is entirely "dirty"; markDirty raises DIRTY_DESCENDANT and DIRTY_LAYOUT
-    ** to the root — the style pass finds it, the layout recomputes the branch.
+    ** to the root — the style pass finds it, the layout recomputes the branch. The items="…" lists
+    ** in it are bound to the models.
     */
     ui::Node& Application::append(ui::Node& parent, std::unique_ptr<ui::Node> child)
     {
         ui::Node& added = ui::appendChild(parent, std::move(child));
 
         ui::markDirty(added, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+        _state->lists.bind(added);
         return added;
     }
 
-    // Сначала снимаются все невладеющие ссылки, затем узел уничтожается / All non-owning references are dropped first, then the node is destroyed
+    // Корень удалить нельзя: у него нет родителя, который бы им владел / The root cannot be removed: it has no parent that would own it
     void Application::remove(ui::Node& node)
     {
-        State& state = *_state;
-        ui::Node* parent = node.parent;
-
-        if (parent == nullptr)
+        if (node.parent == nullptr)
             throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::APP_REMOVE_ROOT));
-        if (state.router)
-            state.router->forget(node);
-        forgetAnimations(state.animator, node);
-        if (insideTree(state.access.focus, node))
-            state.access.focus = nullptr;
-        if (insideTree(state.pendingFocus, node))
-            state.pendingFocus = nullptr;
-        std::vector<std::unique_ptr<ui::Node>>& siblings = parent->children;
-        for (std::size_t index = 0; index < siblings.size(); ++index)
-        {
-            if (siblings[index].get() == &node)
-            {
-                siblings.erase(siblings.begin() + static_cast<std::ptrdiff_t>(index));
-                break;
-            }
-        }
-        ui::markDirty(*parent, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+        _state->lists.removeNode(node);
     }
 
     // До run() маршрутизатора нет: фокус ставится при его создании / Before run() there is no router: the focus is set when it is created

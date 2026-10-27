@@ -1,9 +1,12 @@
 #ifndef GRAN_MARKUP_MARKUP_LOADER_HPP
 #define GRAN_MARKUP_MARKUP_LOADER_HPP
 
+#include "gran/data/list_model.hpp"
 #include "gran/ui/node.hpp"
 
 #include <cstddef>
+#include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -23,6 +26,16 @@ namespace gran::markup
         std::string source;
         int weight = 400;
         bool italic = false;
+    };
+
+    // Значения темы: имя → текст / Theme values: a name → a text
+    using TokenMap = std::map<std::string, std::string, std::less<>>;
+
+    // Данные списка из разметки <Data name="…"><Item поле="…"/></Data> / List data from the markup <Data name="…"><Item field="…"/></Data>
+    struct DataSet
+    {
+        std::string name;
+        std::vector<data::Record> records;
     };
 
     // Параметры окна из <Window> / The window parameters from <Window>
@@ -51,6 +64,10 @@ namespace gran::markup
         std::vector<FontFace> fonts;
         std::unique_ptr<ui::Node> root;
         std::size_t nodeCount = 0;
+        // Значения темы — для фрагментов, вставляемых во время работы / The theme values — for fragments inserted at run time
+        TokenMap tokens;
+        // Начальные данные моделей списков / The initial data of the list models
+        std::vector<DataSet> data;
         // Каталог для относительных путей картинок (из LoadOptions) / The directory for relative image paths (from LoadOptions)
         std::string baseDirectory;
     };
@@ -77,6 +94,19 @@ namespace gran::markup
 
     // То же из файла (baseDirectory по умолчанию — каталог файла) / The same from a file (baseDirectory defaults to the file directory)
     UiDocument loadMarkupFile(const std::string& path, const LoadOptions& options);
+
+    // ---- markup_fragment.cpp ----
+
+    /*
+    ** Фрагмент разметки (один корневой элемент интерфейса) для вставки во время работы.
+    ** Проверяется той же схемой, что и основной файл; стили ($значения темы, style="…")
+    ** берутся из document. Позиции ошибок — относительно начала фрагмента.
+    **
+    ** A markup fragment (one root UI element) for inserting at run time.
+    ** It is checked by the same schema as the main file; the styles ($theme values, style="…")
+    ** come from document. Error positions are relative to the fragment start.
+    */
+    std::unique_ptr<ui::Node> buildFragment(std::string_view text, UiDocument& document);
 
     // ---- markup_schema.cpp ----
 

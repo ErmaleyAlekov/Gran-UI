@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Декларативные списки: данные <Data> (или Application::model из кода) + шаблон <ItemTemplate>.
+  Подстановки {поле} — в text, placeholder, source, tooltip и в тексте тегов, в том числе в Span.
+  Запуск: gran_snapshot samples/lists.xml lists.png или gran_gallery samples/lists.xml
+
+  Declarative lists: the <Data> data (or Application::model from code) + an <ItemTemplate> template.
+  {field} placeholders go into text, placeholder, source, tooltip and the tag text, Span included.
+  Run: gran_snapshot samples/lists.xml lists.png or gran_gallery samples/lists.xml
+-->
+<Window title="Gran UI — списки" width="520" height="400" background="#f5f6f8">
+  <Resources>
+    <Style name="row" orientation="horizontal" align="center" spacing="12" padding="10 14"
+           background="#ffffff" borderRadius="10" borderWidth="1" borderColor="#e4e7ec">
+      <Hover background="#eef4ff"/>
+    </Style>
+    <Style name="badge" padding="2 8" borderRadius="8" background="#e0eaff" color="#3538cd" fontSize="12"/>
+    <Data name="contacts">
+      <Item name="Анна Смирнова" role="дизайнер" mail="anna@example.org" tag="UI"/>
+      <Item name="Борис Ким" role="разработчик" mail="boris@example.org" tag="C++"/>
+      <Item name="Вера Орлова" role="тестировщик" mail="vera@example.org" tag="QA"/>
+      <Item name="Глеб {Гоша} Ли" role="менеджер" mail="gleb@example.org" tag="PM"/>
+    </Data>
+  </Resources>
+  <Stack padding="24" spacing="10">
+    <Text fontSize="20" fontWeight="700">Команда</Text>
+    <Stack id="contacts" items="contacts" spacing="8">
+      <ItemTemplate>
+        <Stack style="row" tooltip="{mail}" onClick="openContact">
+          <Stack spacing="2" grow="1">
+            <Text fontWeight="600">{name}</Text>
+            <Text color="#667085">Роль: <Span fontWeight="600">{role}</Span>, почта {mail}</Text>
+          </Stack>
+          <Text style="badge">{tag}</Text>
+        </Stack>
+      </ItemTemplate>
+    </Stack>
+  </Stack>
+</Window>
