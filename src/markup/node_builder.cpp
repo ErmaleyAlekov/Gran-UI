@@ -38,6 +38,33 @@ namespace gran::markup::internal
             throw MarkupException(ErrorCode::LIMIT_EXCEEDED, i18n::format(i18n::Message::MARKUP_TOO_MANY_NODES,
                 {std::to_string(context.options.maxNodes)}), location.line, location.column);
         }
+
+        /*
+        ** Пункты ComboBox уходят во внутренний слой Popup вместе с моделью списка (items, шаблон):
+        ** так весь код меню (размещение, стрелки, выбор, привязки) работает и для списка. Слой
+        ** берёт стиль темы Popup; подпись выбранного пункта ставится сразу (пункты из данных — после привязки).
+        **
+        ** The ComboBox items go into an inner Popup layer together with the list model (items, the template):
+        ** this way all the menu code (placing, arrows, choosing, bindings) works for the list too. The layer
+        ** takes the theme Popup style; the selected item label is set at once (the items from data — after binding).
+        */
+        void wrapOptions(ui::Node& combo)
+        {
+            std::unique_ptr<ui::Node> list = std::make_unique<ui::Node>();
+
+            list->kind = ui::ElementKind::POPUP;
+            list->visible = false;
+            list->line = combo.line;
+            list->column = combo.column;
+            list->content.items = std::move(combo.content.items);
+            list->itemTemplate = std::move(combo.itemTemplate);
+            combo.content.items.clear();
+            for (std::unique_ptr<ui::Node>& child : combo.children)
+                ui::appendChild(*list, std::move(child));
+            combo.children.clear();
+            ui::appendChild(combo, std::move(list));
+            ui::syncComboBoxes(combo);
+        }
     }
 
     /*
@@ -61,6 +88,8 @@ namespace gran::markup::internal
         readStates(element, node->declared, context);
         if (!readTagText(element, *node, context))
             buildChildren(element, *node, context);
+        if (node->kind == ui::ElementKind::COMBO_BOX)
+            wrapOptions(*node);
         return node;
     }
 }

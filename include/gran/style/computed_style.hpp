@@ -101,6 +101,9 @@ namespace gran::style
         Vec2 transformOrigin{0.5f, 0.5f};
         float backdropBlur = 0.0f;
         int cursor = static_cast<int>(Cursor::DEFAULT);
+        // Затемнение окна под модальным слоем (Dialog); прозрачное — без затемнения
+        // The window dimming under a modal layer (a Dialog); transparent — no dimming
+        Color scrim;
 
         // ---- Текст / Text ----
         Color color{0.0f, 0.0f, 0.0f, 1.0f};

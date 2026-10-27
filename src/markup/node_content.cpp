@@ -11,7 +11,8 @@ namespace gran::markup::internal
         const struct { const char* name; std::string C::* member; } STRINGS[] = {
             {"text", &C::text}, {"placeholder", &C::placeholder}, {"source", &C::source},
             {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
-            {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage}};
+            {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage},
+            {"popup", &C::popup}};
 
         // Числовые поля / The numeric fields
         const struct { const char* name; float C::* member; } NUMBERS[] = {
@@ -19,7 +20,8 @@ namespace gran::markup::internal
 
         // Логические поля / The boolean fields
         const struct { const char* name; bool C::* member; } BOOLEANS[] = {
-            {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}, {"virtual", &C::virtualize}};
+            {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}, {"virtual", &C::virtualize},
+            {"closable", &C::closable}};
 
         // Перечисления (fit у Image, direction у Scroll, submitKey у TextArea) и целые числа
     // The enumerations (fit of Image, direction of Scroll, submitKey of TextArea) and the integers
@@ -44,11 +46,14 @@ namespace gran::markup::internal
             return true;
         }
 
-        // value: число у Slider, текст у прочих / value: a number for Slider, a text for the others
+        // value: число у Slider, значение пункта у MenuItem и ComboBox, текст у прочих
+        // value: a number for Slider, the item value for MenuItem and ComboBox, a text for the others
         void readValue(ui::Node& node, const std::string& value)
         {
             if (node.kind == ui::ElementKind::SLIDER)
                 node.content.value = style::parseNumber(value);
+            else if (node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX)
+                node.content.option = value;
             else
                 node.content.text = value;
         }

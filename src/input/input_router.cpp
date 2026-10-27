@@ -23,9 +23,12 @@ namespace gran::input
             _state.selecting = nullptr;
             return true;
         }
-        if (handlePointer(_state, event))
-            return true;
-        return handleKeyboard(_state, event);
+        // Признак клавиатуры живёт только на время события: слой, открытый кодом позже, фокус не забирает
+        // The keyboard flag lives only during the event: a layer opened by code later does not take the focus
+        _state.keyboard = event.kind == platform::EventKind::KEY_DOWN;
+        bool changed = handlePointer(_state, event) || handleKeyboard(_state, event);
+        _state.keyboard = false;
+        return changed;
     }
 
     /*

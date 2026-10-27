@@ -9,22 +9,28 @@ namespace gran::ui
         return node.kind == ElementKind::INPUT || node.kind == ElementKind::TEXT_AREA;
     }
 
-    // Слой вынут из потока, как position: fixed в CSS: его место задаёт якорь, а не родитель
-    // A layer is taken out of the flow, as position: fixed in CSS: its place is set by the anchor, not by the parent
+    // Слой вынут из потока, как position: fixed в CSS: его место задаёт якорь или окно, а не родитель
+    // A layer is taken out of the flow, as position: fixed in CSS: its place is set by the anchor or the window, not by the parent
     bool inFlow(const Node& node) noexcept
     {
-        return node.visible && node.kind != ElementKind::POPUP;
+        return node.visible && !isLayer(node);
     }
 
-    // Подъём к корню до первого Popup / Climbing to the root up to the first Popup
+    // Подъём к корню до первого слоя / Climbing to the root up to the first layer
     Node* popupOf(Node* node) noexcept
     {
         for (Node* current = node; current != nullptr; current = current->parent)
         {
-            if (current->kind == ElementKind::POPUP)
+            if (isLayer(*current))
                 return current;
         }
         return nullptr;
+    }
+
+    // Диалог — тот же слой, что и меню, но модальный и по центру окна / A dialog is the same layer as a menu, but modal and centered in the window
+    bool isLayer(const Node& node) noexcept
+    {
+        return node.kind == ElementKind::POPUP || node.kind == ElementKind::DIALOG;
     }
 
     // Состояние DISABLED меняет вид (стиль Disabled), поэтому узел перерисовывается со стилем

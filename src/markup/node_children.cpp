@@ -7,7 +7,7 @@ namespace gran::markup::internal
     // Перебор видов по их именам (видов немного, поиск только при загрузке) / Walking the kinds by their names (there are few kinds, the lookup happens only at load time)
     bool elementKind(std::string_view name, ui::ElementKind& kind) noexcept
     {
-        for (int index = 0; index <= static_cast<int>(ui::ElementKind::WEB_VIEW); ++index)
+        for (int index = 0; index <= static_cast<int>(ui::ElementKind::COMBO_BOX); ++index)
         {
             if (name == ui::elementName(static_cast<ui::ElementKind>(index)))
             {

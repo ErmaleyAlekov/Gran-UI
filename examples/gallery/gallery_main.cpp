@@ -5,7 +5,7 @@
 ** gran_gallery — an interactive showcase: the samples/showcase.xml markup in a window with actions.
 ** Usage: gran_gallery [markup.xml] [--debug] [--exit-after seconds]
 */
-#include "gran/app/application.hpp"
+#include "gallery_actions.hpp"
 #include "gran/core/gran_exception.hpp"
 
 #include <cstdlib>
@@ -16,38 +16,6 @@
 
 namespace
 {
-    // Действие «Сохранить»: имя из поля ввода — в строку состояния / The "Save" action: the name from the input goes into the status line
-    struct SaveAction
-    {
-        gran::Application* application;
-
-        void operator()(gran::ui::Node& node) const
-        {
-            gran::ui::Node* name = application->find("name");
-            gran::ui::Node* status = application->find("status");
-
-            (void)node;
-            if (name == nullptr || status == nullptr)
-                return;
-            status->content.text = "Сохранено: " + name->content.text;
-            gran::ui::markDirty(*status, gran::ui::DIRTY_LAYOUT | gran::ui::DIRTY_PAINT);
-        }
-    };
-
-    // Действие «more»: меню moreMenu (samples/popups.xml) под нажатой кнопкой / The "more" action: the moreMenu menu (samples/popups.xml) under the pressed button
-    struct MenuAction
-    {
-        gran::Application* application;
-
-        void operator()(gran::ui::Node& node) const
-        {
-            gran::ui::Node* menu = application->find("moreMenu");
-
-            if (menu != nullptr)
-                application->showPopup(*menu, node);
-        }
-    };
-
     /*
     ** Витрина по умолчанию: сначала от текущей папки (запуск из корня проекта), затем от папки
     ** программы (двойной щелчок по bin/gran_gallery.exe — текущая папка тогда bin/).
@@ -92,8 +60,7 @@ int main(int argc, char* argv[])
     {
         gran::Application application(parseOptions(argc, argv, markup));
         application.loadFile(markup);
-        application.onAction("save", SaveAction{&application});
-        application.onAction("more", MenuAction{&application});
+        gallery::registerActions(application);
         return application.run();
     }
     catch (const std::exception& error)

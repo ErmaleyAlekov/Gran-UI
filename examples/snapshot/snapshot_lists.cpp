@@ -26,6 +26,7 @@ namespace snapshot
 
         lists.adoptData(document.data);
         lists.bind(*document.root);
+        gran::ui::syncComboBoxes(*document.root);
         for (int pass = 0; pass < 4; ++pass)
         {
             gran::ui::resolveStyles(*document.root, window, theme.kinds);

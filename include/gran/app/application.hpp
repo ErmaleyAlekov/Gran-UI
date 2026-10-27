@@ -145,6 +145,31 @@ namespace gran
         // Скрыть слой (Esc, щелчок мимо и выбор пункта меню скрывают его сами) / Hide the layer (Esc, a click outside and choosing a menu item hide it themselves)
         void hidePopup(ui::Node& popup);
 
+        // ---- application_dialogs.cpp: диалоги и выпадающие списки / dialogs and drop-down lists ----
+
+        /*
+        ** Показать модальный диалог <Dialog> по центру окна: окно под ним затемняется, ввод вне
+        ** диалога блокируется, фокус — на первый элемент внутри. Не Dialog — GranException; до run() — ничего.
+        **
+        ** Show a modal <Dialog> in the window center: the window under it is dimmed, the input outside
+        ** the dialog is blocked, the focus goes to the first control inside. Not a Dialog — GranException; before run() — nothing.
+        */
+        void showDialog(ui::Node& dialog);
+
+        // Закрыть диалог; фокус возвращается туда, где был до открытия / Close the dialog; the focus returns where it was before opening
+        void hideDialog(ui::Node& dialog);
+
+        /*
+        ** Выбрать в <ComboBox> пункт со значением value из кода (как value в разметке; onChange
+        ** не вызывается); пункта нет — выбор снимается, видна подсказка. Значение — comboBox.content.option.
+        ** Не ComboBox — GranException.
+        **
+        ** Select the item with the value value in a <ComboBox> from code (as value in the markup; onChange
+        ** is not called); no such item — the choice is cleared, the placeholder is shown. The value is comboBox.content.option.
+        ** Not a ComboBox — GranException.
+        */
+        void selectOption(ui::Node& comboBox, const std::string& value);
+
         // ---- application_tasks.cpp ----
 
         /*

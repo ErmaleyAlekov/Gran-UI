@@ -26,7 +26,8 @@ namespace gran::ui
     const char* elementName(ElementKind kind) noexcept
     {
         static const char* const NAMES[] = {"Stack", "Box", "Grid", "Canvas", "Scroll", "Text", "Image",
-            "Button", "Input", "CheckBox", "Slider", "TextArea", "Span", "Popup", "MenuItem", "WebView"};
+            "Button", "Input", "CheckBox", "Slider", "TextArea", "Span", "Popup", "MenuItem", "WebView",
+            "Dialog", "ComboBox"};
 
         return NAMES[static_cast<std::size_t>(kind)];
     }

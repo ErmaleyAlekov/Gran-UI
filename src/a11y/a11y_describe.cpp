@@ -34,22 +34,24 @@ namespace gran::a11y
             case ui::ElementKind::SCROLL: return Role::SCROLL;
             case ui::ElementKind::POPUP: return Role::MENU;
             case ui::ElementKind::MENU_ITEM: return Role::MENU_ITEM;
+            case ui::ElementKind::DIALOG: return Role::DIALOG;
+            case ui::ElementKind::COMBO_BOX: return Role::COMBO_BOX;
             default: return Role::GROUP;
         }
     }
 
     /*
-    ** Имя как в HTML: у поля ввода — подсказка (placeholder), у остальных — свой текст,
-    ** у кнопки без текста — тексты детей; последний запасной вариант — tooltip.
+    ** Имя как в HTML: у поля ввода и ComboBox — подсказка (placeholder; текст — это значение), у остальных —
+    ** свой текст, у кнопки без текста — тексты детей; последний запасной вариант — tooltip.
     **
-    ** The name as in HTML: for an input — the placeholder, for the others — their own text,
-    ** for a button without text — the children texts; the last fallback is the tooltip.
+    ** The name as in HTML: for an input and a ComboBox — the placeholder (the text is the value), for the others —
+    ** their own text, for a button without text — the children texts; the last fallback is the tooltip.
     */
     std::string accessibleName(const ui::Node& node)
     {
         std::string name;
 
-        if (ui::isTextField(node))
+        if (ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX)
             name = node.content.placeholder;
         else
             name = node.content.text;
@@ -60,7 +62,8 @@ namespace gran::a11y
         return name;
     }
 
-    // Значение: текст поля (кроме пароля) или число ползунка / The value: the input text (except a password) or the slider number
+    // Значение: текст поля (кроме пароля), подпись выбранного пункта ComboBox или число ползунка
+    // The value: the input text (except a password), the selected ComboBox item label or the slider number
     AccessibleInfo describe(const ui::Node& node)
     {
         AccessibleInfo info;
@@ -71,9 +74,9 @@ namespace gran::a11y
         info.enabled = node.enabled;
         info.checked = node.content.checked;
         info.focusable = info.role == Role::BUTTON || info.role == Role::EDIT || info.role == Role::CHECK_BOX
-            || info.role == Role::SLIDER || info.role == Role::MENU_ITEM;
+            || info.role == Role::SLIDER || info.role == Role::MENU_ITEM || info.role == Role::COMBO_BOX;
         info.decorative = info.role == Role::GROUP && node.content.onClick.empty();
-        if (info.role == Role::EDIT && !node.content.password)
+        if ((info.role == Role::EDIT && !node.content.password) || info.role == Role::COMBO_BOX)
             info.value = node.content.text;
         info.minimum = node.content.minimum;
         info.maximum = node.content.maximum;

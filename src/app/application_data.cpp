@@ -16,6 +16,7 @@ namespace gran
             {
             case ui::ElementKind::STACK: case ui::ElementKind::BOX: case ui::ElementKind::GRID:
             case ui::ElementKind::CANVAS: case ui::ElementKind::BUTTON: case ui::ElementKind::POPUP:
+            case ui::ElementKind::DIALOG:
                 return true;
             default:
                 return false;

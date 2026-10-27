@@ -73,7 +73,8 @@ return app.run();
 
 ### Markup and Styles
 - **Elements:** `Window`, `Stack`, `Grid`, `Canvas`, `Box`, `Scroll`, `Text` with `Span`, `Image`, `Button`,
-  `Input` (including password), `TextArea`, `CheckBox`, `Slider`, `Popup`, `MenuItem`, and `WebView` (optional).
+  `Input` (including password), `TextArea`, `CheckBox`, `Slider`, `ComboBox`, `Popup`, `MenuItem`, `Dialog`,
+  and `WebView` (optional).
 - **Lists from data:** `items="model"` + `<ItemTemplate>` with `{field}` placeholders; the data comes from `<Data>`
   or from a model filled in code, and a model edit changes only the affected records. Markup fragments at run time
   (`appendMarkup`) are checked by the same schema.
@@ -111,7 +112,8 @@ return app.run();
 
 ### Application
 - Event loop, actions from markup (`onClick`, `onChange`, `onSubmit`) are linked to C++ functions.
-- Focus and Tab, input fields, pop-up menus, and tooltips.
+- Focus and Tab, input fields, pop-up menus with submenus, drop-down lists, modal dialogs with dimming,
+  and tooltips (`tooltip`); menus open from the keyboard too.
 - A hybrid with the web: `<WebView>` shows a system browser page (Windows — WebView2) inside the engine window;
   the browser is created lazily, the page lives in a separate process, the bridge to the program is string messages.
 - Accessibility: Microsoft UI Automation provider (screen readers see buttons, fields, checkboxes, sliders, and texts).

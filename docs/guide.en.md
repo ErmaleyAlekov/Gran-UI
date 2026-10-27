@@ -116,18 +116,20 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `Text` | Text, can contain `Span` segments | `textWrap`, `textOverflow`, `maxLines`, `textAlign` |
 | `Span` | Formatted text segment inside `Text` | font, `color`, `background`, `textDecoration`, `onClick` (link) |
 | `Image` | PNG image | `source`, `fit="fill\|contain\|cover\|none"` |
-| `Button` | Button with text or content | `text`, `onClick` |
+| `Button` | Button with text or content | `text`, `onClick`, `popup` (the id of its menu or dialog) |
 | `Input` | Single-line field | `value`, `placeholder`, `maxLength`, `password`, `readOnly`, `onChange`, `onSubmit` |
 | `TextArea` | Multi-line field with wrapping and scrolling | `rows`, `submitKey="ctrlEnter\|enter"`, `maxHeight`, `onSubmit` |
 | `CheckBox` | Checkbox | `text`, `checked`, `onChange` |
 | `Slider` | Slider | `min`, `max`, `value`, `step`, `onChange` |
 | `Popup` | Popup layer (hidden until shown) | — |
-| `MenuItem` | Menu item in `Popup` | `text`, `onClick` |
+| `MenuItem` | Menu item in `Popup`; a nested `Popup` is a submenu | `text`, `onClick`, `value` (for `ComboBox`) |
+| `Dialog` | Modal dialog in the window center | `closable` |
+| `ComboBox` | Drop-down list with the selected value | `value`, `placeholder`, `onChange`, `MenuItem` items or `items` |
 | `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
 | `ItemTemplate` | The look of one list record inside a container with `items` | exactly one element |
 
-Containers (`Stack`, `Box`, `Grid`, `Canvas`, `Button`, `Popup`) accept `items="model"` together with
-`<ItemTemplate>` — see [Lists from data](#lists-from-data).
+Containers (`Stack`, `Box`, `Grid`, `Canvas`, `Button`, `Popup`, `Dialog`) and `ComboBox` accept `items="model"`
+together with `<ItemTemplate>` — see [Lists from data](#lists-from-data).
 
 Common attributes of all elements: `id`, `style`, `visible`, `enabled`, `tooltip`, size, margin, and styling attributes. Attribute names are camelCase and identical for all elements.
 
@@ -186,7 +188,7 @@ Cascade, from weakest to strongest: engine defaults ← built-in theme (`schemas
 - States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. State change is smooth if the property
   has a `transition`.
 - `basedOn` inherits another style. The default theme sets styles with element names (`Button`, `Input`,
-  `TextArea`, `CheckBox`, `Slider`, `Scroll`, `Popup`, `MenuItem`, `Tooltip`) — a `Style` with the same name replaces them.
+  `TextArea`, `CheckBox`, `Slider`, `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — a `Style` with the same name replaces them.
 - Theme tokens (`<Token name="accent" value="#6d5dfc"/>`) are substituted into any value as `$accent`.
 - `color`, `accentColor`, the font and the font size are inherited by children, as in CSS.
 
@@ -233,6 +235,8 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `onWebMessage`, `postWebMessage`, `navigate`, `loadHtml` | The embedded `<WebView>` browser |
 | `focus(node)` | Pass keyboard focus |
 | `showPopup(layer, anchor)` / `showPopupAt(layer, point)` / `hidePopup(layer)` | Popup layers |
+| `showDialog(dialog)` / `hideDialog(dialog)` | Modal dialog |
+| `selectOption(comboBox, value)` | Select a `ComboBox` item from code (without `onChange`) |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
 | `run()` | Event loop until the window is closed; returns the exit code |
 
@@ -319,6 +323,65 @@ app.showPopup(*app.find("moreMenu"), button);
 ```
 
 `Popup` is taken out of the layout and drawn on top of everything. It appears under the anchor (above it if there is not enough space at the bottom), `showPopupAt` — at the point with reflection inside the window. Esc and clicking outside close the layer, arrows navigate through items, Enter selects. The `tooltip` attribute on any element shows a tooltip after 0.6 seconds.
+
+**Menu without code.** A button with `popup="id"` opens its layer by itself: by a click, Enter, space, and the down arrow.
+From the keyboard, focus immediately goes to the first item (the same applies to a menu opened by code in `onClick`).
+Esc closes the menu and returns focus to the button.
+
+**Submenu** — `Popup` inside `MenuItem`. It opens to the side of the item (to the right, and if there is not enough space — to the left), by hovering the mouse, the right arrow, or Enter; the left arrow and Esc close only it. The item with a submenu is marked with an arrow and does not execute the command itself; selecting an item in the submenu closes the entire chain.
+
+```xml
+<Button text="File ▾" popup="fileMenu"/>
+<Popup id="fileMenu">
+  <MenuItem text="Open…" onClick="open"/>
+  <MenuItem text="Export">
+    <Popup>
+      <MenuItem text="PDF" onClick="exportPdf"/>
+      <MenuItem text="PNG" onClick="exportPng"/>
+    </Popup>
+  </MenuItem>
+</Popup>
+```
+
+**Dropdown list** `ComboBox` shows the label of the selected item (without selection — `placeholder`). Selecting another item changes the value and calls `onChange`; the value of the item is its `value`, and without it — the text.
+Items are written directly in the tag or taken from the model — the same as [lists from data](#lists-from-data).
+An open list is not narrower than the field, the focus in it is on the selected item, the selected item is marked with the `Checked` style.
+
+```xml
+<ComboBox id="theme" value="light" onChange="themeChanged">
+  <MenuItem value="light" text="Light"/>
+  <MenuItem value="dark" text="Dark"/>
+</ComboBox>
+<ComboBox id="size" placeholder="Choose…" items="sizes" onChange="sizeChanged">
+  <ItemTemplate><MenuItem value="{key}" text="{name}"/></ItemTemplate>
+</ComboBox>
+```
+
+```cpp
+// In the themeChanged handler: the value is combo.content.option, the label is combo.content.text
+app.selectOption(*app.find("size"), "m");   // select from code, onChange is not called
+```
+
+**Dialog** `Dialog` — modal layer: it appears in the center of the window, the window under it is dimmed (style property `scrim`, in the theme — semi-transparent dark), clicks and the wheel outside the dialog do not go anywhere, Tab and Shift+Tab move only through its elements. When opening, focus goes to the first element of the dialog, when closing, it returns where it was.
+Esc closes the dialog if `closable="false"` is not set (then it can only be closed by code). Menus and lists inside the dialog work as usual and are drawn above it.
+
+```xml
+<Button text="Delete…" popup="confirm"/>
+<Dialog id="confirm" closable="false">
+  <Text fontWeight="700">Delete the file?</Text>
+  <Stack orientation="horizontal" spacing="8" justify="end">
+    <Button text="Cancel" onClick="cancel"/>
+    <Button text="Delete" onClick="remove"/>
+  </Stack>
+</Dialog>
+```
+
+```cpp
+app.showDialog(*app.find("confirm"));   // open from code
+app.hideDialog(*app.find("confirm"));   // close (usually in a button handler)
+```
+
+Layers are drawn in the order of the tree: a nested layer (menu in a dialog, submenu) — above its own, so a dialog that opens from another dialog is conveniently declared inside it. Everything together — `samples/dialogs.xml` (`gran_gallery samples/dialogs.xml`).
 
 ## Embedded browser: WebView
 

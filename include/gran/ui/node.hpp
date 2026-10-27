@@ -15,7 +15,8 @@ namespace gran::ui
     // Вид элемента разметки / The markup element kind
     enum class ElementKind : std::uint8_t
     {
-        STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW
+        STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
+        DIALOG, COMBO_BOX
     };
 
     /*
@@ -89,6 +90,14 @@ namespace gran::ui
         // Popup: the anchor frame in window coordinates (a zero height — a point); passive — a tooltip (does not catch the mouse)
         Rect popupAnchor;
         bool popupPassive = false;
+        // Button: id слоя (Popup или Dialog), который кнопка открывает сама (щелчок, Enter, пробел, стрелка вниз)
+        // Button: the id of the layer (a Popup or a Dialog) the button opens by itself (a click, Enter, space, the down arrow)
+        std::string popup;
+        // MenuItem — значение пункта (value; пусто — его текст), ComboBox — значение выбранного пункта
+        // MenuItem — the item value (value; empty — its text), ComboBox — the value of the selected item
+        std::string option;
+        // Dialog: Esc закрывает диалог (closable="false" — закрыть может только код) / Dialog: Esc closes the dialog (closable="false" — only the code can close it)
+        bool closable = true;
     };
 
     // Запомненное измерение: доступный размер → результат / A remembered measurement: the available size → the result
@@ -175,8 +184,12 @@ namespace gran::ui
     // The node takes part in the parent layout: visible and not a popup layer (a Popup is placed over everything)
     bool inFlow(const Node& node) noexcept;
 
-    // Ближайший всплывающий слой среди узла и его предков (nullptr — узел не в слое) / The nearest popup layer among the node and its ancestors (nullptr — the node is not in a layer)
+    // Ближайший всплывающий слой (Popup или Dialog) среди узла и его предков (nullptr — узел не в слое)
+    // The nearest popup layer (a Popup or a Dialog) among the node and its ancestors (nullptr — the node is not in a layer)
     Node* popupOf(Node* node) noexcept;
+
+    // Слой поверх дерева: Popup (меню, список, подсказка) или Dialog (модальный) / A layer over the tree: a Popup (a menu, a list, a tooltip) or a Dialog (modal)
+    bool isLayer(const Node& node) noexcept;
 
     // Включить или выключить узел (enabled и состояние DISABLED) / Enabling or disabling the node (enabled and the DISABLED state)
     void setEnabled(Node& node, bool enabled);
@@ -209,6 +222,43 @@ namespace gran::ui
 
     // Текст Text заново из участков (после их правки из кода) и перекомпоновка / The Text text anew from the runs (after editing them from code) and a relayout
     void joinSpans(Node& node);
+
+    // ---- combo_box.cpp ----
+
+    /*
+    ** Выпадающий список <ComboBox>: пункты MenuItem (или items + <ItemTemplate>) при построении
+    ** переносятся во внутренний слой Popup — последнего ребёнка ComboBox. Выбранное значение — content.option,
+    ** подпись выбранного пункта — content.text (её показывает поле), выбранный пункт — в состоянии Checked.
+    **
+    ** A <ComboBox> drop-down list: the MenuItem items (or items + <ItemTemplate>) are moved at build time
+    ** into an inner Popup layer — the last ComboBox child. The selected value is content.option,
+    ** the selected item label is content.text (the field shows it), the selected item is in the Checked state.
+    */
+
+    // Внутренний слой списка (nullptr — не ComboBox) / The inner list layer (nullptr — not a ComboBox)
+    Node* comboList(Node& combo) noexcept;
+
+    // Значение пункта: value, а без него — текст / The item value: value, and without it — the text
+    const std::string& optionValue(const Node& item) noexcept;
+
+    // Пункт списка со значением value (nullptr — нет такого) / The list item with the value value (nullptr — none)
+    Node* findOption(Node& combo, const std::string& value) noexcept;
+
+    // Выбрать пункт (nullptr — снять выбор): значение, подпись, Checked; true — значение изменилось
+    // Selecting an item (nullptr — clearing the choice): the value, the label, Checked; true — the value changed
+    bool selectOption(Node& combo, Node* item);
+
+    // ---- layer_tree.cpp ----
+
+    // Подменю пункта MenuItem (вложенный Popup) или nullptr / The submenu of a MenuItem (a nested Popup) or nullptr
+    Node* submenuOf(const Node& item) noexcept;
+
+    // Узел и все его предки видимы / The node and all its ancestors are visible
+    bool isShown(const Node& node) noexcept;
+
+    // Подписи всех ComboBox поддерева — по их значениям (после построения пунктов из данных)
+    // The labels of all subtree ComboBoxes — by their values (after building the items from data)
+    void syncComboBoxes(Node& subtree);
 
     // ---- node_transform.cpp ----
 

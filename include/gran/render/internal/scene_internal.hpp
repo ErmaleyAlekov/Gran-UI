@@ -22,14 +22,48 @@ namespace gran::render::internal
         float opacity = 1.0f;
     };
 
-    // Контекст обхода; layer — слой Popup, который рисуется сейчас (остальные слои обычный обход пропускает)
-    // The walk context; layer is the Popup layer painted now (the plain walk skips the other layers)
+    /*
+    ** Контекст обхода; layer — слой (Popup, Dialog), который рисуется сейчас (остальные слои обычный
+    ** обход пропускает); viewport — окно в логических пикселях (затемнение под диалогом).
+    **
+    ** The walk context; layer is the layer (a Popup, a Dialog) painted now (the plain walk skips the other
+    ** layers); viewport is the window in logical pixels (the dimming under a dialog).
+    */
     struct SceneContext
     {
         SceneResources& resources;
         Scene& scene;
         float scale;
         const ui::Node* layer = nullptr;
+        Rect viewport;
+    };
+
+    // Скруглённый прямоугольник элемента управления / A rounded rectangle of a control
+    struct ControlBox
+    {
+        Rect rect;
+        float radius;
+        Color fill;
+        Color stroke;
+        float border;
+    };
+
+    // Полоса: концы и толщина / A bar: the ends and the thickness
+    struct Bar
+    {
+        Vec2 from;
+        Vec2 to;
+        float thickness;
+    };
+
+    // Стрелка-галочка: середина, направление острия (единичный вектор), половина размаха, цвет
+    // A chevron: the middle, the tip direction (a unit vector), half the span, the color
+    struct Chevron
+    {
+        Vec2 center;
+        Vec2 direction;
+        float size;
+        Color color;
     };
 
     // Все глифы раскладки, без отбора по участку / All layout glyphs, without selecting by a run
@@ -74,8 +108,13 @@ namespace gran::render::internal
     // Узел и его поддерево / A node and its subtree
     void paintNode(const ui::Node& node, const PaintState& parent, SceneContext& context);
 
-    // Открытые слои Popup поддерева поверх всего / The open Popup layers of the subtree over everything
+    // ---- paint_layers.cpp ----
+
+    // Открытые слои поддерева поверх всего (вложенные — над своим слоем) / The open layers of the subtree over everything (the nested ones — over their layer)
     void paintPopups(const ui::Node& node, const PaintState& base, SceneContext& context);
+
+    // Стрелка ComboBox (вниз) или пункта с подменю (вправо) у правого края / The ComboBox arrow (down) or the submenu item arrow (right) at the right edge
+    void paintMark(const ui::Node& node, const PaintState& state, SceneContext& context);
 
     // ---- paint_state.cpp ----
 
@@ -190,6 +229,17 @@ namespace gran::render::internal
 
     // Тонкие полосы прокрутки поверх содержимого Scroll / Thin scrollbars over the Scroll content
     void paintScrollbars(const ui::Node& node, const PaintState& state, SceneContext& context);
+
+    // ---- paint_shapes.cpp ----
+
+    // Прямоугольник (и тень под ним, если shadow > 0) / A rectangle (and a shadow under it if shadow > 0)
+    void emitBox(const ControlBox& box, float shadow, const PaintState& state, SceneContext& context);
+
+    // Полоса (ножка галочки) / A bar (a check mark leg)
+    void emitBar(const Bar& line, const Color& color, const PaintState& state, SceneContext& context);
+
+    // Стрелка из двух полос / An arrow of two bars
+    void emitChevron(const Chevron& mark, const PaintState& state, SceneContext& context);
 
     // ---- paint_controls.cpp ----
 
