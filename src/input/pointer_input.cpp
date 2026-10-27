@@ -9,6 +9,7 @@ namespace gran::input
         {
             state.pointer = event.position;
             changeHover(state, spanAt(state, pickNode(state, event.position), event.position));
+            hoverMenus(state, state.hover);
             dragTextSelection(state, event.position);
             if (state.drag != nullptr)
                 dragSlider(state, *state.drag, ui::windowToNode(*state.drag, event.position).x);
@@ -70,11 +71,11 @@ namespace gran::input
                 activate(state, *pressed);
         }
 
-        // Колесо: ближайшая прокрутка сдвигается на 48 логических пикселей за «щелчок»
-        // The wheel: the nearest scroll moves by 48 logical pixels per "notch"
+        // Колесо: ближайшая прокрутка сдвигается на 48 логических пикселей за «щелчок»; под диалогом прокрутки нет
+        // The wheel: the nearest scroll moves by 48 logical pixels per "notch"; there is no scrolling under a dialog
         void pointerWheel(RouterState& state, const platform::Event& event)
         {
-            ui::Node* scroll = scrollOf(hitTest(*state.root, event.position));
+            ui::Node* scroll = scrollOf(pickNode(state, event.position));
 
             if (scroll == nullptr)
                 return;

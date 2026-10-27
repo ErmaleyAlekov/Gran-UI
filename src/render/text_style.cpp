@@ -6,11 +6,11 @@
 
 namespace gran::render
 {
-    // Поле ввода без значения показывает подсказку, поле пароля — точки, остальные — свой текст
-    // An input without a value shows the placeholder, a password input — dots, the others show their text
+    // Поле ввода и ComboBox без значения показывают подсказку, поле пароля — точки, остальные — свой текст
+    // An input and a ComboBox without a value show the placeholder, a password input — dots, the others show their text
     std::string displayedText(const ui::Node& node)
     {
-        if (ui::isTextField(node) && node.content.text.empty())
+        if ((ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX) && node.content.text.empty())
             return node.content.placeholder;
         if (!node.content.password)
             return node.content.text;

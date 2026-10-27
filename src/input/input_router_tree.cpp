@@ -4,21 +4,10 @@ namespace gran::input
 {
     namespace
     {
-        // Лежит ли узел в поддереве (подъём по родителям) / Whether the node lies in the subtree (climbing the parents)
-        bool inside(const ui::Node* node, const ui::Node& subtree) noexcept
-        {
-            for (const ui::Node* current = node; current != nullptr; current = current->parent)
-            {
-                if (current == &subtree)
-                    return true;
-            }
-            return false;
-        }
-
         // Ссылка на узел поддерева обнуляется, остальные не трогаются / A reference to a subtree node is cleared, the others are left alone
         void drop(ui::Node*& reference, const ui::Node& subtree) noexcept
         {
-            if (inside(reference, subtree))
+            if (within(reference, subtree))
                 reference = nullptr;
         }
     }
@@ -54,13 +43,13 @@ namespace gran::input
         drop(_state.drag, subtree);
         drop(_state.selection, subtree);
         drop(_state.selecting, subtree);
-        drop(_state.returnFocus, subtree);
         drop(_state.contextMenu, subtree);
         drop(_state.contextTarget, subtree);
-        for (std::size_t index = _state.popups.size(); index > 0; --index)
+        for (std::size_t index = _state.layers.size(); index > 0; --index)
         {
-            if (inside(_state.popups[index - 1], subtree))
-                _state.popups.erase(_state.popups.begin() + static_cast<std::ptrdiff_t>(index - 1));
+            drop(_state.layers[index - 1].returnFocus, subtree);
+            if (within(_state.layers[index - 1].node, subtree))
+                _state.layers.erase(_state.layers.begin() + static_cast<std::ptrdiff_t>(index - 1));
         }
     }
 }

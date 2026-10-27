@@ -26,8 +26,8 @@ namespace gran::input
         {
             Affine2D inverse;
 
-            // Слой Popup проверяется отдельно (hitLayer), до дерева / A Popup layer is checked separately (hitLayer), before the tree
-            if (node.kind == ui::ElementKind::POPUP && &node != layer)
+            // Слой (Popup, Dialog) проверяется отдельно (hitLayer), до дерева / A layer (a Popup, a Dialog) is checked separately (hitLayer), before the tree
+            if (ui::isLayer(node) && &node != layer)
                 return nullptr;
             if (!node.visible || !affineInvert(ui::nodeTransform(node), inverse))
                 return nullptr;

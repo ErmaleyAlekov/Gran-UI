@@ -64,8 +64,10 @@ namespace gran::layout::internal
         {
             case ui::ElementKind::TEXT:
             case ui::ElementKind::BUTTON:
-            case ui::ElementKind::MENU_ITEM:
+            case ui::ElementKind::COMBO_BOX:
                 return pass.measurer.measureText(node, contentAvailable.width);
+            case ui::ElementKind::MENU_ITEM:
+                return menuItemSize(node, contentAvailable, pass);
             case ui::ElementKind::INPUT:
                 return inputSize(node);
             case ui::ElementKind::CHECKBOX:

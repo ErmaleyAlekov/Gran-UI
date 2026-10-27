@@ -43,7 +43,7 @@ namespace gran::style
         const Field<std::vector<GridTrack>> TRACKS[] = {{P::ROWS, &S::rows}, {P::COLUMNS, &S::columns}};
         const Field<Paint> PAINTS[] = {{P::BACKGROUND, &S::background}};
         const Field<Color> COLORS[] = {{P::BORDER_COLOR, &S::borderColor}, {P::COLOR, &S::color},
-            {P::ACCENT_COLOR, &S::accentColor}};
+            {P::ACCENT_COLOR, &S::accentColor}, {P::SCRIM, &S::scrim}};
         const Field<CornerRadii> RADII[] = {{P::BORDER_RADIUS, &S::borderRadius}};
         const Field<std::vector<Shadow>> SHADOWS[] = {{P::BOX_SHADOW, &S::shadows}};
         const Field<Transform> TRANSFORMS[] = {{P::TRANSFORM, &S::transform}};

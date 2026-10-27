@@ -32,56 +32,51 @@ namespace gran::render::internal
                 std::stable_sort(order.begin(), order.end(), ZIndexLess{});
             return order;
         }
+
+        /*
+        ** Собственное содержимое узла: элемент управления, картинка или текст. Текст рисует лист,
+        ** Text с участками, а также пункт меню и ComboBox — их единственный ребёнок-слой (подменю,
+        ** список) в поток не входит; стрелка — поверх подписи.
+        **
+        ** The node own content: a control, an image or a text. The text is painted by a leaf,
+        ** a Text with runs, and also a menu item and a ComboBox — their only child layer (a submenu,
+        ** a list) is out of the flow; the arrow goes over the label.
+        */
+        void paintContent(const ui::Node& node, const PaintState& inner, SceneContext& context)
+        {
+            bool marked = node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX;
+
+            if (node.kind == ui::ElementKind::CHECKBOX || node.kind == ui::ElementKind::SLIDER)
+                paintControl(node, inner, context);
+            else if (node.kind == ui::ElementKind::IMAGE)
+                paintImage(node, inner, context);
+            else if (node.children.empty() || ui::hasSpans(node) || marked)
+                paintText(node, inner, context);
+            if (marked)
+                paintMark(node, inner, context);
+        }
     }
 
     // Невидимые и полностью прозрачные ветви пропускаются целиком; содержимое (текст, дети) — внутри отсечения узла
     // Invisible and fully transparent branches are skipped entirely; the content (text, children) is inside the node clip
     void paintNode(const ui::Node& node, const PaintState& parent, SceneContext& context)
     {
-        // Участки (Span) рисует их Text: у участка нет своего блока; слои Popup рисуются после всего дерева
-        // The runs (Span) are painted by their Text: a run has no box of its own; Popup layers are painted after the whole tree
+        // Участки (Span) рисует их Text: у участка нет своего блока; слои рисуются после всего дерева
+        // The runs (Span) are painted by their Text: a run has no box of its own; the layers are painted after the whole tree
         if (!node.visible || node.computed.opacity <= 0.0f || node.kind == ui::ElementKind::SPAN)
             return;
-        if (node.kind == ui::ElementKind::POPUP && &node != context.layer)
+        if (ui::isLayer(node) && &node != context.layer)
             return;
         PaintState state = nodeState(node, parent);
         paintBox(node, state, context);
         PaintState inner = clipChildren(node, state, context);
-        if (node.kind == ui::ElementKind::CHECKBOX || node.kind == ui::ElementKind::SLIDER)
-            paintControl(node, inner, context);
-        else if (node.kind == ui::ElementKind::IMAGE)
-            paintImage(node, inner, context);
-        else if (node.children.empty() || ui::hasSpans(node))
-            paintText(node, inner, context);
+        paintContent(node, inner, context);
         for (const ui::Node* child : paintOrder(node))
             paintNode(*child, inner, context);
         if (node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::TEXT_AREA)
             paintScrollbars(node, inner, context);
     }
 
-    /*
-    ** Открытые слои поверх всего дерева в порядке дерева: без отсечений и преобразований предков
-    ** (слой живёт в координатах окна), со своим преобразованием и прозрачностью.
-    **
-    ** The open layers over the whole tree in tree order: without the ancestor clips and transforms
-    ** (a layer lives in window coordinates), with its own transform and opacity.
-    */
-    void paintPopups(const ui::Node& node, const PaintState& base, SceneContext& context)
-    {
-        for (const std::unique_ptr<ui::Node>& child : node.children)
-        {
-            if (!child->visible)
-                continue;
-            if (child->kind != ui::ElementKind::POPUP)
-            {
-                paintPopups(*child, base, context);
-                continue;
-            }
-            context.layer = child.get();
-            paintNode(*child, base, context);
-            context.layer = nullptr;
-        }
-    }
 }
 
 namespace gran::render
@@ -98,8 +93,13 @@ namespace gran::render
     void buildScene(const ui::Node& root, const style::ComputedStyle& window, float scale, SceneResources& resources,
         Scene& scene)
     {
-        internal::SceneContext context{resources, scene, scale};
+        internal::SceneContext context{resources, scene, scale, nullptr, Rect{}};
         internal::PaintState state;
+        const Rect& frame = root.layout.frame;
+
+        // Окно — рамка корня вместе с его внешними отступами / The window is the root frame together with its margins
+        context.viewport = Rect{0.0f, 0.0f, frame.x + frame.width + root.computed.margin.right,
+            frame.y + frame.height + root.computed.margin.bottom};
 
         scene.instances.clear();
         scene.clips.assign(1, GpuClip{});

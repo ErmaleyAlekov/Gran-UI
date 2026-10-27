@@ -7,66 +7,6 @@ namespace gran::render::internal
 {
     namespace
     {
-        // Скруглённый прямоугольник элемента управления / A rounded rectangle of a control
-        struct ControlBox
-        {
-            Rect rect;
-            float radius;
-            Color fill;
-            Color stroke;
-            float border;
-        };
-
-        // Прямоугольник (и тень под ним, если shadow > 0) / A rectangle (and a shadow under it if shadow > 0)
-        void emitBox(const ControlBox& box, float shadow, const PaintState& state, SceneContext& context)
-        {
-            float unit = 1.0f;
-            GpuInstance instance = placeInstance(state, box.rect, context.scale, unit);
-
-            for (float& radius : instance.radii)
-                radius = std::min(box.radius * unit, std::min(instance.rect[2], instance.rect[3]) * 0.5f);
-            if (shadow > 0.0f)
-            {
-                GpuInstance below = instance;
-                below.kind = KIND_SHADOW;
-                below.param = shadow * unit;
-                below.extra[1] = shadow * 0.5f * unit;
-                below.fill = colorPackPremultiplied(Color{0.0f, 0.0f, 0.0f, 0.3f});
-                context.scene.instances.push_back(below);
-            }
-            instance.kind = KIND_RECT;
-            instance.fill = colorPackPremultiplied(box.fill);
-            for (float& side : instance.border)
-                side = box.border * unit;
-            instance.stroke = colorPackPremultiplied(box.stroke);
-            context.scene.instances.push_back(instance);
-        }
-
-        // Полоса: концы и толщина / A bar: the ends and the thickness
-        struct Bar
-        {
-            Vec2 from;
-            Vec2 to;
-            float thickness;
-        };
-
-        // Полоса (ножка галочки): прямоугольник, повёрнутый вокруг середины / A bar (a check mark leg): a rectangle rotated around its middle
-        void emitBar(const Bar& line, const Color& color, const PaintState& state, SceneContext& context)
-        {
-            float dx = line.to.x - line.from.x;
-            float dy = line.to.y - line.from.y;
-            float length = std::sqrt(dx * dx + dy * dy) + line.thickness;
-            float angle = std::atan2(dy, dx);
-            PaintState bar = state;
-            Affine2D place{std::cos(angle), std::sin(angle), -std::sin(angle), std::cos(angle),
-                (line.from.x + line.to.x) * 0.5f, (line.from.y + line.to.y) * 0.5f};
-
-            bar.transform = affineMultiply(state.transform, place);
-            bar.snapped = false;
-            emitBox(ControlBox{Rect{-length * 0.5f, -line.thickness * 0.5f, length, line.thickness}, line.thickness * 0.5f,
-                color, color, 0.0f}, 0.0f, bar, context);
-        }
-
         /*
         ** Флажок: квадрат высотой ~1.15 em по центру строки; отмеченный — заливка accentColor
         ** и белая галочка, неотмеченный — рамка цветом текста с прозрачностью; затем подпись.

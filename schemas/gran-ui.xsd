@@ -306,6 +306,8 @@
     <xs:attribute name="transformOrigin" type="Origin"/>
     <xs:attribute name="backdropBlur" type="Size"/>
     <xs:attribute name="cursor" type="Cursor"/>
+    <!-- Затемнение окна под диалогом (действует у Dialog) / The window dimming under a dialog (acts on Dialog) -->
+    <xs:attribute name="scrim" type="Color"/>
   </xs:attributeGroup>
 
   <!-- Текст: наследуется от родителя, как в CSS / Text: inherited from the parent, as in CSS -->
@@ -391,6 +393,8 @@
       <xs:element name="Popup" type="PopupType"/>
       <xs:element name="MenuItem" type="MenuItemType"/>
       <xs:element name="WebView" type="WebViewType"/>
+      <xs:element name="Dialog" type="DialogType"/>
+      <xs:element name="ComboBox" type="ComboBoxType"/>
     </xs:choice>
   </xs:group>
 
@@ -427,9 +431,9 @@
 
   <!--
     Шаблон одной записи списка: ровно один элемент интерфейса. Подстановки {поле} разрешены
-    в текстовых атрибутах (text, placeholder, source, tooltip) и в тексте тегов.
+    в текстовых атрибутах (text, placeholder, source, tooltip, value у MenuItem) и в тексте тегов.
     The template of one list record: exactly one UI element. {field} placeholders are allowed
-    in the text attributes (text, placeholder, source, tooltip) and in the tag text.
+    in the text attributes (text, placeholder, source, tooltip, value of MenuItem) and in the tag text.
   -->
   <xs:complexType name="ItemTemplateType">
     <xs:group ref="UiElement"/>
@@ -558,12 +562,17 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <!-- Кнопка: подпись из text, из текста тега или из детей (значок + подпись) -->
-  <!-- A button: the label from text, from the tag text or from children (an icon + a label) -->
+  <!--
+    Кнопка: подпись из text, из текста тега или из детей (значок + подпись). popup — id слоя
+    (Popup или Dialog), который кнопка открывает сама: щелчком, Enter, пробелом и стрелкой вниз.
+    A button: the label from text, from the tag text or from children (an icon + a label). popup is the id of the layer
+    (a Popup or a Dialog) the button opens by itself: by a click, Enter, space and the down arrow.
+  -->
   <xs:complexType name="ButtonType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ContainerBase">
         <xs:attribute name="text" type="xs:string"/>
+        <xs:attribute name="popup" type="xs:NCName"/>
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="@text or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
                          or self::Focused or self::Disabled or self::Checked)]"/>
@@ -626,14 +635,74 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <!-- Пункт меню: подпись text, действие onClick; выбор закрывает меню / A menu item: the text label, the onClick action; choosing it closes the menu -->
+  <!--
+    Пункт меню: подпись text, действие onClick; выбор закрывает меню. Вложенный <Popup> — подменю:
+    открывается сбоку (наведением, стрелкой вправо, Enter), пункт с подменю сам команду не выполняет.
+    value — значение пункта в ComboBox (без него значение — подпись).
+    A menu item: the text label, the onClick action; choosing it closes the menu. A nested <Popup> is a submenu:
+    it opens at the side (by hovering, the right arrow, Enter), an item with a submenu runs no command itself.
+    value is the item value in a ComboBox (without it the value is the label).
+  -->
   <xs:complexType name="MenuItemType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="Popup" type="PopupType" minOccurs="0"/>
+        </xs:sequence>
         <xs:attribute name="text" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Модальный диалог: скрыт, пока код не откроет его (Application::showDialog) или кнопка с popup="id".
+    Встаёт по центру окна, окно под ним затемняется (свойство scrim), ввод вне диалога заблокирован,
+    Tab ходит только внутри. closable="false" — Esc диалог не закрывает.
+    A modal dialog: hidden until the code opens it (Application::showDialog) or a button with popup="id".
+    It stands in the window center, the window under it is dimmed (the scrim property), the input outside the dialog
+    is blocked, Tab moves only inside. closable="false" — Esc does not close the dialog.
+  -->
+  <xs:complexType name="DialogType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:attribute name="closable" type="xs:boolean"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Выпадающий список: пункты <MenuItem value text> или items + <ItemTemplate> с MenuItem (только вместе);
+    value — значение выбранного пункта, placeholder — подпись без выбора, onChange — действие при выборе другого.
+    A drop-down list: the <MenuItem value text> items or items + <ItemTemplate> with a MenuItem (only together);
+    value is the selected item value, placeholder is the label without a choice, onChange is the action on choosing another.
+  -->
+  <xs:complexType name="ComboBoxType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="MenuItem" type="MenuItemType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="ItemTemplate" type="ComboItemTemplateType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="placeholder" type="xs:string"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:attribute name="items" type="xs:NCName"/>
+        <xs:assert test="exists(@items) = exists(ItemTemplate)"/>
+        <xs:assert test="not(MenuItem/Popup)"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Шаблон пункта ComboBox: ровно один MenuItem / A ComboBox item template: exactly one MenuItem -->
+  <xs:complexType name="ComboItemTemplateType">
+    <xs:sequence>
+      <xs:element name="MenuItem" type="MenuItemType"/>
+    </xs:sequence>
   </xs:complexType>
 
   <!--

@@ -9,7 +9,7 @@ namespace gran::input
         {
             return node.kind == ui::ElementKind::BUTTON || node.kind == ui::ElementKind::CHECKBOX
                 || node.kind == ui::ElementKind::SLIDER || ui::isTextField(node)
-                || node.kind == ui::ElementKind::MENU_ITEM
+                || node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX
                 || !node.content.onClick.empty();
         }
     }
@@ -55,21 +55,23 @@ namespace gran::input
     }
 
     /*
-    ** Активация: пункт меню закрывает свой слой и выполняет команду; флажок переключается (состояние
-    ** CHECKED и onChange), затем выполняется onClick.
-    ** Состояния узлов меняются до вызова приложения — его обработчик видит новое значение.
+    ** Активация: пункт меню закрывает свой слой и выполняет команду (пункт с подменю открывает его);
+    ** флажок переключается (состояние CHECKED и onChange); кнопка с popup и ComboBox открывают свой слой;
+    ** затем выполняется onClick. Состояния узлов меняются до вызова приложения — его обработчик видит новое значение.
     **
-    ** Activation: a menu item closes its layer and runs its command; a check box toggles (the CHECKED state
-    ** and onChange), then onClick runs.
-    ** The node states change before calling the application — its handler sees the new value.
+    ** Activation: a menu item closes its layer and runs its command (an item with a submenu opens it);
+    ** a check box toggles (the CHECKED state and onChange); a button with popup and a ComboBox open their layer;
+    ** then onClick runs. The node states change before calling the application — its handler sees the new value.
     */
     void activate(RouterState& state, ui::Node& control)
     {
-        if (control.kind == ui::ElementKind::MENU_ITEM)
-        {
+        if (control.kind == ui::ElementKind::MENU_ITEM && ui::submenuOf(control) != nullptr)
+            openSubmenu(state, control);
+        else if (control.kind == ui::ElementKind::MENU_ITEM)
             chooseItem(state, control);
+        if (control.kind == ui::ElementKind::MENU_ITEM)
             return;
-        }
+        openAttached(state, control);
         if (control.kind == ui::ElementKind::CHECKBOX)
         {
             control.content.checked = !control.content.checked;

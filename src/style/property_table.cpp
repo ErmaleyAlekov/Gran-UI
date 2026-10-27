@@ -32,6 +32,7 @@ namespace gran::style
             {"boxShadow", P::BOX_SHADOW, K::SHADOWS, false}, {"opacity", P::OPACITY, K::NUMBER, false},
             {"transform", P::TRANSFORM, K::TRANSFORM, false}, {"transformOrigin", P::TRANSFORM_ORIGIN, K::ORIGIN, false},
             {"backdropBlur", P::BACKDROP_BLUR, K::NUMBER, false}, {"cursor", P::CURSOR, K::KEYWORD, true},
+            {"scrim", P::SCRIM, K::COLOR, false},
             {"color", P::COLOR, K::COLOR, true}, {"fontFamily", P::FONT_FAMILY, K::STRING, true},
             {"fontSize", P::FONT_SIZE, K::NUMBER, true}, {"fontWeight", P::FONT_WEIGHT, K::FONT_WEIGHT, true},
             {"fontStyle", P::FONT_STYLE, K::KEYWORD, true}, {"lineHeight", P::LINE_HEIGHT, K::NUMBER, true},

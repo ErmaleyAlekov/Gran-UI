@@ -116,7 +116,7 @@ namespace gran::render::internal
         GlyphPaint paint{node.computed.color, layout.fontSize, ALL_RUNS};
         bool runs = ui::hasSpans(node);
 
-        if (ui::isTextField(node) && node.content.text.empty())
+        if ((ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX) && node.content.text.empty())
             paint.color.a *= 0.5f;
         if (runs)
             paintRunBackgrounds(place, state, context);

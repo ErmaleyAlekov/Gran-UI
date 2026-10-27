@@ -52,6 +52,21 @@ namespace gran::input
     };
 
     /*
+    ** Открытый слой и узел, куда вернётся фокус при его закрытии (фокус до открытия). У каждого слоя
+    ** свой узел возврата: подменю возвращает фокус пункту родительского меню, меню — кнопке, диалог — тому,
+    ** что было в фокусе до него.
+    **
+    ** An open layer and the node the focus returns to on its closing (the focus before opening). Every layer
+    ** has its own return node: a submenu returns the focus to the parent menu item, a menu — to the button, a dialog —
+    ** to what was focused before it.
+    */
+    struct OpenLayer
+    {
+        ui::Node* node = nullptr;
+        ui::Node* returnFocus = nullptr;
+    };
+
+    /*
     ** Состояние маршрутизатора: корень, получатели и узлы под мышью, нажатый, в фокусе, перетаскиваемый
     ** ползунок; selection — узел с текущим выделением (поле ввода или Text), selecting — узел,
     ** в котором мышь сейчас тянет выделение.
@@ -80,13 +95,15 @@ namespace gran::input
         const ui::Node* goalNode = nullptr;
         std::size_t goalCaret = 0;
         float goalX = 0.0f;
-        // Открытые слои Popup снизу вверх; фокус до открытия меню; встроенное контекстное меню и его цель; последняя точка мыши
-        // The open Popup layers bottom to top; the focus before a menu opened; the built-in context menu and its target; the last mouse point
-        std::vector<ui::Node*> popups;
-        ui::Node* returnFocus = nullptr;
+        // Открытые слои снизу вверх; встроенное контекстное меню и его цель; последняя точка мыши
+        // The open layers bottom to top; the built-in context menu and its target; the last mouse point
+        std::vector<OpenLayer> layers;
         ui::Node* contextMenu = nullptr;
         ui::Node* contextTarget = nullptr;
         Vec2 pointer;
+        // Текущее событие — нажатие клавиши: открытое им меню сразу ставит фокус на пункт (как в Windows)
+        // The current event is a key press: a menu opened by it puts the focus on an item at once (as in Windows)
+        bool keyboard = false;
     };
 
     /*
@@ -212,8 +229,44 @@ namespace gran::input
     // Нажатие мимо всех непассивных слоёв закрывает их; true — нажатие поглощено / A press outside all non-passive layers closes them; true — the press is consumed
     bool closeOutside(RouterState& state, Vec2 point);
 
-    // Выбор пункта меню: слой закрывается, затем команда (встроенная или onClick) / Choosing a menu item: the layer closes, then the command (built-in or onClick)
+    // Выбор пункта меню: цепочка меню закрывается, затем значение ComboBox и команда (встроенная или onClick)
+    // Choosing a menu item: the menu chain closes, then the ComboBox value and the command (built-in or onClick)
     void chooseItem(RouterState& state, ui::Node& item);
+
+    // ---- layer_stack.cpp ----
+
+    // Лежит ли узел в поддереве subtree (подъём по родителям) / Whether the node lies in the subtree (climbing the parents)
+    bool within(const ui::Node* node, const ui::Node& subtree) noexcept;
+
+    // Верхний непассивный слой (подсказки клавиш и мыши не ловят) или nullptr / The top non-passive layer (tooltips catch neither keys nor the mouse) or nullptr
+    ui::Node* topLayer(const RouterState& state) noexcept;
+
+    // Верхний открытый диалог: ввод ниже него заблокирован; nullptr — модального слоя нет
+    // The top open dialog: the input below it is blocked; nullptr — there is no modal layer
+    ui::Node* modalLayer(const RouterState& state) noexcept;
+
+    // Закрыть открытые слои внутри поддерева layer (подменю, списки, меню диалога), сам layer — нет
+    // Closing the open layers inside the layer subtree (submenus, lists, dialog menus), not the layer itself
+    void closeNested(RouterState& state, const ui::Node& layer);
+
+    // Закрыть меню над верхним диалогом (всю цепочку подменю) / Closing the menus over the top dialog (the whole submenu chain)
+    void closeMenus(RouterState& state);
+
+    // ---- menu_open.cpp ----
+
+    // Открыть слой, привязанный к элементу (Button popup="id", список ComboBox); false — привязанного слоя нет
+    // Opening the layer attached to a control (Button popup="id", a ComboBox list); false — there is no attached layer
+    bool openAttached(RouterState& state, ui::Node& control);
+
+    // Открыть подменю пункта сбоку от него / Opening the item submenu at its side
+    void openSubmenu(RouterState& state, ui::Node& item);
+
+    // Наведение на пункт: подменю соседних пунктов закрываются, своё — открывается / Hovering an item: the neighbor item submenus close, its own one opens
+    void hoverMenus(RouterState& state, ui::Node* hover);
+
+    // Фокус при открытии: диалог — первый элемент внутри, список ComboBox — выбранный пункт, меню с клавиатуры — первый пункт
+    // The focus on opening: a dialog — the first control inside, a ComboBox list — the selected item, a menu from the keyboard — the first item
+    void focusOnOpen(RouterState& state, ui::Node& layer);
 
     // ---- context_menu.cpp ----
 
@@ -229,7 +282,12 @@ namespace gran::input
 
     // ---- popup_keys.cpp ----
 
-    // Клавиши при открытом слое: Esc — закрыть, стрелки — пункты меню; true — обработано / Keys with an open layer: Esc — close, the arrows — the menu items; true — handled
+    // Следующий включённый пункт слоя по кругу на шаг step (вне слоя — первый или последний); nullptr — пунктов нет
+    // The next enabled layer item cyclically by step (outside the layer — the first or the last one); nullptr — no items
+    ui::Node* stepItem(ui::Node& popup, const ui::Node* current, int step);
+
+    // Клавиши при открытом слое: Esc — закрыть, стрелки — пункты меню и подменю; true — обработано
+    // Keys with an open layer: Esc — close, the arrows — the menu items and submenus; true — handled
     bool popupKey(RouterState& state, const platform::Event& event);
 
     // ---- keyboard_input.cpp ----
