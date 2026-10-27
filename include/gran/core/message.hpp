@@ -68,6 +68,7 @@ namespace gran::i18n
         MARKUP_FRAGMENT_PARENT,
         WEBVIEW_WRONG_NODE,
         WEBVIEW_UNAVAILABLE,
+        APP_WRONG_ELEMENT,
 
         COUNT
     };

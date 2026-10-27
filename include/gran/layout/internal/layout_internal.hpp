@@ -99,6 +99,11 @@ namespace gran::layout::internal
     // The intrinsic size of a leaf: text, an image, an input, a check box, a slider
     Size measureLeaf(ui::Node& node, Size contentAvailable, LayoutPass& pass);
 
+    // ---- menu_item_layout.cpp ----
+
+    // Пункт меню: подпись; у пункта с подменю справа ещё место под стрелку / A menu item: the label; an item with a submenu also has room for the arrow on the right
+    Size menuItemSize(ui::Node& node, Size contentAvailable, LayoutPass& pass);
+
     // ---- Stack (flex_*.cpp, stack_*.cpp) ----
 
     // Элемент гибкой строки: размеры по главной оси — рамка без внешних отступов
@@ -229,7 +234,8 @@ namespace gran::layout::internal
 
     // ---- popup_layout.cpp ----
 
-    // Открытые слои Popup поддерева: размер по содержимому, место у якоря в пределах окна / The open Popup layers of the subtree: the size by the content, the place at the anchor within the window
+    // Открытые слои поддерева (Popup, Dialog, вложенные): размер по содержимому, место по роли в пределах окна
+    // The open layers of the subtree (Popup, Dialog, nested ones): the size by the content, the place by the role within the window
     void layoutPopups(ui::Node& node, Size viewport, LayoutPass& pass);
 
     // ---- text_area_layout.cpp ----

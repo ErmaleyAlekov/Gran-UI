@@ -42,7 +42,16 @@
       <Pressed background="#e0e7ff"/>
       <Focused background="#eef2ff"/>
       <Disabled opacity="0.4"/>
+      <Checked color="#1d4ed8"/>
     </Style>
+    <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
+    <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->
+    <Style name="ComboBox" basedOn="Input" padding="8 34 8 12" cursor="pointer" textWrap="nowrap" textOverflow="ellipsis"/>
+    <!-- Модальный диалог: панель по центру окна, окно под ней затемнено (scrim) -->
+    <!-- A modal dialog: a panel in the window center, the window under it is dimmed (scrim) -->
+    <Style name="Dialog" padding="24" spacing="16" minWidth="320" maxWidth="560" background="#ffffff" color="#101828"
+           borderWidth="1" borderColor="#e4e7ec" borderRadius="14" scrim="rgba(16, 24, 40, 0.45)"
+           boxShadow="0 24 48 rgba(16, 24, 40, 0.22), 0 4 12 rgba(16, 24, 40, 0.10)"/>
     <!-- Подложка страницы, пока браузер не готов (или недоступен) / The page backdrop while the browser is not ready (or unavailable) -->
     <Style name="WebView" background="#ffffff" borderWidth="1" borderColor="#e4e7ec"/>
     <Style name="Tooltip" padding="5 9" minWidth="0" spacing="0" background="#1f2937" color="#f9fafb" borderWidth="0"

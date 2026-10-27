@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Диалоги, выпадающие списки и подменю: кнопка с popup="id" открывает свой слой сама (щелчок, Enter,
+  пробел, стрелка вниз), ComboBox показывает выбранное значение, пункт с вложенным Popup — подменю.
+  Запуск: gran_gallery samples/dialogs.xml
+
+  Dialogs, drop-down lists and submenus: a button with popup="id" opens its layer by itself (a click, Enter,
+  space, the down arrow), a ComboBox shows the selected value, an item with a nested Popup is a submenu.
+  Run: gran_gallery samples/dialogs.xml
+-->
+<Window title="Gran UI — диалоги и списки" width="680" height="460" background="#f5f6f8">
+  <Resources>
+    <Data name="sizes">
+      <Item key="s" name="Маленький"/>
+      <Item key="m" name="Средний"/>
+      <Item key="l" name="Большой"/>
+    </Data>
+  </Resources>
+  <Stack padding="24" spacing="16">
+    <Stack orientation="horizontal" spacing="10" align="center">
+      <Button id="file" text="Файл ▾" popup="fileMenu" tooltip="Меню: Enter, пробел или стрелка вниз"/>
+      <Button id="aboutButton" text="О программе…" popup="about"/>
+      <Button id="removeButton" text="Удалить…" popup="confirm" background="#d92d20"/>
+      <Text id="status" color="#667085">Готово</Text>
+    </Stack>
+    <Stack orientation="horizontal" spacing="10" align="center">
+      <Text>Тема</Text>
+      <ComboBox id="theme" width="180" value="light" onChange="choice">
+        <MenuItem value="light" text="Светлая"/>
+        <MenuItem value="dark" text="Тёмная"/>
+        <MenuItem value="system" text="Как в системе"/>
+      </ComboBox>
+      <Text>Размер</Text>
+      <ComboBox id="size" width="160" placeholder="Выберите…" items="sizes" onChange="choice">
+        <ItemTemplate>
+          <MenuItem value="{key}" text="{name}"/>
+        </ItemTemplate>
+      </ComboBox>
+    </Stack>
+    <Input id="name" placeholder="Имя файла" value="отчёт.txt"/>
+    <Popup id="fileMenu">
+      <MenuItem text="Новый" onClick="command"/>
+      <MenuItem text="Открыть…" onClick="command"/>
+      <MenuItem text="Экспорт">
+        <Popup>
+          <MenuItem text="PDF" onClick="command"/>
+          <MenuItem text="PNG" onClick="command"/>
+          <MenuItem text="SVG" enabled="false"/>
+        </Popup>
+      </MenuItem>
+      <MenuItem text="Сохранить" onClick="save"/>
+    </Popup>
+    <Dialog id="about">
+      <Text fontSize="18" fontWeight="700">О программе</Text>
+      <Text color="#475467" lineHeight="1.5">Грань UI — интерфейс на XML-разметке со стилями в синтаксисе CSS.
+        Окно под диалогом затемнено, Tab ходит только внутри, Esc закрывает.</Text>
+      <Input id="feedback" placeholder="Ваш отзыв"/>
+      <Stack orientation="horizontal" spacing="8" justify="end">
+        <Button text="Закрыть" onClick="closeDialog"/>
+      </Stack>
+    </Dialog>
+    <Dialog id="confirm" closable="false" maxWidth="420">
+      <Text fontSize="18" fontWeight="700">Удалить файл?</Text>
+      <Text color="#475467">Esc этот диалог не закрывает: нужно выбрать ответ.</Text>
+      <Stack orientation="horizontal" spacing="8" justify="end">
+        <Button text="Отмена" onClick="closeDialog" background="#ffffff" color="#344054" borderWidth="1"
+                borderColor="#d0d5dd"/>
+        <Button text="Удалить" onClick="closeDialog" background="#d92d20"/>
+      </Stack>
+    </Dialog>
+  </Stack>
+</Window>

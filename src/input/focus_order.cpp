@@ -11,7 +11,7 @@ namespace gran::input
         {
             bool focusable = node.kind == ui::ElementKind::BUTTON || node.kind == ui::ElementKind::CHECKBOX
                 || node.kind == ui::ElementKind::SLIDER || ui::isTextField(node)
-                || node.kind == ui::ElementKind::MENU_ITEM;
+                || node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX;
 
             if (!node.visible || !node.enabled)
                 return;

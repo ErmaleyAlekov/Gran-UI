@@ -14,6 +14,7 @@ namespace gran
     ** A new node is entirely "dirty"; markDirty raises DIRTY_DESCENDANT and DIRTY_LAYOUT
     ** to the root — the style pass finds it, the layout recomputes the branch. The items="…" lists
     ** in it are bound to the models.
+    ** Подписи ComboBox с пунктами из данных ставятся после привязки / The labels of ComboBoxes with items from data are set after binding.
     */
     ui::Node& Application::append(ui::Node& parent, std::unique_ptr<ui::Node> child)
     {
@@ -21,6 +22,7 @@ namespace gran
 
         ui::markDirty(added, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         _state->lists.bind(added);
+        ui::syncComboBoxes(added);
         return added;
     }
 

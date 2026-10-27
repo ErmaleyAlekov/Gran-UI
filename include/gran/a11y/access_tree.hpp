@@ -21,7 +21,7 @@ namespace gran::a11y
     // Роль узла для вспомогательных технологий / The node role for assistive technologies
     enum class Role : std::uint8_t
     {
-        GROUP, SCROLL, TEXT, IMAGE, BUTTON, EDIT, CHECK_BOX, SLIDER, MENU, MENU_ITEM
+        GROUP, SCROLL, TEXT, IMAGE, BUTTON, EDIT, CHECK_BOX, SLIDER, MENU, MENU_ITEM, DIALOG, COMBO_BOX
     };
 
     // Сведения об узле: роль, имя, значение и состояние / The node facts: the role, the name, the value and the state

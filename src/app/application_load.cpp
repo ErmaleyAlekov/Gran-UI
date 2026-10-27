@@ -13,6 +13,7 @@ namespace gran::app
     ** A new document replaces the former one only after a successful load; the bindings of the former one
     ** are dropped before the replacement (they refer to its nodes). Then: the initial states, the window style,
     ** the <Font> fonts relative to the markup directory, the data and the list bindings.
+    ** Подписи ComboBox — после привязок (пункты могут прийти из данных) / The ComboBox labels — after the bindings (the items may come from data).
     */
     void adoptDocument(Application::State& state, markup::UiDocument document, const std::string& base)
     {
@@ -26,7 +27,9 @@ namespace gran::app
         for (const markup::FontFace& face : state.document.fonts)
             state.fonts.addFile((std::filesystem::path(base) / face.source).string());
         state.lists.adoptData(state.document.data);
-        if (state.document.root)
-            state.lists.bind(*state.document.root);
+        if (!state.document.root)
+            return;
+        state.lists.bind(*state.document.root);
+        ui::syncComboBoxes(*state.document.root);
     }
 }

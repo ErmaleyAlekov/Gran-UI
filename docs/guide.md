@@ -116,18 +116,20 @@ int main()
 | `Text` | Текст, может содержать участки `Span` | `textWrap`, `textOverflow`, `maxLines`, `textAlign` |
 | `Span` | Участок оформленного текста внутри `Text` | шрифт, `color`, `background`, `textDecoration`, `onClick` (ссылка) |
 | `Image` | Картинка PNG | `source`, `fit="fill\|contain\|cover\|none"` |
-| `Button` | Кнопка с текстом или содержимым | `text`, `onClick` |
+| `Button` | Кнопка с текстом или содержимым | `text`, `onClick`, `popup` (id своего меню или диалога) |
 | `Input` | Однострочное поле | `value`, `placeholder`, `maxLength`, `password`, `readOnly`, `onChange`, `onSubmit` |
 | `TextArea` | Многострочное поле с переносом и прокруткой | `rows`, `submitKey="ctrlEnter\|enter"`, `maxHeight`, `onSubmit` |
 | `CheckBox` | Флажок | `text`, `checked`, `onChange` |
 | `Slider` | Ползунок | `min`, `max`, `value`, `step`, `onChange` |
 | `Popup` | Всплывающий слой (скрыт, пока его не покажут) | — |
-| `MenuItem` | Пункт меню в `Popup` | `text`, `onClick` |
+| `MenuItem` | Пункт меню в `Popup`; вложенный `Popup` — подменю | `text`, `onClick`, `value` (для `ComboBox`) |
+| `Dialog` | Модальный диалог по центру окна | `closable` |
+| `ComboBox` | Выпадающий список с выбранным значением | `value`, `placeholder`, `onChange`, пункты `MenuItem` или `items` |
 | `WebView` | Страница системного браузера (по желанию, см. [ниже](#встроенный-браузер-webview)) | `source` или HTML в теге, `onMessage` |
 | `ItemTemplate` | Вид одной записи списка внутри контейнера с `items` | ровно один элемент |
 
-Контейнеры (`Stack`, `Box`, `Grid`, `Canvas`, `Button`, `Popup`) принимают `items="модель"` вместе с
-`<ItemTemplate>` — см. [Списки из данных](#списки-из-данных).
+Контейнеры (`Stack`, `Box`, `Grid`, `Canvas`, `Button`, `Popup`, `Dialog`) и `ComboBox` принимают `items="модель"`
+вместе с `<ItemTemplate>` — см. [Списки из данных](#списки-из-данных).
 
 Общие атрибуты всех элементов: `id`, `style`, `visible`, `enabled`, `tooltip`, атрибуты размеров, отступов и
 оформления. Имена атрибутов — camelCase и одинаковые у всех элементов.
@@ -192,8 +194,8 @@ CSS: `padding="8"`, `"8 16"`, `"4 8 12 16"`.
 - Состояния: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. Смена состояния плавная, если у свойства
   есть `transition`.
 - `basedOn` наследует другой стиль. Тема по умолчанию задаёт стили с именами элементов (`Button`, `Input`,
-  `TextArea`, `CheckBox`, `Slider`, `Scroll`, `Popup`, `MenuItem`, `Tooltip`) — свой `Style` с таким именем их
-  заменяет.
+  `TextArea`, `CheckBox`, `Slider`, `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — свой `Style`
+  с таким именем их заменяет.
 - Токены темы (`<Token name="accent" value="#6d5dfc"/>`) подставляются в любое значение как `$accent`.
 - `color`, `accentColor`, шрифт и кегль наследуются детьми, как в CSS.
 
@@ -242,6 +244,8 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 | `onWebMessage`, `postWebMessage`, `navigate`, `loadHtml` | Встроенный браузер `<WebView>` |
 | `focus(узел)` | Передать фокус клавиатуры |
 | `showPopup(слой, якорь)` / `showPopupAt(слой, точка)` / `hidePopup(слой)` | Всплывающие слои |
+| `showDialog(диалог)` / `hideDialog(диалог)` | Модальный диалог |
+| `selectOption(список, значение)` | Выбрать пункт `ComboBox` из кода (без `onChange`) |
 | `post(задача)` | Выполнить функцию в потоке интерфейса (безопасно из любого потока) |
 | `run()` | Цикл событий до закрытия окна; возвращает код выхода |
 
@@ -329,6 +333,73 @@ app.showPopup(*app.find("moreMenu"), button);
 `Popup` вынут из потока компоновки и рисуется поверх всего. Он встаёт под якорем (над ним, если внизу не хватает
 места), `showPopupAt` — у точки с отражением внутрь окна. Esc и щелчок мимо закрывают слой, стрелки ходят по
 пунктам, Enter выбирает. Атрибут `tooltip` у любого элемента показывает подсказку через 0,6 с.
+
+**Меню без кода.** Кнопка с `popup="id"` открывает свой слой сама: щелчком, Enter, пробелом и стрелкой вниз.
+С клавиатуры фокус сразу встаёт на первый пункт (так же и у меню, которое открывает код в `onClick`).
+Esc закрывает меню и возвращает фокус кнопке.
+
+**Подменю** — `Popup` внутри `MenuItem`. Оно открывается сбоку от пункта (справа, а если там не хватает места —
+слева), наведением мыши, стрелкой вправо или Enter; стрелка влево и Esc закрывают только его. Пункт с подменю
+помечен стрелкой и сам команду не выполняет; выбор пункта в подменю закрывает всю цепочку.
+
+```xml
+<Button text="Файл ▾" popup="fileMenu"/>
+<Popup id="fileMenu">
+  <MenuItem text="Открыть…" onClick="open"/>
+  <MenuItem text="Экспорт">
+    <Popup>
+      <MenuItem text="PDF" onClick="exportPdf"/>
+      <MenuItem text="PNG" onClick="exportPng"/>
+    </Popup>
+  </MenuItem>
+</Popup>
+```
+
+**Выпадающий список** `ComboBox` показывает подпись выбранного пункта (без выбора — `placeholder`). Выбор
+другого пункта меняет значение и вызывает `onChange`; значение пункта — его `value`, а без него — текст.
+Пункты пишутся прямо в теге или берутся из модели — так же, как [списки из данных](#списки-из-данных).
+Открытый список не уже поля, фокус в нём стоит на выбранном пункте, выбранный пункт отмечен стилем `Checked`.
+
+```xml
+<ComboBox id="theme" value="light" onChange="themeChanged">
+  <MenuItem value="light" text="Светлая"/>
+  <MenuItem value="dark" text="Тёмная"/>
+</ComboBox>
+<ComboBox id="size" placeholder="Выберите…" items="sizes" onChange="sizeChanged">
+  <ItemTemplate><MenuItem value="{key}" text="{name}"/></ItemTemplate>
+</ComboBox>
+```
+
+```cpp
+// В обработчике themeChanged: значение — combo.content.option, подпись — combo.content.text
+app.selectOption(*app.find("size"), "m");   // выбрать из кода, onChange не вызывается
+```
+
+**Диалог** `Dialog` — модальный слой: встаёт по центру окна, окно под ним затемняется (свойство стиля `scrim`,
+в теме — полупрозрачный тёмный), щелчки и колесо мимо диалога никуда не попадают, Tab и Shift+Tab ходят только
+по его элементам. При открытии фокус встаёт на первый элемент диалога, при закрытии возвращается туда, где был.
+Esc закрывает диалог, если не задано `closable="false"` (тогда закрыть его может только код). Меню и списки
+внутри диалога работают как обычно и рисуются над ним.
+
+```xml
+<Button text="Удалить…" popup="confirm"/>
+<Dialog id="confirm" closable="false">
+  <Text fontWeight="700">Удалить файл?</Text>
+  <Stack orientation="horizontal" spacing="8" justify="end">
+    <Button text="Отмена" onClick="cancel"/>
+    <Button text="Удалить" onClick="remove"/>
+  </Stack>
+</Dialog>
+```
+
+```cpp
+app.showDialog(*app.find("confirm"));   // открыть из кода
+app.hideDialog(*app.find("confirm"));   // закрыть (обычно в обработчике кнопки)
+```
+
+Слои рисуются в порядке дерева: вложенный слой (меню в диалоге, подменю) — над своим, поэтому диалог, который
+открывается из другого диалога, удобно объявить внутри него. Пример всего вместе — `samples/dialogs.xml`
+(`gran_gallery samples/dialogs.xml`).
 
 ## Встроенный браузер: WebView
 
