@@ -33,6 +33,7 @@ namespace suites
     void registerDataListTests(test::TestRunner& runner);
     void registerListBindingTests(test::TestRunner& runner);
     void registerWebViewTests(test::TestRunner& runner);
+    void registerIncrementalLayoutTests(test::TestRunner& runner);
 
     // ---- Пример chat: JSON, chunked, NDJSON / The chat example: JSON, chunked, NDJSON ----
     void registerChatJsonTests(test::TestRunner& runner);

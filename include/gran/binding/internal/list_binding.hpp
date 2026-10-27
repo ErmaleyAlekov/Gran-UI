@@ -36,6 +36,16 @@ namespace gran::binding
     ** the affected copies: an insertion and a removal — their own nodes, a field change — only the texts with placeholders
     ** (the focus, the selection and the scrolling of the other records survive). The copies follow the container's
     ** own children, in the record order. It lives in ListBindings while the container is in the tree.
+    **
+    ** Виртуальный список (virtual="true"): копии есть только у «окна» записей [first, first + k) около
+    ** видимой области прокрутки, остальные записи заменяют две распорки (Box) с размером «число записей ×
+    ** средний размер записи». После каждой компоновки updateWindow подгоняет окно под видимую область,
+    ** поэтому список из 100 000 записей стоит как список из нескольких десятков.
+    **
+    ** A virtual list (virtual="true"): only the "window" of records [first, first + k) near the visible scroll area
+    ** has copies, the other records are replaced by two spacers (Box) sized "the record count × the average
+    ** record size". After every layout updateWindow fits the window to the visible area,
+    ** so a list of 100,000 records costs as much as a list of a few dozen.
     */
     class ListBinding final : public data::ListObserver
     {
@@ -52,6 +62,12 @@ namespace gran::binding
         void removed(std::size_t index, std::size_t count) override;
         void changed(std::size_t index) override;
 
+        // ---- list_binding_window.cpp ----
+
+        // Подогнать окно виртуального списка под видимую область; true — дерево изменилось (нужна перекомпоновка)
+        // Fit the virtual list window to the visible area; true — the tree changed (a relayout is needed)
+        bool updateWindow();
+
         // ---- list_binding_query.cpp ----
 
         // Привязанный контейнер / The bound container
@@ -64,13 +80,42 @@ namespace gran::binding
         std::size_t indexOf(const ui::Node& item) const noexcept;
 
     private:
-        // Место в детях контейнера для копии записи index / The place among the container children for the copy of the record index
-        std::size_t childPosition(std::size_t index) const noexcept;
+        // Место в детях контейнера для копии с номером local в окне / The place among the container children for the copy with the window index local
+        std::size_t childPosition(std::size_t local) const noexcept;
+
+        // ---- list_binding_items.cpp ----
+
+        // Копия записи record (record — внутри окна или сразу за ним) / A copy of the record (record is inside the window or right after it)
+        void materialize(std::size_t record);
+
+        // Убрать копию с номером local в окне / Remove the copy with the window index local
+        void dematerialize(std::size_t local);
+
+        // Распорки до и после окна (только виртуальный список) / The spacers before and after the window (a virtual list only)
+        void createSpacers();
+
+        // ---- list_binding_window.cpp ----
+
+        // Размеры распорок по числу записей вне окна; true — размер изменился / The spacer sizes by the record count outside the window; true — a size changed
+        bool applySpacers();
+
+        // Окно стало [first, last): лишние копии уходят, недостающие создаются / The window became [first, last): extra copies go, missing ones are created
+        bool reshapeWindow(std::size_t first, std::size_t last);
 
         ListBindings& _owner;
         ui::Node& _container;
         data::ListModel& _model;
+        // Копии окна записей [_first, _first + _items.size()); у обычного списка окно — все записи
+        // The copies of the record window [_first, _first + _items.size()); for an ordinary list the window is all records
         std::vector<BoundItem> _items;
+        std::size_t _first = 0;
+        bool _virtual = false;
+        // Сколько копий можно держать без компоновки (до первого кадра — начальная порция) / How many copies may be kept without a layout (before the first frame — the initial portion)
+        std::size_t _capacity = 32;
+        // Средний размер записи по главной оси вместе с промежутком (0 — ещё не измерен) / The average record size along the main axis with the gap (0 — not measured yet)
+        float _extent = 0.0f;
+        ui::Node* _lead = nullptr;
+        ui::Node* _trail = nullptr;
     };
 
     // ---- list_binding_fields.cpp ----

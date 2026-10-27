@@ -93,6 +93,17 @@ namespace gran::binding
         // Запись ближайшего списка, из копии шаблона которой узел / The record of the nearest list whose template copy holds the node
         ItemRef itemOf(const ui::Node& node) const noexcept;
 
+        // ---- list_bindings_window.cpp ----
+
+        /*
+        ** После компоновки: окна виртуальных списков подгоняются под видимую область прокрутки.
+        ** true — дерево изменилось: нужны проход стилей и компоновка ещё раз (обычно хватает одного).
+        **
+        ** After a layout: the virtual list windows are fitted to the visible scroll area.
+        ** true — the tree changed: a style pass and a layout are needed once more (usually one is enough).
+        */
+        bool updateVirtual();
+
     private:
         RemovalListener* _listener;
         std::map<std::string, std::unique_ptr<data::ListModel>, std::less<>> _models;

@@ -451,7 +451,11 @@
           <xs:element name="ItemTemplate" type="ItemTemplateType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="items" type="xs:NCName"/>
+        <!-- Виртуальный список: копии только у видимых записей (нужен items, записи примерно одной высоты) -->
+        <!-- A virtual list: copies only for the visible records (needs items, records of about the same height) -->
+        <xs:attribute name="virtual" type="xs:boolean"/>
         <xs:assert test="exists(@items) = exists(ItemTemplate)"/>
+        <xs:assert test="not(@virtual = 'true' or @virtual = '1') or exists(@items)"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>

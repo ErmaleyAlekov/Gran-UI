@@ -114,6 +114,18 @@ The engine draws the interface itself and does not use a browser for this. `<Web
 - `Popup` is taken out of the flow (like `position: fixed`): measured by the window and placed at the anchor (below it, above it if there is not enough space, at the point — with reflection inside the window).
 - One measurement pass + one layout pass; measurement cache by constraints.
 
+- **Local relayout.** `markDirty(node, DIRTY_LAYOUT)` raises the flag to all ancestors, so a node without the flag is an
+  unchanged subtree. Its measurements (the two last available sizes) live between passes, and during placement a branch
+  of the same size is not recomputed: at the same place — nothing, at a new one — the subtree frames are only shifted.
+  Editing one record in a list of 10,000 costs ~1 ms instead of ~60 ms. The stack main axis sums are in `double`,
+  and free space within the rounding error counts as zero: otherwise a long stack would "shrink" by pixel fractions,
+  and every item would be measured anew.
+- **Virtual lists** (`virtual="true"`, the `binding/` module). Only the record window near the visible scroll area has
+  template copies; the records before and after the window are replaced by two `Box` spacers sized "the record count ×
+  the average size". After a layout `ListBindings::updateVirtual` fits the window (an overlapping one — at its edges, the
+  other copies live on), and one more style pass and layout run in the same frame (`app::layoutFrame`, at most three).
+  The spacers change only on a difference above half a pixel — the average jitter does not relayout the list.
+
 ## 6. Performance (Goals)
 
 | Metric | Goal |

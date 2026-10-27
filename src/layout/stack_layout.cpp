@@ -12,11 +12,11 @@ namespace gran::layout::internal
         float lineSpace(const ui::Node& stack, const std::vector<FlexItem>& items, std::size_t first,
             std::size_t last, float mainAvailable) noexcept
         {
-            float space = mainAvailable - stack.computed.spacing * static_cast<float>(last - first - 1);
+            double space = static_cast<double>(mainAvailable) - stack.computed.spacing * static_cast<double>(last - first - 1);
 
             for (std::size_t index = first; index < last; ++index)
                 space -= items[index].marginMain;
-            return space;
+            return static_cast<float>(space);
         }
 
         // Поперечный размер строки — наибольший элемент с отступами / The line cross size is the largest item with margins
@@ -29,14 +29,15 @@ namespace gran::layout::internal
             return cross;
         }
 
-        // Главный размер строки после разрешения / The line main size after resolution
+        // Главный размер строки после разрешения; сумма в double — у длинного списка float теряет доли пикселя
+        // The line main size after resolution; the sum is in double — a long list loses pixel fractions in float
         float lineMain(const ui::Node& stack, const std::vector<FlexItem>& items, std::size_t first, std::size_t last)
         {
-            float main = stack.computed.spacing * static_cast<float>(last - first - 1);
+            double main = stack.computed.spacing * static_cast<double>(last - first - 1);
 
             for (std::size_t index = first; index < last; ++index)
-                main += items[index].target + items[index].marginMain;
-            return main;
+                main += static_cast<double>(items[index].target) + items[index].marginMain;
+            return static_cast<float>(main);
         }
     }
 

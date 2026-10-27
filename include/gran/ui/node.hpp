@@ -80,6 +80,8 @@ namespace gran::ui
         bool checked = false;
         bool password = false;
         bool readOnly = false;
+        // Виртуальный список (virtual="true"): копии только у записей около видимой области / A virtual list (virtual="true"): copies only for the records near the visible area
+        bool virtualize = false;
         ImageFit fit = ImageFit::FILL;
         ScrollDirection direction = ScrollDirection::VERTICAL;
         SubmitKey submitKey = SubmitKey::CONTROL_ENTER;

@@ -59,7 +59,6 @@ namespace snapshot
     {
         auto start = std::chrono::steady_clock::now();
         gran::markup::UiDocument document = gran::markup::loadMarkupFile(arguments.markup, gran::markup::LoadOptions{});
-        buildLists(document);
         double loaded = elapsed(start);
         const gran::markup::Theme& theme = gran::markup::defaultTheme();
         gran::style::ComputedStyle window = gran::markup::windowStyle(theme, document.window);
@@ -72,8 +71,7 @@ namespace snapshot
 
         registerFonts(document, arguments.markup, fonts);
         start = std::chrono::steady_clock::now();
-        gran::ui::resolveStyles(*document.root, window, theme.kinds);
-        gran::layout::layoutTree(*document.root, size, renderer.measurer());
+        layoutDocument(document, window, size, renderer.measurer());
         double laidOut = elapsed(start);
         start = std::chrono::steady_clock::now();
         renderer.render(*document.root, window, arguments.scale);

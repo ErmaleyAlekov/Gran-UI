@@ -91,6 +91,10 @@ return app.run();
 - `Grid` — tracks `48`, `auto`, `1fr`, `minmax(100, 1fr)`, cell merging.
 - `Canvas` — absolute positioning; `Scroll` — scrolling with scrollbars and mouse wheel.
 - Predictable block model: `margin` without collapsing, `minWidth`/`maxWidth` are always respected.
+- Local relayout: only the changed branch is recomputed, unchanged boxes take their sizes from the cache or are only
+  shifted (editing a record in a list of 10,000 — about 1 ms).
+- Virtual lists (`virtual="true"`): only the visible records have nodes — 100,000 records are built in a fraction
+  of a millisecond.
 
 ### Text
 - Custom TrueType and TTC font parsing: `cmap`, `glyf`, composite glyphs, kerning `kern` and `GPOS`.

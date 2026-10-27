@@ -19,26 +19,26 @@ namespace gran::binding
         for (std::size_t index = 0; index < _items.size(); ++index)
         {
             if (_items[index].root == &item)
-                return index;
+                return _first + index;
         }
         return static_cast<std::size_t>(-1);
     }
 
     /*
-    ** Копия записи index встаёт сразу за копией записи index − 1, первая — на место прежней
-    ** первой; пока копий нет — после всех детей контейнера.
+    ** Копия local встаёт сразу за копией local − 1, первая — на место прежней первой; пока копий
+    ** нет — перед хвостовой распоркой виртуального списка или после всех детей контейнера.
     **
-    ** The copy of the record index goes right after the copy of the record index − 1, the first one — in place of
-    ** the former first one; while there are no copies — after all container children.
+    ** The copy local goes right after the copy local − 1, the first one — in place of the former first one; while there are
+    ** no copies — before the trailing spacer of a virtual list or after all container children.
     */
-    std::size_t ListBinding::childPosition(std::size_t index) const noexcept
+    std::size_t ListBinding::childPosition(std::size_t local) const noexcept
     {
-        const ui::Node* neighbour = nullptr;
+        const ui::Node* neighbour = _trail;
         std::size_t shift = 0;
 
-        if (index > 0)
+        if (local > 0)
         {
-            neighbour = _items[index - 1].root;
+            neighbour = _items[local - 1].root;
             shift = 1;
         }
         else if (!_items.empty())

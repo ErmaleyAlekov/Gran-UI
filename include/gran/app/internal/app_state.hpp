@@ -103,6 +103,11 @@ namespace gran
         // Стили, анимации, компоновка (если нужна), отрисовка / Styles, animations, layout (if needed), rendering
         void renderFrame(Application::State& state);
 
+        // ---- application_layout.cpp ----
+
+        // Компоновка с подгонкой окон виртуальных списков (до трёх проходов) / A layout with fitting the virtual list windows (up to three passes)
+        void layoutFrame(Application::State& state, Size viewport);
+
         // ---- application_caret.cpp ----
 
         // Прокрутка TextArea в фокусе к каретке, если каретка, текст или высота изменились после компоновки
