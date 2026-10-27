@@ -197,6 +197,16 @@ namespace gran::input
     // Активация элемента: клик кнопки, переключение флажка (с действиями) / Activating a control: a button click, a check box toggle (with actions)
     void activate(RouterState& state, ui::Node& control);
 
+    // ---- choice_input.cpp ----
+
+    // Выбор у флажка и переключателя (смена отметки), радиокнопки и заголовка вкладки; прочие виды — ничего
+    // The choice of a check box and a switch (toggling the mark), a radio button and a tab header; other kinds — nothing
+    void changeChoice(RouterState& state, ui::Node& control);
+
+    // Стрелка у члена группы (радиокнопки, заголовка вкладки): фокус и выбор — соседу; false — не обработано
+    // An arrow on a group member (a radio button, a tab header): the focus and the choice go to a neighbor; false — not handled
+    bool stepChoice(RouterState& state, ui::Node& member, platform::Key key);
+
     // ---- pointer_input.cpp ----
 
     // События мыши; true — что-то изменилось / Mouse events; true — something changed

@@ -170,6 +170,31 @@ namespace gran
         */
         void selectOption(ui::Node& comboBox, const std::string& value);
 
+        /*
+        ** Выбрать в <Tabs> страницу со значением value из кода (onChange не вызывается); страницы нет —
+        ** выбор не меняется. Значение — tabs.content.option. Не Tabs — GranException.
+        **
+        ** Select the page with the value value in <Tabs> from code (onChange is not called); no such page —
+        ** the choice does not change. The value is tabs.content.option. Not Tabs — GranException.
+        */
+        void selectTab(ui::Node& tabs, const std::string& value);
+
+        // ---- application_values.cpp: значения элементов из кода (onChange не вызывается) ----
+        // ---- application_values.cpp: control values from code (onChange is not called) ----
+
+        // Число ProgressBar или Slider, ограниченное min и max; другой вид — GranException
+        // The number of a ProgressBar or a Slider clamped by min and max; another kind — GranException
+        void setValue(ui::Node& node, float value);
+
+        /*
+        ** Отметка CheckBox, Switch или RadioButton (отметка радиокнопки снимает её с остальных в группе);
+        ** другой вид — GranException.
+        **
+        ** The mark of a CheckBox, a Switch or a RadioButton (checking a radio button unchecks the others in the group);
+        ** another kind — GranException.
+        */
+        void setChecked(ui::Node& node, bool checked);
+
         // ---- application_tasks.cpp ----
 
         /*

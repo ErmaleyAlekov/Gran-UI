@@ -243,8 +243,20 @@ namespace gran::render::internal
 
     // ---- paint_controls.cpp ----
 
-    // Флажок и ползунок / A check box and a slider
+    // Флажок, радиокнопка, переключатель, ползунок, полоса прогресса / A check box, a radio button, a switch, a slider, a progress bar
     void paintControl(const ui::Node& node, const PaintState& state, SceneContext& context);
+
+    // ---- paint_toggles.cpp ----
+
+    // Подпись флажка, радиокнопки или переключателя справа от значка шириной markWidth
+    // The label of a check box, a radio button or a switch to the right of a mark markWidth wide
+    void paintToggleLabel(const ui::Node& node, float markWidth, const PaintState& state, SceneContext& context);
+
+    // Радиокнопка: круг с точкой / A radio button: a circle with a dot
+    void paintRadioButton(const ui::Node& node, const PaintState& state, SceneContext& context);
+
+    // Переключатель: дорожка с бегунком / A switch: a track with a knob
+    void paintSwitch(const ui::Node& node, const PaintState& state, SceneContext& context);
 }
 
 #endif

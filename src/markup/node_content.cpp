@@ -12,7 +12,7 @@ namespace gran::markup::internal
             {"text", &C::text}, {"placeholder", &C::placeholder}, {"source", &C::source},
             {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
             {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage},
-            {"popup", &C::popup}};
+            {"popup", &C::popup}, {"group", &C::group}};
 
         // Числовые поля / The numeric fields
         const struct { const char* name; float C::* member; } NUMBERS[] = {
@@ -46,13 +46,21 @@ namespace gran::markup::internal
             return true;
         }
 
-        // value: число у Slider, значение пункта у MenuItem и ComboBox, текст у прочих
-        // value: a number for Slider, the item value for MenuItem and ComboBox, a text for the others
+        /*
+        ** value: число у Slider и ProgressBar, значение выбора у MenuItem, ComboBox, RadioButton, Tabs и Tab,
+        ** текст у прочих.
+        **
+        ** value: a number for Slider and ProgressBar, the choice value for MenuItem, ComboBox, RadioButton, Tabs and Tab,
+        ** a text for the others.
+        */
         void readValue(ui::Node& node, const std::string& value)
         {
-            if (node.kind == ui::ElementKind::SLIDER)
+            ui::ElementKind kind = node.kind;
+
+            if (kind == ui::ElementKind::SLIDER || kind == ui::ElementKind::PROGRESS_BAR)
                 node.content.value = style::parseNumber(value);
-            else if (node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX)
+            else if (kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::RADIO_BUTTON
+                || kind == ui::ElementKind::TABS || kind == ui::ElementKind::TAB)
                 node.content.option = value;
             else
                 node.content.text = value;

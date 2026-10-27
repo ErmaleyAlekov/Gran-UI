@@ -4,12 +4,14 @@ namespace gran::layout::internal
 {
     namespace
     {
-        // Раскладывает ли узел детей стеком (Stack, Box, Popup, Dialog, кнопка с детьми)
-        // Whether the node lays out its children as a stack (Stack, Box, Popup, Dialog, a button with children)
+        // Раскладывает ли узел детей стеком (Stack, Box, Popup, Dialog, вкладки, кнопка с детьми)
+        // Whether the node lays out its children as a stack (Stack, Box, Popup, Dialog, tabs, a button with children)
         bool isStackLike(const ui::Node& node) noexcept
         {
-            if (node.kind == ui::ElementKind::STACK || node.kind == ui::ElementKind::BOX
-                || ui::isLayer(node))
+            ui::ElementKind kind = node.kind;
+
+            if (kind == ui::ElementKind::STACK || kind == ui::ElementKind::BOX || kind == ui::ElementKind::TABS
+                || kind == ui::ElementKind::TAB || kind == ui::ElementKind::TAB_BAR || ui::isLayer(node))
                 return true;
             return node.kind == ui::ElementKind::BUTTON && !node.children.empty();
         }

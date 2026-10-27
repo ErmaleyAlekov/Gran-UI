@@ -31,6 +31,7 @@ namespace suites
     void registerRichTextTests(test::TestRunner& runner);
     void registerPopupTests(test::TestRunner& runner);
     void registerDialogTests(test::TestRunner& runner);
+    void registerWidgetTests(test::TestRunner& runner);
     void registerDataListTests(test::TestRunner& runner);
     void registerListBindingTests(test::TestRunner& runner);
     void registerWebViewTests(test::TestRunner& runner);

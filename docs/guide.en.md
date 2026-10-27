@@ -15,9 +15,10 @@
 7. [Text and Fonts](#text-and-fonts)
 8. [Actions and API](#actions-and-api)
 9. [Lists from data](#lists-from-data)
-10. [Pop-up Layers](#popup-layers)
-11. [Embedded browser: WebView](#embedded-browser-webview)
-12. [Errors and Message Language](#errors-and-message-language)
+10. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+11. [Pop-up Layers](#popup-layers)
+12. [Embedded browser: WebView](#embedded-browser-webview)
+13. [Errors and Message Language](#errors-and-message-language)
 
 ## Quick Start
 
@@ -121,6 +122,10 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `TextArea` | Multi-line field with wrapping and scrolling | `rows`, `submitKey="ctrlEnter\|enter"`, `maxHeight`, `onSubmit` |
 | `CheckBox` | Checkbox | `text`, `checked`, `onChange` |
 | `Slider` | Slider | `min`, `max`, `value`, `step`, `onChange` |
+| `RadioButton` | Radio button: one of a group is checked | `text`, `value`, `checked`, `group`, `onChange` |
+| `Switch` | Switch (a check box with another look) | `text`, `checked`, `onChange` |
+| `ProgressBar` | Progress bar | `min`, `max`, `value` |
+| `Tabs` | Tabs: a header strip and the selected page | `value`, `onChange`, `Tab` pages (`text`, `value`) |
 | `Popup` | Popup layer (hidden until shown) | — |
 | `MenuItem` | Menu item in `Popup`; a nested `Popup` is a submenu | `text`, `onClick`, `value` (for `ComboBox`) |
 | `Dialog` | Modal dialog in the window center | `closable` |
@@ -188,7 +193,8 @@ Cascade, from weakest to strongest: engine defaults ← built-in theme (`schemas
 - States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. State change is smooth if the property
   has a `transition`.
 - `basedOn` inherits another style. The default theme sets styles with element names (`Button`, `Input`,
-  `TextArea`, `CheckBox`, `Slider`, `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — a `Style` with the same name replaces them.
+  `TextArea`, `CheckBox`, `Slider`, `RadioButton`, `Switch`, `ProgressBar`, `Tabs`, `TabBar`, `TabHeader`, `Tab`,
+  `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — a `Style` with the same name replaces them.
 - Theme tokens (`<Token name="accent" value="#6d5dfc"/>`) are substituted into any value as `$accent`.
 - `color`, `accentColor`, the font and the font size are inherited by children, as in CSS.
 
@@ -218,7 +224,7 @@ app.onAction("save", SaveAction{&app});   // the function receives the node that
 ```
 
 `onClick` — click or Enter/Space on a button, menu item, link. `onChange` — change in a field, checkbox,
-slider. `onSubmit` — Enter in `Input`, `submitKey` key in `TextArea`.
+switch, slider, choosing a radio button (the action of the checked one) or a tab (the action of `Tabs`). `onSubmit` — Enter in `Input`, `submitKey` key in `TextArea`.
 
 Class `gran::Application` (`gran/app/application.hpp`):
 
@@ -237,6 +243,8 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `showPopup(layer, anchor)` / `showPopupAt(layer, point)` / `hidePopup(layer)` | Popup layers |
 | `showDialog(dialog)` / `hideDialog(dialog)` | Modal dialog |
 | `selectOption(comboBox, value)` | Select a `ComboBox` item from code (without `onChange`) |
+| `selectTab(tabs, value)` | Select a `Tabs` page from code (without `onChange`) |
+| `setValue(node, number)` / `setChecked(node, yes/no)` | The number of a `ProgressBar`/`Slider`, the mark of a `CheckBox`/`Switch`/`RadioButton` (without `onChange`) |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
 | `run()` | Event loop until the window is closed; returns the exit code |
 
@@ -306,6 +314,38 @@ gran::ItemRef item = app.itemOf(node);              // item.model == &contacts, 
 Markup fragment during operation — `app.appendMarkup(parent, "<Stack>…</Stack>")`: one root element,
 validation by the same schema, styles `style="…"` and theme values `$name` — from the document. Error — `MarkupException`
 with position inside the fragment; the tree does not change.
+
+## Tabs, radio buttons, switches
+
+**Radio buttons** of one group are checked one at a time. Without `group` the group is the neighbor radio buttons
+without a name; with `group` it is all the window radio buttons with this name, wherever they stand. The value is
+`value` (without it — the label), `onChange` is called on the button that got checked. A **switch** `Switch` behaves
+as a `CheckBox`.
+
+```xml
+<RadioButton text="Light" value="light" checked="true" onChange="theme"/>
+<RadioButton text="Dark" value="dark" onChange="theme"/>
+<Switch text="Sound" checked="true" onChange="sound"/>
+<ProgressBar id="progress" value="65" width="320"/>
+```
+
+**Progress bar**: the track is the `ProgressBar` style background, the fill is `accentColor`; the height and the
+rounding come from the style. The value from code — `app.setValue(*app.find("progress"), 80)`.
+
+**Tabs**: `Tab` pages with a `text` label; the engine builds the header strip above them itself (the theme styles
+`TabBar` and `TabHeader`, the selected header is in the `Checked` state). Only the selected page is visible; `value`
+of `Tabs` is the selected page value (the page value is `value`, without it — `text`), without it the first one is selected.
+
+```xml
+<Tabs value="general" onChange="tabChanged">
+  <Tab text="General" value="general"> … </Tab>
+  <Tab text="Download" value="download"> … </Tab>
+</Tabs>
+```
+
+The keyboard works as in browsers: Tab reaches only the checked radio button of a group and the selected tab, the arrows
+move the choice inside the group (for tabs — left and right), space and Enter choose. A sample —
+`gran_gallery samples/widgets.xml`.
 
 ## Popup Layers
 

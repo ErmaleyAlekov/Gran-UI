@@ -41,7 +41,8 @@ namespace gran::render::internal
         float lineHeight = node.computed.fontSize * node.computed.lineHeight;
 
         if (node.kind == ui::ElementKind::BUTTON || node.kind == ui::ElementKind::INPUT
-            || node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX)
+            || node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX
+            || node.kind == ui::ElementKind::TAB_HEADER)
             origin.y += (box.height - std::fmax(layout.height, lineHeight)) * 0.5f;
         if (node.kind == ui::ElementKind::TEXT_AREA)
             origin.y -= node.layout.scrollOffset.y;
