@@ -7,9 +7,12 @@ namespace gran::input
         // Элемент управления: встроенный вид или любой узел с onClick / A control: a built-in kind or any node with onClick
         bool isControl(const ui::Node& node) noexcept
         {
-            return node.kind == ui::ElementKind::BUTTON || node.kind == ui::ElementKind::CHECKBOX
-                || node.kind == ui::ElementKind::SLIDER || ui::isTextField(node)
-                || node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX
+            ui::ElementKind kind = node.kind;
+
+            return kind == ui::ElementKind::BUTTON || kind == ui::ElementKind::CHECKBOX || kind == ui::ElementKind::SWITCH
+                || kind == ui::ElementKind::RADIO_BUTTON || kind == ui::ElementKind::TAB_HEADER
+                || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
+                || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX
                 || !node.content.onClick.empty();
         }
     }
@@ -56,11 +59,13 @@ namespace gran::input
 
     /*
     ** Активация: пункт меню закрывает свой слой и выполняет команду (пункт с подменю открывает его);
-    ** флажок переключается (состояние CHECKED и onChange); кнопка с popup и ComboBox открывают свой слой;
+    ** флажок и переключатель переключаются, радиокнопка и вкладка выбираются (CHECKED и onChange);
+    ** кнопка с popup и ComboBox открывают свой слой;
     ** затем выполняется onClick. Состояния узлов меняются до вызова приложения — его обработчик видит новое значение.
     **
     ** Activation: a menu item closes its layer and runs its command (an item with a submenu opens it);
-    ** a check box toggles (the CHECKED state and onChange); a button with popup and a ComboBox open their layer;
+    ** a check box and a switch toggle, a radio button and a tab get chosen (CHECKED and onChange);
+    ** a button with popup and a ComboBox open their layer;
     ** then onClick runs. The node states change before calling the application — its handler sees the new value.
     */
     void activate(RouterState& state, ui::Node& control)
@@ -72,14 +77,7 @@ namespace gran::input
         if (control.kind == ui::ElementKind::MENU_ITEM)
             return;
         openAttached(state, control);
-        if (control.kind == ui::ElementKind::CHECKBOX)
-        {
-            control.content.checked = !control.content.checked;
-            control.stateMask = static_cast<std::uint8_t>(control.stateMask ^ style::stateBit(style::State::CHECKED));
-            ui::markDirty(control, ui::DIRTY_STYLE | ui::DIRTY_PAINT);
-            if (!control.content.onChange.empty())
-                state.actions->action(control.content.onChange, control);
-        }
+        changeChoice(state, control);
         if (!control.content.onClick.empty())
             state.actions->action(control.content.onClick, control);
     }

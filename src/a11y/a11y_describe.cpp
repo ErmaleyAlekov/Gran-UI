@@ -29,7 +29,12 @@ namespace gran::a11y
             case ui::ElementKind::BUTTON: return Role::BUTTON;
             case ui::ElementKind::INPUT: return Role::EDIT;
             case ui::ElementKind::TEXT_AREA: return Role::EDIT;
-            case ui::ElementKind::CHECKBOX: return Role::CHECK_BOX;
+            // Переключатель — флажок с другим видом (как role="switch" поверх checkbox) / A switch is a check box with another look (as role="switch" over checkbox)
+            case ui::ElementKind::CHECKBOX: case ui::ElementKind::SWITCH: return Role::CHECK_BOX;
+            case ui::ElementKind::RADIO_BUTTON: return Role::RADIO_BUTTON;
+            case ui::ElementKind::TABS: return Role::TAB;
+            case ui::ElementKind::TAB_HEADER: return Role::TAB_ITEM;
+            case ui::ElementKind::PROGRESS_BAR: return Role::PROGRESS_BAR;
             case ui::ElementKind::SLIDER: return Role::SLIDER;
             case ui::ElementKind::SCROLL: return Role::SCROLL;
             case ui::ElementKind::POPUP: return Role::MENU;
@@ -62,8 +67,8 @@ namespace gran::a11y
         return name;
     }
 
-    // Значение: текст поля (кроме пароля), подпись выбранного пункта ComboBox или число ползунка
-    // The value: the input text (except a password), the selected ComboBox item label or the slider number
+    // Значение: текст поля (кроме пароля), подпись выбранного пункта ComboBox или число ползунка и полосы прогресса
+    // The value: the input text (except a password), the selected ComboBox item label or the slider and progress bar number
     AccessibleInfo describe(const ui::Node& node)
     {
         AccessibleInfo info;
@@ -74,7 +79,8 @@ namespace gran::a11y
         info.enabled = node.enabled;
         info.checked = node.content.checked;
         info.focusable = info.role == Role::BUTTON || info.role == Role::EDIT || info.role == Role::CHECK_BOX
-            || info.role == Role::SLIDER || info.role == Role::MENU_ITEM || info.role == Role::COMBO_BOX;
+            || info.role == Role::SLIDER || info.role == Role::MENU_ITEM || info.role == Role::COMBO_BOX
+            || info.role == Role::RADIO_BUTTON || info.role == Role::TAB_ITEM;
         info.decorative = info.role == Role::GROUP && node.content.onClick.empty();
         if ((info.role == Role::EDIT && !node.content.password) || info.role == Role::COMBO_BOX)
             info.value = node.content.text;

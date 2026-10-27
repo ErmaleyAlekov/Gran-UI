@@ -92,8 +92,8 @@ return app.run();
 
 ### Разметка и стили
 - **Элементы:** `Window`, `Stack`, `Grid`, `Canvas`, `Box`, `Scroll`, `Text` с участками `Span`, `Image`, `Button`,
-  `Input` (в том числе пароль), `TextArea`, `CheckBox`, `Slider`, `ComboBox`, `Popup`, `MenuItem`, `Dialog`
-  и `WebView` (по желанию).
+  `Input` (в том числе пароль), `TextArea`, `CheckBox`, `Switch`, `RadioButton`, `Slider`, `ProgressBar`, `ComboBox`, `Tabs`, `Popup`,
+  `MenuItem`, `Dialog` и `WebView` (по желанию).
 - **Списки из данных:** `items="модель"` + `<ItemTemplate>` с подстановками `{поле}`; данные — в `<Data>`
   или в модели из кода, правка модели меняет только затронутые записи. Фрагменты разметки во время работы
   (`appendMarkup`) проверяются той же схемой.

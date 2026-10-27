@@ -49,11 +49,11 @@ namespace gran::input
 
         /*
         ** Клавиша при фокусе: Tab — следующий элемент, Esc — снять фокус, поле ввода — правка,
-        ** пробел и Enter — активация кнопки или флажка, стрелки — ползунок, стрелка вниз — открыть
+        ** пробел и Enter — активация кнопки или флажка, стрелки — ползунок и выбор в группе (радиокнопки, вкладки), стрелка вниз — открыть
         ** меню кнопки или список ComboBox. Без фокуса клавиши идут в выделенный Text (Shift+стрелки, Ctrl+C, Ctrl+A).
         **
         ** A key with focus: Tab — the next control, Esc — remove the focus, an input — editing,
-        ** space and Enter — activating a button or a check box, the arrows — a slider, the down arrow — opening
+        ** space and Enter — activating a button or a check box, the arrows — a slider and the choice in a group (radio buttons, tabs), the down arrow — opening
         ** the button menu or the ComboBox list. Without focus the keys go to the selected Text (Shift+arrows, Ctrl+C, Ctrl+A).
         */
         bool keyDown(RouterState& state, const platform::Event& event)
@@ -66,6 +66,8 @@ namespace gran::input
                 return state.selection != nullptr && navigateText(state, *state.selection, event);
             if (ui::isTextField(*focus))
                 return editText(state, *focus, event);
+            if (stepChoice(state, *focus, event.key))
+                return true;
             if (focus->kind == ui::ElementKind::SLIDER && arrowDirection(event.key) != 0)
                 return stepSlider(state, *focus, arrowDirection(event.key));
             if (event.key == platform::Key::DOWN)

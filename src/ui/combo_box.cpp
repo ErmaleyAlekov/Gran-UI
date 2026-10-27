@@ -2,30 +2,6 @@
 
 namespace gran::ui
 {
-    namespace
-    {
-        /*
-        ** Отметка выбранного пункта: content.checked (его восстанавливает applyInitialStates у копий)
-        ** и бит CHECKED (стиль Checked темы). Перерисовка — только если отметка изменилась.
-        **
-        ** The selected item mark: content.checked (applyInitialStates restores it for copies)
-        ** and the CHECKED bit (the theme Checked style). A repaint — only if the mark changed.
-        */
-        void markChecked(Node& item, bool checked)
-        {
-            std::uint8_t bit = style::stateBit(style::State::CHECKED);
-
-            if (item.content.checked == checked)
-                return;
-            item.content.checked = checked;
-            if (checked)
-                item.stateMask = static_cast<std::uint8_t>(item.stateMask | bit);
-            else
-                item.stateMask = static_cast<std::uint8_t>(item.stateMask & ~bit);
-            markDirty(item, DIRTY_STYLE | DIRTY_PAINT);
-        }
-    }
-
     // Список — последний ребёнок вида Popup (его добавляет построитель разметки) / The list is the last child of the Popup kind (the markup builder adds it)
     Node* comboList(Node& combo) noexcept
     {
@@ -81,7 +57,7 @@ namespace gran::ui
             label = item->content.text;
         }
         for (const std::unique_ptr<Node>& child : list->children)
-            markChecked(*child, child.get() == item);
+            setChecked(*child, child.get() == item);
         bool changed = combo.content.option != value;
         combo.content.option = value;
         if (combo.content.text != label)

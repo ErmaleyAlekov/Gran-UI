@@ -73,8 +73,8 @@ return app.run();
 
 ### Markup and Styles
 - **Elements:** `Window`, `Stack`, `Grid`, `Canvas`, `Box`, `Scroll`, `Text` with `Span`, `Image`, `Button`,
-  `Input` (including password), `TextArea`, `CheckBox`, `Slider`, `ComboBox`, `Popup`, `MenuItem`, `Dialog`,
-  and `WebView` (optional).
+  `Input` (including password), `TextArea`, `CheckBox`, `Switch`, `RadioButton`, `Slider`, `ProgressBar`, `ComboBox`, `Tabs`, `Popup`,
+  `MenuItem`, `Dialog`, and `WebView` (optional).
 - **Lists from data:** `items="model"` + `<ItemTemplate>` with `{field}` placeholders; the data comes from `<Data>`
   or from a model filled in code, and a model edit changes only the affected records. Markup fragments at run time
   (`appendMarkup`) are checked by the same schema.

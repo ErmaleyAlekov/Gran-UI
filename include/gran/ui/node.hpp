@@ -12,12 +12,21 @@
 
 namespace gran::ui
 {
-    // Вид элемента разметки / The markup element kind
+    /*
+    ** Вид элемента разметки. Виды до TAB включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** строит движок (полоса заголовков <Tabs>), у них только стили темы TabBar и TabHeader.
+    **
+    ** The markup element kind. The kinds up to TAB inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** are built by the engine (the <Tabs> header strip), they have only the theme styles TabBar and TabHeader.
+    */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
-        DIALOG, COMBO_BOX
+        DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, TAB_BAR, TAB_HEADER
     };
+
+    // Последний вид, который пишется в разметке / The last kind written in the markup
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::TAB;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -93,9 +102,11 @@ namespace gran::ui
         // Button: id слоя (Popup или Dialog), который кнопка открывает сама (щелчок, Enter, пробел, стрелка вниз)
         // Button: the id of the layer (a Popup or a Dialog) the button opens by itself (a click, Enter, space, the down arrow)
         std::string popup;
-        // MenuItem — значение пункта (value; пусто — его текст), ComboBox — значение выбранного пункта
-        // MenuItem — the item value (value; empty — its text), ComboBox — the value of the selected item
+        // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
+        // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
+        // RadioButton: имя группы на всё дерево (пусто — группа из соседей без имени) / RadioButton: the group name for the whole tree (empty — a group of unnamed siblings)
+        std::string group;
         // Dialog: Esc закрывает диалог (closable="false" — закрыть может только код) / Dialog: Esc closes the dialog (closable="false" — only the code can close it)
         bool closable = true;
     };
@@ -247,6 +258,51 @@ namespace gran::ui
     // Выбрать пункт (nullptr — снять выбор): значение, подпись, Checked; true — значение изменилось
     // Selecting an item (nullptr — clearing the choice): the value, the label, Checked; true — the value changed
     bool selectOption(Node& combo, Node* item);
+
+    // ---- choice_group.cpp ----
+
+    // Отметка узла: content.checked, бит CHECKED и перерисовка (если изменилась) / The node mark: content.checked, the CHECKED bit and a repaint (if it changed)
+    void setChecked(Node& node, bool checked);
+
+    /*
+    ** Группа выбора «один из»: RadioButton с именем group — все такие во всём дереве, без имени —
+    ** соседи без имени; TabHeader — заголовки своей полосы. Не член группы — пустой список.
+    **
+    ** A "one of" choice group: a RadioButton with a group name — all such ones in the whole tree, without a name —
+    ** the unnamed siblings; a TabHeader — the headers of its strip. Not a group member — an empty list.
+    */
+    std::vector<Node*> choiceGroup(Node& member);
+
+    // Отметить member и снять отметку с остальных членов группы; true — выбор изменился
+    // Marking member and unmarking the other group members; true — the choice changed
+    bool selectInGroup(Node& member);
+
+    // Остановка Tab-обхода: отмеченный член группы, а при пустом выборе — каждый (как в браузерах)
+    // A Tab walk stop: the marked group member, and with an empty choice — each one (as in browsers)
+    bool choiceTabStop(Node& member);
+
+    // ---- tabs.cpp ----
+
+    /*
+    ** Вкладки <Tabs>: дети Tab — страницы, первый ребёнок — полоса заголовков (TabBar с TabHeader по
+    ** заголовку на страницу), её строит syncTabs. Видна только выбранная страница; значение — content.option
+    ** Tabs (value страницы, без него — её text).
+    **
+    ** The <Tabs> tabs: the Tab children are the pages, the first child is the header strip (a TabBar with a TabHeader
+    ** per page), syncTabs builds it. Only the selected page is visible; the value is content.option of Tabs
+    ** (the page value, without it — its text).
+    */
+
+    // Полоса заголовков заново по страницам и выбор по content.option (пусто или нет такой — первая)
+    // The header strip anew by the pages and the choice by content.option (empty or no such one — the first)
+    void syncTabs(Node& tabs);
+
+    // Выбрать страницу со значением value: заголовок, видимость страниц, перекомпоновка; true — выбор изменился
+    // Selecting the page with the value value: the header, the page visibility, a relayout; true — the choice changed
+    bool selectTab(Node& tabs, const std::string& value);
+
+    // Вкладки заголовка (nullptr — узел не заголовок вкладок) / The tabs of a header (nullptr — the node is not a tab header)
+    Node* tabsOf(Node& header) noexcept;
 
     // ---- layer_tree.cpp ----
 

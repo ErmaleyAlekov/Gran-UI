@@ -31,6 +31,27 @@
     <Style name="Slider" cursor="pointer" minWidth="80">
       <Disabled opacity="0.5"/>
     </Style>
+    <Style name="RadioButton" cursor="pointer">
+      <Disabled opacity="0.5"/>
+    </Style>
+    <Style name="Switch" cursor="pointer">
+      <Disabled opacity="0.5"/>
+    </Style>
+    <!-- Дорожка полосы прогресса — фон стиля, заполнение — accentColor / The progress bar track is the style background, the fill is accentColor -->
+    <Style name="ProgressBar" minWidth="40" borderRadius="4" background="#e4e7ec"/>
+    <!-- Вкладки: полоса заголовков (её строит движок) с линией снизу, выбранный заголовок подчёркнут -->
+    <!-- Tabs: the header strip (the engine builds it) with a line at the bottom, the selected header is underlined -->
+    <Style name="Tabs" spacing="12"/>
+    <Style name="TabBar" orientation="horizontal" spacing="4" borderWidth="0 0 1 0" borderColor="#e4e7ec"/>
+    <Style name="TabHeader" padding="8 12" borderWidth="0 0 2 0" borderColor="transparent" borderRadius="6 6 0 0"
+           color="#475467" fontWeight="500" cursor="pointer" textWrap="nowrap"
+           transition="color 0.15s ease, background 0.15s ease, borderColor 0.15s ease">
+      <Hover color="#101828" background="#f2f4f7"/>
+      <Focused boxShadow="0 0 0 3 rgba(37, 99, 235, 0.35)"/>
+      <Disabled opacity="0.4"/>
+      <Checked color="#1d4ed8" borderColor="#2563eb"/>
+    </Style>
+    <Style name="Tab" grow="1"/>
     <Style name="Scroll" overflow="hidden"/>
     <!-- Всплывающие слои: меню (Popup + MenuItem) и подсказка tooltip (стиль Tooltip ставит движок) -->
     <!-- Popup layers: a menu (Popup + MenuItem) and a tooltip (the engine sets the Tooltip style) -->

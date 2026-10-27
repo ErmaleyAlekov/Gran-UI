@@ -395,6 +395,10 @@
       <xs:element name="WebView" type="WebViewType"/>
       <xs:element name="Dialog" type="DialogType"/>
       <xs:element name="ComboBox" type="ComboBoxType"/>
+      <xs:element name="RadioButton" type="RadioButtonType"/>
+      <xs:element name="Switch" type="CheckBoxType"/>
+      <xs:element name="ProgressBar" type="ProgressBarType"/>
+      <xs:element name="Tabs" type="TabsType"/>
     </xs:choice>
   </xs:group>
 
@@ -732,8 +736,83 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <!-- Ползунок: min < max, min ≤ value ≤ max, шаг положителен и не больше диапазона -->
-  <!-- A slider: min < max, min ≤ value ≤ max, the step is positive and not above the range -->
+  <!--
+    Радиокнопка: из группы отмечена одна. group — имя группы на всё окно (как name у <input type="radio">);
+    без него группа — соседние радиокнопки без имени. value — значение (без него — подпись text),
+    onChange — действие у кнопки, которую отметили.
+    A radio button: one of a group is checked. group is the group name for the whole window (as name of <input type="radio">);
+    without it the group is the neighbor radio buttons without a name. value is the value (without it — the text label),
+    onChange is the action of the button that got checked.
+  -->
+  <xs:complexType name="RadioButtonType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="checked" type="xs:boolean"/>
+        <xs:attribute name="text" type="xs:string"/>
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="group" type="xs:NCName"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Полоса прогресса: min < max, min ≤ value ≤ max / A progress bar: min < max, min ≤ value ≤ max -->
+  <xs:complexType name="ProgressBarType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="min" type="xs:decimal" default="0"/>
+        <xs:attribute name="max" type="xs:decimal" default="100"/>
+        <xs:attribute name="value" type="xs:decimal"/>
+        <xs:assert test="(if (@min) then @min else 0) lt (if (@max) then @max else 100)"/>
+        <xs:assert test="not(@value) or (@value ge (if (@min) then @min else 0) and @value le (if (@max) then @max else 100))"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Вкладки: страницы <Tab text="подпись" value="значение">…</Tab>, над ними — полоса заголовков (её строит
+    движок). value у Tabs — значение выбранной страницы (без него и при отсутствии такой — первая), onChange —
+    действие при выборе другой. Значение страницы — value, без него — text; значения не повторяются.
+    Tabs: the pages <Tab text="label" value="value">…</Tab>, above them — the header strip (the engine builds it).
+    value of Tabs is the selected page value (without it and when there is no such page — the first one), onChange is
+    the action on choosing another. The page value is value, without it — text; the values do not repeat.
+  -->
+  <xs:complexType name="TabsType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="Tab" type="TabType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="every $t in Tab satisfies count(Tab[(if (@value) then @value else @text)
+                         = (if ($t/@value) then $t/@value else $t/@text)]) = 1"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Страница вкладок: подпись заголовка text и любые элементы / A tab page: the header label text and any elements -->
+  <xs:complexType name="TabType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attribute name="text" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Ползунок: min < max, min ≤ value ≤ max, шаг положителен и не больше диапазона. Умолчания min и max
+    повторены в утверждениях: значения default не попадают в дерево, которое видят утверждения.
+    A slider: min < max, min ≤ value ≤ max, the step is positive and not above the range. The min and max defaults
+    are repeated in the assertions: the default values do not get into the tree the assertions see.
+  -->
   <xs:complexType name="SliderType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">
@@ -742,9 +821,9 @@
         <xs:attribute name="value" type="xs:decimal"/>
         <xs:attribute name="step" type="xs:decimal"/>
         <xs:attribute name="onChange" type="Action"/>
-        <xs:assert test="@min lt @max"/>
-        <xs:assert test="not(@value) or (@value ge @min and @value le @max)"/>
-        <xs:assert test="not(@step) or (@step gt 0 and @step le @max - @min)"/>
+        <xs:assert test="(if (@min) then @min else 0) lt (if (@max) then @max else 100)"/>
+        <xs:assert test="not(@value) or (@value ge (if (@min) then @min else 0) and @value le (if (@max) then @max else 100))"/>
+        <xs:assert test="not(@step) or (@step gt 0 and @step le (if (@max) then @max else 100) - (if (@min) then @min else 0))"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>
