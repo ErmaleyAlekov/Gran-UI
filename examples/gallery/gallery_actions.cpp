@@ -6,7 +6,8 @@ namespace gallery
 {
     namespace
     {
-        // Строка состояния status (если она есть в разметке) / The status line status (if the markup has it)
+        // Строка состояния status (если она есть в разметке): подпись узла, без неё — значение (Tabs)
+        // The status line status (if the markup has it): the node label, without it — the value (Tabs)
         struct StatusAction
         {
             gran::Application* application;
@@ -19,6 +20,8 @@ namespace gallery
                 if (status == nullptr)
                     return;
                 status->content.text = prefix + node.content.text;
+                if (node.content.text.empty())
+                    status->content.text = prefix + node.content.option;
                 gran::ui::markDirty(*status, gran::ui::DIRTY_LAYOUT | gran::ui::DIRTY_PAINT);
             }
         };

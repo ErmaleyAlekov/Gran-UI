@@ -10,7 +10,8 @@ namespace gran::platform::win32
             static const long TYPES[] = {UIA_GroupControlTypeId, UIA_PaneControlTypeId, UIA_TextControlTypeId,
                 UIA_ImageControlTypeId, UIA_ButtonControlTypeId, UIA_EditControlTypeId, UIA_CheckBoxControlTypeId,
                 UIA_SliderControlTypeId, UIA_MenuControlTypeId, UIA_MenuItemControlTypeId, UIA_WindowControlTypeId,
-                UIA_ComboBoxControlTypeId};
+                UIA_ComboBoxControlTypeId, UIA_RadioButtonControlTypeId, UIA_TabControlTypeId, UIA_TabItemControlTypeId,
+                UIA_ProgressBarControlTypeId};
 
             return TYPES[static_cast<std::size_t>(role)];
         }

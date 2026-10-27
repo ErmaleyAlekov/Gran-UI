@@ -38,4 +38,11 @@ namespace gran
         ui::selectOption(comboBox, ui::findOption(comboBox, value));
         comboBox.content.option = value;
     }
+
+    // Как selectOption: работает и до run() / As selectOption: works before run() too
+    void Application::selectTab(ui::Node& tabs, const std::string& value)
+    {
+        requireKind(tabs, ui::ElementKind::TABS);
+        ui::selectTab(tabs, value);
+    }
 }

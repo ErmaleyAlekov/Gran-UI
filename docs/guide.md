@@ -15,9 +15,10 @@
 7. [Текст и шрифты](#текст-и-шрифты)
 8. [Действия и программный интерфейс](#действия-и-программный-интерфейс)
 9. [Списки из данных](#списки-из-данных)
-10. [Всплывающие слои](#всплывающие-слои)
-11. [Встроенный браузер: WebView](#встроенный-браузер-webview)
-12. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
+10. [Вкладки, радиокнопки, переключатели](#вкладки-радиокнопки-переключатели)
+11. [Всплывающие слои](#всплывающие-слои)
+12. [Встроенный браузер: WebView](#встроенный-браузер-webview)
+13. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
 
 ## Быстрый старт
 
@@ -121,6 +122,10 @@ int main()
 | `TextArea` | Многострочное поле с переносом и прокруткой | `rows`, `submitKey="ctrlEnter\|enter"`, `maxHeight`, `onSubmit` |
 | `CheckBox` | Флажок | `text`, `checked`, `onChange` |
 | `Slider` | Ползунок | `min`, `max`, `value`, `step`, `onChange` |
+| `RadioButton` | Радиокнопка: из группы отмечена одна | `text`, `value`, `checked`, `group`, `onChange` |
+| `Switch` | Переключатель (флажок другого вида) | `text`, `checked`, `onChange` |
+| `ProgressBar` | Полоса прогресса | `min`, `max`, `value` |
+| `Tabs` | Вкладки: полоса заголовков и выбранная страница | `value`, `onChange`, страницы `Tab` (`text`, `value`) |
 | `Popup` | Всплывающий слой (скрыт, пока его не покажут) | — |
 | `MenuItem` | Пункт меню в `Popup`; вложенный `Popup` — подменю | `text`, `onClick`, `value` (для `ComboBox`) |
 | `Dialog` | Модальный диалог по центру окна | `closable` |
@@ -194,7 +199,8 @@ CSS: `padding="8"`, `"8 16"`, `"4 8 12 16"`.
 - Состояния: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. Смена состояния плавная, если у свойства
   есть `transition`.
 - `basedOn` наследует другой стиль. Тема по умолчанию задаёт стили с именами элементов (`Button`, `Input`,
-  `TextArea`, `CheckBox`, `Slider`, `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — свой `Style`
+  `TextArea`, `CheckBox`, `Slider`, `RadioButton`, `Switch`, `ProgressBar`, `Tabs`, `TabBar`, `TabHeader`, `Tab`,
+  `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — свой `Style`
   с таким именем их заменяет.
 - Токены темы (`<Token name="accent" value="#6d5dfc"/>`) подставляются в любое значение как `$accent`.
 - `color`, `accentColor`, шрифт и кегль наследуются детьми, как в CSS.
@@ -227,7 +233,7 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 ```
 
 `onClick` — щелчок или Enter/Пробел на кнопке, пункте меню, ссылке. `onChange` — изменение поля, флажка,
-ползунка. `onSubmit` — Enter в `Input`, клавиша `submitKey` в `TextArea`.
+переключателя, ползунка, выбор радиокнопки (действие у отмеченной) или вкладки (действие у `Tabs`). `onSubmit` — Enter в `Input`, клавиша `submitKey` в `TextArea`.
 
 Класс `gran::Application` (`gran/app/application.hpp`):
 
@@ -246,6 +252,8 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 | `showPopup(слой, якорь)` / `showPopupAt(слой, точка)` / `hidePopup(слой)` | Всплывающие слои |
 | `showDialog(диалог)` / `hideDialog(диалог)` | Модальный диалог |
 | `selectOption(список, значение)` | Выбрать пункт `ComboBox` из кода (без `onChange`) |
+| `selectTab(вкладки, значение)` | Выбрать страницу `Tabs` из кода (без `onChange`) |
+| `setValue(узел, число)` / `setChecked(узел, да/нет)` | Число `ProgressBar`/`Slider`, отметка `CheckBox`/`Switch`/`RadioButton` (без `onChange`) |
 | `post(задача)` | Выполнить функцию в потоке интерфейса (безопасно из любого потока) |
 | `run()` | Цикл событий до закрытия окна; возвращает код выхода |
 
@@ -314,6 +322,37 @@ gran::ItemRef item = app.itemOf(node);              // item.model == &contacts, 
 Фрагмент разметки во время работы — `app.appendMarkup(родитель, "<Stack>…</Stack>")`: один корневой элемент,
 проверка той же схемой, стили `style="…"` и значения темы `$имя` — из документа. Ошибка — `MarkupException`
 с позицией внутри фрагмента; дерево при этом не меняется.
+
+## Вкладки, радиокнопки, переключатели
+
+**Радиокнопки** одной группы отмечаются по одной. Без `group` группа — соседние радиокнопки без имени; с `group`
+— все радиокнопки окна с этим именем, где бы они ни стояли. Значение — `value` (без него — подпись), `onChange`
+вызывается у кнопки, которую отметили. **Переключатель** `Switch` ведёт себя как `CheckBox`.
+
+```xml
+<RadioButton text="Светлая" value="light" checked="true" onChange="theme"/>
+<RadioButton text="Тёмная" value="dark" onChange="theme"/>
+<Switch text="Звук" checked="true" onChange="sound"/>
+<ProgressBar id="progress" value="65" width="320"/>
+```
+
+**Полоса прогресса**: дорожка — фон стиля `ProgressBar`, заполнение — `accentColor`; высота и скругление — из
+стиля. Значение из кода — `app.setValue(*app.find("progress"), 80)`.
+
+**Вкладки**: страницы `Tab` с подписью `text`; движок сам строит над ними полосу заголовков (стили темы `TabBar`
+и `TabHeader`, выбранный заголовок — в состоянии `Checked`). Видна только выбранная страница; `value` у `Tabs` —
+значение выбранной (значение страницы — `value`, без него — `text`), без него выбрана первая.
+
+```xml
+<Tabs value="general" onChange="tabChanged">
+  <Tab text="Общие" value="general"> … </Tab>
+  <Tab text="Загрузка" value="download"> … </Tab>
+</Tabs>
+```
+
+Клавиатура как в браузерах: Tab попадает только на отмеченную радиокнопку группы и на выбранную вкладку, стрелки
+переносят выбор внутри группы (у вкладок — влево и вправо), пробел и Enter выбирают. Образец —
+`gran_gallery samples/widgets.xml`.
 
 ## Всплывающие слои
 

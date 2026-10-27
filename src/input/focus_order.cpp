@@ -6,16 +6,30 @@ namespace gran::input
 {
     namespace
     {
+        /*
+        ** Принимает ли узел фокус Tab. Из группы «один из» (радиокнопки, вкладки) — только отмеченный:
+        ** внутри группы ходят стрелками, и Tab переходит к следующему элементу за группой.
+        **
+        ** Whether the node takes the Tab focus. From a "one of" group (radio buttons, tabs) — only the marked one:
+        ** the arrows move inside the group, and Tab goes to the next control after the group.
+        */
+        bool focusable(ui::Node& node)
+        {
+            ui::ElementKind kind = node.kind;
+
+            if (kind == ui::ElementKind::RADIO_BUTTON || kind == ui::ElementKind::TAB_HEADER)
+                return ui::choiceTabStop(node);
+            return kind == ui::ElementKind::BUTTON || kind == ui::ElementKind::CHECKBOX || kind == ui::ElementKind::SWITCH
+                || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
+                || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX;
+        }
+
         // Видимые и включённые элементы, принимающие фокус, в порядке дерева / The visible and enabled focusable controls in tree order
         void collectFocusable(ui::Node& node, std::vector<ui::Node*>& result)
         {
-            bool focusable = node.kind == ui::ElementKind::BUTTON || node.kind == ui::ElementKind::CHECKBOX
-                || node.kind == ui::ElementKind::SLIDER || ui::isTextField(node)
-                || node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX;
-
             if (!node.visible || !node.enabled)
                 return;
-            if (focusable)
+            if (focusable(node))
                 result.push_back(&node);
             for (const std::unique_ptr<ui::Node>& child : node.children)
                 collectFocusable(*child, result);

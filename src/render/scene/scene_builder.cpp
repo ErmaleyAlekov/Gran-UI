@@ -44,13 +44,16 @@ namespace gran::render::internal
         */
         void paintContent(const ui::Node& node, const PaintState& inner, SceneContext& context)
         {
-            bool marked = node.kind == ui::ElementKind::MENU_ITEM || node.kind == ui::ElementKind::COMBO_BOX;
+            ui::ElementKind kind = node.kind;
+            bool marked = kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX;
 
-            if (node.kind == ui::ElementKind::CHECKBOX || node.kind == ui::ElementKind::SLIDER)
+            if (kind == ui::ElementKind::CHECKBOX || kind == ui::ElementKind::SLIDER || kind == ui::ElementKind::RADIO_BUTTON
+                || kind == ui::ElementKind::SWITCH || kind == ui::ElementKind::PROGRESS_BAR)
                 paintControl(node, inner, context);
-            else if (node.kind == ui::ElementKind::IMAGE)
+            else if (kind == ui::ElementKind::IMAGE)
                 paintImage(node, inner, context);
-            else if (node.children.empty() || ui::hasSpans(node) || marked)
+            // Подпись страницы Tab рисует её заголовок, а не страница / The Tab page label is painted by its header, not by the page
+            else if ((node.children.empty() && kind != ui::ElementKind::TAB) || ui::hasSpans(node) || marked)
                 paintText(node, inner, context);
             if (marked)
                 paintMark(node, inner, context);

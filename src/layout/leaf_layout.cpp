@@ -20,18 +20,27 @@ namespace gran::layout::internal
             return Size{node.computed.fontSize * 0.55f * 20.0f, lineHeightOf(node)};
         }
 
-        // Флажок: квадрат высотой в строку, промежуток и подпись / A check box: a square of the line height, a gap and the label
-        Size checkBoxSize(ui::Node& node, Size contentAvailable, LayoutPass& pass)
+        /*
+        ** Флажок, радиокнопка, переключатель: значок (квадрат, круг или дорожка с бегунком — те же
+        ** пропорции, что у отрисовки в paint_controls.cpp и paint_toggles.cpp), промежуток и подпись.
+        **
+        ** A check box, a radio button, a switch: the mark (a square, a circle or a track with a knob — the same
+        ** proportions as the painting in paint_controls.cpp and paint_toggles.cpp), a gap and the label.
+        */
+        Size toggleSize(ui::Node& node, Size contentAvailable, LayoutPass& pass)
         {
-            float box = std::round(node.computed.fontSize * 1.15f);
+            float height = std::round(node.computed.fontSize * 1.15f);
+            float width = height;
             float gap = std::round(node.computed.fontSize * 0.5f);
             Size label{0.0f, 0.0f};
 
+            if (node.kind == ui::ElementKind::SWITCH)
+                width = std::round(height * 1.8f);
             if (!node.content.text.empty())
-                label = pass.measurer.measureText(node, std::max(0.0f, contentAvailable.width - box - gap));
+                label = pass.measurer.measureText(node, std::max(0.0f, contentAvailable.width - width - gap));
             if (label.width <= 0.0f)
                 gap = 0.0f;
-            return Size{box + gap + label.width, std::max(box, label.height)};
+            return Size{width + gap + label.width, std::max(height, label.height)};
         }
 
         // Картинка: при одной заданной стороне вторая — по пропорциям / An image: with one side set the other follows the proportions
@@ -52,10 +61,10 @@ namespace gran::layout::internal
     }
 
     /*
-    ** Собственные размеры листьев. Текст и картинку меряет внешний измеритель;
+    ** Собственные размеры листьев (полоса прогресса — тонкая дорожка в полстроки). Текст и картинку меряет внешний измеритель;
     ** картинка с одной заданной стороной сохраняет пропорции (как <img> в HTML).
     **
-    ** The intrinsic leaf sizes. Text and images are measured by the external measurer;
+    ** The intrinsic leaf sizes (a progress bar is a thin track of half a line). Text and images are measured by the external measurer;
     ** an image with one side set keeps its proportions (as <img> in HTML).
     */
     Size measureLeaf(ui::Node& node, Size contentAvailable, LayoutPass& pass)
@@ -65,15 +74,20 @@ namespace gran::layout::internal
             case ui::ElementKind::TEXT:
             case ui::ElementKind::BUTTON:
             case ui::ElementKind::COMBO_BOX:
+            case ui::ElementKind::TAB_HEADER:
                 return pass.measurer.measureText(node, contentAvailable.width);
             case ui::ElementKind::MENU_ITEM:
                 return menuItemSize(node, contentAvailable, pass);
             case ui::ElementKind::INPUT:
                 return inputSize(node);
             case ui::ElementKind::CHECKBOX:
-                return checkBoxSize(node, contentAvailable, pass);
+            case ui::ElementKind::RADIO_BUTTON:
+            case ui::ElementKind::SWITCH:
+                return toggleSize(node, contentAvailable, pass);
             case ui::ElementKind::SLIDER:
                 return Size{160.0f, std::round(node.computed.fontSize * 1.4f)};
+            case ui::ElementKind::PROGRESS_BAR:
+                return Size{160.0f, std::round(node.computed.fontSize * 0.5f)};
             case ui::ElementKind::IMAGE:
                 return imageLeafSize(node, contentAvailable, pass);
             default:
