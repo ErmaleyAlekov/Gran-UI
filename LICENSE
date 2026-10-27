@@ -1,21 +1,59 @@
-MIT License
+Грань UI (Gran UI) — проприетарная лицензия / Proprietary License
 
-Copyright (c) 2026 Ермаков Алексей Александрович (Ermakov Aleksei Aleksandrovich)
+Copyright (c) 2026 Ермаков Алексей Александрович (Ermakov Aleksei Aleksandrovich).
+Все права защищены. / All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+-------------------------------------------------------------------------------
+Русский
+-------------------------------------------------------------------------------
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Программа «Грань UI» (исходный код, заголовочные файлы, схемы, темы, шейдеры,
+   примеры, документация и собранные из них файлы, далее — «Программа») является
+   собственностью правообладателя — Ермакова Алексея Александровича.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. Никакие права на Программу не передаются без отдельного письменного договора
+   с правообладателем. Без такого договора запрещается использовать, копировать,
+   изменять, объединять с другими программами, публиковать, распространять,
+   сублицензировать и продавать Программу или её части, а также создавать на её
+   основе производные работы.
+
+3. Условия использования Программы в проектах, выполняемых для заказчиков
+   (передаваемые права, исходные коды, сроки и территория), определяются договором
+   с каждым заказчиком.
+
+4. Сторонние компоненты распространяются по своим лицензиям и этой лицензией
+   не затрагиваются: XML-библиотека «Берёста» — лицензия MIT; пакет Microsoft
+   WebView2 SDK (используется только при сборке с параметром WEBVIEW2_SDK) —
+   лицензия Microsoft из этого пакета.
+
+5. Программа предоставляется «как есть», без каких-либо гарантий, явных или
+   подразумеваемых, если иное не установлено договором. Правообладатель не несёт
+   ответственности за любой ущерб, возникший из использования Программы, кроме
+   случаев, прямо предусмотренных договором.
+
+-------------------------------------------------------------------------------
+English
+-------------------------------------------------------------------------------
+
+1. The "Gran UI" software (the source code, header files, schemas, themes, shaders,
+   examples, documentation and the files built from them, hereinafter the
+   "Software") is the property of the rights holder, Ermakov Aleksei Aleksandrovich.
+
+2. No rights to the Software are granted without a separate written agreement
+   with the rights holder. Without such an agreement it is prohibited to use, copy,
+   modify, merge with other software, publish, distribute, sublicense or sell the
+   Software or its parts, or to create derivative works based on it.
+
+3. The terms of using the Software in projects made for clients (the rights
+   granted, the source code, the term and the territory) are defined by the
+   agreement with each client.
+
+4. Third-party components are distributed under their own licenses and are not
+   affected by this license: the Beresta XML library — the MIT license; the
+   Microsoft WebView2 SDK package (used only when building with the WEBVIEW2_SDK
+   parameter) — the Microsoft license from that package.
+
+5. The Software is provided "as is", without any warranties, express or implied,
+   unless an agreement states otherwise. The rights holder is not liable for any
+   damage arising from the use of the Software, except for the cases expressly
+   provided for by an agreement.
