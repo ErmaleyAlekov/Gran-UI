@@ -11,7 +11,7 @@ namespace gran::markup::internal
         const struct { const char* name; std::string C::* member; } STRINGS[] = {
             {"text", &C::text}, {"placeholder", &C::placeholder}, {"source", &C::source},
             {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
-            {"onSubmit", &C::onSubmit}};
+            {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage}};
 
         // Числовые поля / The numeric fields
         const struct { const char* name; float C::* member; } NUMBERS[] = {
@@ -19,7 +19,7 @@ namespace gran::markup::internal
 
         // Логические поля / The boolean fields
         const struct { const char* name; bool C::* member; } BOOLEANS[] = {
-            {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}};
+            {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}, {"virtual", &C::virtualize}};
 
         // Перечисления (fit у Image, direction у Scroll, submitKey у TextArea) и целые числа
     // The enumerations (fit of Image, direction of Scroll, submitKey of TextArea) and the integers

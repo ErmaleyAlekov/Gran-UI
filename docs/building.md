@@ -68,6 +68,7 @@ make BERESTA_DIR=../beresta
 | `BERESTA_DIR=путь` | Каталог «Берёсты» (по умолчанию `../Dom lib C++`) |
 | `DEBUG=1` | `-O0 -g`, отладочный слой D3D12 доступен через `--debug` у примеров |
 | `VULKAN=1` | Бэкенд Vulkan (в разработке, нужен Vulkan SDK и переменная `VULKAN_SDK`) |
+| `WEBVIEW2_SDK=путь` | Браузер для `<WebView>` (Windows): `build/native` пакета NuGet `Microsoft.Web.WebView2`; `WebView2Loader.dll` копируется в `bin/`. После смены — `make re` |
 
 Очистка работает и в CMD/PowerShell, и в Unix-оболочке.
 
@@ -96,9 +97,14 @@ ctest --test-dir build -C Release
 | `-DGRAN_BERESTA_DIR=путь` | Каталог исходников «Берёсты» |
 | `-DGRAN_BUILD_TESTS=ON` | Собирать модульные тесты (по умолчанию включено) |
 | `-DGRAN_WITH_VULKAN=ON` | Бэкенд Vulkan (в разработке) |
+| `-DGRAN_WEBVIEW2_SDK=путь` | Браузер для `<WebView>` (Windows): `build/native` пакета `Microsoft.Web.WebView2`; загрузчик копируется к программам |
 | `-DCMAKE_BUILD_TYPE=Debug` | Отладочная сборка (`GRAN_DEBUG=1`) |
 
 Цель `gran_shaders` пересобирает шейдеры, если найден `dxc`.
+
+**SDK WebView2** нужен только для элемента `<WebView>`. Это архив NuGet: его можно скачать с
+`https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2` и распаковать как zip; путь для сборки —
+каталог `build/native` внутри (в нём `include/WebView2.h` и `x64/WebView2Loader.dll`). Путь без пробелов.
 
 Проверенные сочетания: MinGW-w64 + Ninja, Visual Studio 2026 (MSVC 14.5). Makefile и CMake дают одинаковые
 кадры пиксель в пиксель.

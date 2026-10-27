@@ -12,11 +12,21 @@ namespace gran::ui
         return *parent.children.back();
     }
 
+    // Позиция за концом — вставка последним / A position past the end — inserting as the last child
+    Node& insertChild(Node& parent, std::size_t index, std::unique_ptr<Node> child)
+    {
+        if (index >= parent.children.size())
+            return appendChild(parent, std::move(child));
+        child->parent = &parent;
+        parent.children.insert(parent.children.begin() + static_cast<std::ptrdiff_t>(index), std::move(child));
+        return *parent.children[index];
+    }
+
     // Имена в порядке ElementKind / The names in the ElementKind order
     const char* elementName(ElementKind kind) noexcept
     {
         static const char* const NAMES[] = {"Stack", "Box", "Grid", "Canvas", "Scroll", "Text", "Image",
-            "Button", "Input", "CheckBox", "Slider", "TextArea", "Span", "Popup", "MenuItem"};
+            "Button", "Input", "CheckBox", "Slider", "TextArea", "Span", "Popup", "MenuItem", "WebView"};
 
         return NAMES[static_cast<std::size_t>(kind)];
     }

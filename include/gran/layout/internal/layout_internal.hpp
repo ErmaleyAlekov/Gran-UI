@@ -54,6 +54,31 @@ namespace gran::layout::internal
 
     // ---- layout_engine.cpp ----
 
+    // ---- layout_reuse.cpp: локальная перекомпоновка / local relayout ----
+
+    /*
+    ** Измерение из кэша. Запись годна, если она сделана в этом проходе или узел с тех пор
+    ** не помечался DIRTY_LAYOUT (markDirty поднимает этот флаг ко всем предкам изменённого узла,
+    ** поэтому чистый узел — это неизменившееся поддерево).
+    **
+    ** A measurement from the cache. An entry is valid if it was made in this pass or the node has not been
+    ** marked DIRTY_LAYOUT since (markDirty raises this flag to all ancestors of a changed node,
+    ** so a clean node is an unchanged subtree).
+    */
+    bool findCached(const ui::Node& node, Size available, std::uint32_t generation, Size& result) noexcept;
+
+    // Запомнить измерение (два последних размера доступного места) / Remember a measurement (the two last available sizes)
+    void storeCache(ui::Node& node, Size available, Size result, std::uint32_t generation) noexcept;
+
+    /*
+    ** Чистая ветвь с прежним размером рамки не размещается заново: при том же месте — ничего,
+    ** при новом — все рамки поддерева сдвигаются на разницу. true — ветвь обработана.
+    **
+    ** A clean branch with the former frame size is not arranged anew: at the same place — nothing,
+    ** at a new one — all frames of the subtree are shifted by the difference. true — the branch is handled.
+    */
+    bool reuseArrangement(ui::Node& node, Rect frame) noexcept;
+
     // Размер рамки узла при доступном размере (с кэшем прохода) / The node frame size for an available size (with the pass cache)
     Size measureNode(ui::Node& node, Size available, LayoutPass& pass);
 

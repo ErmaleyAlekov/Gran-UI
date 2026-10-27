@@ -14,6 +14,8 @@
 #                              она собирается тем же компилятором как подпроект (beresta_static)
 #    -DGRAN_WITH_VULKAN=ON     бэкенд Vulkan (нужен Vulkan SDK)
 #    -DGRAN_DXC=путь           компилятор шейдеров dxc
+#    -DGRAN_WEBVIEW2_SDK=путь  build/native из NuGet-пакета Microsoft.Web.WebView2 (Windows): браузер для <WebView>,
+#                              WebView2Loader.dll кладётся в <сборка>/bin
 #    -DCMAKE_BUILD_TYPE=Debug  -O0/-Od, отладочные слои D3D12 / Vulkan (GRAN_DEBUG=1)
 #
 #  Примеры:
@@ -36,6 +38,8 @@
 #                              it is built by the same compiler as a subproject (beresta_static)
 #    -DGRAN_WITH_VULKAN=ON     the Vulkan backend (needs the Vulkan SDK)
 #    -DGRAN_DXC=path           the dxc shader compiler
+#    -DGRAN_WEBVIEW2_SDK=path  build/native of the Microsoft.Web.WebView2 NuGet package (Windows): a browser for <WebView>,
+#                              WebView2Loader.dll goes to <build>/bin
 #    -DCMAKE_BUILD_TYPE=Debug  -O0/-Od, the D3D12 / Vulkan debug layers (GRAN_DEBUG=1)
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
@@ -65,6 +69,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(GRAN_BUILD_TESTS "Собирать модульные тесты / Build the unit tests" ON)
 option(GRAN_WITH_VULKAN "Бэкенд Vulkan (нужен Vulkan SDK) / The Vulkan backend (needs the Vulkan SDK)" OFF)
+set(GRAN_WEBVIEW2_SDK "" CACHE PATH
+    "build/native пакета Microsoft.Web.WebView2 (пусто — <WebView> без браузера) / build/native of Microsoft.Web.WebView2 (empty — <WebView> without a browser)")
 set(GRAN_BERESTA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Dom lib C++" CACHE PATH
     "Каталог исходников «Берёсты» / The Beresta source directory")
 
@@ -102,6 +108,18 @@ add_library(gran STATIC ${GRAN_SOURCES} ${GRAN_GENERATED_SOURCES})
 target_include_directories(gran PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(gran PUBLIC beresta_static ${GRAN_SYSTEM_LIBS})
 gran_apply_compile_options(gran)
+# Встроенный браузер: определение и заголовки только для библиотеки; загрузчик — рядом с программами
+# The embedded browser: the definition and the headers only for the library; the loader — next to the programs
+if(WIN32 AND GRAN_WEBVIEW2_SDK)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(GRAN_WEBVIEW2_ARCH x64)
+    else()
+        set(GRAN_WEBVIEW2_ARCH x86)
+    endif()
+    target_compile_definitions(gran PRIVATE GRAN_HAS_WEBVIEW2=1)
+    target_include_directories(gran SYSTEM PRIVATE "${GRAN_WEBVIEW2_SDK}/include")
+    set(GRAN_WEBVIEW2_DLL "${GRAN_WEBVIEW2_SDK}/${GRAN_WEBVIEW2_ARCH}/WebView2Loader.dll")
+endif()
 if(GRAN_WITH_VULKAN)
     find_package(Vulkan REQUIRED)
     target_compile_definitions(gran PUBLIC GRAN_WITH_VULKAN=1)
@@ -133,6 +151,13 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
             endif()
         endif()
         gran_apply_compile_options(gran_${example})
+        # Загрузчик WebView2 — в каталог программы (у многоконфигурационных генераторов это bin/<конфигурация>)
+        # The WebView2 loader — into the program directory (bin/<configuration> for multi-config generators)
+        if(GRAN_WEBVIEW2_DLL)
+            add_custom_command(TARGET gran_${example} POST_BUILD
+                COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${GRAN_WEBVIEW2_DLL}" "$<TARGET_FILE_DIR:gran_${example}>"
+                VERBATIM)
+        endif()
         gran_apply_link_options(gran_${example})
     endif()
 endforeach()

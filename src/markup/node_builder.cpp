@@ -11,21 +11,6 @@ namespace gran::markup::internal
 {
     namespace
     {
-        // Вид элемента по имени тега; false — это не элемент интерфейса (а состояние)
-        // The element kind by the tag name; false — it is not a UI element (but a state)
-        bool elementKind(std::string_view name, ui::ElementKind& kind) noexcept
-        {
-            for (int index = 0; index <= static_cast<int>(ui::ElementKind::MENU_ITEM); ++index)
-            {
-                if (name == ui::elementName(static_cast<ui::ElementKind>(index)))
-                {
-                    kind = static_cast<ui::ElementKind>(index);
-                    return true;
-                }
-            }
-            return false;
-        }
-
         // Общие атрибуты, содержимое и свойства стиля / The common attributes, the content and the style properties
         void readNodeAttributes(const beresta::Element& element, ui::Node& node, BuildContext& context)
         {
@@ -56,16 +41,17 @@ namespace gran::markup::internal
     }
 
     /*
-    ** Узел из элемента: атрибуты, состояния, текст тега (у Text, Button и TextArea), затем дети.
+    ** Узел из элемента: атрибуты, состояния, текст тега (у Text, Button и TextArea), затем дети
+    ** и шаблон списка.
     ** Глубину рекурсии ограничивает парсер (maxDepth = 256).
     **
-    ** A node from an element: the attributes, the states, the tag text (for Text, Button and TextArea), then the children.
+    ** A node from an element: the attributes, the states, the tag text (for Text, Button and TextArea), then the children
+    ** and the list template.
     ** The parser bounds the recursion depth (maxDepth = 256).
     */
     std::unique_ptr<ui::Node> buildNode(const beresta::Element& element, BuildContext& context)
     {
         std::unique_ptr<ui::Node> node = std::make_unique<ui::Node>();
-        ui::ElementKind childKind = ui::ElementKind::BOX;
 
         countNode(element, context);
         elementKind(element.getLocalName(), node->kind);
@@ -73,14 +59,8 @@ namespace gran::markup::internal
         node->column = element.getSourceLocation().column;
         readNodeAttributes(element, *node, context);
         readStates(element, node->declared, context);
-        if (readTagText(element, *node, context))
-            return node;
-        for (const beresta::Element* child = firstElementChild(element); child != nullptr;
-             child = nextElementSibling(*child))
-        {
-            if (elementKind(child->getLocalName(), childKind))
-                ui::appendChild(*node, buildNode(*child, context));
-        }
+        if (!readTagText(element, *node, context))
+            buildChildren(element, *node, context);
         return node;
     }
 }

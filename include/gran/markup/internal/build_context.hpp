@@ -23,9 +23,6 @@ namespace gran::generated
 
 namespace gran::markup::internal
 {
-    // Значения темы: имя → текст / Theme values: a name → a text
-    using TokenMap = std::map<std::string, std::string, std::less<>>;
-
     // Состояние построения одного документа / The build state of one document
     struct BuildContext
     {
@@ -73,6 +70,11 @@ namespace gran::markup::internal
     [[noreturn]] void throwAttributeError(const beresta::Element& element, std::string_view attribute,
         const std::string& message);
 
+    // ---- data_resources.cpp ----
+
+    // <Data name><Item …/>…</Data>: записи модели списка; уникальность имён проверила схема / <Data name><Item …/>…</Data>: the list model records; the schema has checked the name uniqueness
+    void readDataSet(const beresta::Element& data, BuildContext& context);
+
     // ---- dom_helpers.cpp ----
 
     // Первый дочерний элемент или nullptr / The first child element or nullptr
@@ -88,6 +90,14 @@ namespace gran::markup::internal
 
     // Узел UI и его поддерево / A UI node and its subtree
     std::unique_ptr<ui::Node> buildNode(const beresta::Element& element, BuildContext& context);
+
+    // ---- node_children.cpp ----
+
+    // Вид элемента по имени тега; false — это не элемент интерфейса (а состояние или шаблон) / The element kind by the tag name; false — it is not a UI element (but a state or a template)
+    bool elementKind(std::string_view name, ui::ElementKind& kind) noexcept;
+
+    // Дети-элементы узла и шаблон записи списка (<ItemTemplate>) / The element children of a node and the list record template (<ItemTemplate>)
+    void buildChildren(const beresta::Element& element, ui::Node& node, BuildContext& context);
 
     // ---- node_content.cpp ----
 

@@ -15,7 +15,7 @@ namespace gran::ui
     // Вид элемента разметки / The markup element kind
     enum class ElementKind : std::uint8_t
     {
-        STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM
+        STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW
     };
 
     /*
@@ -62,6 +62,10 @@ namespace gran::ui
         std::string onClick;
         std::string onChange;
         std::string onSubmit;
+        // Имя модели списка (items="…"): дети строятся из шаблона по записям модели / The list model name (items="…"): children are built from the template by the model records
+        std::string items;
+        // Действие на строку из страницы <WebView> (Application::onWebMessage) / The action for a string from a <WebView> page (Application::onWebMessage)
+        std::string onMessage;
         float minimum = 0.0f;
         float maximum = 100.0f;
         float value = 0.0f;
@@ -76,6 +80,8 @@ namespace gran::ui
         bool checked = false;
         bool password = false;
         bool readOnly = false;
+        // Виртуальный список (virtual="true"): копии только у записей около видимой области / A virtual list (virtual="true"): copies only for the records near the visible area
+        bool virtualize = false;
         ImageFit fit = ImageFit::FILL;
         ScrollDirection direction = ScrollDirection::VERTICAL;
         SubmitKey submitKey = SubmitKey::CONTROL_ENTER;
@@ -134,10 +140,15 @@ namespace gran::ui
         std::size_t column = 0;
         Node* parent = nullptr;
         std::vector<std::unique_ptr<Node>> children;
+        // Шаблон одной записи списка (<ItemTemplate>) — вне дерева, только образец для копий / The template of one list record (<ItemTemplate>) — outside the tree, only a sample for copies
+        std::unique_ptr<Node> itemTemplate;
     };
 
     // Добавляет ребёнка и возвращает его (node.cpp) / Adds a child and returns it (node.cpp)
     Node& appendChild(Node& parent, std::unique_ptr<Node> child);
+
+    // Вставляет ребёнка перед позицией index (за концом — последним) / Inserts a child before the index position (past the end — as the last one)
+    Node& insertChild(Node& parent, std::size_t index, std::unique_ptr<Node> child);
 
     // Имя элемента разметки ("Stack", "Button"...) / The markup element name ("Stack", "Button"...)
     const char* elementName(ElementKind kind) noexcept;
@@ -177,11 +188,11 @@ namespace gran::ui
 
     /*
     ** Копия поддерева для вставки во время работы (шаблоны в разметке: скрытый образец →
-    ** копия → appendChild). Копируются вид, id, стиль, объявления, содержимое, видимость;
+    ** копия → appendChild). Копируются вид, id, стиль, объявления, содержимое, видимость, шаблон списка;
     ** вычисленный стиль, компоновка и состояния — нет: копия получает их заново при вставке.
     **
     ** A subtree copy for inserting at run time (templates in the markup: a hidden sample →
-    ** a copy → appendChild). The kind, id, style, declarations, content, visibility are copied;
+    ** a copy → appendChild). The kind, id, style, declarations, content, visibility, the list template are copied;
     ** the computed style, layout and states are not: the copy gets them anew on insertion.
     */
     std::unique_ptr<Node> cloneTree(const Node& node);

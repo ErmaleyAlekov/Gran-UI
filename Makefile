@@ -13,6 +13,8 @@
 #    DEBUG=1            — -O0 -g, отладочные слои D3D12 / Vulkan
 #    VULKAN=1           — собрать бэкенд Vulkan (нужен Vulkan SDK: VULKAN_SDK)
 #    DXC=путь           — компилятор шейдеров dxc
+#    WEBVIEW2_SDK=путь  — build/native из NuGet-пакета Microsoft.Web.WebView2 (Windows): элемент <WebView>
+#                         получает браузер, рядом с программами кладётся WebView2Loader.dll (после смены — make re)
 # ============================================================================
 #  Gran UI — a cross-platform Makefile (GCC / Clang / MinGW)
 #
@@ -28,6 +30,8 @@
 #    DEBUG=1            — -O0 -g, the D3D12 / Vulkan debug layers
 #    VULKAN=1           — build the Vulkan backend (needs the Vulkan SDK: VULKAN_SDK)
 #    DXC=path           — the dxc shader compiler
+#    WEBVIEW2_SDK=path  — build/native of the Microsoft.Web.WebView2 NuGet package (Windows): the <WebView> element
+#                         gets a browser, WebView2Loader.dll is put next to the programs (after a change — make re)
 # ============================================================================
 
 # ---- Имена и каталоги -------------------------------------------------------
@@ -50,6 +54,8 @@ BERESTA_LIB  = "$(BERESTA_DIR)/bin/libberesta.a"
 
 DEBUG       ?= 0
 VULKAN      ?= 0
+WEBVIEW2_SDK ?=
+WEBVIEW2_ARCH ?= x64
 
 # ---- Компилятор и флаги -------------------------------------------------------
 # ---- The compiler and flags -------------------------------------------------------
@@ -97,6 +103,7 @@ ifeq ($(PLATFORM_OS),windows)
     MKDIR           = if not exist "$(call native,$(1))" mkdir "$(call native,$(1))"
     RMDIR           = if exist "$(call native,$(1))" rmdir /S /Q "$(call native,$(1))"
     RMFILE          = if exist "$(call native,$(1))" del /Q "$(call native,$(1))"
+    COPYFILE        = copy /Y "$(call native,$(1))" "$(call native,$(2))" >nul
     DXC            ?= C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/dxc.exe
 else
     EXE            :=
@@ -104,6 +111,7 @@ else
     MKDIR           = mkdir -p "$(1)"
     RMDIR           = rm -rf "$(1)"
     RMFILE          = rm -f "$(1)"
+    COPYFILE        = cp "$(1)" "$(2)"
     DXC            ?= dxc
     ifeq ($(PLATFORM_OS),macos)
         PLATFORM_DIRS := platform/cocoa
@@ -117,9 +125,18 @@ ifeq ($(VULKAN),1)
     PLATFORM_DIRS += rhi/vulkan
 endif
 
+# Встроенный браузер <WebView>: только Windows и только с SDK WebView2; без него — заглушка (web_view_fallback.cpp)
+# The embedded <WebView> browser: Windows only and only with the WebView2 SDK; without it — a stub (web_view_fallback.cpp)
+WEBVIEW2_DLL :=
+ifneq ($(and $(filter windows,$(PLATFORM_OS)),$(WEBVIEW2_SDK)),)
+    PLATFORM_DIRS += platform/webview2
+    CXXFLAGS      += -DGRAN_HAS_WEBVIEW2 -isystem "$(WEBVIEW2_SDK)/include"
+    WEBVIEW2_DLL  := $(BIN_DIR)/WebView2Loader.dll
+endif
+
 # Все платформенные каталоги: из общего набора исходников они исключаются
 # All platform directories: they are excluded from the common source set
-ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa rhi/dx12 rhi/vulkan
+ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dx12 rhi/vulkan
 
 # ---- Вспомогательные функции ------------------------------------------------
 # Рекурсивный поиск файлов средствами самого make (без внешней утилиты find)
@@ -197,7 +214,7 @@ DEPFLAGS      = -MMD -MP -MF $(call dep_of,$@) -MT $@
 # ---- Main targets ----------------------------------------------------------
 .PHONY: all test shaders beresta platform clean fclean re
 
-all: $(LIB_BIN) $(EXAMPLE_BINS)
+all: $(LIB_BIN) $(EXAMPLE_BINS) $(WEBVIEW2_DLL)
 
 test: $(TEST_BIN)
 	$(call native,$(TEST_BIN))
@@ -223,6 +240,11 @@ $(BIN_DIR)/gran_$(1)$(EXE): $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(E
 	$(CXX) $(CXXFLAGS) $$(filter %.o,$$^) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) $(call example_libs,$(1)) $(call example_gui,$(1)) -o $$@
 endef
 $(foreach e,$(EXAMPLES),$(eval $(call EXAMPLE_RULE,$(e))))
+
+# Загрузчик WebView2 рядом с программами: движок ищет его только в каталоге программы и System32
+# The WebView2 loader next to the programs: the engine looks for it only in the program directory and System32
+$(BIN_DIR)/WebView2Loader.dll: | $(BIN_DIR)
+	$(call COPYFILE,$(WEBVIEW2_SDK)/$(WEBVIEW2_ARCH)/WebView2Loader.dll,$@)
 
 $(EMBED_BIN): $(EMBED_OBJ) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $(EMBED_OBJ) -o $@

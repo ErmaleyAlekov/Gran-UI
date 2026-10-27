@@ -128,6 +128,7 @@ namespace gran
             while (state.window->pollEvent(event))
                 changed = app::handleEvent(state, event) || changed;
             changed = app::runTasks(state) || changed;
+            changed = app::deliverWebMessages(state) || changed;
             changed = blinkCaret(state, app::now()) || changed;
             changed = app::updateTooltip(state, app::now()) || changed;
             if (state.options.exitAfter > 0.0 && app::now() >= state.options.exitAfter)

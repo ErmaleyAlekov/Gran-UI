@@ -66,6 +66,7 @@ The first command builds `libberesta.a` using Beresta's own Makefile, the second
 | `BERESTA_DIR=path` | Beresta directory (default `../Dom lib C++`) |
 | `DEBUG=1` | `-O0 -g`, D3D12 debug layer available via `--debug` in examples |
 | `VULKAN=1` | Vulkan backend (under development, requires Vulkan SDK and `VULKAN_SDK` variable) |
+| `WEBVIEW2_SDK=path` | A browser for `<WebView>` (Windows): `build/native` of the `Microsoft.Web.WebView2` NuGet package; `WebView2Loader.dll` is copied to `bin/`. After a change — `make re` |
 
 Cleaning works in CMD/PowerShell and Unix shell.
 
@@ -92,9 +93,14 @@ Beresta is included as a subproject and is built with the same compiler. With MS
 | `-DGRAN_BERESTA_DIR=path` | Directory of Beresta sources |
 | `-DGRAN_BUILD_TESTS=ON` | Build unit tests (enabled by default) |
 | `-DGRAN_WITH_VULKAN=ON` | Vulkan backend (under development) |
+| `-DGRAN_WEBVIEW2_SDK=path` | A browser for `<WebView>` (Windows): `build/native` of the `Microsoft.Web.WebView2` package; the loader is copied next to the programs |
 | `-DCMAKE_BUILD_TYPE=Debug` | Debug build (`GRAN_DEBUG=1`) |
 
 The `gran_shaders` target rebuilds shaders if `dxc` is found.
+
+**The WebView2 SDK** is needed only for the `<WebView>` element. It is a NuGet archive: download it from
+`https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2` and unpack it as a zip; the build path is the
+`build/native` directory inside (it holds `include/WebView2.h` and `x64/WebView2Loader.dll`). The path must not contain spaces.
 
 Verified combinations: MinGW-w64 + Ninja, Visual Studio 2026 (MSVC 14.5). Makefile and CMake builds produce identical frames, pixel for pixel.
 
