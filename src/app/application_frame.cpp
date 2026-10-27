@@ -81,6 +81,7 @@ namespace gran
                 recreateGraphics(state);
             state.window->setCursor(state.router->cursor());
             syncAccessFocus(state);
+            syncWebViews(state);
         }
     }
 }

@@ -24,4 +24,15 @@ namespace gran::style
         }
         return nullptr;
     }
+
+    // Представления имён живут, пока живут правила / The name views live as long as the rules do
+    std::vector<std::string_view> StyleSheet::names() const
+    {
+        std::vector<std::string_view> result;
+
+        result.reserve(_rules.size());
+        for (const std::unique_ptr<StyleRule>& rule : _rules)
+            result.push_back(rule->name);
+        return result;
+    }
 }

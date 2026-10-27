@@ -47,6 +47,10 @@ namespace gran::i18n
             {Message::MENU_COPY, "Копировать"},
             {Message::MENU_PASTE, "Вставить"},
             {Message::MENU_SELECT_ALL, "Выделить всё"},
+            {Message::DATA_INDEX_OUT_OF_RANGE, "запись {0} вне списка из {1} записей"},
+            {Message::MARKUP_FRAGMENT_PARENT, "фрагмент разметки нельзя вставить в {0}: у этого элемента нет детей-элементов"},
+            {Message::WEBVIEW_WRONG_NODE, "элемент {0} — не WebView"},
+            {Message::WEBVIEW_UNAVAILABLE, "встроенный браузер недоступен (код 0x{0}): нужен WebView2Loader.dll рядом с программой и среда WebView2 Runtime"},
             {Message::PLATFORM_WINDOW_FAILED, "не удалось создать окно: {0}"}
         };
     }

@@ -4,6 +4,7 @@
 #include "gran/a11y/access_tree.hpp"
 #include "gran/animation/animator.hpp"
 #include "gran/app/application.hpp"
+#include "gran/app/internal/web_slots.hpp"
 #include "gran/input/input_router.hpp"
 #include "gran/markup/theme.hpp"
 #include "gran/platform/window.hpp"
@@ -24,8 +25,13 @@ namespace gran
     ** (it returns the textures to it), the backend — before the window (the swap chain refers to the HWND),
     ** the window — before the accessibility tree (its provider reads the tree until the window closes).
     */
-    struct Application::State : input::ActionSink, input::TextLocator
+    struct Application::State : input::ActionSink, input::TextLocator, binding::RemovalListener
     {
+        // ---- node_removal.cpp ----
+
+        // Снять ссылки ввода, анимаций и доступности на поддерево перед его удалением / Drop the input, animation and accessibility references to the subtree before removing it
+        void nodeRemoving(const ui::Node& node) noexcept override;
+
         // ---- app_actions.cpp ----
         void action(const std::string& name, ui::Node& node) override;
 
@@ -42,8 +48,16 @@ namespace gran
         style::ComputedStyle windowStyle;
         text::FontLibrary fonts;
         std::map<std::string, ActionHandler> actions;
+        // Модели списков и привязки items="…"; слушатель удаления — само состояние / The list models and the items="…" bindings; the removal listener is the state itself
+        binding::ListBindings lists{this};
         a11y::AccessTree access;
         std::unique_ptr<platform::Window> window;
+        // Встроенные браузеры <WebView> — после окна: закрываются раньше него (их окна-рамки — дети окна)
+        // The embedded <WebView> browsers — after the window: they close before it (their frame windows are window children)
+        std::vector<std::unique_ptr<app::WebSlot>> webSlots;
+        std::vector<app::WebMessage> webInbox;
+        std::map<std::string, WebMessageHandler> webHandlers;
+        std::uint32_t webPass = 0;
         std::unique_ptr<rhi::RenderBackend> backend;
         std::unique_ptr<render::Renderer> renderer;
         std::unique_ptr<input::InputRouter> router;
@@ -75,6 +89,12 @@ namespace gran
 
     namespace app
     {
+        // ---- application_load.cpp ----
+
+        // Принять загруженный документ: начальные состояния, стиль окна, шрифты, данные и привязки списков
+        // Adopt a loaded document: the initial states, the window style, the fonts, the data and the list bindings
+        void adoptDocument(Application::State& state, markup::UiDocument document, const std::string& base);
+
         // ---- application_frame.cpp ----
 
         // Секунды монотонных часов / Seconds of the monotonic clock

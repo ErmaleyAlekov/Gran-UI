@@ -14,8 +14,10 @@
 6. [Styles, Themes, and States](#styles-theme-and-states)
 7. [Text and Fonts](#text-and-fonts)
 8. [Actions and API](#actions-and-api)
-9. [Pop-up Layers](#popup-layers)
-10. [Errors and Message Language](#errors-and-message-language)
+9. [Lists from data](#lists-from-data)
+10. [Pop-up Layers](#popup-layers)
+11. [Embedded browser: WebView](#embedded-browser-webview)
+12. [Errors and Message Language](#errors-and-message-language)
 
 ## Quick Start
 
@@ -121,6 +123,11 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `Slider` | Slider | `min`, `max`, `value`, `step`, `onChange` |
 | `Popup` | Popup layer (hidden until shown) | — |
 | `MenuItem` | Menu item in `Popup` | `text`, `onClick` |
+| `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
+| `ItemTemplate` | The look of one list record inside a container with `items` | exactly one element |
+
+Containers (`Stack`, `Box`, `Grid`, `Canvas`, `Button`, `Popup`) accept `items="model"` together with
+`<ItemTemplate>` — see [Lists from data](#lists-from-data).
 
 Common attributes of all elements: `id`, `style`, `visible`, `enabled`, `tooltip`, size, margin, and styling attributes. Attribute names are camelCase and identical for all elements.
 
@@ -221,6 +228,9 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `find(id)` | Find a node by `id` (or `nullptr`) |
 | `setStyle(node, name)` | Change the named style of a node |
 | `append(parent, node)` / `remove(node)` | Insert a node (e.g., a copy of the template `ui::cloneTree`) / remove |
+| `appendMarkup(parent, "<Stack>…</Stack>")` | Insert a markup fragment (the same schema, the document styles and theme) |
+| `model(name)` / `itemOf(node)` | The list model of `items="name"` / the record a node belongs to |
+| `onWebMessage`, `postWebMessage`, `navigate`, `loadHtml` | The embedded `<WebView>` browser |
 | `focus(node)` | Pass keyboard focus |
 | `showPopup(layer, anchor)` / `showPopupAt(layer, point)` / `hidePopup(layer)` | Popup layers |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
@@ -230,13 +240,62 @@ Node `gran::ui::Node` (`gran/ui/node.hpp`) stores the element kind, `id`, the co
 `checked`, `placeholder`…) and computed style. After changing the content from code, the node is marked
 `ui::markDirty(node, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT)`: the engine re-lays out and repaints only what is needed.
 
-**Templates.** Repeated block (chat message, list item) is described in the markup as a hidden template with
-`visible="false"`; the code copies it with `ui::cloneTree`, edits the text in the copy (`ui::findNode`) and inserts it with
-`append`. This is how the `examples/chat/` example is structured.
+**Templates.** A repeated block of the same look is better described as a list from data (the section below).
+If a block is assembled in a more complex way (like a Markdown answer in `examples/chat/`), it can be inserted as a markup
+fragment with `appendMarkup`, or a hidden sample can be copied with `ui::cloneTree` and inserted with `append`.
 
 **Background threads.** Access to nodes can only be made from the UI thread. A network or computation thread
 passes the result through `app.post(task)` — the task will be executed in the event loop, and the window will
 wake up itself.
+
+## Lists from data
+
+The markup describes the appearance of one record, the data lives inside the engine's model — the code does not need to build nodes:
+
+```xml
+<Resources>
+  <Data name="contacts">                       <!-- initial data (can also be from code) -->
+    <Item name="Anna" mail="anna@example.org"/>
+    <Item name="Boris" mail="boris@example.org"/>
+  </Data>
+</Resources>
+...
+<Stack items="contacts" spacing="8">
+  <Text>Contacts</Text>                       <!-- own children remain first -->
+  <ItemTemplate>
+    <Stack style="row" tooltip="{mail}" onClick="openContact">
+      <Text fontWeight="600">{name}</Text>
+      <Text>Email: <Span color="#2563eb">{mail}</Span></Text>
+    </Stack>
+  </ItemTemplate>
+</Stack>
+```
+
+```cpp
+gran::data::ListModel& contacts = app.model("contacts");
+contacts.append({{"name", "Vera"}, {"mail", "vera@example.org"}});   // + copy of the template
+contacts.set(0, "name", "Anna S.");                                  // only this text changes
+contacts.remove(1);                                                  // one copy is removed
+
+// in the openContact action handler:
+gran::ItemRef item = app.itemOf(node);              // item.model == &contacts, item.index — record number
+```
+
+- Substitutions `{field}` work in `text`, `placeholder`, `source`, `tooltip`, and in tag text (including
+  in `Span`). `{{` and `}}` — the braces themselves; if the field does not exist in the record, it gives an empty string.
+- Model editing changes only the affected copies: insertion and deletion — their own nodes, field change — only texts
+  with substitutions. Focus, selection, and scrolling of other records are preserved.
+- Record — strings (`gran::data::Record`: field name → text); the format of values is determined by the application.
+- `<Data>` replaces the model's contents on loading; the model can be populated before loading the markup.
+- Lists can be nested (template inside template), but the nested list is linked to the model by name — common
+  for all records.
+- The model changes only in the UI thread; the background thread passes data through `app.post`.
+- `gran_snapshot` builds lists from `<Data>` without a window — the list frame is checked without the program
+  (example — `samples/lists.xml`).
+
+Markup fragment during operation — `app.appendMarkup(parent, "<Stack>…</Stack>")`: one root element,
+validation by the same schema, styles `style="…"` and theme values `$name` — from the document. Error — `MarkupException`
+with position inside the fragment; the tree does not change.
 
 ## Popup Layers
 
@@ -254,6 +313,57 @@ app.showPopup(*app.find("moreMenu"), button);
 ```
 
 `Popup` is taken out of the layout and drawn on top of everything. It appears under the anchor (above it if there is not enough space at the bottom), `showPopupAt` — at the point with reflection inside the window. Esc and clicking outside close the layer, arrows navigate through items, Enter selects. The `tooltip` attribute on any element shows a tooltip after 0.6 seconds.
+
+## Embedded browser: WebView
+
+Gran UI itself does not contain a browser and does not use it for the interface: the window, text, fields, and lists are drawn
+by the engine. If the program needs a web page (help, report, login via a website, ready-made web widget), it is displayed
+by the `<WebView>` element — **hybrid**: the entire window is drawn by the engine, and inside the `<WebView>` rectangle the page
+is shown by the system browser.
+
+```xml
+<WebView id="page" source="https://example.org" height="320" onMessage="fromPage"/>
+<WebView id="help" source="help/index.html" grow="1"/>          <!-- file next to the markup -->
+<WebView id="card" height="200"><![CDATA[<h2>HTML directly in markup</h2>]]></WebView>
+```
+
+```cpp
+app.onWebMessage("fromPage", FromPage{&app});   // void(ui::Node& webView, const std::string& text)
+app.postWebMessage(*app.find("page"), R"({"theme":"dark"})");
+app.navigate(*app.find("help"), "help/faq.html");
+```
+
+In the page:
+
+```js
+window.chrome.webview.postMessage("ready");                            // → onMessage handler
+window.chrome.webview.addEventListener("message", e => show(e.data));  // ← postWebMessage
+```
+
+How it works:
+
+- **Lazy creation.** The browser is created only when `<WebView>` first appears on the screen. A window without
+  visible `WebView` does not spend any memory or time on the browser startup.
+- **Separate process.** The page lives in the system browser processes, not in the program's process; its crash
+  does not bring down the interface.
+- **Only strings.** The bridge — string messages in both directions (format, for example JSON, is chosen by the program).
+  C++ objects are not passed to the page script; developer tools (F12) are enabled only
+  with `AppOptions::debugLayer`.
+- **Size — from style.** The page does not have its own size: set `width`/`height` or `grow`.
+  The frame and padding of the element are visible around the page; the part that goes beyond the `Scroll` edge or `overflow="hidden"`
+  is clipped.
+- **Limitations.** The page lies on top of what the engine draws: a popup layer (`Popup`, tooltip) over
+  a `WebView` ends up under the page, and `borderRadius`, `opacity` and `transform` do not apply to the page itself.
+  The composition mode through DirectComposition — the next step — removes these limitations.
+
+**Platforms and build.** Windows — WebView2 (Edge, Chromium); macOS (WKWebView) and Linux (WebKitGTK) — in plans.
+Support is enabled at build time: `make WEBVIEW2_SDK=<package>/build/native` or
+`cmake -DGRAN_WEBVIEW2_SDK=<package>/build/native` (NuGet package `Microsoft.Web.WebView2`). Without this parameter
+the engine is built as before, and `<WebView>` remains a white background.
+
+A program with `WebView` needs two things: `WebView2Loader.dll` next to the exe (the build places it next to the programs;
+it is only searched for in the program directory and in System32) and the WebView2 Runtime environment (already present in Windows 11, installed separately in Windows 10). The loader is connected via `LoadLibrary` on the first display of `WebView`, so programs without `WebView` do not know about it. If the loader or environment is not present, `WebView` remains a background, the reason is output to stderr, the program continues to work. Browser data (cache, cookies) are stored in
+`%LOCALAPPDATA%\GranUI\<program name>\WebView2`. Example — `samples/web_view.xml`.
 
 ## Errors and Message Language
 

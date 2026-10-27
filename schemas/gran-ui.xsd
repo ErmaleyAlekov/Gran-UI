@@ -390,6 +390,7 @@
       <xs:element name="TextArea" type="TextAreaType"/>
       <xs:element name="Popup" type="PopupType"/>
       <xs:element name="MenuItem" type="MenuItemType"/>
+      <xs:element name="WebView" type="WebViewType"/>
     </xs:choice>
   </xs:group>
 
@@ -425,15 +426,32 @@
   </xs:complexType>
 
   <!--
-    Общая основа контейнеров: к ElementBase добавляет модель «любые элементы интерфейса».
+    Шаблон одной записи списка: ровно один элемент интерфейса. Подстановки {поле} разрешены
+    в текстовых атрибутах (text, placeholder, source, tooltip) и в тексте тегов.
+    The template of one list record: exactly one UI element. {field} placeholders are allowed
+    in the text attributes (text, placeholder, source, tooltip) and in the tag text.
+  -->
+  <xs:complexType name="ItemTemplateType">
+    <xs:group ref="UiElement"/>
+  </xs:complexType>
+
+  <!--
+    Общая основа контейнеров: к ElementBase добавляет модель «любые элементы интерфейса»
+    и список из данных (items="модель" + <ItemTemplate> — только вместе).
     Текст внутри тега контейнеры запрещают сами (Button его разрешает).
-    The common container base: adds the "any UI elements" model to ElementBase.
+    The common container base: adds the "any UI elements" model to ElementBase
+    and a list from data (items="model" + <ItemTemplate> — only together).
     Containers forbid text inside the tag themselves (Button allows it).
   -->
   <xs:complexType name="ContainerBase" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">
-        <xs:group ref="UiElement" minOccurs="0" maxOccurs="unbounded"/>
+        <xs:sequence>
+          <xs:group ref="UiElement" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="ItemTemplate" type="ItemTemplateType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="items" type="xs:NCName"/>
+        <xs:assert test="exists(@items) = exists(ItemTemplate)"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -614,6 +632,22 @@
     </xs:complexContent>
   </xs:complexType>
 
+  <!--
+    Встроенный браузер системы: страница по адресу source или HTML в теге (удобно в CDATA), не оба сразу.
+    Размер — только из стиля (у страницы нет собственного размера). onMessage — действие на строку из страницы.
+    The system embedded browser: a page at the source address or HTML in the tag (handy in CDATA), not both.
+    The size comes only from the style (a page has no intrinsic size). onMessage is the action for a string from the page.
+  -->
+  <xs:complexType name="WebViewType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="source" type="xs:string"/>
+        <xs:attribute name="onMessage" type="Action"/>
+        <xs:assert test="not(@source and text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
   <xs:complexType name="CheckBoxType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">
@@ -674,11 +708,25 @@
     <xs:assert test="not(@basedOn = @name)"/>
   </xs:complexType>
 
+  <!-- Запись данных: любые атрибуты — поля записи / A data record: any attributes are the record fields -->
+  <xs:complexType name="DataItemType">
+    <xs:anyAttribute processContents="skip"/>
+  </xs:complexType>
+
+  <!-- Начальные данные модели списка name / The initial data of the list model name -->
+  <xs:complexType name="DataType">
+    <xs:sequence>
+      <xs:element name="Item" type="DataItemType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+  </xs:complexType>
+
   <xs:complexType name="ResourcesType">
     <xs:sequence>
       <xs:element name="Theme" type="ThemeType" minOccurs="0"/>
       <xs:element name="Font" type="FontType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Data" type="DataType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -710,6 +758,11 @@
     <!-- Имена значений темы уникальны / Theme value names are unique -->
     <xs:unique name="uniqueToken">
       <xs:selector xpath="Resources/Theme/Token"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <!-- Имена наборов данных уникальны / Data set names are unique -->
+    <xs:unique name="uniqueData">
+      <xs:selector xpath="Resources/Data"/>
       <xs:field xpath="@name"/>
     </xs:unique>
     <!-- Стили объявлены один раз; style и basedOn ссылаются только на объявленные -->

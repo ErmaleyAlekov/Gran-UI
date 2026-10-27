@@ -1,8 +1,10 @@
 #ifndef GRAN_APP_APPLICATION_HPP
 #define GRAN_APP_APPLICATION_HPP
 
+#include "gran/binding/list_bindings.hpp"
 #include "gran/ui/node.hpp"
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
@@ -13,8 +15,15 @@ namespace gran
     // Обработчик действия разметки (onClick="имя") / A markup action handler (onClick="name")
     using ActionHandler = std::function<void(ui::Node& node)>;
 
+    // Обработчик строки из страницы <WebView onMessage="имя"> / A handler of a string from a <WebView onMessage="name"> page
+    using WebMessageHandler = std::function<void(ui::Node& webView, const std::string& message)>;
+
     // Задача для потока интерфейса (Application::post) / A task for the UI thread (Application::post)
     using Task = std::function<void()>;
+
+    // Запись списка, к которой относится узел (Application::itemOf); model == nullptr — узел не из списка
+    // The list record a node belongs to (Application::itemOf); model == nullptr — the node is not from a list
+    using ItemRef = binding::ItemRef;
 
     // Параметры приложения / The application parameters
     struct AppOptions
@@ -74,6 +83,56 @@ namespace gran
 
         // Фокус ввода из кода (nullptr — снять); до run() — запоминается / The input focus from code (nullptr — remove); before run() — remembered
         void focus(ui::Node* node);
+
+        // ---- application_data.cpp: данные и разметка во время работы (только поток интерфейса) ----
+        // ---- application_data.cpp: data and markup at run time (the UI thread only) ----
+
+        /*
+        ** Модель списка по имени (items="имя" в разметке); нет — создаётся пустая. Её можно
+        ** заполнять до и после загрузки разметки: привязки строят и правят узлы сами. Данные
+        ** <Data name="имя"> из разметки при загрузке заменяют содержимое модели.
+        **
+        ** A list model by name (items="name" in the markup); none — an empty one is created. It can be
+        ** filled before and after loading the markup: the bindings build and edit the nodes themselves. The data
+        ** <Data name="name"> from the markup replaces the model contents on loading.
+        */
+        data::ListModel& model(const std::string& name);
+
+        /*
+        ** Вставить фрагмент разметки последним ребёнком parent: один корневой элемент, проверка той же
+        ** схемой, стили и тема — документа (ошибка — MarkupException с позицией во фрагменте).
+        ** Списки items="…" во фрагменте привязываются сразу.
+        **
+        ** Insert a markup fragment as the last child of parent: one root element, checked by the same
+        ** schema, the styles and the theme are the document ones (an error is MarkupException with a position in the fragment).
+        ** The items="…" lists in the fragment are bound at once.
+        */
+        ui::Node& appendMarkup(ui::Node& parent, std::string_view markup);
+
+        // Запись списка, из копии шаблона которой узел (ближайший список) — для обработчиков onClick в шаблоне
+        // The list record whose template copy holds the node (the nearest list) — for onClick handlers in a template
+        ItemRef itemOf(const ui::Node& node) const;
+
+        // ---- application_web.cpp: встроенный браузер <WebView> (только поток интерфейса) ----
+        // ---- application_web.cpp: the embedded <WebView> browser (the UI thread only) ----
+
+        // Обработчик строк из страниц по имени действия onMessage / The handler of strings from pages by the onMessage action name
+        void onWebMessage(const std::string& name, WebMessageHandler handler);
+
+        /*
+        ** Строка в страницу (событие message у window.chrome.webview). До создания браузера
+        ** и загрузки страницы сообщения копятся и уходят по порядку. Не WebView — GranException.
+        **
+        ** A string into the page (the message event of window.chrome.webview). Before the browser is created
+        ** and the page is loaded the messages accumulate and go out in order. Not a WebView — GranException.
+        */
+        void postWebMessage(ui::Node& webView, const std::string& message);
+
+        // Открыть адрес (как атрибут source) / Open an address (like the source attribute)
+        void navigate(ui::Node& webView, const std::string& url);
+
+        // Показать HTML (как текст тега; адрес source сбрасывается) / Show HTML (like the tag text; the source address is reset)
+        void loadHtml(ui::Node& webView, const std::string& html);
 
         // ---- application_popups.cpp: всплывающие слои (<Popup>), только во время run() / popup layers (<Popup>), only during run() ----
 

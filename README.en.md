@@ -2,7 +2,7 @@
 
 [Русский](README.md) · **English**
 
-**Gran UI** is a user interface engine written in **C++17**: the window is described using XML markup, styled with CSS-like syntax, and rendered directly onto the graphics card via **Direct3D 12**. The goal is to achieve the look and feel of HTML + CSS (gradients, shadows, rounded corners, frosted glass, smooth transitions) without a browser, without a garbage collector, and without third-party dependencies: startup in milliseconds and 0% CPU usage when idle.
+**Gran UI** is a user interface engine written in **C++17**: the window is described using XML markup, styled with CSS-like syntax, and rendered directly onto the graphics card via **Direct3D 12**. The goal is to achieve the look and feel of HTML + CSS (gradients, shadows, rounded corners, frosted glass, smooth transitions) without a browser, without a garbage collector, and without third-party dependencies: startup in milliseconds and 0% CPU usage when idle. When a web page is needed after all, it can be embedded with the `<WebView>` element — the system browser appears only inside it and only while it is visible.
 
 The XML markup is parsed and validated by the XML library [Beresta](https://github.com/ErmaleyAlekov/beresta) by the same author: the XSD 1.1 schema is built into the engine, and any markup error is visible with the line, column, and path even before the window is created.
 
@@ -45,6 +45,7 @@ return app.run();
 
 ### Lightweight
 - **No browser, no JavaScript, no garbage collector.** The program is a single executable file without accompanying DLLs (only system ones): the engine, Beresta, and C++ runtime are statically linked. The example chat weighs about **3 MB** after `strip`.
+- **A browser only on demand.** An embedded web page (`<WebView>`) is an optional part: it is enabled at build time, the system browser is created when the element is first shown, and programs without a `WebView` never load it.
 - **The engine's own memory with an open window is about 5 MB**; the rest is taken by the graphics card driver.
 - **Fast startup:** the first frame of the 47-element showcase takes tens of milliseconds (parsing with the schema 4–8 ms, styles and layout 5–16 ms, scene about 9 ms).
 - **0% CPU when idle:** a frame is drawn only when something changes or there is an animation.
@@ -59,7 +60,9 @@ return app.run();
 
 ### Secure
 - **Markup is only data.** It has no scripts or expressions: `onClick`, `onChange`, `onSubmit` are just action names, and only what the program itself has bound to C++ functions runs. An unknown action does nothing.
-- **No built-in browser and no network:** markup, fonts, and images are read only from local files.
+- **An interface without a browser or network:** markup, fonts, and images are read only from local files.
+  Web content is possible only inside an explicit `<WebView>`: the page runs in a separate process of the system
+  browser and talks to the program only with strings — C++ objects are not available to the page script.
 - **Secure XML parsing:** Beresta does not load external DTDs or XInclude, limits entity expansion (protection against "billion laughs") and nesting depth (no more than 256 levels).
 - **Custom parsers check every byte:** PNG — CRC of each chunk, image size limits (16,384 pixels per side, 32 Mpixels), inflate with a limit on the result size; TrueType — boundary checks at each read and a limit on the nesting of composite glyphs. A damaged file gives an error, not an out-of-bounds memory access.
 - **Careful work with the graphics card:** each write to the GPU buffer is checked against capacity, the resource is deleted only when the GPU is done with it, the D3D12 debug layer is on in frame checks.
@@ -70,7 +73,10 @@ return app.run();
 
 ### Markup and Styles
 - **Elements:** `Window`, `Stack`, `Grid`, `Canvas`, `Box`, `Scroll`, `Text` with `Span`, `Image`, `Button`,
-  `Input` (including password), `TextArea`, `CheckBox`, `Slider`, `Popup`, and `MenuItem`.
+  `Input` (including password), `TextArea`, `CheckBox`, `Slider`, `Popup`, `MenuItem`, and `WebView` (optional).
+- **Lists from data:** `items="model"` + `<ItemTemplate>` with `{field}` placeholders; the data comes from `<Data>`
+  or from a model filled in code, and a model edit changes only the affected records. Markup fragments at run time
+  (`appendMarkup`) are checked by the same schema.
 - **XSD 1.1 schema validates markup during parsing:** value types (colors, lengths, Grid tracks),
   `xs:assert` assertions (`minWidth ≤ maxWidth`, Grid row number less than the number of tracks, button has text),
   unique `id` and references only to declared styles (`xs:key`/`xs:keyref`).
@@ -102,6 +108,8 @@ return app.run();
 ### Application
 - Event loop, actions from markup (`onClick`, `onChange`, `onSubmit`) are linked to C++ functions.
 - Focus and Tab, input fields, pop-up menus, and tooltips.
+- A hybrid with the web: `<WebView>` shows a system browser page (Windows — WebView2) inside the engine window;
+  the browser is created lazily, the page lives in a separate process, the bridge to the program is string messages.
 - Accessibility: Microsoft UI Automation provider (screen readers see buttons, fields, checkboxes, sliders, and texts).
 - PNG — custom decoder and custom inflate. Error messages are in Russian and English.
 

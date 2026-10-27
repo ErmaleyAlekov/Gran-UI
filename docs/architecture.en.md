@@ -38,6 +38,8 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `markup/` | loading through Beresta, built-in schema `gran-ui.xsd`, building `ui::Node` |
 | `style/` | value parsing (color, length, margins, radii, shadows, gradients, transitions), cascade, theme |
 | `ui/` | UI node, element types, states, traversal |
+| `data/` | the `ListModel` list model (string records, observers), `{field}` substitution |
+| `binding/` | binding `items="…"` containers to models: `<ItemTemplate>` copies, point edits by notifications |
 | `layout/` | Stack, Grid, Canvas, text measurement, scrolling |
 | `text/` | TrueType/TTC parsing, glyph rasterization (exact coverage area), atlas, kerning, line breaks |
 | `image/` | inflate (zlib) and PNG — custom implementations |
@@ -46,8 +48,21 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `a11y/` | accessibility: roles, names, tree navigation (neutral); UI Automation provider in `platform/win32/uia_*` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/`, `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
-| `platform/` | window and events: `win32/`, `x11/` (then `cocoa/`) |
-| `app/` | application: event loop, action binding (`onClick="name"` → C++ function) |
+| `platform/` | window and events: `win32/`, `x11/` (then `cocoa/`); the embedded browser `webview2/` (optional) |
+| `app/` | application: event loop, action binding (`onClick="name"` → C++ function), `<WebView>` placement |
+
+### The embedded browser (hybrid)
+
+The engine draws the interface itself and does not use a browser for this. `<WebView>` is the only place where web content appears; it is displayed by the system browser through the `platform::WebView` interface (Bridge pattern):
+
+- `platform/webview2/` — Windows, WebView2. Compiled only with the SDK (`WEBVIEW2_SDK`); otherwise, `platform/web_view_fallback.cpp` returns `nullptr`, and the element remains a background.
+- The `WebView2Loader.dll` loader is connected via `LoadLibraryEx` (program directory and System32) on the first display of the element; COM is a single-threaded apartment of the window thread.
+- Creation is asynchronous: COM callbacks (`ComCallback`, without lambdas) hold a weak reference to the core, so closing during creation is safe; commands are queued until readiness.
+- After each frame, `app::syncWebViews` iterates through visible nodes, calculates the content block in physical pixels and the visible part (clipping `Scroll`/`overflow`), creates the browser on the first display, and only passes changes. The visible part is set by the child frame window, and the page inside it is shifted by the invisible part.
+- Page messages are queued and processed after window events (`deliverWebMessages`), not inside the browser callback.
+- Currently, the page is a child window above the engine frame. The next step is composition mode (`ICoreWebView2CompositionController` + DirectComposition): the page will become a visual between engine layers, pop-up layers will appear above it, rounding and transparency will be added; input will then be redirected by the engine.
+- macOS — WKWebView, Linux — WebKitGTK: the same `platform::WebView` interface.
+
 
 ## 3. Markup and Schema
 

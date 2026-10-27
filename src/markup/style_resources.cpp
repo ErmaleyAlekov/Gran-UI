@@ -69,7 +69,7 @@ namespace gran::markup::internal
         }
     }
 
-    // Тема, шрифты и стили в порядке схемы / The theme, fonts and styles in the schema order
+    // Тема, шрифты, стили и данные в порядке схемы / The theme, fonts, styles and data in the schema order
     void readResources(const beresta::Element& resources, BuildContext& context)
     {
         std::vector<StyleSource> styles;
@@ -82,6 +82,8 @@ namespace gran::markup::internal
                 readTheme(*child, context);
             else if (name == "Font")
                 readFont(*child, context);
+            else if (name == "Data")
+                readDataSet(*child, context);
             else
             {
                 style::StyleRule& rule = context.document.styles.add(*findAttribute(*child, "name"));

@@ -59,6 +59,7 @@ namespace snapshot
     {
         auto start = std::chrono::steady_clock::now();
         gran::markup::UiDocument document = gran::markup::loadMarkupFile(arguments.markup, gran::markup::LoadOptions{});
+        buildLists(document);
         double loaded = elapsed(start);
         const gran::markup::Theme& theme = gran::markup::defaultTheme();
         gran::style::ComputedStyle window = gran::markup::windowStyle(theme, document.window);

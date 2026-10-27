@@ -11,7 +11,7 @@ namespace gran::markup::internal
         const struct { const char* name; std::string C::* member; } STRINGS[] = {
             {"text", &C::text}, {"placeholder", &C::placeholder}, {"source", &C::source},
             {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
-            {"onSubmit", &C::onSubmit}};
+            {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage}};
 
         // Числовые поля / The numeric fields
         const struct { const char* name; float C::* member; } NUMBERS[] = {
