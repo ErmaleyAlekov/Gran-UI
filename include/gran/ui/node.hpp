@@ -4,6 +4,7 @@
 #include "gran/style/style_sheet.hpp"
 #include "gran/utils/geometry.hpp"
 #include "gran/vector/shape.hpp"
+#include "gran/platform/window_frame.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -66,6 +67,7 @@ namespace gran::ui
     */
     struct NodeContent
     {
+        platform::WindowRole windowRole = platform::WindowRole::NONE;
         std::string text;
         std::string placeholder;
         std::string source;
@@ -193,6 +195,14 @@ namespace gran::ui
     // Начальные состояния из разметки: enabled="false" → DISABLED, checked="true" → CHECKED (всё поддерево)
     // The initial states from the markup: enabled="false" → DISABLED, checked="true" → CHECKED (the whole subtree)
     void applyInitialStates(Node& node) noexcept;
+
+    // Кнопка управления окном (не область перетаскивания).
+    // A window command button (not a drag region).
+    bool isWindowButton(const Node& node) noexcept;
+
+    // Состояние Maximized у всего поддерева; изменившиеся узлы получают DIRTY_STYLE.
+    // The Maximized state throughout a subtree; changed nodes receive DIRTY_STYLE.
+    void setWindowMaximized(Node& node, bool maximized);
 
     // ---- node_kinds.cpp ----
 

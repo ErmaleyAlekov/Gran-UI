@@ -1,4 +1,5 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/app/commands.hpp"
 
 namespace gran
 {
@@ -6,10 +7,17 @@ namespace gran
     // An action without a handler is silently skipped: the markup can be written before the code
     void app::AppWindow::action(const std::string& name, ui::Node& node)
     {
+        if (app::executeBuiltin(shared, name, node))
+            return;
         auto handler = shared.actions.find(name);
 
         if (handler != shared.actions.end() && handler->second)
-            handler->second(node);
+        {
+            // Копия: обработчик может заменить сам себя через onAction / A copy: the handler may replace itself through onAction
+            ActionHandler callback = handler->second;
+
+            callback(node);
+        }
     }
 
     // Точка окна → координаты узла (с его преобразованиями) → байт текста; без рендерера — начало

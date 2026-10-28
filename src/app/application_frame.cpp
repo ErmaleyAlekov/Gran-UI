@@ -77,6 +77,7 @@ namespace gran
             const ui::Node* caret = win.router->focused();
 
             win.animator.setTime(now());
+            syncWindowFrame(win);
             ui::resolveStyles(root, win.windowStyle, theme.kinds, &win.animator);
             win.animating = win.animator.tick();
             if ((root.dirty & ui::DIRTY_LAYOUT) != 0)
@@ -87,6 +88,7 @@ namespace gran
             if (win.renderer->render(root, win.windowStyle, scale, caret, win.router->selected())
                 == rhi::FrameStatus::DEVICE_LOST)
                 recreateGraphics(win);
+            checkGraphicsDiagnostics(win);
             win.window->setCursor(win.router->cursor());
             syncAccessFocus(win);
             win.window->accessRefresh();

@@ -49,6 +49,7 @@ namespace gran::markup
         bool resizable = true;
         // Действие onClose (пусто — окно закрывается само) / The onClose action (empty — the window closes by itself)
         std::string onClose;
+        platform::TitleBar titleBar = platform::TitleBar::SYSTEM;
         style::DeclarationBlock declared;
     };
 

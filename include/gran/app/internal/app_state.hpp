@@ -4,7 +4,10 @@
 #include "gran/app/application.hpp"
 #include "gran/app/internal/app_window.hpp"
 
+#include <cstdint>
+#include <filesystem>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -44,6 +47,21 @@ namespace gran
         // Таймеры setTimeout/setInterval (только поток интерфейса) / The setTimeout/setInterval timers (the UI thread only)
         app::TimerQueue timers;
         bool quit = false;
+        // Невладеющая ссылка для встроенных команд gran:… / A non-owning reference for the built-in gran:… commands
+        Application* owner = nullptr;
+        // Перезагрузка главного окна: документ ждёт границы цикла, чтобы обработчик не удалил свой узел.
+        // Reloading the main window: the document waits for a loop boundary so a handler does not delete its own node.
+        std::unique_ptr<markup::UiDocument> pendingDocument;
+        std::string pendingPath;
+        // Наблюдаемый файл главного окна (пусто — разметка из строки) / The watched main window file (empty — markup from a string)
+        std::string sourcePath;
+        std::string reloadFailure;
+        std::filesystem::file_time_type sourceTime{};
+        std::uintmax_t sourceSize = 0;
+        double nextReloadCheck = 0.0;
+        // Идёт run(); идёт замена документа (рисовать нельзя) / run() goes on; a document replacement goes on (no rendering)
+        bool running = false;
+        bool reloading = false;
     };
 
     namespace app
@@ -58,6 +76,39 @@ namespace gran
         ** The bindings of the former document of this window are dropped.
         */
         void adoptDocument(AppWindow& win, markup::UiDocument document, const std::string& base);
+
+        // ---- application_reload.cpp, reload_document.cpp, reload_source.cpp, reload_fonts.cpp ----
+
+        /*
+        ** Документ главного окна: первый создаёт окно, следующий ждёт границы цикла (внутри run)
+        ** или заменяет сразу. path — абсолютный путь файла, пусто — разметка из строки.
+        **
+        ** The main window document: the first one creates the window, the next one waits for a loop boundary (inside run)
+        ** or replaces at once. path — the absolute file path, empty — markup from a string.
+        */
+        void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path);
+
+        // Применить отложенный документ; true — заменён (нужен кадр) / Apply the pending document; true — replaced (a frame is needed)
+        bool applyReload(Application::State& state);
+
+        // Наблюдение за файлом раз в 250 мс; ошибка разметки сохраняет прежнее дерево / Watching the file every 250 ms; a markup error keeps the former tree
+        bool pollReload(Application::State& state);
+
+        // Сколько ждать до проверки файла (отрицательное — наблюдения нет) / How long to wait until the file check (negative — no watching)
+        double reloadWait(const Application::State& state, double time) noexcept;
+
+        // Файл изменился (время или размер); запоминает новые значения / The file changed (the time or the size); remembers the new values
+        bool sourceChanged(Application::State& state);
+
+        // Запомнить источник главного окна / Remember the main window source
+        void rememberSource(Application::State& state, const std::string& path);
+
+        // Каталог разметки для относительных путей шрифтов и картинок / The markup directory for relative font and image paths
+        std::string sourceBase(const std::string& path);
+
+        // Проверить файлы <Font> до замены дерева: испорченный шрифт оставляет прежний интерфейс
+        // Check the <Font> files before replacing the tree: a broken font keeps the former interface
+        void validateFonts(const markup::UiDocument& document, const std::string& base);
 
         // ---- application_frame.cpp ----
 

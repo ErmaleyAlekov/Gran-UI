@@ -59,12 +59,14 @@ namespace gran
         RunScope::RunScope(Application::State& owner)
             : state(owner)
         {
+            state.running = true;
             setWakeTarget(state, state.windows.front()->window.get());
         }
 
         // Конец run(): будить больше некого / The end of run(): there is nobody to wake anymore
         RunScope::~RunScope()
         {
+            state.running = false;
             setWakeTarget(state, nullptr);
         }
     }

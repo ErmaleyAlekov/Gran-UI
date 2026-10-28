@@ -131,6 +131,20 @@ namespace gran::app
     // Пересоздание бэкенда и рендерера после потери устройства / Recreating the backend and the renderer after a device loss
     void recreateGraphics(AppWindow& win);
 
+    // ---- graphics_diagnostics.cpp ----
+
+    // Сообщение отладочного слоя в отладочном режиме — исключение (живые окна тоже проверяются)
+    // A debug layer message in debug mode is an exception (live windows are checked too)
+    void checkGraphicsDiagnostics(AppWindow& win);
+
+    // ---- application_window_frame.cpp ----
+
+    // Свой заголовок окна спрашивает роль участка у маршрутизатора этого окна / The custom title bar asks this window router for the region role
+    void connectWindowFrame(AppWindow& win);
+
+    // Состояние Maximized из ОС — до каскада стилей кадра / The Maximized state from the OS — before the frame style cascade
+    void syncWindowFrame(AppWindow& win);
+
     // ---- application_events.cpp ----
 
     // Событие окна; true — нужен кадр / A window event; true — a frame is needed

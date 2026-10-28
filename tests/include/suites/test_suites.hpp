@@ -5,6 +5,7 @@
 
 namespace suites
 {
+    void registerCapiTests(test::TestRunner& runner);
     // ---- Ядро и утилиты / Core and utilities ----
     void registerI18nTests(test::TestRunner& runner);
     void registerGeometryTests(test::TestRunner& runner);
@@ -42,6 +43,11 @@ namespace suites
     void registerTimerQueueTests(test::TestRunner& runner);
     void registerKeyframeTests(test::TestRunner& runner);
     void registerKeyframeAnimatorTests(test::TestRunner& runner);
+    void registerReloadTests(test::TestRunner& runner);
+    void registerBuiltinCommandTests(test::TestRunner& runner);
+    void registerPixelCompareTests(test::TestRunner& runner);
+    void registerWindowFrameTests(test::TestRunner& runner);
+    void registerPlatformFrameTests(test::TestRunner& runner);
 
     // ---- Пример chat: JSON, chunked, NDJSON / The chat example: JSON, chunked, NDJSON ----
     void registerChatJsonTests(test::TestRunner& runner);

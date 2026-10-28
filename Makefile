@@ -37,6 +37,7 @@
 # ---- Имена и каталоги -------------------------------------------------------
 # ---- Names and directories -------------------------------------------------------
 NAME        := libgran.a
+.DEFAULT_GOAL := all
 SRC_DIR     := src
 INC_DIR     := include
 OBJ_DIR     := obj
@@ -53,7 +54,11 @@ BERESTA_DIR ?= ../Dom lib C++
 BERESTA_LIB  = "$(BERESTA_DIR)/bin/libberesta.a"
 
 DEBUG       ?= 0
+ifeq ($(OS),Windows_NT)
 VULKAN      ?= 0
+else
+VULKAN      ?= 1
+endif
 WEBVIEW2_SDK ?=
 WEBVIEW2_ARCH ?= x64
 
@@ -68,6 +73,11 @@ ifeq ($(DEBUG),1)
     CXXFLAGS += -O0 -g -DGRAN_DEBUG=1
 else
     CXXFLAGS += -O2 -DNDEBUG
+endif
+# Выпуск: удаляем также отладку из статических библиотек компилятора при компоновке.
+# Release: also remove debug information from the compiler's static libraries at link time.
+ifeq ($(DEBUG),0)
+    LDFLAGS += -s
 endif
 ifeq ($(VULKAN),1)
     CXXFLAGS += -DGRAN_WITH_VULKAN=1
@@ -96,8 +106,8 @@ ifeq ($(PLATFORM_OS),windows)
     SHELL          := cmd.exe
     .SHELLFLAGS    := /C
     EXE            := .exe
-    PLATFORM_DIRS  := platform/win32 rhi/dx12
-    SYSTEM_LIBS    := -static -ld3d12 -ldxgi -ldxguid -ldwmapi -lshcore -limm32 \
+    PLATFORM_DIRS  := platform/win32 rhi/dx12 rhi/dx11
+    SYSTEM_LIBS    := -static -ld3d11 -ld3d12 -ldxgi -ldxguid -ldwmapi -lshcore -limm32 \
                       -luiautomationcore -loleaut32 -lole32 -luuid -luser32 -lgdi32 -lshell32
     native          = $(subst /,\,$(1))
     MKDIR           = if not exist "$(call native,$(1))" mkdir "$(call native,$(1))"
@@ -107,6 +117,7 @@ ifeq ($(PLATFORM_OS),windows)
     DXC            ?= C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/dxc.exe
 else
     EXE            :=
+    CXXFLAGS       += -fPIC -fvisibility=hidden -fvisibility-inlines-hidden
     native          = $(1)
     MKDIR           = mkdir -p "$(1)"
     RMDIR           = rm -rf "$(1)"
@@ -114,15 +125,43 @@ else
     COPYFILE        = cp "$(1)" "$(2)"
     DXC            ?= dxc
     ifeq ($(PLATFORM_OS),macos)
+        $(error Gran UI currently supports Windows and Linux)
         PLATFORM_DIRS := platform/cocoa
         SYSTEM_LIBS   := -framework Cocoa -framework QuartzCore
     else
         PLATFORM_DIRS := platform/x11
-        SYSTEM_LIBS   := -ldl -pthread
+        SYSTEM_LIBS   := -ldl -pthread -lvulkan -lX11
+    endif
+endif
+
+# ---- std::filesystem на GCC 8 -------------------------------------------------
+# В libstdc++ до GCC 9 реализация std::filesystem лежит в отдельной статической
+# библиотеке libstdc++fs.a (Astra Linux SE 1.7, Debian 10) — как в «Берёсте».
+# Clang узнаётся по слову clang в --version.
+# ---- std::filesystem on GCC 8 -------------------------------------------------
+# In libstdc++ before GCC 9 the std::filesystem implementation lives in a separate
+# static library libstdc++fs.a (Astra Linux SE 1.7, Debian 10) — as in Beresta.
+# Clang is recognized by the word clang in --version.
+ifneq ($(PLATFORM_OS),windows)
+    CXX_VERSION_TEXT := $(shell $(CXX) --version)
+    CXX_MAJOR        := $(firstword $(subst ., ,$(shell $(CXX) -dumpversion)))
+    ifeq ($(findstring clang,$(CXX_VERSION_TEXT)),)
+        ifneq ($(filter 5 6 7 8,$(CXX_MAJOR)),)
+            SYSTEM_LIBS += -lstdc++fs
+        endif
     endif
 endif
 ifeq ($(VULKAN),1)
     PLATFORM_DIRS += rhi/vulkan
+endif
+ifeq ($(PLATFORM_OS),linux)
+    ifneq ($(VULKAN),1)
+        $(error Gran UI Linux requires VULKAN=1)
+    endif
+else
+    ifeq ($(VULKAN),1)
+        $(error Gran UI Vulkan currently targets Linux; use Direct3D on Windows)
+    endif
 endif
 
 # Встроенный браузер <WebView>: только Windows и только с SDK WebView2; без него — заглушка (web_view_fallback.cpp)
@@ -136,7 +175,7 @@ endif
 
 # Все платформенные каталоги: из общего набора исходников они исключаются
 # All platform directories: they are excluded from the common source set
-ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dx12 rhi/vulkan
+ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dx12 rhi/dx11 rhi/vulkan
 
 # ---- Вспомогательные функции ------------------------------------------------
 # Рекурсивный поиск файлов средствами самого make (без внешней утилиты find)
@@ -188,7 +227,7 @@ CHAT_COMMON   := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(CHAT_DIR)/co
 # Examples: each examples/<name>/ subdirectory is a separate program bin/gran_<name>
 EXAMPLES      := $(notdir $(patsubst %/,%,$(wildcard $(EXAMPLE_DIR)/*/)))
 ifneq ($(PLATFORM_OS),windows)
-    EXAMPLES  := $(filter-out gallery snapshot chat,$(EXAMPLES))
+    EXAMPLES  := $(filter-out chat,$(EXAMPLES))
 endif
 EXAMPLE_BINS  := $(foreach e,$(EXAMPLES),$(BIN_DIR)/gran_$(e)$(EXE))
 
@@ -214,7 +253,50 @@ DEPFLAGS      = -MMD -MP -MF $(call dep_of,$@) -MT $@
 # ---- Main targets ----------------------------------------------------------
 .PHONY: all test shaders beresta platform clean fclean re
 
+# GPU-тесты запускаются отдельно; эталоны обновляются только явной целью.
+# GPU tests run separately; baselines update only through an explicit target.
+ifeq ($(PLATFORM_OS),linux)
+RENDER_TEST_SRC := $(wildcard tests/linux/*.cpp)
+RENDER_TEST_BIN := $(BIN_DIR)/gran_linux_tests
+.PHONY: test-render test-window update-render-baselines
+$(RENDER_TEST_BIN): $(RENDER_TEST_SRC) tests/linux/linux_tests.hpp $(LIB_BIN)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(RENDER_TEST_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+test-render: $(RENDER_TEST_BIN)
+	$(RENDER_TEST_BIN)
+test-window: $(RENDER_TEST_BIN)
+	$(RENDER_TEST_BIN) --window
+update-render-baselines:
+	@echo Gran UI: reference baselines require Windows D3D12 WARP
+	@false
+else
+RENDER_TEST_SRC := $(wildcard tests/render/*.cpp)
+RENDER_TEST_BIN := $(BIN_DIR)/gran_render_tests$(EXE)
+.PHONY: test-render update-render-baselines
+$(RENDER_TEST_BIN): $(RENDER_TEST_SRC) tests/render/render_tests.hpp $(LIB_BIN)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(RENDER_TEST_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+test-render: $(RENDER_TEST_BIN)
+	$(call native,$(RENDER_TEST_BIN)) --d3d12
+	$(call native,$(RENDER_TEST_BIN)) --d3d11
+update-render-baselines: $(RENDER_TEST_BIN)
+	$(call native,$(RENDER_TEST_BIN)) --update
+endif
+
 all: $(LIB_BIN) $(EXAMPLE_BINS) $(WEBVIEW2_DLL)
+
+# Языки загружают одну библиотеку; C++-примеры продолжают использовать статическую.
+# Languages load one library; C++ examples continue to use the static library.
+ifeq ($(PLATFORM_OS),windows)
+    CAPI_BIN := $(BIN_DIR)/gran_c.dll
+else ifeq ($(PLATFORM_OS),macos)
+    CAPI_BIN := $(BIN_DIR)/libgran_c.dylib
+else
+    CAPI_BIN := $(BIN_DIR)/libgran_c.so
+endif
+CAPI_SRC := $(wildcard src/capi/*.cpp)
+.PHONY: bindings
+bindings: $(CAPI_BIN) $(WEBVIEW2_DLL)
+$(CAPI_BIN): $(CAPI_SRC) $(LIB_BIN) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -DGRAN_CAPI_BUILD=1 -shared $(CAPI_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 
 test: $(TEST_BIN)
 	$(call native,$(TEST_BIN))
@@ -231,13 +313,13 @@ $(LIB_BIN): $(LIB_OBJ) | $(BIN_DIR)
 	$(AR) $(ARFLAGS) $@ $(LIB_OBJ)
 
 $(TEST_BIN): $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 
 # Шаблон компоновки примера: его объекты + библиотека + «Берёста» + системные библиотеки
 # The example link template: its objects + the library + Beresta + the system libraries
 define EXAMPLE_RULE
 $(BIN_DIR)/gran_$(1)$(EXE): $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(1),*.cpp)) $(LIB_BIN) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $$(filter %.o,$$^) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) $(call example_libs,$(1)) $(call example_gui,$(1)) -o $$@
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $$(filter %.o,$$^) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) $(call example_libs,$(1)) $(call example_gui,$(1)) -o $$@
 endef
 $(foreach e,$(EXAMPLES),$(eval $(call EXAMPLE_RULE,$(e))))
 
@@ -247,7 +329,7 @@ $(BIN_DIR)/WebView2Loader.dll: | $(BIN_DIR)
 	$(call COPYFILE,$(WEBVIEW2_SDK)/$(WEBVIEW2_ARCH)/WebView2Loader.dll,$@)
 
 $(EMBED_BIN): $(EMBED_OBJ) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(EMBED_OBJ) -o $@
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(EMBED_OBJ) -o $@
 
 # Схема разметки превращается в массив байтов gran::generated::GRAN_UI_SCHEMA
 # The markup schema becomes the byte array gran::generated::GRAN_UI_SCHEMA
@@ -263,6 +345,22 @@ $(THEME_CPP): $(THEME_XML) $(EMBED_BIN) | $(call dir_of,$(THEME_CPP))
 SHADER_SRC    := shaders/hlsl/ui.hlsl
 SHADER_OUT    := $(SRC_DIR)/rhi/shaders_gen
 SHADER_TMP    := $(OBJ_DIR)/shaders
+FXC ?= C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/fxc.exe
+
+# DXBC из общего HLSL для Shader Model 5.0 / DXBC from shared HLSL for Shader Model 5.0
+.PHONY: shaders-dx11
+shaders-dx11: $(EMBED_BIN)
+	@$(call MKDIR,$(SHADER_TMP))
+	"$(FXC)" /nologo /D GRAN_D3D11=1 /T vs_5_0 /E vsMain /O3 /Fo $(SHADER_TMP)/ui_vs.dxbc $(SHADER_SRC)
+	"$(FXC)" /nologo /D GRAN_D3D11=1 /T ps_5_0 /E psMain /O3 /Fo $(SHADER_TMP)/ui_ps.dxbc $(SHADER_SRC)
+	"$(FXC)" /nologo /D GRAN_D3D11=1 /T ps_5_0 /E psBlurDown /O3 /Fo $(SHADER_TMP)/blur_down_ps.dxbc $(SHADER_SRC)
+	"$(FXC)" /nologo /D GRAN_D3D11=1 /T ps_5_0 /E psBlurUp /O3 /Fo $(SHADER_TMP)/blur_up_ps.dxbc $(SHADER_SRC)
+	"$(FXC)" /nologo /D GRAN_D3D11=1 /T vs_5_0 /E vsFullscreen /O3 /Fo $(SHADER_TMP)/fullscreen_vs.dxbc $(SHADER_SRC)
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/ui_vs.dxbc $(SHADER_OUT)/ui_vs_dxbc.cpp UI_VS_DXBC
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/ui_ps.dxbc $(SHADER_OUT)/ui_ps_dxbc.cpp UI_PS_DXBC
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/blur_down_ps.dxbc $(SHADER_OUT)/blur_down_ps_dxbc.cpp BLUR_DOWN_PS_DXBC
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/blur_up_ps.dxbc $(SHADER_OUT)/blur_up_ps_dxbc.cpp BLUR_UP_PS_DXBC
+	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/fullscreen_vs.dxbc $(SHADER_OUT)/fullscreen_vs_dxbc.cpp FULLSCREEN_VS_DXBC
 
 shaders: $(EMBED_BIN)
 	@$(call MKDIR,$(SHADER_TMP))
@@ -318,3 +416,19 @@ re: fclean
 	$(MAKE) all
 
 -include $(ALL_DEP)
+
+# SPIR-V встроен; SDK-компилятор нужен только при изменении HLSL.
+# SPIR-V is embedded; the SDK compiler is only needed when changing HLSL.
+.PHONY: shaders-vulkan
+shaders-vulkan: $(EMBED_BIN)
+	@$(call MKDIR,$(OBJ_DIR)/shaders)
+	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_VULKAN=1 -fvk-invert-y -T vs_6_0 -E vsMain -O3 -Fo $(OBJ_DIR)/shaders/ui_vs.spv shaders/hlsl/ui.hlsl
+	$(EMBED_BIN) $(OBJ_DIR)/shaders/ui_vs.spv src/rhi/shaders_gen/ui_vs_spv.cpp UI_VS_SPV
+	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_VULKAN=1 -T ps_6_0 -E psMain -O3 -Fo $(OBJ_DIR)/shaders/ui_ps.spv shaders/hlsl/ui.hlsl
+	$(EMBED_BIN) $(OBJ_DIR)/shaders/ui_ps.spv src/rhi/shaders_gen/ui_ps_spv.cpp UI_PS_SPV
+	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_VULKAN=1 -fvk-invert-y -T vs_6_0 -E vsFullscreen -O3 -Fo $(OBJ_DIR)/shaders/fullscreen_vs.spv shaders/hlsl/ui.hlsl
+	$(EMBED_BIN) $(OBJ_DIR)/shaders/fullscreen_vs.spv src/rhi/shaders_gen/fullscreen_vs_spv.cpp FULLSCREEN_VS_SPV
+	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_VULKAN=1 -T ps_6_0 -E psBlurDown -O3 -Fo $(OBJ_DIR)/shaders/blur_down_ps.spv shaders/hlsl/ui.hlsl
+	$(EMBED_BIN) $(OBJ_DIR)/shaders/blur_down_ps.spv src/rhi/shaders_gen/blur_down_ps_spv.cpp BLUR_DOWN_PS_SPV
+	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_VULKAN=1 -T ps_6_0 -E psBlurUp -O3 -Fo $(OBJ_DIR)/shaders/blur_up_ps.spv shaders/hlsl/ui.hlsl
+	$(EMBED_BIN) $(OBJ_DIR)/shaders/blur_up_ps.spv src/rhi/shaders_gen/blur_up_ps_spv.cpp BLUR_UP_PS_SPV

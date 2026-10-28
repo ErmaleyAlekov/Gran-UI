@@ -2,7 +2,7 @@
 
 [Русский](README.md) · **English**
 
-**Gran UI** is a user interface engine written in **C++17**: the window is described using XML markup, styled with CSS-like syntax, and rendered directly onto the graphics card via **Direct3D 12**. The goal is to achieve the look and feel of HTML + CSS (gradients, shadows, rounded corners, frosted glass, smooth transitions) without a browser, without a garbage collector, and without third-party dependencies: startup in milliseconds and 0% CPU usage when idle. When a web page is needed after all, it can be embedded with the `<WebView>` element — the system browser appears only inside it and only while it is visible.
+**Gran UI** is a user interface engine written in **C++17**: the window is described using XML markup, styled with CSS-like syntax, and rendered directly onto the graphics card via **Direct3D 12/11 on Windows or Vulkan on Linux**. The goal is to achieve the look and feel of HTML + CSS (gradients, shadows, rounded corners, frosted glass, smooth transitions) without a browser, without a garbage collector, and without third-party dependencies: startup in milliseconds and 0% CPU usage when idle. When a web page is needed after all, it can be embedded with the `<WebView>` element — the system browser appears only inside it and only while it is visible.
 
 The XML markup is parsed and validated by the XML library [Beresta](https://github.com/ErmaleyAlekov/beresta) by the same author: the XSD 1.1 schema is built into the engine, and any markup error is visible with the line, column, and path even before the window is created.
 
@@ -27,13 +27,43 @@ app.onAction("greet", GreetAction{&app});   // onClick="greet" → C++ function
 return app.run();
 ```
 
-> **Status:** The engine is under development. It works on Windows 10/11 (Direct3D 12, Win32); Vulkan backend, Linux, and macOS are planned. The API may change.
+> **Status:** Under development. Windows 10/11 uses Direct3D 12/11 and Win32; Linux uses Vulkan 1.0 and X11
+> (Wayland sessions require XWayland). Software rendering uses WARP on Windows and Mesa lavapipe on Linux.
+> macOS is currently unsupported. The API may change.
+
+## Linux, including Russian distributions
+
+Linux uses Beresta, C++17 and the system graphics stack: the Vulkan loader, a Vulkan driver and X11.
+No SDL, GLFW, Qt, GTK, FreeType or Fontconfig is required. A CPU device such as Mesa lavapipe is selected
+when no suitable GPU is available; `--software` forces CPU rendering. The Vulkan SDK is only needed for
+build headers/tools, never on the target machine. The loader and a hardware or Mesa software driver
+must be installed by the OS; the engine does not download drivers.
+
+This build path also targets Astra Linux, ALT and RED OS with C++17, Vulkan 1.0 and X11/XWayland.
+Each specific release, architecture and certified package set requires validation in its own environment.
+SPIR-V is embedded, so normal builds do not require a shader compiler.
+
+```bash
+cmake -S . -B build -DGRAN_BERESTA_DIR=../beresta
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+./build/bin/gran_gallery samples/showcase.xml --vulkan
+./build/bin/gran_snapshot samples/glass.xml glass.png --software
+```
+
+Building requires Vulkan SDK headers (or the system Vulkan development package) and system X11 headers.
+Gallery, snapshots and the C ABI support Linux. The chat example currently uses WinSock and remains
+Windows-only. On Linux `<WebView>` is a plain block without a browser; AT-SPI is not yet implemented.
+See [Linux build and validation](docs/building.en.md#linux).
 
 ---
 
 ## Documentation
 
 - [Guide: Markup, Styles, and API](docs/guide.en.md)
+- [C++ API Reference and XML Reloading](docs/api.en.md)
+- [C ABI and Python, C#, Java bindings](docs/bindings.en.md)
+- [Rendering Tests and WARP Baselines](docs/render_testing.en.md)
 - [Building and Integration](docs/building.en.md)
 - [Engine Architecture](docs/architecture.en.md)
 - [Project Structure, Tests, and Coding Rules](docs/development.en.md)
@@ -44,7 +74,9 @@ return app.run();
 ## Advantages
 
 ### Lightweight
-- **No browser, no JavaScript, no garbage collector.** The program is a single executable file without accompanying DLLs (only system ones): the engine, Beresta, and C++ runtime are statically linked. The example chat weighs about **3 MB** after `strip`.
+- **No browser, no JavaScript, no garbage collector.** The engine and Beresta are statically linked.
+  Windows also uses a static C++ runtime; Linux uses the system runtime and system Vulkan/X11.
+  The Windows chat example weighs about **3 MB** after `strip`.
 - **A browser only on demand.** An embedded web page (`<WebView>`) is an optional part: it is enabled at build time, the system browser is created when the element is first shown, and programs without a `WebView` never load it.
 - **The engine's own memory with an open window is about 5 MB**; the rest is taken by the graphics card driver.
 - **Fast startup:** the first frame of the 47-element showcase takes tens of milliseconds (parsing with the schema 4–8 ms, styles and layout 5–16 ms, scene about 9 ms).
@@ -126,8 +158,8 @@ return app.run();
 - PNG and JPEG (progressive too) — custom decoders and custom inflate. Error messages are in Russian and English.
 
 ### Engineering Quality
-- **No third-party dependencies:** standard C++17 library, Windows SDK, and Beresta.
-- **Build:** Makefile with auto-dependencies and CMake; compilers MinGW-w64 (GCC) and MSVC.
+- **No third-party dependencies:** Beresta, the standard C++17 library and the system graphics SDK/driver.
+- **Build:** Makefile with auto-dependencies and CMake; MinGW-w64, MSVC, GCC and Clang.
 - **Testing without a window:** `gran_snapshot` renders the markup off-screen to PNG — the frame can be compared to the reference.
 - **Readable code:** short functions and small files, detailed bilingual comments (Russian and English).
 

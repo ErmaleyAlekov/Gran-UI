@@ -82,7 +82,7 @@ namespace gran::rhi::dx12
 
     // Фабрика, адаптер (высокопроизводительный или WARP), устройство и очередь
     // The factory, the adapter (high performance or WARP), the device and the queue
-    void createDeviceContext(bool debug, DeviceContext& context);
+    void createDeviceContext(bool debug, bool forceWarp, DeviceContext& context);
 
     /*
     ** Забор (fence) с событием ОС. Значение растёт на каждом signal; wait блокирует поток,

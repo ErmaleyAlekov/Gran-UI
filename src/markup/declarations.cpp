@@ -86,7 +86,8 @@ namespace gran::markup::internal
     // Дочерние элементы состояний в порядке схемы / The state child elements in the schema order
     void readStates(const beresta::Element& element, style::DeclarationBlock& block, BuildContext& context)
     {
-        static const char* const NAMES[style::STATE_COUNT] = {"Hover", "Pressed", "Focused", "Disabled", "Checked", "DropTarget"};
+        static const char* const NAMES[style::STATE_COUNT] = {"Hover", "Pressed", "Focused", "Disabled", "Checked",
+            "Maximized", "DropTarget"};
 
         for (const beresta::Element* child = firstElementChild(element); child != nullptr;
              child = nextElementSibling(*child))

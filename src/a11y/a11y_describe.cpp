@@ -6,6 +6,8 @@ namespace gran::a11y
     // Встроенные виды — свои роли, остальные контейнеры — группа / The built-in kinds have their roles, the other containers are groups
     Role roleOf(const ui::Node& node) noexcept
     {
+        if (ui::isWindowButton(node))
+            return Role::BUTTON;
         switch (node.kind)
         {
             case ui::ElementKind::TEXT: return Role::TEXT;

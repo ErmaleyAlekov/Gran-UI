@@ -2,7 +2,7 @@
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 
-#include <charconv>
+#include "gran/style/value_parsers.hpp"
 
 namespace gran::vector::internal
 {
@@ -40,11 +40,13 @@ namespace gran::vector::internal
     /*
     ** Число SVG: знак, цифры, точка, цифры, экспонента. Число кончается там, где грамматика
     ** не может его продолжить, поэтому «1.5.5» — это 1.5 и .5, а «1-2» — 1 и −2.
-    ** Перевод — std::from_chars (не зависит от локали: «,» никогда не десятичный знак).
+    ** Перевод — style::parseNumber (не зависит от локали: «,» никогда не десятичный знак; std::from_chars
+    ** для float нет в libstdc++ до GCC 11 — Astra Linux SE 1.7, ALT p10).
     **
     ** An SVG number: a sign, digits, a dot, digits, an exponent. A number ends where the grammar
     ** cannot continue it, so "1.5.5" is 1.5 and .5, and "1-2" is 1 and −2.
-    ** The conversion is std::from_chars (locale independent: "," is never a decimal mark).
+    ** The conversion is style::parseNumber (locale independent: "," is never a decimal mark; std::from_chars
+    ** for float is missing in libstdc++ before GCC 11 — Astra Linux SE 1.7, ALT p10).
     */
     bool readNumber(PathScanner& scanner, float& value)
     {
@@ -70,9 +72,8 @@ namespace gran::vector::internal
             if (skipDigits(text, pos) == 0)
                 pos = mantissaEnd;
         }
-        // from_chars не принимает «+» впереди / from_chars does not accept a leading "+"
-        std::size_t begin = scanner.pos + (text[scanner.pos] == '+');
-        std::from_chars(text.data() + begin, text.data() + pos, value);
+        // Кусок уже проверен грамматикой выше / The piece is already checked by the grammar above
+        value = style::parseNumber(text.substr(scanner.pos, pos - scanner.pos));
         scanner.pos = pos;
         return true;
     }

@@ -69,7 +69,7 @@ struct FrameConstants
 // Атрибуты Vulkan действуют только при компиляции в SPIR-V (dxc -spirv определяет __spirv__)
 // The Vulkan attributes apply only when compiling to SPIR-V (dxc -spirv defines __spirv__)
 #ifdef __spirv__
-#define VK_BINDING(binding, set) [[vk::binding(binding, set)]]
+#define VK_BINDING(slot, group) [[vk::binding(slot, group)]]
 #define VK_PUSH_CONSTANT [[vk::push_constant]]
 #else
 #define VK_BINDING(binding, set)
@@ -77,11 +77,48 @@ struct FrameConstants
 #endif
 
 // Привязки: регистры D3D12 и наборы Vulkan записаны рядом / The bindings: D3D12 registers and Vulkan sets side by side
+#ifdef GRAN_D3D11
+cbuffer FrameBuffer : register(b0) { FrameConstants frame; };
+StructuredBuffer<GpuInstance> instances : register(t0);
+StructuredBuffer<GpuClip> clips : register(t1);
+SamplerState linearSampler : register(s0);
+Texture2D atlasTexture : register(t2);
+Texture2D rampTexture : register(t3);
+Texture2D imageTexture : register(t4);
+Texture2D backdropTexture : register(t5);
+#define GRAN_ATLAS atlasTexture
+#define GRAN_RAMP rampTexture
+#define GRAN_IMAGE(slot) imageTexture
+#define GRAN_BACKDROP backdropTexture
+#define GRAN_BLUR_SOURCE imageTexture
+#elif defined(GRAN_VULKAN)
+// Фиксированные привязки не требуют descriptor indexing на старых драйверах Mesa.
+// Fixed bindings require no descriptor indexing on older Mesa drivers.
+VK_PUSH_CONSTANT ConstantBuffer<FrameConstants> frame;
+VK_BINDING(0, 0) StructuredBuffer<GpuInstance> instances;
+VK_BINDING(1, 0) StructuredBuffer<GpuClip> clips;
+VK_BINDING(2, 0) SamplerState linearSampler;
+VK_BINDING(3, 0) Texture2D atlasTexture;
+VK_BINDING(4, 0) Texture2D rampTexture;
+VK_BINDING(5, 0) Texture2D imageTexture;
+VK_BINDING(6, 0) Texture2D backdropTexture;
+#define GRAN_ATLAS atlasTexture
+#define GRAN_RAMP rampTexture
+#define GRAN_IMAGE(slot) imageTexture
+#define GRAN_BACKDROP backdropTexture
+#define GRAN_BLUR_SOURCE imageTexture
+#else
 VK_PUSH_CONSTANT ConstantBuffer<FrameConstants> frame : register(b0, space0);
 VK_BINDING(0, 0) StructuredBuffer<GpuInstance> instances : register(t0, space0);
 VK_BINDING(1, 0) StructuredBuffer<GpuClip> clips : register(t1, space0);
 VK_BINDING(2, 0) SamplerState linearSampler : register(s0, space0);
 VK_BINDING(0, 1) Texture2D textures[] : register(t0, space1);
+#define GRAN_ATLAS textures[NonUniformResourceIndex(frame.atlasSlot)]
+#define GRAN_RAMP textures[NonUniformResourceIndex(frame.rampSlot)]
+#define GRAN_IMAGE(slot) textures[NonUniformResourceIndex(slot)]
+#define GRAN_BACKDROP textures[TEXTURE_BACKDROP]
+#define GRAN_BLUR_SOURCE textures[NonUniformResourceIndex(frame.instanceBase)]
+#endif
 
 // Распаковка RGBA8 (R — младший байт, альфа предумножена) / Unpacking RGBA8 (R is the lowest byte, premultiplied alpha)
 float4 unpackColor(uint packed)

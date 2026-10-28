@@ -76,6 +76,19 @@ namespace gran::i18n
         ICON_BAD_VIEWBOX,
         ICON_BAD_SVG,
 
+        APP_RELOAD_NO_FILE,
+        WINDOW_MINIMIZE,
+        WINDOW_MAXIMIZE,
+        WINDOW_RESTORE,
+        WINDOW_CLOSE,
+        CAPI_ARGUMENT,
+        CAPI_NODE,
+        CAPI_PROPERTY,
+        CAPI_COMMAND,
+        CAPI_THREAD,
+        CAPI_BUSY,
+        CAPI_UNKNOWN,
+        PLATFORM_FILE_DIALOG_TOOL,
         COUNT
     };
 }

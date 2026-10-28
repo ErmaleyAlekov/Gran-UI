@@ -61,7 +61,7 @@ float4 gradientColor(GpuInstance item, float2 p)
     }
     float u = (saturate(t) * (RAMP_WIDTH - 1.0) + 0.5) / RAMP_WIDTH;
     float v = (item.paint.y + 0.5) / max(frame.rampRows, 1);
-    return textures[NonUniformResourceIndex(frame.rampSlot)].SampleLevel(linearSampler, float2(u, v), 0.0);
+    return GRAN_RAMP.SampleLevel(linearSampler, float2(u, v), 0.0);
 }
 
 // Прямоугольник: заливка внутри внутреннего контура, рамка между контурами / A rectangle: the fill inside the inner outline, the border between the outlines
@@ -86,23 +86,23 @@ float4 shadeRect(GpuInstance item, float2 p)
 float4 shadeGlyph(GpuInstance item, float2 p)
 {
     float2 uv = lerp(item.extra.xy, item.extra.zw, (p - item.rect.xy) / item.rect.zw);
-    float alpha = textures[NonUniformResourceIndex(frame.atlasSlot)].SampleLevel(linearSampler, uv, 0.0).r;
+    float alpha = GRAN_ATLAS.SampleLevel(linearSampler, uv, 0.0).r;
     return unpackColor(item.fill) * alpha;
 }
 
 // Картинка с маской скруглённых углов / An image with a rounded corner mask
 float4 shadeImage(GpuInstance item, float2 p)
 {
-    uint texture = min(item.paint.x, max(frame.textureCount, 1) - 1);
+    uint textureSlot = min(item.paint.x, max(frame.textureCount, 1) - 1);
     float2 uv = lerp(item.extra.xy, item.extra.zw, (p - item.rect.xy) / item.rect.zw);
-    float4 color = textures[NonUniformResourceIndex(texture)].SampleLevel(linearSampler, uv, 0.0);
+    float4 color = GRAN_IMAGE(textureSlot).SampleLevel(linearSampler, uv, 0.0);
     return color * coverage(rectDistance(p, item.rect, item.radii));
 }
 
 // Подложка: размытая копия кадра под блоком плюс тонировка / A backdrop: a blurred frame copy under the box plus a tint
 float4 shadeBackdrop(GpuInstance item, float2 p, float2 screen)
 {
-    float4 blurred = textures[TEXTURE_BACKDROP].SampleLevel(linearSampler, screen * frame.inverseViewport, 0.0);
+    float4 blurred = GRAN_BACKDROP.SampleLevel(linearSampler, screen * frame.inverseViewport, 0.0);
     float4 tint = unpackColor(item.fill);
     float mask = coverage(rectDistance(p, item.rect, item.radii));
     return (tint + blurred * (1.0 - tint.a)) * mask;
@@ -155,7 +155,7 @@ float4 vsFullscreen(uint vertexId : SV_VertexID, out float2 uv : TEXCOORD0) : SV
 // Уменьшение вдвое: центр с весом 4 и четыре диагонали / A downscale by half: the center with weight 4 and four diagonals
 float4 psBlurDown(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 {
-    Texture2D source = textures[NonUniformResourceIndex(frame.instanceBase)];
+    Texture2D source = GRAN_BLUR_SOURCE;
     float2 o = frame.inverseViewport * 0.5;
     float4 sum = source.SampleLevel(linearSampler, uv, 0.0) * 4.0;
     sum += source.SampleLevel(linearSampler, uv - o, 0.0);
@@ -168,7 +168,7 @@ float4 psBlurDown(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Tar
 // Увеличение вдвое: восемь отсчётов по кругу / An upscale by two: eight samples around a circle
 float4 psBlurUp(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 {
-    Texture2D source = textures[NonUniformResourceIndex(frame.instanceBase)];
+    Texture2D source = GRAN_BLUR_SOURCE;
     float2 o = frame.inverseViewport * 0.5;
     float4 sum = source.SampleLevel(linearSampler, uv + float2(-o.x * 2.0, 0.0), 0.0);
     sum += source.SampleLevel(linearSampler, uv + float2(-o.x, o.y), 0.0) * 2.0;
