@@ -47,6 +47,8 @@ namespace gran::markup
         float minWidth = 0.0f;
         float minHeight = 0.0f;
         bool resizable = true;
+        // Действие onClose (пусто — окно закрывается само) / The onClose action (empty — the window closes by itself)
+        std::string onClose;
         style::DeclarationBlock declared;
     };
 

@@ -19,22 +19,22 @@ namespace gran::app
     }
 
     // Слотов столько, сколько WebView на экране, — линейного поиска достаточно / There are as many slots as WebViews on screen — a linear search is enough
-    WebSlot& webSlot(Application::State& state, ui::Node& node)
+    WebSlot& webSlot(AppWindow& win, ui::Node& node)
     {
-        for (const std::unique_ptr<WebSlot>& slot : state.webSlots)
+        for (const std::unique_ptr<WebSlot>& slot : win.webSlots)
         {
             if (slot->node == &node)
                 return *slot;
         }
-        state.webSlots.push_back(std::make_unique<WebSlot>(state, node));
-        return *state.webSlots.back();
+        win.webSlots.push_back(std::make_unique<WebSlot>(win, node));
+        return *win.webSlots.back();
     }
 
     // Уничтожение слота закрывает браузер и его окно-рамку / Destroying a slot closes the browser and its frame window
-    void forgetWebViews(Application::State& state, const ui::Node& subtree) noexcept
+    void forgetWebViews(AppWindow& win, const ui::Node& subtree) noexcept
     {
-        std::vector<std::unique_ptr<WebSlot>>& slots = state.webSlots;
-        std::vector<WebMessage>& inbox = state.webInbox;
+        std::vector<std::unique_ptr<WebSlot>>& slots = win.webSlots;
+        std::vector<WebMessage>& inbox = win.shared.webInbox;
 
         for (std::size_t index = 0; index < slots.size();)
         {

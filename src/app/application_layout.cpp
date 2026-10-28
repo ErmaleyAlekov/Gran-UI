@@ -18,16 +18,16 @@ namespace gran::app
     ** A layout, then fitting the virtual list windows to the visible area: the new copies
     ** get their styles and place in the same frame — no empty spacers flash while scrolling.
     */
-    void layoutFrame(Application::State& state, Size viewport)
+    void layoutFrame(AppWindow& win, Size viewport)
     {
-        ui::Node& root = *state.document.root;
+        ui::Node& root = *win.document.root;
         const markup::Theme& theme = markup::defaultTheme();
 
-        layout::layoutTree(root, viewport, state.renderer->measurer());
-        for (int pass = 0; pass < FIT_PASSES && state.lists.updateVirtual(); ++pass)
+        layout::layoutTree(root, viewport, win.renderer->measurer());
+        for (int pass = 0; pass < FIT_PASSES && win.shared.lists.updateVirtual(); ++pass)
         {
-            ui::resolveStyles(root, state.windowStyle, theme.kinds, &state.animator);
-            layout::layoutTree(root, viewport, state.renderer->measurer());
+            ui::resolveStyles(root, win.windowStyle, theme.kinds, &win.animator);
+            layout::layoutTree(root, viewport, win.renderer->measurer());
         }
     }
 }

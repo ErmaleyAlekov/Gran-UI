@@ -54,5 +54,18 @@ namespace gran
 
             state.wakeTarget = window;
         }
+
+        // Начало run(): задачи будят главное окно / The start of run(): the tasks wake the main window
+        RunScope::RunScope(Application::State& owner)
+            : state(owner)
+        {
+            setWakeTarget(state, state.windows.front()->window.get());
+        }
+
+        // Конец run(): будить больше некого / The end of run(): there is nobody to wake anymore
+        RunScope::~RunScope()
+        {
+            setWakeTarget(state, nullptr);
+        }
     }
 }

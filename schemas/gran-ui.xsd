@@ -945,6 +945,9 @@
     <xs:attribute name="minWidth" type="NonNegativeNumber"/>
     <xs:attribute name="minHeight" type="NonNegativeNumber"/>
     <xs:attribute name="resizable" type="xs:boolean"/>
+    <!-- Действие при попытке закрыть окно (крестик, Alt+F4); задано — окно закрывает обработчик (closeWindow) -->
+    <!-- The action on an attempt to close the window (the cross, Alt+F4); when set, the handler closes the window (closeWindow) -->
+    <xs:attribute name="onClose" type="Action"/>
     <xs:attribute name="background" type="Paint"/>
     <xs:attributeGroup ref="TextAttributes"/>
     <xs:assert test="not(@minWidth) or @minWidth le @width"/>

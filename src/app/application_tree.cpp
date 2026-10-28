@@ -37,11 +37,17 @@ namespace gran
     // До run() маршрутизатора нет: фокус ставится при его создании / Before run() there is no router: the focus is set when it is created
     void Application::focus(ui::Node* node)
     {
-        State& state = *_state;
+        app::AppWindow* win = nullptr;
 
-        if (state.router)
-            state.router->focus(node);
+        if (_state->windows.empty())
+            return;
+        if (node != nullptr)
+            win = &app::windowOf(*_state, *node);
         else
-            state.pendingFocus = node;
+            win = _state->windows.front().get();
+        if (win->router)
+            win->router->focus(node);
+        else
+            win->pendingFocus = node;
     }
 }

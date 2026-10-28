@@ -62,9 +62,37 @@ namespace gran
         // Обработчик действия по имени / An action handler by name
         void onAction(const std::string& name, ActionHandler handler);
 
+        // ---- application_windows.cpp: несколько окон (только поток интерфейса) ----
+        // ---- application_windows.cpp: several windows (the UI thread only) ----
+
+        /*
+        ** Ещё одно окно из файла разметки: своя тема, стили, данные и дерево; действия (onAction),
+        ** модели списков, таймеры и задачи — общие со всеми окнами. Возвращает корень содержимого
+        ** окна. Окно появляется на ближайшем проходе цикла run() (до run() — вместе с главным).
+        ** Первое загруженное окно (loadFile, loadString или openWindow) — главное: его закрытие завершает run().
+        **
+        ** One more window from a markup file: its own theme, styles, data and tree; the actions (onAction),
+        ** the list models, the timers and the tasks are shared by all the windows. Returns the window content
+        ** root. The window appears on the nearest run() loop pass (before run() — together with the main one).
+        ** The first loaded window (loadFile, loadString or openWindow) is the main one: closing it ends run().
+        */
+        ui::Node& openWindow(const std::string& path);
+
+        // То же из строки разметки / The same from a markup string
+        ui::Node& openWindowString(std::string_view markup);
+
+        /*
+        ** Закрыть окно, которому принадлежит узел (после текущего прохода событий; узлы окна
+        ** после этого недействительны). Главное окно — выход из run(). Узел не из окна — ничего.
+        **
+        ** Close the window the node belongs to (after the current event pass; the window nodes
+        ** are invalid after that). The main window — leaving run(). A node not from a window — nothing.
+        */
+        void closeWindow(ui::Node& node);
+
         // ---- application_frame.cpp ----
 
-        // Узел по id (nullptr — нет такого) / A node by id (nullptr — no such node)
+        // Узел по id во всех окнах, главное первым (nullptr — нет такого) / A node by id in all the windows, the main one first (nullptr — no such node)
         ui::Node* find(const std::string& id);
 
         // Сменить именованный стиль узла (<Style name>); нет такого — GranException(RESOURCE) / Change the node named style (<Style name>); no such style — GranException(RESOURCE)

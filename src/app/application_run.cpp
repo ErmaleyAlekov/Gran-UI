@@ -8,156 +8,142 @@ namespace gran
 {
     namespace
     {
-        // Перерисовка во время изменения размера мышью (функтор вместо лямбды) / Repainting while resizing with the mouse (a functor instead of a lambda)
-        struct LiveResize
-        {
-            Application::State* state;
-
-            void operator()() const
-            {
-                app::renderFrame(*state);
-            }
-        };
-
         /*
-        ** Окно будится задачами других потоков только внутри run(): при выходе (и по исключению)
-        ** получатель снимается до того, как State разрушит окно.
+        ** События всех окон, пока хоть одно их получает: разбор сообщений для одного окна ОС
+        ** (PeekMessage потока) раскладывает события и в очереди других окон. Обход по индексу:
+        ** обработчик может открыть окно. Затем запросы клиентов доступности каждого окна.
         **
-        ** The window is woken by the tasks of other threads only inside run(): on leaving (and on an exception)
-        ** the target is removed before State destroys the window.
+        ** The events of all the windows while at least one gets them: dispatching the messages for one OS window
+        ** (the thread PeekMessage) puts events into the queues of other windows too. A walk by index:
+        ** a handler may open a window. Then the accessibility client requests of every window.
         */
-        struct WakeScope
+        void pollWindows(Application::State& state)
         {
-            Application::State& state;
+            platform::Event event;
+            bool received = true;
 
-            explicit WakeScope(Application::State& owner) : state(owner)
+            while (received)
             {
-                app::setWakeTarget(state, state.window.get());
-            }
+                received = false;
+                for (std::size_t index = 0; index < state.windows.size(); ++index)
+                {
+                    app::AppWindow& win = *state.windows[index];
 
-            ~WakeScope()
+                    while (win.window && win.window->pollEvent(event))
+                    {
+                        received = true;
+                        win.changed = app::handleEvent(win, event) || win.changed;
+                    }
+                }
+            }
+            for (std::size_t index = 0; index < state.windows.size(); ++index)
             {
-                app::setWakeTarget(state, nullptr);
+                app::AppWindow& win = *state.windows[index];
+
+                win.changed = (win.window && app::runAccessRequests(win)) || win.changed;
             }
+        }
 
-            WakeScope(const WakeScope&) = delete;
-            WakeScope& operator=(const WakeScope&) = delete;
-        };
-
-        // Период мигания каретки (как в Windows по умолчанию) / The caret blink period (as the Windows default)
-        constexpr double CARET_PERIOD = 0.53;
-
-        // Мигание каретки фокусированного поля; true — нужна перерисовка / The focused input caret blink; true — a repaint is needed
-        bool blinkCaret(Application::State& state, double time)
+        // Общее для окон: задачи других потоков, таймеры, сообщения браузеров; true — что-то выполнилось
+        // Shared by the windows: the tasks of other threads, the timers, the browser messages; true — something ran
+        bool runShared(Application::State& state)
         {
-            const ui::Node* focus = state.router->focused();
+            bool changed = app::runTasks(state);
 
-            if (focus == nullptr || !ui::isTextField(*focus) || time < state.caretToggle)
-                return false;
-            state.caretVisible = !state.caretVisible;
-            state.caretToggle = time + CARET_PERIOD;
-            return true;
+            changed = state.timers.runDue(app::now()) || changed;
+            changed = app::deliverWebMessages(state) || changed;
+            return changed;
         }
 
         /*
-        ** Сколько можно спать: до мигания каретки, появления подсказки, выхода по времени, срока
-        ** ближайшего таймера или без предела (отрицательное ожидание — «ждать нечего»). Запрос доступности,
-        ** пришедший во время кадра или задач (исходящий вызов COM принимает входящие), — сна нет.
+        ** Кадры окон: окну с событиями, миганием каретки, подсказкой или анимацией; после общих
+        ** задач (all) — всем окнам (задача могла изменить любое). true — хоть один кадр нарисован.
         **
-        ** How long to sleep: until the caret blink, the tooltip appearance, the timed exit, the due time
-        ** of the nearest timer or without a limit (a negative wait means "nothing to wait for"). An accessibility request
-        ** that came during the frame or the tasks (an outgoing COM call accepts incoming ones) — no sleep.
+        ** The window frames: for a window with events, the caret blink, the tooltip or an animation; after the shared
+        ** tasks (all) — for all the windows (a task could change any). true — at least one frame was drawn.
         */
-        double sleepTime(const Application::State& state, double time, double exitAfter)
+        bool renderWindows(Application::State& state, bool all)
         {
-            const ui::Node* focus = state.router->focused();
-            double due = state.timers.nextDue();
-            double waits[4] = {-1.0, app::tooltipWait(state, time), -1.0, -1.0};
+            double time = app::now();
+            bool rendered = false;
+
+            for (std::size_t index = 0; index < state.windows.size(); ++index)
+            {
+                app::AppWindow& win = *state.windows[index];
+
+                if (!win.window)
+                    continue;
+                win.changed = app::blinkCaret(win, time) || win.changed;
+                win.changed = app::updateTooltip(win, time) || win.changed;
+                if (all || win.changed || win.animating)
+                {
+                    app::renderFrame(win);
+                    rendered = true;
+                }
+                win.changed = false;
+            }
+            return rendered;
+        }
+
+        // Сон до ближайшего срока: окна (каретка, подсказка), таймеры, выход по времени; отрицательное — без предела
+        // The sleep until the nearest due time: the windows (the caret, the tooltip), the timers, the timed exit; negative — no limit
+        double sleepTime(const Application::State& state, double time)
+        {
+            // Срок таймера 0 возможен, выход по времени 0 — «не выходить» / A timer due time of 0 is possible, a timed exit of 0 means "never"
+            double waits[2] = {state.timers.nextDue(), -1.0};
             double sleep = -1.0;
 
-            if (!state.access.requests.empty())
-                return 0.0;
-            if (focus != nullptr && ui::isTextField(*focus))
-                waits[0] = std::max(0.0, state.caretToggle - time);
-            if (exitAfter > 0.0)
-                waits[2] = std::max(0.0, exitAfter - time);
-            if (due >= 0.0)
-                waits[3] = std::max(0.0, due - time);
-            for (double wait : waits)
+            if (state.options.exitAfter > 0.0)
+                waits[1] = state.options.exitAfter;
+            for (const std::unique_ptr<app::AppWindow>& win : state.windows)
             {
+                double wait = -1.0;
+
+                if (win->window)
+                    wait = app::windowSleep(*win, time);
                 if (wait >= 0.0 && (sleep < 0.0 || wait < sleep))
                     sleep = wait;
+            }
+            for (double due : waits)
+            {
+                if (due >= 0.0 && (sleep < 0.0 || std::max(0.0, due - time) < sleep))
+                    sleep = std::max(0.0, due - time);
             }
             return sleep;
         }
     }
 
-    namespace app
-    {
-        // Размер, DPI, перерисовка — графике; остальное — маршрутизатору ввода / The size, DPI, repaint go to the graphics; the rest to the input router
-        bool handleEvent(Application::State& state, const platform::Event& event)
-        {
-            switch (event.kind)
-            {
-                case platform::EventKind::CLOSE: state.quit = true; return false;
-                case platform::EventKind::RESIZE: state.backend->resize(event.width, event.height); break;
-                case platform::EventKind::DPI_CHANGED: break;
-                case platform::EventKind::EXPOSE: return true;
-                default:
-                    if (event.kind == platform::EventKind::MOUSE_DOWN || event.kind == platform::EventKind::KEY_DOWN
-                        || event.kind == platform::EventKind::MOUSE_WHEEL)
-                        app::hideTooltip(state, true);
-                    state.caretVisible = true;
-                    state.caretToggle = now() + CARET_PERIOD;
-                    return state.router->handle(event);
-            }
-            ui::markDirty(*state.document.root, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
-            return true;
-        }
-    }
-
     /*
-    ** Цикл: все события → кадр, если что-то изменилось или идёт анимация (vsync задаёт темп),
-    ** иначе сон до события ОС или до мигания каретки. Окно показывается после первого кадра.
-    ** Запросы клиентов доступности приходят сообщениями ОС и выполняются сразу после событий.
-    ** Задачи других потоков (post) выполняются после событий: сообщение-будильник приходит как событие.
-    ** Таймеры — после задач; сон длится не дольше, чем до срока ближайшего таймера.
+    ** Цикл: новые окна получают графику и первый кадр; события всех окон; общие задачи, таймеры
+    ** и сообщения браузеров; закрытие окон; кадры тем окнам, где что-то изменилось или идёт анимация
+    ** (vsync задаёт темп). Ничего не нарисовано — сон до события ОС или ближайшего срока.
+    ** Закрытие главного окна завершает цикл.
     **
-    ** The loop: all events → a frame if something changed or an animation runs (vsync sets the pace),
-    ** otherwise sleeping until an OS event or the caret blink. The window is shown after the first frame.
-    ** The accessibility client requests arrive as OS messages and run right after the events.
-    ** The tasks of other threads (post) run after the events: the wake-up message arrives as an event.
-    ** The timers run after the tasks; the sleep lasts no longer than until the nearest timer due time.
+    ** The loop: new windows get their graphics and the first frame; the events of all the windows; the shared tasks, the timers
+    ** and the browser messages; closing the windows; frames for the windows where something changed or an animation runs
+    ** (vsync sets the pace). Nothing drawn — sleeping until an OS event or the nearest due time.
+    ** Closing the main window ends the loop.
     */
     int Application::run()
     {
         State& state = *_state;
-        platform::Event event;
 
-        if (!state.document.root)
+        if (state.windows.empty())
             throw GranException(ErrorCode::MARKUP, i18n::format(i18n::Message::APP_NO_MARKUP));
-        app::createGraphics(state);
-        state.window->setLiveResize(LiveResize{&state});
-        app::renderFrame(state);
-        state.window->show();
-        WakeScope wake(state);
+        app::openWindows(state);
+        app::RunScope scope(state);
         while (!state.quit)
         {
-            bool changed = false;
-            while (state.window->pollEvent(event))
-                changed = app::handleEvent(state, event) || changed;
-            changed = app::runAccessRequests(state) || changed;
-            changed = app::runTasks(state) || changed;
-            changed = state.timers.runDue(app::now()) || changed;
-            changed = app::deliverWebMessages(state) || changed;
-            changed = blinkCaret(state, app::now()) || changed;
-            changed = app::updateTooltip(state, app::now()) || changed;
+            pollWindows(state);
+            bool shared = runShared(state);
             if (state.options.exitAfter > 0.0 && app::now() >= state.options.exitAfter)
                 state.quit = true;
-            if (changed || state.animating)
-                app::renderFrame(state);
-            else
-                state.window->waitEvents(sleepTime(state, app::now(), state.options.exitAfter));
+            app::closeWindows(state);
+            if (state.quit)
+                break;
+            app::openWindows(state);
+            if (!renderWindows(state, shared))
+                state.windows.front()->window->waitEvents(sleepTime(state, app::now()));
         }
         return 0;
     }

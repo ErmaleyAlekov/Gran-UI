@@ -7,18 +7,26 @@
 
 namespace gran
 {
-    // Узел по id / A node by id
+    // Узел по id: окна по порядку, главное первым / A node by id: the windows in order, the main one first
     ui::Node* Application::find(const std::string& id)
     {
-        if (!_state->document.root)
-            return nullptr;
-        return ui::findNode(*_state->document.root, id);
+        for (const std::unique_ptr<app::AppWindow>& win : _state->windows)
+        {
+            ui::Node* found = nullptr;
+
+            if (win->document.root)
+                found = ui::findNode(*win->document.root, id);
+            if (found != nullptr)
+                return found;
+        }
+        return nullptr;
     }
 
-    // Новый стиль — пересчёт каскада узла и его детей (с переходами, если они описаны) / A new style — recomputing the cascade of the node and its children (with transitions if described)
+    // Новый стиль (из документа окна узла) — пересчёт каскада узла и его детей (с переходами, если они описаны)
+    // A new style (from the node window document) — recomputing the cascade of the node and its children (with transitions if described)
     void Application::setStyle(ui::Node& node, const std::string& styleName)
     {
-        const style::StyleRule* rule = _state->document.styles.find(styleName);
+        const style::StyleRule* rule = app::windowOf(*_state, node).document.styles.find(styleName);
 
         if (rule == nullptr)
             throw GranException(ErrorCode::RESOURCE, i18n::format(i18n::Message::RESOURCE_UNKNOWN_STYLE, {styleName}));
@@ -33,14 +41,14 @@ namespace gran
         namespace
         {
             // Фокус ввода → дерево доступности; смена — событие для дикторов / The input focus → the accessibility tree; a change is an event for screen readers
-            void syncAccessFocus(Application::State& state)
+            void syncAccessFocus(AppWindow& win)
             {
-                const ui::Node* focus = state.router->focused();
+                const ui::Node* focus = win.router->focused();
 
-                if (focus == state.access.focus)
+                if (focus == win.access.focus)
                     return;
-                state.access.focus = focus;
-                state.window->accessFocusChanged();
+                win.access.focus = focus;
+                win.window->accessFocusChanged();
             }
         }
 
@@ -60,29 +68,29 @@ namespace gran
         ** DIRTY_LAYOUT on the root, rendering with the caret of the focused input. A device loss —
         ** recreating the graphics and repeating the frame on the next loop pass.
         */
-        void renderFrame(Application::State& state)
+        void renderFrame(AppWindow& win)
         {
-            ui::Node& root = *state.document.root;
+            ui::Node& root = *win.document.root;
             const markup::Theme& theme = markup::defaultTheme();
-            float scale = state.window->scale();
-            Size pixels = state.window->pixelSize();
-            const ui::Node* caret = state.router->focused();
+            float scale = win.window->scale();
+            Size pixels = win.window->pixelSize();
+            const ui::Node* caret = win.router->focused();
 
-            state.animator.setTime(now());
-            ui::resolveStyles(root, state.windowStyle, theme.kinds, &state.animator);
-            state.animating = state.animator.tick();
+            win.animator.setTime(now());
+            ui::resolveStyles(root, win.windowStyle, theme.kinds, &win.animator);
+            win.animating = win.animator.tick();
             if ((root.dirty & ui::DIRTY_LAYOUT) != 0)
-                layoutFrame(state, Size{pixels.width / scale, pixels.height / scale});
-            revealCaret(state);
-            if (caret == nullptr || !ui::isTextField(*caret) || !state.caretVisible)
+                layoutFrame(win, Size{pixels.width / scale, pixels.height / scale});
+            revealCaret(win);
+            if (caret == nullptr || !ui::isTextField(*caret) || !win.caretVisible)
                 caret = nullptr;
-            if (state.renderer->render(root, state.windowStyle, scale, caret, state.router->selected())
+            if (win.renderer->render(root, win.windowStyle, scale, caret, win.router->selected())
                 == rhi::FrameStatus::DEVICE_LOST)
-                recreateGraphics(state);
-            state.window->setCursor(state.router->cursor());
-            syncAccessFocus(state);
-            state.window->accessRefresh();
-            syncWebViews(state);
+                recreateGraphics(win);
+            win.window->setCursor(win.router->cursor());
+            syncAccessFocus(win);
+            win.window->accessRefresh();
+            syncWebViews(win);
         }
     }
 }

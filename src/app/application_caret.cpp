@@ -13,25 +13,25 @@ namespace gran::app
     ** Values are compared, not flags: input, the clipboard and the application code change the caret
     ** in different ways, and the check here catches them all.
     */
-    void revealCaret(Application::State& state)
+    void revealCaret(AppWindow& win)
     {
-        // Маршрутизатор отдаёт узел только для чтения, но узел принадлежит документу приложения (state.document)
-        // The router gives the node read-only, but the node belongs to the application document (state.document)
-        ui::Node* focus = const_cast<ui::Node*>(state.router->focused());
+        // Маршрутизатор отдаёт узел только для чтения, но узел принадлежит документу приложения (win.document)
+        // The router gives the node read-only, but the node belongs to the application document (win.document)
+        ui::Node* focus = const_cast<ui::Node*>(win.router->focused());
 
-        if (focus == nullptr || focus->kind != ui::ElementKind::TEXT_AREA || !state.renderer)
+        if (focus == nullptr || focus->kind != ui::ElementKind::TEXT_AREA || !win.renderer)
         {
-            state.revealNode = nullptr;
+            win.revealNode = nullptr;
             return;
         }
-        if (state.revealNode == focus && state.revealCaret == focus->content.caret
-            && state.revealLength == focus->content.text.size() && state.revealHeight == focus->layout.frame.height)
+        if (win.revealNode == focus && win.revealCaret == focus->content.caret
+            && win.revealLength == focus->content.text.size() && win.revealHeight == focus->layout.frame.height)
             return;
-        state.revealNode = focus;
-        state.revealCaret = focus->content.caret;
-        state.revealLength = focus->content.text.size();
-        state.revealHeight = focus->layout.frame.height;
-        if (render::scrollToCaret(state.renderer->textEngine(), *focus))
+        win.revealNode = focus;
+        win.revealCaret = focus->content.caret;
+        win.revealLength = focus->content.text.size();
+        win.revealHeight = focus->layout.frame.height;
+        if (render::scrollToCaret(win.renderer->textEngine(), *focus))
             ui::markDirty(*focus, ui::DIRTY_PAINT);
     }
 }

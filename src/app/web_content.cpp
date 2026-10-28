@@ -4,13 +4,13 @@ namespace gran::app
 {
     // Сообщения, отправленные до создания браузера, уходят в него сразу (он сам ждёт загрузки страницы)
     // Messages sent before the browser was created go into it at once (it waits for the page load itself)
-    void openWebView(Application::State& state, WebSlot& slot)
+    void openWebView(AppWindow& win, WebSlot& slot)
     {
         platform::WebViewOptions options;
 
         slot.created = true;
-        options.devTools = state.options.debugLayer;
-        slot.view = platform::createWebView(*state.window, slot, options);
+        options.devTools = win.shared.options.debugLayer;
+        slot.view = platform::createWebView(*win.window, slot, options);
         if (!slot.view)
             return;
         for (const std::string& message : slot.outbox)
@@ -25,7 +25,7 @@ namespace gran::app
     ** The address wins over HTML: with source the browser gets the address, otherwise the tag text as HTML.
     ** Only the changed one is passed (Application::navigate and loadHtml change the node).
     */
-    void sendContent(Application::State& state, WebSlot& slot)
+    void sendContent(AppWindow& win, WebSlot& slot)
     {
         const ui::NodeContent& content = slot.node->content;
 
@@ -33,7 +33,7 @@ namespace gran::app
         {
             if (slot.contentSent && content.source == slot.source)
                 return;
-            slot.view->navigate(webSourceUrl(content.source, state.document.baseDirectory));
+            slot.view->navigate(webSourceUrl(content.source, win.document.baseDirectory));
         }
         else
         {
