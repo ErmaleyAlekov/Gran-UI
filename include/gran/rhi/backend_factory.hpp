@@ -6,10 +6,10 @@
 namespace gran::rhi
 {
     /*
-    ** Бэкенд по умолчанию для ОС сборки (паттерн Abstract Factory): Windows — Direct3D 12,
+    ** Бэкенд по умолчанию для ОС сборки (паттерн Abstract Factory): Windows — Direct3D 12 с резервным D3D11,
     ** Linux — Vulkan (сборка с VULKAN=1). Реализация лежит в каталоге своего бэкенда.
     **
-    ** The default backend for the build OS (the Abstract Factory pattern): Windows — Direct3D 12,
+    ** The default backend for the build OS (the Abstract Factory pattern): Windows — Direct3D 12 with D3D11 fallback,
     ** Linux — Vulkan (a build with VULKAN=1). The implementation lies in its backend directory.
     */
     std::unique_ptr<RenderBackend> createPlatformBackend(const BackendOptions& options);

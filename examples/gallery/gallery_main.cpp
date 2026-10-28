@@ -42,6 +42,18 @@ namespace
         {
             if (std::strcmp(argv[index], "--debug") == 0)
                 options.debugLayer = true;
+            else if (std::strcmp(argv[index], "--watch") == 0)
+                options.watchMarkup = true;
+            else if (std::strcmp(argv[index], "--d3d11") == 0)
+                options.backend = gran::rhi::BackendKind::D3D11;
+            else if (std::strcmp(argv[index], "--d3d12") == 0)
+                options.backend = gran::rhi::BackendKind::D3D12;
+            else if (std::strcmp(argv[index], "--vulkan") == 0)
+                options.backend = gran::rhi::BackendKind::VULKAN;
+            else if (std::strcmp(argv[index], "--software") == 0)
+                options.forceWarp = true;
+            else if (std::strcmp(argv[index], "--warp") == 0)
+                options.forceWarp = true;
             else if (std::strcmp(argv[index], "--exit-after") == 0 && index + 1 < argc)
                 options.exitAfter = std::strtod(argv[++index], nullptr);
             else

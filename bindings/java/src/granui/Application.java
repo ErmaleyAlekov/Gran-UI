@@ -1,0 +1,261 @@
+package granui;
+
+import java.lang.foreign.*;
+import java.lang.invoke.*;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import static java.lang.foreign.ValueLayout.*;
+
+// Только вызовы общего C ABI; JDK 22+, процесс 64 bit.
+// Only calls to the shared C ABI; JDK 22+, 64-bit process.
+public final class Application implements AutoCloseable {
+    // Классы Win32 и COM могут переживать одно приложение: библиотека живёт до выхода JVM.
+    // Win32 classes and COM may outlive an application: the library lives until JVM exit.
+    private static final ConcurrentMap<Path,SymbolLookup> LIBRARIES = new ConcurrentHashMap<>();
+    public record Update(String target, String property, String value) {}
+    public record Event(String target, String model, long index, String text, String option,
+                        String message, double value, boolean checked) {}
+    private final Arena lifetime = Arena.ofShared();
+    private final SymbolLookup symbols;
+    private final ConcurrentMap<String,MethodHandle> functions = new ConcurrentHashMap<>();
+    private final Queue<Object> callbacks = new ConcurrentLinkedQueue<>();
+    private final AtomicReference<Throwable> pending = new AtomicReference<>();
+    // Один переходник на все задачи и таймеры: user — номер задачи (иначе каждый post оставлял бы upcall stub в арене до close).
+    // One trampoline for all tasks and timers: user is the task number (otherwise every post would leave an upcall stub in the arena until close).
+    private record Pending(Runnable callback, boolean repeat) {}
+    private final ConcurrentMap<Long,Pending> tasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long,Long> timerKeys = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long,Long> keyTimers = new ConcurrentHashMap<>();
+    private final AtomicLong nextTask = new AtomicLong();
+    private MemorySegment taskEntry;
+    private MemorySegment app = MemorySegment.NULL;
+
+    public Application(String library) { this(library, 0, 0, false); }
+    public Application(String library, int backend, double exitAfter, boolean warp) {
+        if (ADDRESS.byteSize() != 8) { lifetime.close(); throw new UnsupportedOperationException("64-bit process required"); }
+        try {
+            Path path=Path.of(library).toAbsolutePath().normalize();
+            symbols = LIBRARIES.computeIfAbsent(path, key -> SymbolLookup.libraryLookup(key,Arena.global()));
+            if ((int)invoke("gran_abi_version", JAVA_INT) != 1) throw new UnsupportedOperationException("unsupported Gran UI ABI");
+            try (Arena args = Arena.ofConfined()) {
+                MemorySegment options = args.allocate(32, 8);
+                options.set(JAVA_INT, 0, 32); options.set(JAVA_INT, 4, backend);
+                options.set(JAVA_INT, 12, warp ? 1 : 0); options.set(JAVA_DOUBLE, 24, exitAfter);
+                MemorySegment output = args.allocate(ADDRESS);
+                check((int)invoke("gran_app_create", JAVA_INT, options, output));
+                app = output.get(ADDRESS, 0);
+            }
+        } catch (RuntimeException | Error failure) { lifetime.close(); throw failure; }
+    }
+
+    // Описатель строится по типам C ABI; данные UI никогда не интерпретируются Java.
+    // The descriptor follows C ABI types; Java never interprets UI data.
+    private Object invoke(String name, MemoryLayout result, Object... args) {
+        try {
+            MethodHandle function = functions.get(name);
+            if (function == null) {
+                MemoryLayout[] layouts = new MemoryLayout[args.length];
+                for (int i=0; i<args.length; ++i) {
+                    if (args[i] instanceof MemorySegment) layouts[i] = ADDRESS;
+                    else if (args[i] instanceof Integer) layouts[i] = JAVA_INT;
+                    else if (args[i] instanceof Long) layouts[i] = JAVA_LONG;
+                    else throw new IllegalArgumentException("unsupported ABI argument");
+                }
+                FunctionDescriptor descriptor = result == null ? FunctionDescriptor.ofVoid(layouts) : FunctionDescriptor.of(result, layouts);
+                function = Linker.nativeLinker().downcallHandle(symbols.find(name).orElseThrow(), descriptor);
+                functions.put(name, function);
+            }
+            return function.invokeWithArguments(args);
+        } catch (RuntimeException | Error error) { throw error; }
+        catch (Throwable error) { throw new IllegalStateException(error); }
+    }
+    private static String text(MemorySegment value) {
+        if (value.address() == 0) return "";
+        return value.reinterpret(1L << 30).getString(0);
+    }
+    private static MemorySegment utf8(Arena arena, String value) {
+        if (value == null) return MemorySegment.NULL;
+        if (value.indexOf('\0') >= 0) throw new IllegalArgumentException("embedded NUL");
+        return arena.allocateFrom(value);
+    }
+    private void check(int status) {
+        if (status != 0) throw new IllegalStateException(text((MemorySegment)invoke("gran_last_error", ADDRESS)));
+    }
+    private void ensureOpen() {
+        if (app.address() == 0) throw new IllegalStateException("application is closed");
+    }
+    private void status(String name, Object... args) { ensureOpen(); check((int)invoke(name, JAVA_INT, args)); }
+    private String ownedString(String name, Object... args) {
+        ensureOpen();
+        try (Arena scope = Arena.ofConfined()) {
+            MemorySegment output = scope.allocate(ADDRESS);
+            Object[] params = Arrays.copyOf(args, args.length+1); params[args.length] = output;
+            status(name, params);
+            MemorySegment value = output.get(ADDRESS, 0);
+            try { return text(value); }
+            finally { invoke("gran_string_free", null, value); }
+        }
+    }
+    public void loadString(String xml) { load(xml, 0); }
+    public void loadFile(String path) { load(path, 1); }
+    private void load(String source, int isFile) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_load", app, utf8(scope, source), isFile); }
+    }
+    public String read(String target, String property) {
+        try (Arena scope=Arena.ofConfined()) { return ownedString("gran_app_read", app, utf8(scope,target), utf8(scope,property)); }
+    }
+    public void apply(Update... updates) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment rows = updates.length == 0 ? MemorySegment.NULL : scope.allocate(Math.multiplyExact(24L,updates.length),8);
+            for (int i=0; i<updates.length; ++i) {
+                rows.set(ADDRESS,24L*i,utf8(scope,updates[i].target()));
+                rows.set(ADDRESS,24L*i+8,utf8(scope,updates[i].property()));
+                rows.set(ADDRESS,24L*i+16,utf8(scope,updates[i].value()));
+            }
+            status("gran_app_apply",app,rows,(long)updates.length);
+        }
+    }
+    public void command(String name) { command(name,null,null); }
+    public void command(String name, String target, String argument) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_command",app,utf8(scope,name),utf8(scope,target),utf8(scope,argument)); }
+    }
+    private void protect(Runnable callback) {
+        try { callback.run(); }
+        catch (Throwable error) {
+            pending.compareAndSet(null,error);
+            try { command("close"); } catch (Throwable ignored) { /* Ошибка сохранена. / The error is retained. */ }
+        }
+    }
+    private final class Callback {
+        private final Consumer<Event> action;
+        private final Runnable task;
+        Callback(Consumer<Event> action, Runnable task) { this.action=action; this.task=task; }
+        void action(MemorySegment user, MemorySegment pointer) {
+            protect(() -> {
+                MemorySegment e=pointer.reinterpret(64);
+                action.accept(new Event(text(e.get(ADDRESS,0)),text(e.get(ADDRESS,8)),e.get(JAVA_LONG,16),
+                    text(e.get(ADDRESS,24)),text(e.get(ADDRESS,32)),text(e.get(ADDRESS,40)),e.get(JAVA_DOUBLE,48),e.get(JAVA_INT,56)!=0));
+            });
+        }
+        void task(MemorySegment user) { protect(task); }
+    }
+    private MemorySegment stub(Callback callback, boolean action) {
+        ensureOpen();
+        try {
+            MethodType type = action ? MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class) : MethodType.methodType(void.class,MemorySegment.class);
+            FunctionDescriptor descriptor = action ? FunctionDescriptor.ofVoid(ADDRESS,ADDRESS) : FunctionDescriptor.ofVoid(ADDRESS);
+            MethodHandle method=MethodHandles.lookup().findVirtual(Callback.class, action ? "action" : "task", type).bindTo(callback);
+            MemorySegment result=Linker.nativeLinker().upcallStub(method,descriptor,lifetime);
+            callbacks.add(callback); return result;
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+    }
+    public void onAction(String name, Consumer<Event> callback) { on(name,callback,false); }
+    public void onMessage(String name, Consumer<Event> callback) { on(name,callback,true); }
+    private void on(String name, Consumer<Event> callback, boolean message) {
+        MemorySegment function=stub(new Callback(Objects.requireNonNull(callback),null),true);
+        try (Arena scope=Arena.ofConfined()) {
+            status(message ? "gran_app_on_message" : "gran_app_on_action",app,utf8(scope,name),function,MemorySegment.NULL);
+        }
+    }
+    private synchronized MemorySegment taskEntry() {
+        ensureOpen();
+        if (taskEntry == null) {
+            try {
+                MethodHandle method=MethodHandles.lookup().findVirtual(Application.class,"runTask",
+                    MethodType.methodType(void.class,MemorySegment.class)).bindTo(this);
+                taskEntry=Linker.nativeLinker().upcallStub(method,FunctionDescriptor.ofVoid(ADDRESS),lifetime);
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+        }
+        return taskEntry;
+    }
+    private long addTask(Runnable callback, boolean repeat) {
+        long key=nextTask.incrementAndGet();
+        tasks.put(key,new Pending(Objects.requireNonNull(callback),repeat)); return key;
+    }
+    private void dropTask(long key) {
+        tasks.remove(key);
+        Long timer=keyTimers.remove(key);
+        if (timer != null) timerKeys.remove(timer);
+    }
+    private void runTask(MemorySegment user) {
+        long key=user.address();
+        Pending entry=tasks.get(key);
+        if (entry == null) return;
+        if (!entry.repeat()) dropTask(key);
+        protect(entry.callback());
+    }
+    public void post(Runnable callback) {
+        long key=addTask(callback,false);
+        try { status("gran_app_post",app,taskEntry(),MemorySegment.ofAddress(key)); }
+        catch (RuntimeException | Error failure) { dropTask(key); throw failure; }
+    }
+    public long timer(double seconds, Runnable callback) { return timer(seconds,callback,false); }
+    public long timer(double seconds, Runnable callback, boolean repeat) {
+        long key=addTask(callback,repeat);
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment timer=scope.allocate(32,8), output=scope.allocate(JAVA_LONG);
+            timer.set(JAVA_DOUBLE,0,seconds); timer.set(JAVA_INT,8,repeat ? 1 : 0);
+            timer.set(ADDRESS,16,taskEntry()); timer.set(ADDRESS,24,MemorySegment.ofAddress(key));
+            status("gran_app_timer",app,timer,output);
+            long id=output.get(JAVA_LONG,0);
+            timerKeys.put(id,key); keyTimers.put(key,id); return id;
+        } catch (RuntimeException | Error failure) { dropTask(key); throw failure; }
+    }
+    public void clearTimer(long timer) {
+        status("gran_app_clear_timer",app,timer);
+        Long key=timerKeys.get(timer);
+        if (key != null) dropTask(key);
+    }
+    // Число задач и таймеров, ждущих вызова (для проверок) / The number of tasks and timers waiting for a call (for checks)
+    public int pendingTasks() { return tasks.size(); }
+    public long modelCount(String model) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_LONG);
+            status("gran_model_count",app,utf8(scope,model),output); return output.get(JAVA_LONG,0);
+        }
+    }
+    public String modelRead(String model, long index, String field) {
+        try (Arena scope=Arena.ofConfined()) { return ownedString("gran_model_read",app,utf8(scope,model),index,utf8(scope,field)); }
+    }
+    private void record(boolean insert, String model, long index, Map<String,String> fields) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment rows=fields.isEmpty() ? MemorySegment.NULL : scope.allocate(Math.multiplyExact(16L,fields.size()),8);
+            long offset=0;
+            for (var field:fields.entrySet()) {
+                rows.set(ADDRESS,offset,utf8(scope,field.getKey())); rows.set(ADDRESS,offset+8,utf8(scope,field.getValue())); offset+=16;
+            }
+            MemorySegment record=scope.allocate(24,8);
+            record.set(JAVA_LONG,0,index); record.set(ADDRESS,8,rows); record.set(JAVA_LONG,16,(long)fields.size());
+            status(insert ? "gran_model_insert" : "gran_model_set",app,utf8(scope,model),record);
+        }
+    }
+    public void modelInsert(String model, Map<String,String> fields) { record(true,model,-1L,fields); }
+    public void modelInsert(String model, long index, Map<String,String> fields) { record(true,model,index,fields); }
+    public void modelSet(String model, long index, Map<String,String> fields) { record(false,model,index,fields); }
+    public void modelRemove(String model, long index) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_model_remove",app,utf8(scope,model),index); }
+    }
+    public void modelClear(String model) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_model_clear",app,utf8(scope,model)); }
+    }
+    public int run() {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_INT);
+            status("gran_app_run",app,output); return output.get(JAVA_INT,0);
+        } finally {
+            Throwable error=pending.getAndSet(null);
+            if (error instanceof RuntimeException runtime) throw runtime;
+            if (error instanceof Error fatal) throw fatal;
+            if (error != null) throw new IllegalStateException(error);
+        }
+    }
+    public void close() {
+        if (app.address() == 0) return;
+        status("gran_app_destroy",app);
+        app=MemorySegment.NULL; callbacks.clear(); tasks.clear(); timerKeys.clear(); keyTimers.clear(); lifetime.close();
+    }
+}

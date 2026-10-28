@@ -75,13 +75,13 @@ namespace gran::rhi
     };
 
     /*
-    ** Бэкенд отрисовки (паттерн Bridge: рендерер не знает, D3D12 это, Vulkan или запись для
-    ** тестов). Все методы вызываются из одного потока рендера. Индексы текстур — слоты
-    ** «безлимитной» таблицы дескрипторов, их видит шейдер (GpuInstance::paint.x).
+    ** Бэкенд отрисовки (паттерн Bridge: рендерер не знает, D3D12 это, D3D11, Vulkan или запись
+    ** для тестов). Все методы вызываются из одного потока рендера. Индексы текстур — логические
+    ** слоты: D3D12 использует таблицу дескрипторов, D3D11 привязывает слот при смене пакета.
     **
-    ** A render backend (the Bridge pattern: the renderer does not know whether it is D3D12, Vulkan or
-    ** a recorder for tests). All methods are called from one render thread. Texture indices are slots
-    ** of the "bindless" descriptor table, the shader sees them (GpuInstance::paint.x).
+    ** A render backend (the Bridge pattern: the renderer does not know whether it is D3D12, D3D11,
+    ** Vulkan or a recorder for tests). All methods are called from one render thread. Texture indices
+    ** are logical slots: D3D12 uses a descriptor table, D3D11 binds a slot when a batch changes.
     */
     class RenderBackend
     {
@@ -126,6 +126,9 @@ namespace gran::rhi
         virtual void readPixels(std::vector<std::uint8_t>& rgba, std::uint32_t& width, std::uint32_t& height) = 0;
     };
 
+    // Выбор API; AUTO выбирает API ОС / API selection; AUTO selects the platform API
+    enum class BackendKind : std::uint8_t { AUTO, D3D11, D3D12, VULKAN };
+
     // Параметры создания бэкенда / The backend creation parameters
     struct BackendOptions
     {
@@ -135,6 +138,8 @@ namespace gran::rhi
         std::uint32_t height = 0;
         bool vsync = true;
         bool debugLayer = false;        // отладочный слой D3D12 / Vulkan / the D3D12 / Vulkan debug layer
+        BackendKind backend = BackendKind::AUTO;
+        bool forceWarp = false;         // CPU: WARP или Mesa lavapipe / CPU: WARP or Mesa lavapipe
     };
 }
 

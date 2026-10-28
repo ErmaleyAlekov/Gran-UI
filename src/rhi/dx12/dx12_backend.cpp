@@ -29,7 +29,7 @@ namespace gran::rhi::dx12
     Dx12Backend::Dx12Backend(const BackendOptions& options)
         : _options(options), _offscreen(options.nativeWindow == nullptr)
     {
-        createDeviceContext(options.debugLayer, _context);
+        createDeviceContext(options.debugLayer, options.forceWarp, _context);
         ID3D12Device* device = _context.device.get();
         _fence.init(device);
         createPipelines(device, _pipelines);

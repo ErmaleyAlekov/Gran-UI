@@ -21,7 +21,7 @@ namespace gran::input
                 return ui::choiceTabStop(node);
             return kind == ui::ElementKind::BUTTON || kind == ui::ElementKind::CHECKBOX || kind == ui::ElementKind::SWITCH
                 || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
-                || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX;
+                || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || ui::isWindowButton(node);
         }
 
         // Видимые и включённые элементы, принимающие фокус, в порядке дерева / The visible and enabled focusable controls in tree order

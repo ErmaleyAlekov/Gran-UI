@@ -15,10 +15,22 @@ namespace gran::platform::win32
     */
     void Win32Window::setAccessTree(a11y::AccessTree* tree)
     {
+        // Старые провайдеры должны остаться отключёнными даже после следующей загрузки.
+        // Old providers must remain disconnected even after the next load.
+        if (tree == nullptr)
+        {
+            if (access)
+                access->tree = nullptr;
+            access.reset();
+            return;
+        }
         if (!access)
         {
+            // Вход в COM один раз на поток, без накопления счётчика при перезагрузках.
+            // Enter COM once per thread without accumulating its counter on reloads.
+            static thread_local const bool APARTMENT = SUCCEEDED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
             access = std::make_shared<UiaHost>();
-            access->apartment = SUCCEEDED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
+            access->apartment = APARTMENT;
         }
         access->window = window;
         access->tree = tree;

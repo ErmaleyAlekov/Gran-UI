@@ -22,6 +22,7 @@
 14. [Accessibility](#accessibility)
 15. [Platform: windows, files, icons](#platform-windows-files-icons)
 16. [Errors and Message Language](#errors-and-message-language)
+17. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -83,6 +84,39 @@ int main()
 
 How to build it — see [docs/building.en.md](building.en.md#integration-with-your-program). Ready-made markup for experiments
 is in `samples/`, it is opened with `bin/gran_gallery <file.xml>`.
+
+## Custom window title bar
+
+The OS frame remains the default: `titleBar="system"`. For a custom title bar, set `titleBar="custom"`
+on `<Window>` and draw the title and command buttons using ordinary elements:
+
+```xml
+<Window title="Example" titleBar="custom" width="800" height="500" minWidth="400" minHeight="240">
+  <Stack>
+    <Stack orientation="horizontal" windowRole="drag" height="40" align="center">
+      <Text>My application</Text>
+      <Box grow="1"/>
+      <Button windowRole="minimize" text="−"/>
+      <Button windowRole="maximize" text="□"/>
+      <Button windowRole="close" text="×"/>
+    </Stack>
+    <Text>Window content</Text>
+  </Stack>
+</Window>
+```
+
+`drag` uses native moving, double click, Aero Snap and the title bar context menu. Alt+Space opens
+the system menu. Inputs, buttons, WebViews and elements with `onClick` inside a drag region remain
+interactive. Edges and corners resize with DPI awareness; maximized content stays within the monitor
+work area. `resizable="false"` disables resizing and maximizing. On Windows 11, hovering over the
+maximize role shows Snap Layouts when enabled in the OS. DWM supplies shadows and rounded corners;
+Windows 10 may retain square corners.
+
+Command roles work without `onClick` and support keyboard and screen reader input. An explicit
+`accessibleName` overrides the localized command name. When maximized, the maximize role restores
+the window. To change its icon, use `<Maximized opacity="…"/>` on child elements after other states.
+The complete example with two icons and a search field is `samples/custom_window.xml`:
+`bin/gran_gallery samples/custom_window.xml --d3d11 --debug`.
 
 ## Window and Resources
 
@@ -573,7 +607,10 @@ The sample for the whole section is `samples/platform.xml` (`gran_gallery sample
 
 `onClose` — action on attempting to close the window (cross, Alt+F4). If it is defined, the window does not close on its own: the handler decides — `app.closeWindow(node)` or nothing (for example, first ask about unsaved changes). Without a registered handler, the window closes as usual.
 
-**File dialogs.** Windows system dialogs, modal over the window of the node `owner` (by default — over the main one). Empty result — the user declined.
+**File dialogs.** Windows system dialogs, modal over the window of the node `owner` (by default — over the main one).
+On Linux the dialog is shown by the system `zenity` (GTK) or `kdialog` (KDE, Fly) program: the engine runs it as a separate
+process, no new libraries are needed; if neither exists — a `PLATFORM` exception with a hint.
+While the dialog is open, the Linux window is not repainted. File dragging (`onDrop`) does not work on Linux yet. Empty result — the user declined.
 
 ```cpp
 gran::FileDialogOptions options;
@@ -614,6 +651,10 @@ app.onFileDrop("filesDropped", DropHandler{&app});   // void(ui::Node& zone, con
 **JPEG.** `Image` understands PNG and JPEG (format — by file content, not by extension): sequential and progressive JPEG, grayscale and colored, any color subsampling. CMYK, 12-bit and arithmetic coding are not supported.
 
 ## Errors and Message Language
+
+The [C++ API reference](api.en.md) documents node lifetimes, threading, D3D11/D3D12 selection and markup
+reloading. Run `gran_gallery samples/showcase.xml --watch` for automatic XML updates.
+See [rendering tests](render_testing.en.md) for baselines and checks of both APIs.
 
 All engine errors are exceptions `gran::GranException` (`gran/core/gran_exception.hpp`) with the code `ErrorCode`:
 

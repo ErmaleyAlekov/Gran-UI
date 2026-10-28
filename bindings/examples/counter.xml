@@ -1,0 +1,17 @@
+<Window title="Gran UI — языковые обёртки" width="480" height="420" background="#f4f6fa">
+  <Stack padding="24" spacing="12">
+    <Text fontSize="22" fontWeight="700">Записи из модели ядра</Text>
+    <Input id="name" placeholder="Текст новой записи"/>
+    <Button text="Добавить" onClick="add"/>
+    <Stack items="rows" spacing="6">
+      <ItemTemplate><Text>{text}</Text></ItemTemplate>
+    </Stack>
+    <Button text="О примере" onClick="gran:showDialog:about"/>
+    <Dialog id="about">
+      <Stack padding="24" spacing="12" background="#ffffff" borderRadius="12">
+        <Text>Шаблоны, список и диалог исполняет C++.</Text>
+        <Button text="Закрыть" onClick="gran:hideDialog:about"/>
+      </Stack>
+    </Dialog>
+  </Stack>
+</Window>

@@ -93,7 +93,7 @@ namespace gran::rhi::dx12
 
     // Порядок: отладочный слой → фабрика → устройство → очередь; поддержка tearing — для VRR-мониторов
     // The order: the debug layer → the factory → the device → the queue; tearing support is for VRR monitors
-    void createDeviceContext(bool debug, DeviceContext& context)
+    void createDeviceContext(bool debug, bool forceWarp, DeviceContext& context)
     {
         UINT factoryFlags = 0;
         BOOL tearing = FALSE;
@@ -104,7 +104,7 @@ namespace gran::rhi::dx12
         if (context.debug)
             factoryFlags = DXGI_CREATE_FACTORY_DEBUG;
         GRAN_CHECK_HR(CreateDXGIFactory2(factoryFlags, __uuidof(IDXGIFactory4), reinterpret_cast<void**>(context.factory.put())));
-        if (!pickHardware(context))
+        if (forceWarp || !pickHardware(context))
             pickWarp(context);
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         GRAN_CHECK_HR(context.device->CreateCommandQueue(&queueDesc, __uuidof(ID3D12CommandQueue),

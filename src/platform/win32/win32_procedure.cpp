@@ -50,10 +50,13 @@ namespace gran::platform::win32
 
             if (self.desc.minWidth <= 0.0f && self.desc.minHeight <= 0.0f)
                 return;
-            AdjustWindowRectExForDpi(&frame, static_cast<DWORD>(GetWindowLongPtrW(self.window, GWL_STYLE)), FALSE, 0,
-                GetDpiForWindow(self.window));
-            info->ptMinTrackSize.x = frame.right - frame.left;
-            info->ptMinTrackSize.y = frame.bottom - frame.top;
+            if (self.desc.titleBar == TitleBar::SYSTEM)
+                AdjustWindowRectExForDpi(&frame, static_cast<DWORD>(GetWindowLongPtrW(self.window, GWL_STYLE)), FALSE, 0,
+                    GetDpiForWindow(self.window));
+            if (self.desc.minWidth > 0.0f)
+                info->ptMinTrackSize.x = frame.right - frame.left;
+            if (self.desc.minHeight > 0.0f)
+                info->ptMinTrackSize.y = frame.bottom - frame.top;
         }
 
         // Простые события без параметров / Simple events without parameters
@@ -83,6 +86,10 @@ namespace gran::platform::win32
     */
     LRESULT Win32Window::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) noexcept
     {
+        LRESULT result = 0;
+
+        if (handleFrameMessage(*this, message, wParam, lParam, result))
+            return result;
         if (handleSimple(*this, message) || translateMouse(*this, message, wParam, lParam)
             || translateKeyboard(*this, message, wParam))
             return 0;

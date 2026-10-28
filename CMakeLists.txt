@@ -1,11 +1,11 @@
 # ============================================================================
 #  Gran UI — кроссплатформенная сборка CMake (повторяет Makefile)
-#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux и macOS — каркас.
+#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux (Vulkan/X11); macOS пока не поддерживается.
 #
 #  Цели:
 #    gran                — статическая библиотека движка (libgran.a / gran.lib)
 #    gran_embed          — инструмент встраивания файлов в C++ (собирается первым)
-#    gran_<пример>       — каждый каталог examples/<пример>/ (gallery, snapshot и chat — только Windows)
+#    gran_<пример>       — каждый каталог examples/<пример>/ (chat — только Windows)
 #    gran_tests          — модульные тесты (-DGRAN_BUILD_TESTS=ON, по умолчанию ON), запуск: ctest
 #    gran_shaders        — HLSL → DXIL → src/rhi/shaders_gen/*.cpp (по запросу, нужен dxc)
 #
@@ -24,12 +24,12 @@
 #    cmake --build build --target gran_shaders
 # ============================================================================
 #  Gran UI — a cross-platform CMake build (mirrors the Makefile)
-#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux and macOS — a skeleton.
+#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux (Vulkan/X11); macOS is currently unsupported.
 #
 #  Targets:
 #    gran                — the engine static library (libgran.a / gran.lib)
 #    gran_embed          — the tool embedding files into C++ (built first)
-#    gran_<example>      — each examples/<example>/ directory (gallery, snapshot and chat — Windows only)
+#    gran_<example>      — each examples/<example>/ directory (chat — Windows only)
 #    gran_tests          — the unit tests (-DGRAN_BUILD_TESTS=ON, ON by default), running: ctest
 #    gran_shaders        — HLSL → DXIL → src/rhi/shaders_gen/*.cpp (on request, needs dxc)
 #
@@ -68,7 +68,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(GRAN_BUILD_TESTS "Собирать модульные тесты / Build the unit tests" ON)
-option(GRAN_WITH_VULKAN "Бэкенд Vulkan (нужен Vulkan SDK) / The Vulkan backend (needs the Vulkan SDK)" OFF)
+option(GRAN_BUILD_RENDER_TESTS "GPU-тесты WARP/Vulkan / WARP/Vulkan GPU tests" OFF)
+set(GRAN_VULKAN_DEFAULT OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(GRAN_VULKAN_DEFAULT ON)
+elseif(NOT WIN32)
+    message(FATAL_ERROR "Gran UI: currently supported platforms are Windows and Linux")
+endif()
+option(GRAN_WITH_VULKAN "Vulkan Linux backend (SDK headers at build time)" ${GRAN_VULKAN_DEFAULT})
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT GRAN_WITH_VULKAN)
+    message(FATAL_ERROR "Gran UI: Linux requires -DGRAN_WITH_VULKAN=ON")
+endif()
+if(WIN32 AND GRAN_WITH_VULKAN)
+    message(FATAL_ERROR "Gran UI: Vulkan backend currently targets Linux; use Direct3D on Windows")
+endif()
 set(GRAN_WEBVIEW2_SDK "" CACHE PATH
     "build/native пакета Microsoft.Web.WebView2 (пусто — <WebView> без браузера) / build/native of Microsoft.Web.WebView2 (empty — <WebView> without a browser)")
 set(GRAN_BERESTA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Dom lib C++" CACHE PATH
@@ -83,6 +96,7 @@ set(GRAN_BERESTA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Dom lib C++" CACHE PATH
 if(NOT EXISTS "${GRAN_BERESTA_DIR}/CMakeLists.txt")
     message(FATAL_ERROR "Gran UI: не найдена «Берёста» / Beresta not found: ${GRAN_BERESTA_DIR}")
 endif()
+
 set(BERESTA_BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory("${GRAN_BERESTA_DIR}" "${CMAKE_BINARY_DIR}/beresta" EXCLUDE_FROM_ALL)
 
@@ -107,7 +121,28 @@ gran_collect_sources(GRAN_SOURCES)
 add_library(gran STATIC ${GRAN_SOURCES} ${GRAN_GENERATED_SOURCES})
 target_include_directories(gran PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(gran PUBLIC beresta_static ${GRAN_SYSTEM_LIBS})
+# std::filesystem в libstdc++ до GCC 9 — отдельная libstdc++fs (Astra Linux SE 1.7)
+# std::filesystem in libstdc++ before GCC 9 is a separate libstdc++fs (Astra Linux SE 1.7)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+    target_link_libraries(gran PUBLIC stdc++fs)
+endif()
 gran_apply_compile_options(gran)
+set_target_properties(gran beresta_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(gran PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+
+# Общий C ABI для тонких языковых обёрток; экспортируются только функции gran.h.
+# A shared C ABI for thin language bindings; only gran.h functions are exported.
+option(GRAN_BUILD_BINDINGS "Build the shared C ABI" ON)
+if(GRAN_BUILD_BINDINGS)
+    file(GLOB GRAN_CAPI_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/capi/*.cpp")
+    add_library(gran_c SHARED ${GRAN_CAPI_SOURCES})
+    target_link_libraries(gran_c PRIVATE gran)
+    target_compile_definitions(gran_c PRIVATE GRAN_CAPI_BUILD=1)
+    target_include_directories(gran_c PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    set_target_properties(gran_c PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+    gran_apply_compile_options(gran_c)
+    gran_apply_link_options(gran_c)
+endif()
 # Встроенный браузер: определение и заголовки только для библиотеки; загрузчик — рядом с программами
 # The embedded browser: the definition and the headers only for the library; the loader — next to the programs
 if(WIN32 AND GRAN_WEBVIEW2_SDK)
@@ -123,7 +158,15 @@ endif()
 if(GRAN_WITH_VULKAN)
     find_package(Vulkan REQUIRED)
     target_compile_definitions(gran PUBLIC GRAN_WITH_VULKAN=1)
-    target_include_directories(gran PUBLIC ${Vulkan_INCLUDE_DIRS})
+    target_link_libraries(gran PUBLIC Vulkan::Vulkan)
+    target_include_directories(gran SYSTEM PRIVATE ${Vulkan_INCLUDE_DIRS})
+    find_path(GRAN_X11_INCLUDE_DIR X11/Xlib.h)
+    find_library(GRAN_X11_LIBRARY NAMES X11 libX11.so.6)
+    if(NOT GRAN_X11_INCLUDE_DIR OR NOT GRAN_X11_LIBRARY)
+        message(FATAL_ERROR "Gran UI: system X11 headers/library are required for Linux windows")
+    endif()
+    target_include_directories(gran SYSTEM PRIVATE ${GRAN_X11_INCLUDE_DIR})
+    target_link_libraries(gran PUBLIC ${GRAN_X11_LIBRARY})
 endif()
 
 # ---- Примеры: каждый подкаталог examples/<имя>/ — программа gran_<имя> ------------
@@ -131,7 +174,7 @@ endif()
 file(GLOB GRAN_EXAMPLE_DIRS LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/examples/*")
 foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
     get_filename_component(example "${example_dir}" NAME)
-    if(IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example MATCHES "^(gallery|snapshot|chat)$"))
+    if(IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example STREQUAL "chat"))
         file(GLOB_RECURSE example_sources CONFIGURE_DEPENDS "${example_dir}/*.cpp")
         add_executable(gran_${example} ${example_sources})
         # Заголовки примера подключаются от его корня; свои системные библиотеки — из system_libs.txt
@@ -161,6 +204,37 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
         gran_apply_link_options(gran_${example})
     endif()
 endforeach()
+
+# Отдельный набор GPU-тестов, включаемый явно. / A separate GPU suite enabled explicitly.
+if(WIN32 AND GRAN_BUILD_RENDER_TESTS)
+    enable_testing()
+    file(GLOB GRAN_RENDER_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/render/*.cpp")
+    add_executable(gran_render_tests ${GRAN_RENDER_TEST_SOURCES})
+    target_link_libraries(gran_render_tests PRIVATE gran)
+    gran_apply_compile_options(gran_render_tests)
+    gran_apply_link_options(gran_render_tests)
+    foreach(backend d3d12 d3d11)
+        add_test(NAME gran_render_${backend} COMMAND gran_render_tests --${backend}
+            --output "${CMAKE_BINARY_DIR}/render-${backend}")
+        set_tests_properties(gran_render_${backend} PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    endforeach()
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GRAN_BUILD_RENDER_TESTS)
+    enable_testing()
+    file(GLOB GRAN_LINUX_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/linux/*.cpp")
+    add_executable(gran_linux_tests ${GRAN_LINUX_TEST_SOURCES})
+    target_include_directories(gran_linux_tests SYSTEM PRIVATE ${GRAN_X11_INCLUDE_DIR})
+    target_link_libraries(gran_linux_tests PRIVATE gran)
+    gran_apply_compile_options(gran_linux_tests)
+    add_test(NAME gran_vulkan_cpu COMMAND gran_linux_tests)
+    set_tests_properties(gran_vulkan_cpu PROPERTIES TIMEOUT 30)
+    option(GRAN_BUILD_WINDOW_TESTS "Enable tests requiring a running X11/XWayland server" OFF)
+    if(GRAN_BUILD_WINDOW_TESTS)
+        add_test(NAME gran_x11_vulkan COMMAND gran_linux_tests --window)
+        set_tests_properties(gran_x11_vulkan PROPERTIES TIMEOUT 30)
+    endif()
+endif()
 
 # ---- Модульные тесты: запускаются из корня исходников (пути schemas/, samples/) ----
 # ---- The unit tests: run from the source root (the schemas/, samples/ paths) ----

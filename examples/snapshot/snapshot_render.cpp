@@ -3,7 +3,9 @@
 #include "gran/layout/layout.hpp"
 #include "gran/markup/theme.hpp"
 #include "gran/render/renderer.hpp"
-#include "gran/rhi/dx12/dx12_backend.hpp"
+#include "gran/rhi/backend_factory.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
 #include "gran/utils/png_writer.hpp"
 
 #include <chrono>
@@ -48,8 +50,10 @@ namespace snapshot
 
             dynamic_cast<gran::rhi::SnapshotSource&>(backend).readPixels(pixels, width, height);
             gran::writePng(path, pixels.data(), width, height);
-            for (const std::string& message : backend.takeDiagnostics())
-                std::cout << message << '\n';
+            auto messages = backend.takeDiagnostics();
+            if (!messages.empty())
+                throw gran::GpuException(gran::ErrorCode::GPU,
+                    gran::i18n::format(gran::i18n::Message::GPU_DEBUG_MESSAGE, {"snapshot", messages.front()}), 0);
         }
     }
 
@@ -64,9 +68,9 @@ namespace snapshot
         gran::style::ComputedStyle window = gran::markup::windowStyle(theme, document.window);
         gran::Size size = frameSize(arguments, document.window);
         gran::text::FontLibrary fonts;
-        auto backend = gran::rhi::createDx12Backend(gran::rhi::BackendOptions{nullptr, nullptr,
+        auto backend = gran::rhi::createPlatformBackend(gran::rhi::BackendOptions{nullptr, nullptr,
             static_cast<std::uint32_t>(size.width * arguments.scale), static_cast<std::uint32_t>(size.height * arguments.scale),
-            false, true});
+            false, true, arguments.backend, arguments.forceWarp});
         gran::render::Renderer renderer(*backend, fonts, document.baseDirectory);
 
         registerFonts(document, arguments.markup, fonts);

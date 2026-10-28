@@ -65,7 +65,6 @@ namespace gran::platform::win32
         : desc(windowDesc)
     {
         DWORD style = WS_OVERLAPPEDWINDOW;
-        BOOL dark = TRUE;
 
         enableDpiAwareness();
         registerClass();
@@ -76,14 +75,7 @@ namespace gran::platform::win32
         if (window == nullptr)
             throw GranException(ErrorCode::PLATFORM, i18n::format(i18n::Message::PLATFORM_WINDOW_FAILED,
                 {std::to_string(GetLastError())}));
-        currentScale = static_cast<float>(GetDpiForWindow(window)) / 96.0f;
-        RECT frame{0, 0, static_cast<LONG>(std::lround(desc.width * currentScale)),
-            static_cast<LONG>(std::lround(desc.height * currentScale))};
-        AdjustWindowRectExForDpi(&frame, style, FALSE, 0, GetDpiForWindow(window));
-        SetWindowPos(window, nullptr, 0, 0, frame.right - frame.left, frame.bottom - frame.top,
-            SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-        if (desc.darkTitleBar)
-            DwmSetWindowAttribute(window, 20, &dark, sizeof(dark));
+        setInitialSize(*this, style);
     }
 
     // Окно уничтожается; указатель на объект из него убирается до этого / The window is destroyed; the object pointer is removed from it before that
@@ -99,6 +91,7 @@ namespace gran::platform::win32
             RevokeDragDrop(window);
             dropTarget->detach();
         }
+        frameHitTest = {};
         SetWindowLongPtrW(window, GWLP_USERDATA, 0);
         DestroyWindow(window);
     }

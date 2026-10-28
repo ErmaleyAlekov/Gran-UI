@@ -5,6 +5,7 @@
 #include "gran/binding/list_bindings.hpp"
 #include "gran/platform/file_dialog.hpp"
 #include "gran/ui/node.hpp"
+#include "gran/rhi/render_backend.hpp"
 
 #include <cstddef>
 #include <functional>
@@ -44,6 +45,9 @@ namespace gran
         bool debugLayer = false;
         bool vsync = true;
         double exitAfter = 0.0;   // секунд до выхода (0 — не выходить; для дымовых проверок) / seconds until exit (0 — never; for smoke checks)
+        rhi::BackendKind backend = rhi::BackendKind::AUTO;
+        bool forceWarp = false;
+        bool watchMarkup = false; // проверять XML каждые 250 мс / check XML every 250 ms
     };
 
     /*
@@ -67,6 +71,25 @@ namespace gran
 
         // Разметка из строки / Markup from a string
         void loadString(std::string_view markup);
+
+        /*
+        ** Перезагрузить последний файл; внутри run замена откладывается до границы цикла.
+        ** Ошибка разбора сохраняет старое дерево. После замены повторите find: старые узлы
+        ** удалены. Обработчики, таймеры и внешние модели сохраняются, данные XML загружаются снова.
+        **
+        ** Reload the last file; inside run replacement is deferred to a loop boundary.
+        ** A parse error preserves the old tree. After replacement call find again: old nodes
+        ** are deleted. Handlers, timers and external models remain; XML data is loaded again.
+        */
+        void reload();
+
+        // Загрузить изменившийся файл; без файла — false. Только поток UI.
+        // Load a changed file; without a file returns false. UI thread only.
+        bool reloadIfChanged();
+
+        // Последняя ошибка наблюдения за файлом; успех очищает строку.
+        // The latest file watcher error; success clears the string.
+        const std::string& reloadError() const;
 
         // Обработчик действия по имени / An action handler by name
         void onAction(const std::string& name, ActionHandler handler);
@@ -310,6 +333,14 @@ namespace gran
 
         // Окно и цикл событий до закрытия; возвращает код выхода / The window and the event loop until closing; returns the exit code
         int run();
+
+        // Управление окном в UI-потоке; до run окно ещё не создано. close завершает цикл.
+        // Window management on the UI thread; before run no window exists yet. close ends the loop.
+        void minimize();
+        void maximize();
+        void restore();
+        void close();
+        bool isMaximized() const;
 
         struct State;
 

@@ -20,6 +20,18 @@
 
 namespace
 {
+    // Выбор API не зависит от сетевых параметров чата.
+    // API selection is independent of the chat network options.
+    bool graphicsOption(const std::string& argument, gran::AppOptions& options)
+    {
+        if (argument == "--d3d11") options.backend = gran::rhi::BackendKind::D3D11;
+        else if (argument == "--d3d12") options.backend = gran::rhi::BackendKind::D3D12;
+        else if (argument == "--warp") options.forceWarp = true;
+        else if (argument == "--debug") options.debugLayer = true;
+        else return false;
+        return true;
+    }
+
     // Параметры командной строки / The command line parameters
     struct ChatOptions
     {
@@ -56,9 +68,9 @@ namespace
         for (std::size_t index = 1; index < argv.size(); ++index)
         {
             bool hasValue = index + 1 < argv.size();
-            if (argv[index] == "--debug")
-                options.app.debugLayer = true;
-            else if (argv[index] == "--exit-after" && hasValue)
+            if (graphicsOption(argv[index], options.app))
+                continue;
+            if (argv[index] == "--exit-after" && hasValue)
                 options.app.exitAfter = std::strtod(argv[++index].c_str(), nullptr);
             else if (argv[index] == "--model" && hasValue)
                 options.endpoint.model = argv[++index];

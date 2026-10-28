@@ -69,7 +69,10 @@ namespace gran::app
             state.webInbox.erase(state.webInbox.begin());
             auto handler = state.webHandlers.find(message.node->content.onMessage);
             if (handler != state.webHandlers.end() && handler->second)
-                handler->second(*message.node, message.text);
+            {
+                WebMessageHandler callback = handler->second;
+                callback(*message.node, message.text);
+            }
             delivered = true;
         }
         return delivered;

@@ -16,6 +16,23 @@
 
   <!-- ================= Простые типы / Simple types ================= -->
 
+  <!-- Заголовок окна и роли его элементов / The window title bar and its element roles -->
+  <xs:simpleType name="TitleBar">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="system"/>
+      <xs:enumeration value="custom"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="WindowRole">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="drag"/>
+      <xs:enumeration value="minimize"/>
+      <xs:enumeration value="maximize"/>
+      <xs:enumeration value="close"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Ссылка на значение темы / A theme value reference -->
   <xs:simpleType name="TokenRef">
     <xs:restriction base="xs:string">
@@ -138,9 +155,16 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <!-- Имя действия приложения (onClick="onContinue") / An application action name -->
+  <!-- Имя действия приложения или встроенная команда gran:команда:id.
+       An application action name or a built-in gran:command:id command. -->
   <xs:simpleType name="Action">
-    <xs:restriction base="xs:NCName"/>
+    <xs:union memberTypes="xs:NCName">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup)(:.*)?"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
   </xs:simpleType>
 
   <xs:simpleType name="Orientation">
@@ -388,6 +412,8 @@
       <xs:element name="Focused" type="StateType" minOccurs="0"/>
       <xs:element name="Disabled" type="StateType" minOccurs="0"/>
       <xs:element name="Checked" type="StateType" minOccurs="0"/>
+      <!-- Окно развёрнуто (для кнопок заголовка) / The window is maximized (for the title bar buttons) -->
+      <xs:element name="Maximized" type="StateType" minOccurs="0"/>
       <!-- Над зоной onDrop несут файлы / Files are carried over an onDrop zone -->
       <xs:element name="DropTarget" type="StateType" minOccurs="0"/>
     </xs:sequence>
@@ -434,6 +460,7 @@
     <xs:attribute name="style" type="xs:NCName"/>
     <xs:attribute name="visible" type="xs:boolean"/>
     <xs:attribute name="enabled" type="xs:boolean"/>
+    <xs:attribute name="windowRole" type="WindowRole"/>
     <xs:attribute name="tooltip" type="xs:string"/>
     <!-- Имя для дикторов (как aria-label) и id элемента-подписи (как aria-labelledby) -->
     <!-- The name for screen readers (as aria-label) and the id of the label element (as aria-labelledby) -->
@@ -635,7 +662,8 @@
         <xs:attribute name="popup" type="xs:NCName"/>
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="@text or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
-                         or self::Focused or self::Disabled or self::Checked)]"/>
+                         or self::Focused or self::Disabled or self::Checked or self::Maximized
+                         or self::DropTarget)]"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -982,6 +1010,7 @@
     <!-- Действие при попытке закрыть окно (крестик, Alt+F4); задано — окно закрывает обработчик (closeWindow) -->
     <!-- The action on an attempt to close the window (the cross, Alt+F4); when set, the handler closes the window (closeWindow) -->
     <xs:attribute name="onClose" type="Action"/>
+    <xs:attribute name="titleBar" type="TitleBar" default="system"/>
     <xs:attribute name="background" type="Paint"/>
     <xs:attributeGroup ref="TextAttributes"/>
     <xs:assert test="not(@minWidth) or @minWidth le @width"/>

@@ -60,8 +60,11 @@ float shadowShape(GpuInstance item, float2 p, float spreadSign)
     float2 center = item.rect.xy + item.rect.zw * 0.5 + item.extra.xy;
     float corner = max(pickRadius(p - center, item.radii) + spread, 0.0);
     corner = min(corner, min(halfSize.x, halfSize.y));
+    // Производные вычисляются до ветвления: FXC не оставляет их частично определёнными.
+    // Derivatives are evaluated before branching so FXC does not leave them partially defined.
+    float sharp = coverage(roundRectDistance(p - center, halfSize, float4(corner, corner, corner, corner)));
     if (item.param < 0.5)
-        return coverage(roundRectDistance(p - center, halfSize, float4(corner, corner, corner, corner)));
+        return sharp;
     return blurredBox(p, center, halfSize, item.param, corner);
 }
 
