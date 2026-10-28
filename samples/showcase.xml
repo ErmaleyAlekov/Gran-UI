@@ -31,10 +31,10 @@
     </Stack>
     <Stack gridRow="1" style="card">
       <Text style="title">Профиль</Text>
-      <Text style="muted">Имя пользователя</Text>
-      <Input id="name" value="Анна Смирнова" maxLength="40" background="#0f1117" borderColor="rgba(255, 255, 255, 0.12)" color="#e6e8ee"/>
-      <Text style="muted">Электронная почта</Text>
-      <Input placeholder="name@example.com" background="#0f1117" borderColor="rgba(255, 255, 255, 0.12)" color="#e6e8ee"/>
+      <Text id="nameLabel" style="muted">Имя пользователя</Text>
+      <Input id="name" labeledBy="nameLabel" value="Анна Смирнова" maxLength="40" background="#0f1117" borderColor="rgba(255, 255, 255, 0.12)" color="#e6e8ee"/>
+      <Text id="mailLabel" style="muted">Электронная почта</Text>
+      <Input labeledBy="mailLabel" placeholder="name@example.com" background="#0f1117" borderColor="rgba(255, 255, 255, 0.12)" color="#e6e8ee"/>
       <CheckBox text="Получать новости" checked="true" accentColor="$accent"/>
       <CheckBox text="Двухфакторная защита"/>
       <Stack orientation="horizontal" spacing="12" align="center">
@@ -54,10 +54,10 @@
           <Text fontSize="28" fontWeight="700" color="#f5a3ff">14 МБ</Text>
         </Stack>
       </Stack>
-      <Text style="muted">Громкость</Text>
-      <Slider min="0" max="100" value="68" accentColor="$accent"/>
-      <Text style="muted">Яркость</Text>
-      <Slider min="0" max="100" value="35" accentColor="#22c55e"/>
+      <Text id="volumeLabel" style="muted">Громкость</Text>
+      <Slider labeledBy="volumeLabel" min="0" max="100" value="68" accentColor="$accent"/>
+      <Text id="brightnessLabel" style="muted">Яркость</Text>
+      <Slider labeledBy="brightnessLabel" min="0" max="100" value="35" accentColor="#22c55e"/>
       <Box height="64" borderRadius="12" background="radial-gradient(circle at 30% 20%, #6d5dfc, #0f1117)"/>
     </Stack>
     <Stack gridRow="1" gridColumn="2" style="card" spacing="10">

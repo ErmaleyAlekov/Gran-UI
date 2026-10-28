@@ -1,6 +1,7 @@
 #ifndef GRAN_INPUT_INPUT_ROUTER_HPP
 #define GRAN_INPUT_INPUT_ROUTER_HPP
 
+#include "gran/a11y/access_tree.hpp"
 #include "gran/platform/window.hpp"
 #include "gran/ui/node.hpp"
 
@@ -157,6 +158,12 @@ namespace gran::input
         // Последняя точка мыши в окне / The last mouse point in the window
         Vec2 pointer() const noexcept;
 
+        // ---- access_actions.cpp ----
+
+        // Запрос клиента доступности (нажать, переключить, текст, число, фокус); true — что-то изменилось
+        // An accessibility client request (press, toggle, text, number, focus); true — something changed
+        bool perform(const a11y::AccessRequest& request);
+
     private:
         RouterState _state;
     };
@@ -213,6 +220,10 @@ namespace gran::input
     bool handlePointer(RouterState& state, const platform::Event& event);
 
     // ---- slider_input.cpp ----
+
+    // Значение ползунка с шагом и в пределах диапазона; изменилось — перерисовка и onChange; true — изменилось
+    // The slider value with the step and within the range; on a change — a repaint and onChange; true — changed
+    bool setSliderValue(RouterState& state, ui::Node& slider, float value);
 
     // Значение ползунка по координате мыши (с шагом) и действие onChange / The slider value by the mouse coordinate (with the step) and the onChange action
     void dragSlider(RouterState& state, ui::Node& slider, float x);

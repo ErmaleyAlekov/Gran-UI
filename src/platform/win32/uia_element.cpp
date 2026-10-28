@@ -10,7 +10,8 @@ namespace gran::platform::win32
     {
     }
 
-    // Корень фрагментов отдаётся только элементом корня дерева / The fragment root is given only by the tree root element
+    // Корень фрагментов отдаётся только элементом корня дерева, шаблоны — только поддерживающим узлом
+    // The fragment root is given only by the tree root element, the patterns — only by a supporting node
     HRESULT STDMETHODCALLTYPE UiaElement::QueryInterface(REFIID riid, void** object)
     {
         if (object == nullptr)
@@ -24,6 +25,8 @@ namespace gran::platform::win32
             && _node == _host->tree->root)
             *object = static_cast<IRawElementProviderFragmentRoot*>(this);
         else
+            *object = patternByIid(riid);
+        if (*object == nullptr)
             return E_NOINTERFACE;
         AddRef();
         return S_OK;

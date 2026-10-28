@@ -148,6 +148,11 @@ namespace gran
 
         // Окно, которое будит post (nullptr — не будить: окна уже/ещё нет) / The window that post wakes (nullptr — do not wake: no window yet/anymore)
         void setWakeTarget(Application::State& state, platform::Window* window);
+
+        // ---- application_access.cpp ----
+
+        // Выполнить запросы клиентов доступности; true — что-то изменилось (нужен кадр) / Perform the accessibility client requests; true — something changed (a frame is needed)
+        bool runAccessRequests(Application::State& state);
     }
 }
 

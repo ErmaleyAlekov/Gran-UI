@@ -23,6 +23,7 @@ namespace gran::ui
             header->content.text = page.content.text;
             header->content.option = optionValue(page);
             header->content.tooltip = page.content.tooltip;
+            header->content.accessibleName = page.content.accessibleName;
             header->enabled = page.enabled;
             return header;
         }

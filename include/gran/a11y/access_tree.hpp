@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace gran::a11y
 {
@@ -38,9 +39,50 @@ namespace gran::a11y
         // Только оформление (контейнер без своего смысла): дикторы его пропускают
         // Only layout (a container without its own meaning): screen readers skip it
         bool decorative = false;
+        // Значение меняет только код (поле readOnly, ComboBox, полоса прогресса) / Only the code changes the value (a readOnly input, a ComboBox, a progress bar)
+        bool readOnly = false;
         float minimum = 0.0f;
         float maximum = 0.0f;
         float current = 0.0f;
+        // Малый шаг (стрелка) и большой (десять малых) диапазона / The small step (an arrow) and the large one (ten small ones) of the range
+        float smallStep = 0.0f;
+        float largeStep = 0.0f;
+    };
+
+    /*
+    ** Шаблоны управления узла (биты): что клиент доступности может сделать с элементом —
+    ** нажать, переключить, выбрать, задать текст, задать число в диапазоне.
+    **
+    ** The node control patterns (bits): what an accessibility client can do with the element —
+    ** press, toggle, select, set the text, set a number in the range.
+    */
+    enum Pattern : std::uint8_t
+    {
+        PATTERN_INVOKE = 1,
+        PATTERN_TOGGLE = 2,
+        PATTERN_SELECT = 4,
+        PATTERN_TEXT = 8,
+        PATTERN_RANGE = 16
+    };
+
+    // Действие, которое просит выполнить клиент доступности / The action an accessibility client asks to perform
+    enum class Request : std::uint8_t { FOCUS, INVOKE, TOGGLE, SELECT, SET_TEXT, SET_VALUE };
+
+    /*
+    ** Запрос клиента: вид, узел и данные (текст для SET_TEXT, число для SET_VALUE). Провайдер ОС
+    ** только кладёт запрос в очередь — менять дерево внутри вызова ОС нельзя (обработчики
+    ** приложения могут бросить исключение или удалить узлы); выполняет его цикл приложения.
+    **
+    ** A client request: the kind, the node and the data (the text for SET_TEXT, the number for SET_VALUE). The OS provider
+    ** only queues the request — changing the tree inside an OS call is not allowed (the application
+    ** handlers may throw or remove nodes); the application loop performs it.
+    */
+    struct AccessRequest
+    {
+        Request kind = Request::FOCUS;
+        const ui::Node* node = nullptr;
+        std::string text;
+        float value = 0.0f;
     };
 
     /*
@@ -56,6 +98,8 @@ namespace gran::a11y
     {
         ui::Node* root = nullptr;
         const ui::Node* focus = nullptr;
+        // Запросы клиентов, ждущие цикла приложения / The client requests waiting for the application loop
+        std::vector<AccessRequest> requests;
     };
 
     // Направление обхода дерева доступности / The accessibility tree walk direction
@@ -66,14 +110,34 @@ namespace gran::a11y
     // Роль по виду элемента / The role by the element kind
     Role roleOf(const ui::Node& node) noexcept;
 
-    // Имя: подпись, текст, подсказка поля или tooltip / The name: the label, the text, the input placeholder or the tooltip
-    std::string accessibleName(const ui::Node& node);
-
     // Все сведения об узле (пароль не раскрывается) / All the node facts (a password is not disclosed)
     AccessibleInfo describe(const ui::Node& node);
 
     // Описанный прямоугольник узла в логических координатах окна (с преобразованиями) / The node bounding rectangle in logical window coordinates (with transforms)
     Rect boundsOf(const ui::Node& node) noexcept;
+
+    // ---- a11y_name.cpp ----
+
+    /*
+    ** Имя: accessibleName, текст узла labeledBy, затем подпись, текст, подсказка поля или tooltip.
+    ** The name: accessibleName, the text of the labeledBy node, then the label, the text, the input placeholder or the tooltip.
+    */
+    std::string accessibleName(const ui::Node& node);
+
+    // ---- a11y_patterns.cpp ----
+
+    // Шаблоны управления узла (биты Pattern) / The node control patterns (Pattern bits)
+    std::uint8_t patternsOf(const ui::Node& node) noexcept;
+
+    // Узел принимает фокус ввода / The node takes the input focus
+    bool isFocusable(const ui::Node& node) noexcept;
+
+    // Значение узла меняет только код / Only the code changes the node value
+    bool isReadOnly(const ui::Node& node) noexcept;
+
+    // Запрос в очередь дерева; false — не хватило памяти (вызывается из провайдера ОС, поэтому noexcept)
+    // A request into the tree queue; false — out of memory (called from the OS provider, hence noexcept)
+    bool postRequest(AccessTree& tree, const AccessRequest& request) noexcept;
 
     // ---- a11y_navigation.cpp ----
 
