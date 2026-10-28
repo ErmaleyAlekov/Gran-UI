@@ -7,6 +7,13 @@ namespace gran::i18n
         // Русские тексты сообщений; {N} — аргументы format()
         // Russian message texts; {N} are the format() arguments
         const MessageText TEXTS[] = {
+            {Message::CAPI_ARGUMENT, "недопустимый аргумент или размер структуры ABI"},
+            {Message::CAPI_NODE, "узел с id \"{0}\" не найден"},
+            {Message::CAPI_PROPERTY, "неподдерживаемое свойство узла \"{0}\""},
+            {Message::CAPI_COMMAND, "неподдерживаемая команда приложения \"{0}\""},
+            {Message::CAPI_THREAD, "операция должна выполняться в создавшем приложение потоке UI"},
+            {Message::CAPI_BUSY, "нельзя уничтожать приложение или повторно входить в run во время его работы"},
+            {Message::CAPI_UNKNOWN, "непредвиденная ошибка нативного кода"},
             {Message::STYLE_BAD_NUMBER, "ожидалось число, найдено \"{0}\""},
             {Message::STYLE_BAD_COLOR, "неверный цвет \"{0}\": ожидалось #rgb, #rrggbb, #rrggbbaa, rgb(), hsl(), имя цвета или $имя"},
             {Message::STYLE_BAD_LENGTH, "неверная длина \"{0}\": ожидалось число пикселей, проценты или auto"},
@@ -58,7 +65,13 @@ namespace gran::i18n
             {Message::PLATFORM_FILE_DIALOG_FAILED, "системный диалог файлов не открылся (код 0x{0})"},
             {Message::ICON_BAD_PATH, "данные пути иконки неверны в позиции {0}"},
             {Message::ICON_BAD_VIEWBOX, "viewBox иконки должен быть «x y ширина высота» с положительными размерами: \"{0}\""},
-            {Message::ICON_BAD_SVG, "файл иконки \"{0}\" не подходит: {1}"}
+            {Message::ICON_BAD_SVG, "файл иконки \"{0}\" не подходит: {1}"},
+            {Message::APP_RELOAD_NO_FILE, "перезагрузка требует документа, загруженного из файла"},
+            {Message::WINDOW_MINIMIZE, "Свернуть"},
+            {Message::WINDOW_MAXIMIZE, "Развернуть"},
+            {Message::WINDOW_RESTORE, "Восстановить"},
+            {Message::WINDOW_CLOSE, "Закрыть"},
+            {Message::PLATFORM_FILE_DIALOG_TOOL, "системный диалог файлов недоступен: нужна программа zenity или kdialog"}
         };
     }
 

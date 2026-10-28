@@ -61,6 +61,16 @@ namespace gran::platform::win32
         std::string clipboardText() override;
         void setClipboardText(const std::string& text) override;
 
+        // ---- win32_commands.cpp ----
+        void minimize() override;
+        void maximize() override;
+        void restore() override;
+        void close() override;
+        bool isMaximized() const override;
+
+        // ---- win32_frame.cpp ----
+        void setFrameHitTest(std::function<WindowRole(Vec2)> callback) override;
+
         // ---- win32_access.cpp ----
         void setAccessTree(a11y::AccessTree* tree) override;
         void accessFocusChanged() override;
@@ -89,10 +99,14 @@ namespace gran::platform::win32
         float currentScale = 1.0f;
         bool sizing = false;
         bool trackingLeave = false;
+        bool trackingNonClient = false;
         char16_t highSurrogate = 0;
         CursorShape cursor = CursorShape::ARROW;
         std::function<void()> liveResize;
         WindowDesc desc;
+        // Обработчик читает дерево только в UI-потоке, не хранит указатели на узлы.
+        // The callback reads the tree only on the UI thread and keeps no node pointers.
+        std::function<WindowRole(Vec2)> frameHitTest;
         // Провайдер UI Automation создаётся при первом setAccessTree / The UI Automation provider is created on the first setAccessTree
         std::shared_ptr<UiaHost> access;
         // Зоны сброса файлов (логические пиксели) и пути брошенных файлов по событиям DROP / The file drop zones (logical pixels) and the dropped file paths by the DROP events
@@ -109,6 +123,15 @@ namespace gran::platform::win32
 
     // Сообщения мыши; false — это не сообщение мыши / Mouse messages; false — it is not a mouse message
     bool translateMouse(Win32Window& window, UINT message, WPARAM wParam, LPARAM lParam);
+
+    // Своя рамка: сообщения, геометрия клиента, проверка краёв и мышь кнопки Snap.
+    // Custom frame: messages, client geometry, edge hit testing and the Snap button pointer.
+    bool handleFrameMessage(Win32Window& window, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result) noexcept;
+    bool translateFrameMouse(Win32Window& window, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result) noexcept;
+    LRESULT hitFrame(Win32Window& window, LPARAM point);
+    void configureFrame(Win32Window& window) noexcept;
+    void fitClientRect(const Win32Window& window, RECT& frame) noexcept;
+    void setInitialSize(Win32Window& window, DWORD style) noexcept;
 
     // ---- win32_keyboard.cpp ----
 

@@ -31,8 +31,11 @@ namespace gran::markup::internal
             static const style::Keyword FITS[] = {{"fill", 0}, {"contain", 1}, {"cover", 2}, {"none", 3}};
             static const style::Keyword DIRECTIONS[] = {{"vertical", 0}, {"horizontal", 1}, {"both", 2}};
             static const style::Keyword SUBMITS[] = {{"ctrlEnter", 0}, {"enter", 1}};
+            static const style::Keyword ROLES[] = {{"none", 0}, {"drag", 1}, {"minimize", 2}, {"maximize", 3}, {"close", 4}};
 
-            if (name == "fit")
+            if (name == "windowRole")
+                node.content.windowRole = static_cast<platform::WindowRole>(style::parseKeyword(value, ROLES, 5));
+            else if (name == "fit")
                 node.content.fit = static_cast<ui::ImageFit>(style::parseKeyword(value, FITS, 4));
             else if (name == "direction")
                 node.content.direction = static_cast<ui::ScrollDirection>(style::parseKeyword(value, DIRECTIONS, 3));

@@ -11,8 +11,9 @@ namespace
     // Все наборы в порядке запуска: новый набор достаточно добавить сюда
     // All suites in the run order: a new suite only needs to be added here
     const SuiteRegistrar SUITES[] = {
-        suites::registerI18nTests, suites::registerGeometryTests,
-        suites::registerStyleNumberTests, suites::registerStyleColorTests,
+        suites::registerCapiTests,
+        suites::registerI18nTests, suites::registerGeometryTests, suites::registerReloadTests, suites::registerBuiltinCommandTests, suites::registerPixelCompareTests,
+        suites::registerWindowFrameTests, suites::registerPlatformFrameTests, suites::registerStyleNumberTests, suites::registerStyleColorTests,
         suites::registerStylePaintTests, suites::registerStyleMotionTests,
         suites::registerStyleTrackTests, suites::registerMarkupTests,
         suites::registerLayoutStackTests, suites::registerLayoutGridTests, suites::registerUtf8PngTests, suites::registerJpegTests, suites::registerVectorShapeTests,

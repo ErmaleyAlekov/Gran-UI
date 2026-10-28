@@ -23,7 +23,7 @@ Declarative UI on XML over Beresta. The goal is HTML + CSS level picture quality
  render/   rendering list → GpuInstance instances (rectangle SDF, shadow, glyph, image,
         │   background blur) + clip table + glyph atlas + gradient ramps
         ▼
- rhi/      D3D12 | Vulkan | Null (recording for tests): one instanced call per segment,
+ rhi/      D3D12 | D3D11 | Vulkan | Null (recording for tests): one instanced call per segment,
            segment changes only during background blur pass (glassmorphism)
 ```
 
@@ -87,6 +87,13 @@ The engine draws the interface itself and does not use a browser for this. `<Web
 
 ## 4. Rendering
 
+D3D11 is an additional FL11_0/SM5 backend using the same scene structures and HLSL (DXBC through fxc).
+It binds the atlas, ramp and backdrop to fixed SRV registers and splits segments into ordered batches
+when the image changes. Both APIs support snapshots, WARP and Kawase backdrops.
+`AUTO` first creates D3D12 and tries D3D11 if creation fails; an explicit API choice is retained.
+XML reloading replaces the tree at a loop boundary and disconnects old input and UIA references while
+keeping the window and GPU backend. See [API](api.en.md).
+
 - **One "uber" shader and one instanced call**: square is built from `SV_VertexID`, data — from
   `StructuredBuffer<GpuInstance>`; instance type (rectangle, shadow, glyph, image, background) — field `kind`.
   Textures — "unlimited" array of descriptors (index in the instance), so a texture change does not break the batch.
@@ -147,6 +154,7 @@ The engine draws the interface itself and does not use a browser for this. `<Web
 6. Text: TrueType, rasterization, atlas, kerning, line breaks.
 7. Input: hover/pressed/focus, transitions, input field, scrolling.
 8. PNG, images; background blur.
-9. Vulkan (Vulkan SDK is needed) + X11; then macOS (MoltenVK + Cocoa).
+9. Vulkan 1.0 + X11 on Linux (implemented): GPU/Mesa CPU, fixed descriptors, two frames,
+   deferred release, swapchain/offscreen/readback and shared HLSL/Kawase. SDK is build-only; macOS is deferred.
 10. Measurements against Chromium/Electron and WebView2.
 

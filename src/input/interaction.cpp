@@ -13,7 +13,7 @@ namespace gran::input
                 || kind == ui::ElementKind::RADIO_BUTTON || kind == ui::ElementKind::TAB_HEADER
                 || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
                 || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX
-                || !node.content.onClick.empty();
+                || !node.content.onClick.empty() || ui::isWindowButton(node);
         }
     }
 
@@ -70,6 +70,9 @@ namespace gran::input
     */
     void activate(RouterState& state, ui::Node& control)
     {
+        if (disabled(&control))
+            return;
+        activateWindow(state, control);
         if (control.kind == ui::ElementKind::MENU_ITEM && ui::submenuOf(control) != nullptr)
             openSubmenu(state, control);
         else if (control.kind == ui::ElementKind::MENU_ITEM)

@@ -7,6 +7,13 @@ namespace gran::i18n
         // Английские тексты сообщений; {N} — аргументы format()
         // English message texts; {N} are the format() arguments
         const MessageText TEXTS[] = {
+            {Message::CAPI_ARGUMENT, "invalid argument or ABI structure size"},
+            {Message::CAPI_NODE, "node with id \"{0}\" was not found"},
+            {Message::CAPI_PROPERTY, "unsupported node property \"{0}\""},
+            {Message::CAPI_COMMAND, "unsupported application command \"{0}\""},
+            {Message::CAPI_THREAD, "this operation must run on the creating UI thread"},
+            {Message::CAPI_BUSY, "cannot destroy or re-enter an application while run is active"},
+            {Message::CAPI_UNKNOWN, "unexpected native failure"},
             {Message::STYLE_BAD_NUMBER, "expected a number, found \"{0}\""},
             {Message::STYLE_BAD_COLOR, "invalid color \"{0}\": expected #rgb, #rrggbb, #rrggbbaa, rgb(), hsl(), color name, or $name"},
             {Message::STYLE_BAD_LENGTH, "invalid length \"{0}\": expected pixels, percentages, or auto"},
@@ -58,7 +65,13 @@ namespace gran::i18n
             {Message::PLATFORM_FILE_DIALOG_FAILED, "the system file dialog failed to open (code 0x{0})"},
             {Message::ICON_BAD_PATH, "the icon path data is invalid at position {0}"},
             {Message::ICON_BAD_VIEWBOX, "the icon viewBox must be \"x y width height\" with positive sizes: \"{0}\""},
-            {Message::ICON_BAD_SVG, "the icon file \"{0}\" is not suitable: {1}"}
+            {Message::ICON_BAD_SVG, "the icon file \"{0}\" is not suitable: {1}"},
+            {Message::APP_RELOAD_NO_FILE, "reload requires a document loaded from a file"},
+            {Message::WINDOW_MINIMIZE, "Minimize"},
+            {Message::WINDOW_MAXIMIZE, "Maximize"},
+            {Message::WINDOW_RESTORE, "Restore"},
+            {Message::WINDOW_CLOSE, "Close"},
+            {Message::PLATFORM_FILE_DIALOG_TOOL, "the system file dialog is unavailable: the zenity or kdialog program is needed"}
         };
     }
 

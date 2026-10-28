@@ -1,9 +1,26 @@
 #include "gran/a11y/access_tree.hpp"
+#include "gran/core/i18n.hpp"
 
 namespace gran::a11y
 {
     namespace
     {
+        // Имена команд берутся из каталога, а не из символа значка кнопки.
+        // Command names come from the catalog rather than the button icon character.
+        std::string windowButtonName(const ui::Node& node)
+        {
+            using platform::WindowRole;
+            using i18n::Message;
+
+            if (node.content.windowRole == WindowRole::MINIMIZE)
+                return i18n::format(Message::WINDOW_MINIMIZE);
+            if (node.content.windowRole == WindowRole::CLOSE)
+                return i18n::format(Message::WINDOW_CLOSE);
+            if ((node.stateMask & style::stateBit(style::State::MAXIMIZED)) != 0)
+                return i18n::format(Message::WINDOW_RESTORE);
+            return i18n::format(Message::WINDOW_MAXIMIZE);
+        }
+
         // Тексты потомков через пробел (подпись кнопки из детей: значок + Text) / The descendant texts separated by spaces (a button label from its children: an icon + a Text)
         void appendTexts(const ui::Node& node, std::string& out)
         {
@@ -63,6 +80,8 @@ namespace gran::a11y
             name = labelText(node);
         if (!name.empty())
             return name;
+        if (ui::isWindowButton(node))
+            return windowButtonName(node);
         if (ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX)
             name = node.content.placeholder;
         else

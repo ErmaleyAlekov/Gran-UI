@@ -158,6 +158,10 @@ namespace gran::input
         // Последняя точка мыши в окне / The last mouse point in the window
         Vec2 pointer() const noexcept;
 
+        // Роль окна с тем же отсечением, преобразованиями и модальными слоями, что у мыши.
+        // The window role with the same clipping, transforms and modal layers as pointer input.
+        platform::WindowRole windowRoleAt(Vec2 point);
+
         // ---- access_actions.cpp ----
 
         // Запрос клиента доступности (нажать, переключить, текст, число, фокус); true — что-то изменилось
@@ -191,6 +195,10 @@ namespace gran::input
     // Ближайший предок-элемент управления (кнопка, флажок, ползунок, поле, onClick); nullptr — нет
     // The nearest control ancestor (a button, a check box, a slider, an input, onClick); nullptr — none
     ui::Node* controlOf(ui::Node* node) noexcept;
+
+    // Выполнить роль кнопки окна до пользовательского onClick.
+    // Perform the window button role before the user onClick.
+    void activateWindow(RouterState& state, const ui::Node& node);
 
     // Узел или предок отключён / The node or an ancestor is disabled
     bool disabled(const ui::Node* node) noexcept;

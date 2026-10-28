@@ -17,25 +17,14 @@
 // The entry point: 0 — the snapshot is written, 1 — a markup, font or GPU error
 int main(int argc, char* argv[])
 {
-    snapshot::Arguments arguments;
-
     if (argc < 3)
     {
         std::cerr << "gran_snapshot <markup.xml> <frame.png> [width height [scale]]\n";
         return 1;
     }
-    arguments.markup = argv[1];
-    arguments.output = argv[2];
-    if (argc >= 5)
-    {
-        arguments.width = std::strtof(argv[3], nullptr);
-        arguments.height = std::strtof(argv[4], nullptr);
-    }
-    if (argc >= 6)
-        arguments.scale = std::strtof(argv[5], nullptr);
     try
     {
-        return snapshot::renderSnapshot(arguments);
+        return snapshot::renderSnapshot(snapshot::parseArguments(argc, argv));
     }
     catch (const std::exception& error)
     {

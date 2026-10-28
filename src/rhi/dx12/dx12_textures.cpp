@@ -39,6 +39,13 @@ namespace gran::rhi::dx12
     // Сообщения отладочного слоя, накопленные с прошлого вызова / The debug layer messages accumulated since the last call
     std::vector<std::string> Dx12Backend::takeDiagnostics()
     {
+        // GPU validation может сообщить ошибку после submit, когда readPixels уже дождался GPU.
+        // GPU validation may report after submit, once readPixels has waited for the GPU.
+        if (_context.debug)
+        {
+            for (std::string& message : drainDebugMessages(_context.device.get()))
+                _diagnostics.push_back(std::move(message));
+        }
         std::vector<std::string> taken = std::move(_diagnostics);
 
         _diagnostics.clear();

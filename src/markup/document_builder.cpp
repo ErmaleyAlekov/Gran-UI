@@ -23,8 +23,14 @@ namespace gran::markup::internal
 
         // Параметр окна (не свойство стиля); false — атрибут не из их числа
         // A window parameter (not a style property); false — the attribute is not one of them
-        bool readWindowParameter(const beresta::Attribute& attribute, WindowSpec& window)
+        bool readWindowChoice(const beresta::Attribute& attribute, WindowSpec& window)
         {
+            if (attribute.name == "titleBar")
+            {
+                static const style::Keyword TITLES[] = {{"system", 0}, {"custom", 1}};
+                window.titleBar = static_cast<platform::TitleBar>(style::parseKeyword(attribute.value, TITLES, 2));
+                return true;
+            }
             if (attribute.name == "title" || attribute.name == "onClose")
             {
                 if (attribute.name == "title")
@@ -38,6 +44,15 @@ namespace gran::markup::internal
                 window.resizable = style::parseBoolean(attribute.value);
                 return true;
             }
+            return false;
+        }
+
+        // Числовые размеры хранятся отдельно от параметров режима окна.
+        // Numeric dimensions are stored separately from window mode parameters.
+        bool readWindowParameter(const beresta::Attribute& attribute, WindowSpec& window)
+        {
+            if (readWindowChoice(attribute, window))
+                return true;
             for (const WindowNumber& number : WINDOW_NUMBERS)
             {
                 if (attribute.name == number.name)

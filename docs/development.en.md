@@ -103,6 +103,10 @@ column, and path to the element.
 
 ## Debugging
 
+Hot reload: `gran_gallery --watch`; API selection: `--d3d11` / `--d3d12`.
+The [API reference](api.en.md) describes node lifetimes; [GPU checks](render_testing.en.md) cover
+both backends and the `make test-render` / CTest commands.
+
 - Debug build: `make DEBUG=1` or `-DCMAKE_BUILD_TYPE=Debug` (`GRAN_DEBUG=1`).
 - D3D12 debug layer: the `--debug` key for `gran_gallery`, always enabled for `gran_snapshot`; the environment variable `GRAN_GPU_VALIDATION=1` adds GPU-Based Validation. Layer messages go to the engine log.
 - `gran_gallery --exit-after N` closes the window after N seconds — convenient for checks without human involvement.

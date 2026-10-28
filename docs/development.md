@@ -104,6 +104,10 @@ Direct3D 12 без окна, с включённым отладочным сло
 
 ## Отладка
 
+Горячая перезагрузка — `gran_gallery --watch`, выбор API — `--d3d11` / `--d3d12`.
+[Справочник API](api.md) описывает ограничения времени жизни узлов, [GPU-проверки](render_testing.md) —
+снимки обоих бэкендов и команды `make test-render` / CTest.
+
 - Отладочная сборка: `make DEBUG=1` или `-DCMAKE_BUILD_TYPE=Debug` (`GRAN_DEBUG=1`).
 - Отладочный слой D3D12: ключ `--debug` у `gran_gallery`, всегда включён у `gran_snapshot`; переменная
   окружения `GRAN_GPU_VALIDATION=1` добавляет GPU-Based Validation. Сообщения слоя уходят в журнал движка.

@@ -52,6 +52,10 @@ namespace gran
 
             changed = state.timers.runDue(app::now()) || changed;
             changed = app::deliverWebMessages(state) || changed;
+            // Новый документ главного окна — на границе цикла, после всех обработчиков
+            // The new main window document — at a loop boundary, after all the handlers
+            app::pollReload(state);
+            changed = app::applyReload(state) || changed;
             return changed;
         }
 
@@ -90,11 +94,13 @@ namespace gran
         double sleepTime(const Application::State& state, double time)
         {
             // Срок таймера 0 возможен, выход по времени 0 — «не выходить» / A timer due time of 0 is possible, a timed exit of 0 means "never"
-            double waits[2] = {state.timers.nextDue(), -1.0};
+            double waits[3] = {state.timers.nextDue(), -1.0, -1.0};
             double sleep = -1.0;
 
             if (state.options.exitAfter > 0.0)
                 waits[1] = state.options.exitAfter;
+            if (app::reloadWait(state, time) >= 0.0)
+                waits[2] = state.nextReloadCheck;
             for (const std::unique_ptr<app::AppWindow>& win : state.windows)
             {
                 double wait = -1.0;

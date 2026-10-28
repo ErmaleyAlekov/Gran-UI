@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Свой заголовок: gran_gallery samples/custom_window.xml. По умолчанию остаётся заголовок ОС. -->
+<!-- A custom title bar: gran_gallery samples/custom_window.xml. The OS title bar remains the default. -->
+<Window title="Gran UI — custom window" titleBar="custom" width="820" height="520"
+        minWidth="420" minHeight="300" background="#11151f" color="#e5eaf5" fontFamily="Segoe UI">
+  <Resources>
+    <Style name="captionButton" width="46" height="40" padding="0" borderRadius="0"
+           background="transparent" color="#dce4f5" justify="center" align="center">
+      <Hover background="#283248"/>
+      <Pressed background="#364460"/>
+      <Focused borderColor="#89b4ff" borderWidth="1"/>
+    </Style>
+    <Style name="closeButton" basedOn="captionButton">
+      <Hover background="#c42b36"/>
+      <Pressed background="#981e28"/>
+    </Style>
+  </Resources>
+  <Grid rows="40,1fr" columns="1fr">
+    <Stack id="titleBar" gridRow="0" orientation="horizontal" windowRole="drag" background="#192131" align="center">
+      <Text margin="0 16" fontSize="14" fontWeight="bold">GRAN / UI</Text>
+      <Box grow="1"/>
+      <Input id="titleSearch" width="180" height="28" margin="0 10" placeholder="Search in title bar" fontSize="12"/>
+      <Button id="minimize" style="captionButton" windowRole="minimize" text="−" fontSize="20"/>
+      <Button id="maximize" style="captionButton" windowRole="maximize">
+        <Canvas width="16" height="16">
+          <Box left="2" top="2" width="12" height="12" borderWidth="1" borderColor="#dce4f5" background="transparent">
+            <Maximized opacity="0"/>
+          </Box>
+          <Box left="4" top="1" width="10" height="10" borderWidth="1" borderColor="#dce4f5" opacity="0">
+            <Maximized opacity="1"/>
+          </Box>
+          <Box left="1" top="4" width="10" height="10" borderWidth="1" borderColor="#dce4f5" background="#192131" opacity="0">
+            <Maximized opacity="1"/>
+          </Box>
+        </Canvas>
+      </Button>
+      <Button id="close" style="closeButton" windowRole="close" text="×" fontSize="23"/>
+    </Stack>
+    <Stack gridRow="1" padding="36" spacing="20">
+      <Text fontSize="30" fontWeight="bold">Your window. Your design.</Text>
+      <Text color="#a8b7d2" textWrap="wrap">Drag the title bar, resize from any edge, or double-click the title to maximize. Hover over maximize for Windows 11 Snap Layouts.</Text>
+      <Stack background="#1b2435" padding="24" borderRadius="12" spacing="12">
+        <Text fontSize="18" fontWeight="bold">Native behavior, XML appearance</Text>
+        <Text color="#a8b7d2" textWrap="wrap">The search field remains editable inside the draggable title bar. Tab, Enter and Space work on window buttons. Alt+Space opens the system menu.</Text>
+        <Stack orientation="horizontal" spacing="10">
+          <Button windowRole="maximize" text="Maximize / restore"/>
+          <Button windowRole="minimize" text="Minimize"/>
+        </Stack>
+      </Stack>
+      <Text color="#7385a5" fontSize="12">Standard system title bars remain available with titleBar="system".</Text>
+    </Stack>
+  </Grid>
+</Window>

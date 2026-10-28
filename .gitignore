@@ -23,6 +23,8 @@
 
 # ---- Черновики вне сборки / Drafts outside the build ------------------------
 /staging/
+/scratchpad/
+*.dxbc
 
 # ---- Результаты сборки CMake / CMake build results --------------------------
 /build/

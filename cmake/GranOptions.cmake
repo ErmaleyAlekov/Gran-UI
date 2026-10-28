@@ -6,7 +6,7 @@
 # Системные библиотеки платформы (как SYSTEM_LIBS в Makefile)
 # The platform system libraries (as SYSTEM_LIBS in the Makefile)
 if(WIN32)
-    set(GRAN_SYSTEM_LIBS d3d12 dxgi dxguid dwmapi shcore imm32 uiautomationcore oleaut32 ole32 uuid
+    set(GRAN_SYSTEM_LIBS d3d11 d3d12 dxgi dxguid dwmapi shcore imm32 uiautomationcore oleaut32 ole32 uuid
         user32 gdi32 shell32)
 elseif(APPLE)
     set(GRAN_SYSTEM_LIBS "-framework Cocoa" "-framework QuartzCore")
@@ -35,8 +35,11 @@ endfunction()
 
 # MinGW: -static, как в Makefile — программе не нужны libstdc++-6.dll и libgcc
 # MinGW: -static, as in the Makefile — a program needs neither libstdc++-6.dll nor libgcc
+# Только Release/MinSizeRel: -s удаляет отладку, в том числе из статического runtime.
+# Release/MinSizeRel only: -s removes debug information, including that from the static runtime.
 function(gran_apply_link_options target)
     if(MINGW)
         target_link_options(${target} PRIVATE -static)
+        target_link_options(${target} PRIVATE $<$<CONFIG:Release,MinSizeRel>:-s>)
     endif()
 endfunction()

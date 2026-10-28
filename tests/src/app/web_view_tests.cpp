@@ -12,9 +12,15 @@ namespace
         TEST_ASSERT(gran::app::webSourceUrl("https://example.org/a?b=1", "C:/web") == "https://example.org/a?b=1");
         TEST_ASSERT(gran::app::webSourceUrl("about:blank", "C:/web") == "about:blank");
         TEST_ASSERT(gran::app::webSourceUrl("data:text/html,x", "C:/web") == "data:text/html,x");
+#ifdef _WIN32
         TEST_ASSERT(gran::app::webSourceUrl("page.html", "C:/web") == "file:///C:/web/page.html");
         TEST_ASSERT(gran::app::webSourceUrl("my page#1.html", "C:/web") == "file:///C:/web/my%20page%231.html");
         TEST_ASSERT(gran::app::webSourceUrl("C:/abs/x.html", "C:/web") == "file:///C:/abs/x.html");
+#else
+        TEST_ASSERT(gran::app::webSourceUrl("page.html", "/web") == "file:///web/page.html");
+        TEST_ASSERT(gran::app::webSourceUrl("my page#1.html", "/web") == "file:///web/my%20page%231.html");
+        TEST_ASSERT(gran::app::webSourceUrl("/abs/x.html", "/web") == "file:///abs/x.html");
+#endif
     }
 
     void testWebViewBehavior()

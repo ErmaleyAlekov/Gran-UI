@@ -2,6 +2,7 @@
 #define GRAN_PLATFORM_WINDOW_HPP
 
 #include "gran/utils/geometry.hpp"
+#include "gran/platform/window_frame.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -83,6 +84,7 @@ namespace gran::platform
         float minHeight = 0.0f;
         bool resizable = true;
         bool darkTitleBar = false;
+        TitleBar titleBar = TitleBar::SYSTEM;
     };
 
     /*
@@ -108,6 +110,10 @@ namespace gran::platform
         // HWND / Window для бэкенда отрисовки / The HWND / Window for the render backend
         virtual void* nativeHandle() const = 0;
 
+        // Соединение с оконной системой для Vulkan; у Windows не требуется.
+        // The window system connection for Vulkan; not required on Windows.
+        virtual void* nativeDisplay() const;
+
         // Масштаб DPI (1 — 96 dpi) / The DPI scale (1 — 96 dpi)
         virtual float scale() const = 0;
 
@@ -119,6 +125,18 @@ namespace gran::platform
 
         // Показ окна после первого кадра (без белой вспышки) / Showing the window after the first frame (without a white flash)
         virtual void show() = 0;
+
+        // Управление окном в потоке UI; close посылает обычное событие закрытия.
+        // Window management on the UI thread; close sends the usual close event.
+        virtual void minimize();
+        virtual void maximize();
+        virtual void restore();
+        virtual void close();
+        virtual bool isMaximized() const;
+
+        // Чтение роли под мышью в потоке UI; пустой обработчик отключает связь с деревом.
+        // Read the role under the pointer on the UI thread; an empty handler disconnects the tree.
+        virtual void setFrameHitTest(std::function<WindowRole(Vec2)> callback);
 
         // Обратный вызов перерисовки во время изменения размера мышью / The repaint callback while resizing with the mouse
         virtual void setLiveResize(std::function<void()> callback) = 0;
