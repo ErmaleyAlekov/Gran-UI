@@ -3,6 +3,8 @@
 
 #include "gran/app/application.hpp"
 
+#include <string>
+
 namespace gallery
 {
     /*
@@ -24,6 +26,17 @@ namespace gallery
     ** counts seconds, the delayed action writes into the status line in 2 seconds.
     */
     void registerTimers(gran::Application& application);
+
+    /*
+    ** Платформа (gallery_platform.cpp, samples/platform.xml): openFile, saveFile, chooseFolder — системные
+    ** диалоги; newWindow — второе окно tool_window.xml рядом с разметкой markup; closeTool и toolClosing
+    ** (onClose второго окна) — закрыть его; filesDropped — брошенные файлы в строку состояния.
+    **
+    ** The platform (gallery_platform.cpp, samples/platform.xml): openFile, saveFile, chooseFolder — the system
+    ** dialogs; newWindow — the second window tool_window.xml beside the markup markup; closeTool and toolClosing
+    ** (the second window onClose) — close it; filesDropped — the dropped files go into the status line.
+    */
+    void registerPlatform(gran::Application& application, const std::string& markup);
 }
 
 #endif

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Платформа: картинка JPEG, векторные иконки (путь SVG и файлы .svg), системные диалоги файлов,
+  перетаскивание файлов из Проводника на зону сброса и второе окно.
+  Запуск: gran_gallery samples/platform.xml
+
+  The platform: a JPEG image, vector icons (an SVG path and .svg files), the system file dialogs,
+  dragging files from Explorer onto a drop zone and a second window.
+  Run: gran_gallery samples/platform.xml
+-->
+<Window title="Gran UI — платформа" width="760" height="520" background="#f5f6f8">
+  <Resources>
+    <Style name="tool" orientation="horizontal" spacing="6" align="center"/>
+  </Resources>
+  <Stack padding="24" spacing="16">
+    <Stack orientation="horizontal" spacing="20">
+      <!-- JPEG (прогрессивный) со скруглением углов / A JPEG (progressive) with rounded corners -->
+      <Image source="assets/photo.jpg" width="320" height="180" fit="cover" borderRadius="12"/>
+      <Stack spacing="12">
+        <Text fontWeight="600">Иконки</Text>
+        <Stack orientation="horizontal" spacing="14" align="center">
+          <Icon data="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" color="#2f6fed" accessibleName="Добавить"/>
+          <Icon data="M4 12.5 5.5 11 9.5 15 18.5 6 20 7.5 9.5 18z" color="#1a9b55"/>
+          <Icon data="M12 21C5 15.5 2 12.5 2 8.5 2 5.4 4.4 3 7.5 3c1.8 0 3.5.9 4.5 2.3C13 3.9 14.7 3 16.5 3 19.6 3 22 5.4 22 8.5c0 4-3 7-10 12.5z"
+                color="#e0445a" width="32" height="32"/>
+          <!-- Кольцо: оба круга в одну сторону, дырку даёт правило evenodd / A ring: both circles go one way, evenodd makes the hole -->
+          <Icon data="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20zM12 6a6 6 0 1 0 0 12a6 6 0 1 0 0-12z" fillRule="evenodd"
+                color="#7b5cff" width="32" height="32"/>
+          <Icon source="assets/icons/folder.svg" color="#d89b18" width="32" height="32"/>
+          <Icon source="assets/icons/star.svg" color="#f2b01e" width="48" height="48"/>
+        </Stack>
+        <Text color="#667085" maxWidth="360">Иконки резкие при любом масштабе: растр строится под размер в пикселях устройства, цвет — свойство color.</Text>
+      </Stack>
+    </Stack>
+    <Stack orientation="horizontal" spacing="10">
+      <Button onClick="openFile">
+        <Stack style="tool">
+          <Icon source="assets/icons/folder.svg" width="16" height="16"/>
+          <Text>Открыть…</Text>
+        </Stack>
+      </Button>
+      <Button onClick="saveFile" text="Сохранить как…"/>
+      <Button onClick="chooseFolder" text="Папка…"/>
+      <Button onClick="newWindow">
+        <Stack style="tool">
+          <Icon data="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" width="16" height="16"/>
+          <Text>Новое окно</Text>
+        </Stack>
+      </Button>
+    </Stack>
+    <!-- Зона сброса: подсветка состоянием DropTarget, пока над ней несут файлы / A drop zone: the DropTarget state highlights it while files are carried over it -->
+    <Box onDrop="filesDropped" height="96" padding="16" borderRadius="12" borderWidth="2" borderColor="#c3c8d2"
+         background="#ffffff" justify="center" align="center" transition="background 0.15s, border-color 0.15s">
+      <DropTarget borderColor="#2f6fed" background="#eaf1ff"/>
+      <Text id="dropText" color="#667085">Перетащите сюда файлы из Проводника</Text>
+    </Box>
+    <Text id="platformStatus" color="#344054">Готово</Text>
+  </Stack>
+</Window>

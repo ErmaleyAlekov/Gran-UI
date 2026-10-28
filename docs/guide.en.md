@@ -20,7 +20,8 @@
 12. [Pop-up Layers](#popup-layers)
 13. [Embedded browser: WebView](#embedded-browser-webview)
 14. [Accessibility](#accessibility)
-15. [Errors and Message Language](#errors-and-message-language)
+15. [Platform: windows, files, icons](#platform-windows-files-icons)
+16. [Errors and Message Language](#errors-and-message-language)
 
 ## Quick Start
 
@@ -85,7 +86,7 @@ is in `samples/`, it is opened with `bin/gran_gallery <file.xml>`.
 
 ## Window and Resources
 
-The document root is `<Window>`: `title`, `width`, `height` (default 800 × 600), `minWidth`, `minHeight`,
+The document root is `<Window>`: `title`, `width`, `height` (default 800 × 600), `minWidth`, `minHeight`, `onClose`,
 as well as any styling attributes that children inherit (`background`, `color`, `fontSize`, `fontFamily`).
 Inside: an optional `<Resources>` and exactly one root interface element.
 
@@ -118,7 +119,8 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `Scroll` | Scroll exactly one child | `direction="vertical\|horizontal\|both"` |
 | `Text` | Text, can contain `Span` segments | `textWrap`, `textOverflow`, `maxLines`, `textAlign` |
 | `Span` | Formatted text segment inside `Text` | font, `color`, `background`, `textDecoration`, `onClick` (link) |
-| `Image` | PNG image | `source`, `fit="fill\|contain\|cover\|none"` |
+| `Icon` | A vector icon: an SVG path or an `.svg` file, the color is `color` | `data`, `viewBox`, `fillRule`, `source` |
+| `Image` | PNG or JPEG image | `source`, `fit="fill\|contain\|cover\|none"` |
 | `Button` | Button with text or content | `text`, `onClick`, `popup` (the id of its menu or dialog) |
 | `Input` | Single-line field | `value`, `placeholder`, `maxLength`, `password`, `readOnly`, `onChange`, `onSubmit` |
 | `TextArea` | Multi-line field with wrapping and scrolling | `rows`, `submitKey="ctrlEnter\|enter"`, `maxHeight`, `onSubmit` |
@@ -193,7 +195,7 @@ Cascade, from weakest to strongest: engine defaults ← built-in theme (`schemas
 <Style name="ghost" basedOn="primary" background="transparent" borderWidth="1"/>
 ```
 
-- States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. State change is smooth if the property
+- States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`, `DropTarget` (files are carried over an `onDrop` zone). State change is smooth if the property
   has a `transition`; a state can also start an animation: `<Hover animation="wiggle 0.4s"/>`.
 - `basedOn` inherits another style. The default theme sets styles with element names (`Button`, `Input`,
   `TextArea`, `CheckBox`, `Slider`, `RadioButton`, `Switch`, `ProgressBar`, `Tabs`, `TabBar`, `TabHeader`, `Tab`,
@@ -290,7 +292,10 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `setValue(node, number)` / `setChecked(node, yes/no)` | The number of a `ProgressBar`/`Slider`, the mark of a `CheckBox`/`Switch`/`RadioButton` (without `onChange`) |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
 | `setTimeout(seconds, function)` / `setInterval(seconds, function)` / `clearTimer(id)` | Timers on the UI thread |
-| `run()` | Event loop until the window is closed; returns the exit code |
+| `openWindow(path)` / `openWindowString(markup)` / `closeWindow(node)` | One more window / close the node window |
+| `openFileDialog(options, multiple)` / `saveFileDialog` / `folderDialog` | The system file dialogs |
+| `onFileDrop(name, function)` | Files dropped onto an element with `onDrop="name"` |
+| `run()` | Event loop until the main window is closed; returns the exit code |
 
 Node `gran::ui::Node` (`gran/ui/node.hpp`) stores the element kind, `id`, the content `content` (`text`, `value`,
 `checked`, `placeholder`…) and computed style. After changing the content from code, the node is marked
@@ -555,6 +560,58 @@ events — they read the new value at once. A password is not disclosed: the val
 The window thread enters a COM single-threaded apartment (as for `WebView`): this way UI Automation calls the provider
 on the window thread, through its message queue, and the tree is never read in parallel with changes. If the program
 moved the thread into a multithreaded apartment before creating the window, the accessibility tree is not given out.
+
+## Platform: windows, files, icons
+
+The sample for the whole section is `samples/platform.xml` (`gran_gallery samples/platform.xml`).
+
+**Multiple windows.** The first loaded window (`loadFile`) is the main one, closing it ends `run()`. Another window is `openWindow("window.xml")`: it has its own theme, styles, data, and tree, but actions (`onAction`), list models, timers, and tasks are shared. The method returns the root of the window's content; the window appears on the next pass of the loop. `closeWindow(node)` closes the window to which the node belongs (after the current event pass). `find(id)` searches in all windows, starting from the main one.
+
+```xml
+<Window title="Settings" width="380" height="200" onClose="settingsClosing">…</Window>
+```
+
+`onClose` — action on attempting to close the window (cross, Alt+F4). If it is defined, the window does not close on its own: the handler decides — `app.closeWindow(node)` or nothing (for example, first ask about unsaved changes). Without a registered handler, the window closes as usual.
+
+**File dialogs.** Windows system dialogs, modal over the window of the node `owner` (by default — over the main one). Empty result — the user declined.
+
+```cpp
+gran::FileDialogOptions options;
+options.title = "Open an image";
+options.filters = {{"Images", "*.png;*.jpg"}, {"All files", "*.*"}};
+std::vector<std::string> files = app.openFileDialog(options, true, &node);   // several files
+std::string target = app.saveFileDialog(options);                           // asks about replacing the file
+std::string folder = app.folderDialog(options);
+```
+
+Parameter fields: `title`, `folder` (initial folder), `fileName` (suggested name), `filters`, `defaultExtension` (without a dot; added at save if the user did not write it). Paths are in UTF-8.
+
+**File dragging.** The `onDrop="name"` attribute makes the element a drop zone. While files are over it, it has the `DropTarget` state (highlighting in the style), the cursor over the rest of the window shows "not allowed".
+
+```xml
+<Box onDrop="filesDropped" borderWidth="2" borderColor="#c3c8d2" transition="background 0.15s">
+  <DropTarget borderColor="#2f6fed" background="#eaf1ff"/>
+  <Text>Drop files here</Text>
+</Box>
+```
+
+```cpp
+app.onFileDrop("filesDropped", DropHandler{&app});   // void(ui::Node& zone, const std::vector<std::string>& paths)
+```
+
+**Icons.** `<Icon>` draws a vector figure in the color `color` (like text, with transitions and color animations). The default size is the size of `viewBox`; `width`/`height` stretch the icon, the raster is built under the final size in device pixels, so the icon is sharp at any scale and DPI.
+
+```xml
+<Icon data="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" color="$accent"/>      <!-- default viewBox 0 0 24 24 -->
+<Icon data="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20zM12 6a6 6 0 1 0 0 12a6 6 0 1 0 0-12z" fillRule="evenodd"/>
+<Icon source="icons/folder.svg" width="32" height="32"/>
+```
+
+- `data` — SVG path: all commands (`M L H V C S Q T A Z`, in both cases), incorrect path — error loading markup with position. `viewBox` and `fillRule` (`nonzero` or `evenodd`) — only together with `data`.
+- `source` — `.svg` file: takes into account `viewBox` (or `width`/`height`) and filled `<path>`, `<rect>` (with rounding), `<circle>`, `<ellipse>`, `<polygon>`, `<polyline>` inside any `<g>`, `fill="none"` is skipped. Strokes, `transform` and CSS styles are not supported — for icons with strokes (Lucide, Feather) a filled version is needed.
+- Corrupted or inaccessible file, like with `Image`, does not stop the window: the icon is simply not drawn.
+
+**JPEG.** `Image` understands PNG and JPEG (format — by file content, not by extension): sequential and progressive JPEG, grayscale and colored, any color subsampling. CMYK, 12-bit and arithmetic coding are not supported.
 
 ## Errors and Message Language
 

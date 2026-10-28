@@ -42,14 +42,15 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `binding/` | binding `items="…"` containers to models: `<ItemTemplate>` copies, point edits by notifications |
 | `layout/` | Stack, Grid, Canvas, text measurement, scrolling |
 | `text/` | TrueType/TTC parsing, glyph rasterization (exact coverage area), atlas, kerning, line breaks |
-| `image/` | inflate (zlib) and PNG — custom implementations |
+| `image/` | inflate (zlib), PNG and JPEG (baseline and progressive) — custom implementations; the format is by the signature (`decodeImage`) |
+| `vector/` | icon vector shapes: SVG path parsing (with arcs), `.svg` files through Beresta, rasterizing by exact area (nonzero/evenodd) |
 | `animation/` | property transitions and keyframe animations (`<Keyframes>` + `animation`), curves (`cubic-bezier`, ease, linear, steps), frame clock |
 | `input/` | hit-test (considering transform), focus, event routing, text editing and selection, clipboard |
 | `a11y/` | accessibility: roles, names, control patterns, tree navigation, the client request queue (neutral); UI Automation provider in `platform/win32/uia_*`, the requests are performed by `InputRouter::perform` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/`, `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
 | `platform/` | window and events: `win32/`, `x11/` (then `cocoa/`); the embedded browser `webview2/` (optional) |
-| `app/` | application: event loop, timers (`setTimeout`/`setInterval`), action binding (`onClick="name"` → C++ function), `<WebView>` placement |
+| `app/` | application: windows (an `AppWindow` per window — the document, the renderer, input; the shared part is in `Application::State`), event loop, file dialogs, file dragging, timers (`setTimeout`/`setInterval`), action binding (`onClick="name"` → C++ function), `<WebView>` placement |
 
 ### The embedded browser (hybrid)
 

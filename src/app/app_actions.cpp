@@ -4,17 +4,17 @@ namespace gran
 {
     // Действие без обработчика молча пропускается: разметку можно писать раньше кода
     // An action without a handler is silently skipped: the markup can be written before the code
-    void Application::State::action(const std::string& name, ui::Node& node)
+    void app::AppWindow::action(const std::string& name, ui::Node& node)
     {
-        auto handler = actions.find(name);
+        auto handler = shared.actions.find(name);
 
-        if (handler != actions.end() && handler->second)
+        if (handler != shared.actions.end() && handler->second)
             handler->second(node);
     }
 
     // Точка окна → координаты узла (с его преобразованиями) → байт текста; без рендерера — начало
     // A window point → the node coordinates (with its transforms) → a text byte; without a renderer — the start
-    std::size_t Application::State::offsetAt(const ui::Node& node, Vec2 point)
+    std::size_t app::AppWindow::offsetAt(const ui::Node& node, Vec2 point)
     {
         if (!renderer)
             return 0;
@@ -22,7 +22,7 @@ namespace gran
     }
 
     // Без рендерера каретка остаётся на месте / Without a renderer the caret stays in place
-    std::size_t Application::State::lineEdge(const ui::Node& node, std::size_t offset, bool end)
+    std::size_t app::AppWindow::lineEdge(const ui::Node& node, std::size_t offset, bool end)
     {
         if (!renderer)
             return offset;
@@ -30,7 +30,7 @@ namespace gran
     }
 
     // Шаг по строкам по раскладке рендерера / A line step by the renderer layout
-    std::size_t Application::State::lineMove(const ui::Node& node, std::size_t offset, int lines, float& goalX)
+    std::size_t app::AppWindow::lineMove(const ui::Node& node, std::size_t offset, int lines, float& goalX)
     {
         if (!renderer)
             return offset;
@@ -38,7 +38,7 @@ namespace gran
     }
 
     // Высота страницы зависит только от компоновки / The page height depends only on layout
-    int Application::State::pageLines(const ui::Node& node)
+    int app::AppWindow::pageLines(const ui::Node& node)
     {
         return render::textPageLines(node);
     }

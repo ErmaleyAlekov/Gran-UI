@@ -38,6 +38,24 @@ namespace gran::image
 
     // PNG из байтов; ошибка — GranException(IMAGE) с именем source / A PNG from bytes; an error is GranException(IMAGE) with the source name
     Image decodePng(const std::uint8_t* data, std::size_t size, const std::string& source);
+
+    // ---- jpeg_decoder.cpp ----
+
+    /*
+    ** JPEG из байтов: последовательный (baseline, extended) и прогрессивный, серый и YCbCr/RGB,
+    ** любые множители выборки 1–4, перезапуски. Не поддерживаются: арифметическое кодирование,
+    ** 12 бит, без потерь, CMYK. Ошибка — GranException(IMAGE) с именем source.
+    **
+    ** A JPEG from bytes: sequential (baseline, extended) and progressive, gray and YCbCr/RGB,
+    ** any sampling factors 1–4, restarts. Not supported: arithmetic coding,
+    ** 12 bits, lossless, CMYK. An error is GranException(IMAGE) with the source name.
+    */
+    Image decodeJpeg(const std::uint8_t* data, std::size_t size, const std::string& source);
+
+    // ---- image_decoder.cpp ----
+
+    // Картинка любого поддерживаемого формата (по подписи: PNG, JPEG) / An image of any supported format (by the signature: PNG, JPEG)
+    Image decodeImage(const std::uint8_t* data, std::size_t size, const std::string& source);
 }
 
 #endif

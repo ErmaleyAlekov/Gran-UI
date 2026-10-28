@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Второе окно для samples/platform.xml (кнопка «Новое окно»): своя тема и дерево, общие действия.
+  onClose: крестик не закрывает окно сам — решает обработчик toolClosing.
+
+  The second window for samples/platform.xml (the "New window" button): its own theme and tree, shared actions.
+  onClose: the cross does not close the window by itself — the toolClosing handler decides.
+-->
+<Window title="Gran UI — второе окно" width="380" height="200" background="#1d2433" color="#e6e9ef" onClose="toolClosing">
+  <Stack padding="20" spacing="14">
+    <Stack orientation="horizontal" spacing="10" align="center">
+      <Icon source="assets/icons/star.svg" color="#f2b01e" width="28" height="28"/>
+      <Text fontSize="18" fontWeight="600">Второе окно</Text>
+    </Stack>
+    <Text color="#aab2c0">Действия и модели данных — общие с главным окном. Закрытие крестиком проходит через onClose.</Text>
+    <Button onClick="closeTool" text="Закрыть окно"/>
+  </Stack>
+</Window>

@@ -27,7 +27,7 @@ namespace gran::ui
     {
         static const char* const NAMES[] = {"Stack", "Box", "Grid", "Canvas", "Scroll", "Text", "Image",
             "Button", "Input", "CheckBox", "Slider", "TextArea", "Span", "Popup", "MenuItem", "WebView",
-            "Dialog", "ComboBox", "RadioButton", "Switch", "ProgressBar", "Tabs", "Tab", "TabBar", "TabHeader"};
+            "Dialog", "ComboBox", "RadioButton", "Switch", "ProgressBar", "Tabs", "Tab", "Icon", "TabBar", "TabHeader"};
 
         return NAMES[static_cast<std::size_t>(kind)];
     }

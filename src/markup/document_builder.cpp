@@ -25,9 +25,12 @@ namespace gran::markup::internal
         // A window parameter (not a style property); false — the attribute is not one of them
         bool readWindowParameter(const beresta::Attribute& attribute, WindowSpec& window)
         {
-            if (attribute.name == "title")
+            if (attribute.name == "title" || attribute.name == "onClose")
             {
-                window.title = attribute.value;
+                if (attribute.name == "title")
+                    window.title = attribute.value;
+                else
+                    window.onClose = attribute.value;
                 return true;
             }
             if (attribute.name == "resizable")

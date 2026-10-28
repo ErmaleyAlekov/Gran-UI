@@ -2,6 +2,7 @@
 #define GRAN_IMAGE_INTERNAL_PNG_INTERNAL_HPP
 
 #include "gran/image/image.hpp"
+#include "gran/image/internal/image_error.hpp"
 
 namespace gran::image::internal
 {
@@ -24,10 +25,7 @@ namespace gran::image::internal
         std::vector<std::uint8_t> compressed;
     };
 
-    // ---- png_chunks.cpp ----
-
-    // Ошибка изображения → GranException(IMAGE) / An image error → GranException(IMAGE)
-    [[noreturn]] void throwBadImage(const std::string& source, const char* reason);
+    // ---- png_chunks.cpp (throwBadImage — internal/image_error.hpp) ----
 
     // Подпись, чанки с проверкой CRC, IHDR и пределы размеров / The signature, the chunks with the CRC check, IHDR and the size limits
     void readChunks(const std::uint8_t* data, std::size_t size, const std::string& source, PngChunks& chunks);

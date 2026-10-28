@@ -12,15 +12,17 @@ namespace gran::style
 {
     /*
     ** Состояния элемента. Порядок — приоритет: более позднее состояние перекрывает
-    ** более раннее (нажатие важнее наведения, отключение важнее всего, кроме отметки).
+    ** более раннее (нажатие важнее наведения, отключение важнее всего, кроме отметки;
+    ** DROP_TARGET — над зоной onDrop несут файлы — важнее всех, пока идёт перетаскивание).
     **
     ** The element states. The order is the priority: a later state overrides
-    ** an earlier one (pressing beats hovering, disabling beats everything except checking).
+    ** an earlier one (pressing beats hovering, disabling beats everything except checking;
+    ** DROP_TARGET — files are carried over an onDrop zone — beats all while dragging goes on).
     */
-    enum class State : std::uint8_t { HOVER, PRESSED, FOCUSED, DISABLED, CHECKED };
+    enum class State : std::uint8_t { HOVER, PRESSED, FOCUSED, DISABLED, CHECKED, DROP_TARGET };
 
     // Число состояний / The state count
-    constexpr std::size_t STATE_COUNT = 5;
+    constexpr std::size_t STATE_COUNT = 6;
 
     // Бит состояния в маске (cascade.cpp) / The state bit in a mask (cascade.cpp)
     std::uint8_t stateBit(State state) noexcept;

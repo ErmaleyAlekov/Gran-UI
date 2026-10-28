@@ -70,7 +70,7 @@ namespace gran::text
     }
 
     // Нарастающая сумма по строке; модуль с насыщением — покрытие / A running sum along the row; the saturated absolute value is the coverage
-    void CoverageAccumulator::resolve(std::vector<std::uint8_t>& coverage) const
+    void CoverageAccumulator::resolve(std::vector<std::uint8_t>& coverage, bool evenOdd) const
     {
         coverage.assign(static_cast<std::size_t>(_width) * _height, 0);
         for (int row = 0; row < _height; ++row)
@@ -81,6 +81,9 @@ namespace gran::text
                 std::size_t index = static_cast<std::size_t>(row) * _width + column;
                 sum += _cells[index];
                 float value = std::min(1.0f, std::fabs(sum));
+                // Чётно-нечётно: обмотка 2 снова пуста — «пила» с периодом 2 / Even-odd: winding 2 is empty again — a "saw" of period 2
+                if (evenOdd)
+                    value = 1.0f - std::fabs(1.0f - std::fmod(std::fabs(sum), 2.0f));
                 coverage[index] = static_cast<std::uint8_t>(std::lround(value * 255.0f));
             }
         }

@@ -11,6 +11,9 @@
 
 namespace gran::app
 {
+    // Окно приложения (internal/app_window.hpp) / An application window (internal/app_window.hpp)
+    struct AppWindow;
+
     /*
     ** Место одного <WebView> в приложении: узел, браузер (создаётся лениво — при первом показе
     ** узла на экране, поэтому окно без видимых WebView не платит за браузер ни памятью, ни
@@ -24,7 +27,7 @@ namespace gran::app
     {
         // ---- web_slot.cpp ----
 
-        WebSlot(Application::State& owner, ui::Node& webView) noexcept;
+        WebSlot(AppWindow& owner, ui::Node& webView) noexcept;
 
         // Строка из страницы — в очередь приложения (обработчик вызовется после событий окна) / A string from the page — into the application queue (the handler is called after the window events)
         void webMessage(const std::string& message) noexcept override;
@@ -32,7 +35,7 @@ namespace gran::app
         // Браузер недоступен: элемент остаётся подложкой, причина — один раз в stderr / The browser is unavailable: the element stays a backdrop, the reason — once into stderr
         void webFailed(long long code) noexcept override;
 
-        Application::State& state;
+        AppWindow& window;
         ui::Node* node;
         std::unique_ptr<platform::WebView> view;
         // Переданное браузеру: адрес или HTML, границы, видимость / Passed to the browser: the address or HTML, the bounds, the visibility
@@ -60,10 +63,10 @@ namespace gran::app
     // ---- web_views.cpp ----
 
     // Слот узла (создаётся без браузера, если его нет) / The node slot (created without a browser if there is none)
-    WebSlot& webSlot(Application::State& state, ui::Node& node);
+    WebSlot& webSlot(AppWindow& win, ui::Node& node);
 
     // Снять слоты и сообщения узлов поддерева (браузеры закрываются) / Drop the slots and messages of the subtree nodes (the browsers are closed)
-    void forgetWebViews(Application::State& state, const ui::Node& subtree) noexcept;
+    void forgetWebViews(AppWindow& win, const ui::Node& subtree) noexcept;
 
     // Вызвать обработчики накопленных сообщений; true — были сообщения (нужен кадр) / Call the handlers of the accumulated messages; true — there were messages (a frame is needed)
     bool deliverWebMessages(Application::State& state);
@@ -71,20 +74,20 @@ namespace gran::app
     // ---- web_sync.cpp ----
 
     // После кадра: создать, расставить, показать или скрыть браузеры по месту узлов на экране / After a frame: create, place, show or hide the browsers by the node places on screen
-    void syncWebViews(Application::State& state);
+    void syncWebViews(AppWindow& win);
 
     // ---- web_place.cpp ----
 
     // Один узел на экране: clip — видимая область предков в логических пикселях окна / One node on screen: clip is the visible area of the ancestors in logical window pixels
-    void placeWebView(Application::State& state, ui::Node& node, const Rect& clip, std::uint32_t pass);
+    void placeWebView(AppWindow& win, ui::Node& node, const Rect& clip, std::uint32_t pass);
 
     // ---- web_content.cpp ----
 
     // Создать браузер слота (один раз; nullptr — недоступен) и отдать ему накопленные сообщения / Create the slot browser (once; nullptr — unavailable) and give it the accumulated messages
-    void openWebView(Application::State& state, WebSlot& slot);
+    void openWebView(AppWindow& win, WebSlot& slot);
 
     // Передать браузеру адрес или HTML узла, если они изменились / Pass the node address or HTML to the browser if they changed
-    void sendContent(Application::State& state, WebSlot& slot);
+    void sendContent(AppWindow& win, WebSlot& slot);
 
     // ---- web_source.cpp ----
 

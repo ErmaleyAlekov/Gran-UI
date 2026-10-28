@@ -18,33 +18,33 @@ namespace gran::app
         ** A walk over the visible nodes with the clipping area of the ancestors. A hidden branch (visible="false",
         ** a closed Popup) is not walked — its WebViews are not marked in this pass and will be hidden.
         */
-        void walk(Application::State& state, ui::Node& node, const Rect& clip, std::uint32_t pass)
+        void walk(AppWindow& win, ui::Node& node, const Rect& clip, std::uint32_t pass)
         {
             Rect childClip = clip;
 
             if (!node.visible)
                 return;
             if (node.kind == ui::ElementKind::WEB_VIEW)
-                placeWebView(state, node, clip, pass);
+                placeWebView(win, node, clip, pass);
             if (clipsChildren(node))
                 childClip = rectIntersect(clip, affineBounds(ui::nodeToWindow(node), node.layout.frame));
             for (const std::unique_ptr<ui::Node>& child : node.children)
-                walk(state, *child, childClip, pass);
+                walk(win, *child, childClip, pass);
         }
     }
 
     // Слоты, не встреченные в проходе, скрываются (браузер живёт, но не рисуется) / The slots not met in the pass are hidden (the browser lives but is not drawn)
-    void syncWebViews(Application::State& state)
+    void syncWebViews(AppWindow& win)
     {
-        Size pixels = state.window->pixelSize();
-        float scale = state.window->scale();
+        Size pixels = win.window->pixelSize();
+        float scale = win.window->scale();
         Rect windowArea{0.0f, 0.0f, pixels.width / scale, pixels.height / scale};
 
-        ++state.webPass;
-        walk(state, *state.document.root, windowArea, state.webPass);
-        for (const std::unique_ptr<WebSlot>& slot : state.webSlots)
+        ++win.webPass;
+        walk(win, *win.document.root, windowArea, win.webPass);
+        for (const std::unique_ptr<WebSlot>& slot : win.webSlots)
         {
-            if (slot->pass == state.webPass || !slot->shown || !slot->view)
+            if (slot->pass == win.webPass || !slot->shown || !slot->view)
                 continue;
             slot->view->setVisible(false);
             slot->shown = false;

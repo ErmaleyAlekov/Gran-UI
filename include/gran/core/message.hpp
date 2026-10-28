@@ -71,6 +71,10 @@ namespace gran::i18n
         WEBVIEW_WRONG_NODE,
         WEBVIEW_UNAVAILABLE,
         APP_WRONG_ELEMENT,
+        PLATFORM_FILE_DIALOG_FAILED,
+        ICON_BAD_PATH,
+        ICON_BAD_VIEWBOX,
+        ICON_BAD_SVG,
 
         COUNT
     };

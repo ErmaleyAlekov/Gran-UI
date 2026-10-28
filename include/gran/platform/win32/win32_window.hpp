@@ -16,13 +16,20 @@
 #endif
 #include <windows.h>
 
+#include "gran/rhi/dx12/internal/com_ref.hpp"
+
 #include <deque>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace gran::platform::win32
 {
     // Связь окна с деревом доступности (internal/uia_element.hpp) / The window link to the accessibility tree (internal/uia_element.hpp)
     struct UiaHost;
+
+    // Приёмник перетаскивания OLE (internal/drop_target.hpp) / The OLE drag-and-drop receiver (internal/drop_target.hpp)
+    class DropTarget;
 
     /*
     ** Окно Win32 с поддержкой DPI per-monitor v2. Оконная процедура (handleMessage) noexcept:
@@ -62,6 +69,13 @@ namespace gran::platform::win32
         // ---- win32_wake.cpp ----
         void wake() noexcept override;
 
+        // ---- win32_drop.cpp ----
+        void setDropZones(const std::vector<Rect>& zones) override;
+        std::vector<std::string> takeDroppedFiles() override;
+
+        // Пути брошенных файлов в очередь (из приёмника OLE); false — не хватило памяти / The dropped file paths into the queue (from the OLE receiver); false — out of memory
+        bool queueDroppedFiles(std::vector<std::string>& paths) noexcept;
+
         // ---- win32_procedure.cpp ----
         // Обработка сообщения ОС (вызывается оконной процедурой) / Handling an OS message (called by the window procedure)
         LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) noexcept;
@@ -81,6 +95,11 @@ namespace gran::platform::win32
         WindowDesc desc;
         // Провайдер UI Automation создаётся при первом setAccessTree / The UI Automation provider is created on the first setAccessTree
         std::shared_ptr<UiaHost> access;
+        // Зоны сброса файлов (логические пиксели) и пути брошенных файлов по событиям DROP / The file drop zones (logical pixels) and the dropped file paths by the DROP events
+        std::vector<Rect> dropZones;
+        std::deque<std::vector<std::string>> droppedFiles;
+        // Приёмник OLE регистрируется при первой непустой зоне / The OLE receiver is registered on the first non-empty zone
+        rhi::dx12::ComRef<DropTarget> dropTarget;
 
     private:
         std::deque<Event> _events;
