@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
         application.loadFile(markup);
         gallery::registerActions(application);
         gallery::registerTimers(application);
+        gallery::registerPlatform(application, markup);
         return application.run();
     }
     catch (const std::exception& error)
