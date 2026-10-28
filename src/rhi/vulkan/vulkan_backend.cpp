@@ -21,6 +21,9 @@ namespace gran::rhi::vk
 #endif
         if (options.width == 0 || options.height == 0 || options.width > 16384 || options.height > 16384)
             invalid("viewport");
+        // Системный загрузчик Vulkan подключается здесь, а не при запуске программы
+        // The system Vulkan loader is attached here, not at program start
+        loadVulkan();
         createInstance();
         createDebug();
         createSurface();
