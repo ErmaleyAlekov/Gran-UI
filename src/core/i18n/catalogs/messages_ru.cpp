@@ -54,7 +54,11 @@ namespace gran::i18n
             {Message::WEBVIEW_WRONG_NODE, "элемент {0} — не WebView"},
             {Message::WEBVIEW_UNAVAILABLE, "встроенный браузер недоступен (код 0x{0}): нужен WebView2Loader.dll рядом с программой и среда WebView2 Runtime"},
             {Message::APP_WRONG_ELEMENT, "элемент {0} здесь не подходит: нужен {1}"},
-            {Message::PLATFORM_WINDOW_FAILED, "не удалось создать окно: {0}"}
+            {Message::PLATFORM_WINDOW_FAILED, "не удалось создать окно: {0}"},
+            {Message::PLATFORM_FILE_DIALOG_FAILED, "системный диалог файлов не открылся (код 0x{0})"},
+            {Message::ICON_BAD_PATH, "данные пути иконки неверны в позиции {0}"},
+            {Message::ICON_BAD_VIEWBOX, "viewBox иконки должен быть «x y ширина высота» с положительными размерами: \"{0}\""},
+            {Message::ICON_BAD_SVG, "файл иконки \"{0}\" не подходит: {1}"}
         };
     }
 

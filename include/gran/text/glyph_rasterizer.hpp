@@ -54,8 +54,9 @@ namespace gran::text
         // Квадратичная кривая: разбивается на отрезки по кривизне / A quadratic curve: split into segments by curvature
         void addQuadratic(Vec2 from, Vec2 control, Vec2 to);
 
-        // Покрытие 0..255 / The coverage 0..255
-        void resolve(std::vector<std::uint8_t>& coverage) const;
+        // Покрытие 0..255; evenOdd — правило «чётно-нечётно» (иконки SVG), иначе ненулевая обмотка
+        // The coverage 0..255; evenOdd — the "even-odd" rule (SVG icons), otherwise non-zero winding
+        void resolve(std::vector<std::uint8_t>& coverage, bool evenOdd = false) const;
 
     private:
         // ---- raster_cells.cpp ----

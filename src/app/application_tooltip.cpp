@@ -26,7 +26,7 @@ namespace gran::app
     }
 
     // Стиль Tooltip берётся из темы по имени: у слоя подсказки нет своего элемента разметки / The Tooltip style is taken from the theme by name: the tooltip layer has no markup element of its own
-    void createTooltip(Application::State& state)
+    void createTooltip(AppWindow& win)
     {
         std::unique_ptr<ui::Node> popup = std::make_unique<ui::Node>();
         std::unique_ptr<ui::Node> text = std::make_unique<ui::Node>();
@@ -35,19 +35,19 @@ namespace gran::app
         popup->visible = false;
         popup->rule = markup::defaultTheme().document.styles.find("Tooltip");
         text->kind = ui::ElementKind::TEXT;
-        state.tooltipText = &ui::appendChild(*popup, std::move(text));
-        state.tooltip = &ui::appendChild(*state.document.root, std::move(popup));
-        ui::markDirty(*state.tooltip, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+        win.tooltipText = &ui::appendChild(*popup, std::move(text));
+        win.tooltip = &ui::appendChild(*win.document.root, std::move(popup));
+        ui::markDirty(*win.tooltip, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
     }
 
     // Нажатие мыши, клавиша или колесо прячут подсказку до перехода на другой узел (как в Windows)
     // A mouse press, a key or the wheel hide the tooltip until moving to another node (as in Windows)
-    void hideTooltip(Application::State& state, bool suppress)
+    void hideTooltip(AppWindow& win, bool suppress)
     {
-        if (state.tooltipShown && state.router)
-            state.router->closePopup(*state.tooltip);
-        state.tooltipShown = false;
-        state.tooltipSuppressed = state.tooltipSuppressed || suppress;
+        if (win.tooltipShown && win.router)
+            win.router->closePopup(*win.tooltip);
+        win.tooltipShown = false;
+        win.tooltipSuppressed = win.tooltipSuppressed || suppress;
     }
 
     /*
@@ -59,34 +59,34 @@ namespace gran::app
     ** under the pointer (a passive layer: the mouse goes through it). Moving to another node
     ** hides it and restarts the countdown.
     */
-    bool updateTooltip(Application::State& state, double time)
+    bool updateTooltip(AppWindow& win, double time)
     {
-        const ui::Node* source = tooltipSource(state.router->hovered());
-        bool shown = state.tooltipShown;
+        const ui::Node* source = tooltipSource(win.router->hovered());
+        bool shown = win.tooltipShown;
 
-        if (source != state.tooltipSource)
+        if (source != win.tooltipSource)
         {
-            hideTooltip(state, false);
-            state.tooltipSource = source;
-            state.tooltipTime = time + TOOLTIP_DELAY;
-            state.tooltipSuppressed = false;
+            hideTooltip(win, false);
+            win.tooltipSource = source;
+            win.tooltipTime = time + TOOLTIP_DELAY;
+            win.tooltipSuppressed = false;
             return shown;
         }
-        if (source == nullptr || shown || state.tooltipSuppressed || time < state.tooltipTime)
+        if (source == nullptr || shown || win.tooltipSuppressed || time < win.tooltipTime)
             return false;
-        state.tooltipText->content.text = source->content.tooltip;
-        ui::markDirty(*state.tooltipText, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
-        Vec2 pointer = state.router->pointer();
-        state.router->openPopup(*state.tooltip, Rect{pointer.x, pointer.y, 0.0f, POINTER_HEIGHT}, true);
-        state.tooltipShown = true;
+        win.tooltipText->content.text = source->content.tooltip;
+        ui::markDirty(*win.tooltipText, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+        Vec2 pointer = win.router->pointer();
+        win.router->openPopup(*win.tooltip, Rect{pointer.x, pointer.y, 0.0f, POINTER_HEIGHT}, true);
+        win.tooltipShown = true;
         return true;
     }
 
     // Ждать есть чего, только пока подсказка ещё не показана и не подавлена / There is something to wait for only while the tooltip is not shown and not suppressed yet
-    double tooltipWait(const Application::State& state, double time) noexcept
+    double tooltipWait(const AppWindow& win, double time) noexcept
     {
-        if (state.tooltipSource == nullptr || state.tooltipShown || state.tooltipSuppressed)
+        if (win.tooltipSource == nullptr || win.tooltipShown || win.tooltipSuppressed)
             return -1.0;
-        return std::max(0.0, state.tooltipTime - time);
+        return std::max(0.0, win.tooltipTime - time);
     }
 }

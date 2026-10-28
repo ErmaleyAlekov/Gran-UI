@@ -1,4 +1,5 @@
 #include "gran/platform/win32/win32_window.hpp"
+#include "gran/platform/win32/internal/drop_target.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 
@@ -91,6 +92,13 @@ namespace gran::platform::win32
         if (window == nullptr)
             return;
         disconnectAccess(*this);
+        // Приёмник перетаскивания снимается до уничтожения окна; ссылку ОС отпустит сама
+        // The drag-and-drop receiver is revoked before the window is destroyed; the OS releases its reference itself
+        if (dropTarget)
+        {
+            RevokeDragDrop(window);
+            dropTarget->detach();
+        }
         SetWindowLongPtrW(window, GWLP_USERDATA, 0);
         DestroyWindow(window);
     }

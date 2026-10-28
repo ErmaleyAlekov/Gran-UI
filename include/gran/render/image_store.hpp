@@ -2,8 +2,10 @@
 #define GRAN_RENDER_IMAGE_STORE_HPP
 
 #include "gran/rhi/render_backend.hpp"
+#include "gran/vector/shape.hpp"
 
 #include <map>
+#include <memory>
 #include <string>
 
 namespace gran::render
@@ -39,6 +41,10 @@ namespace gran::render
         // Картинка по источнику (относительный путь — от каталога разметки) / An image by the source (a relative path is from the markup directory)
         const ImageEntry& get(const std::string& source);
 
+        // Иконка .svg по источнику (разбор при первом обращении); nullptr — файл не прочитан или не подходит
+        // An .svg icon by the source (parsed on first access); nullptr — the file was not read or does not fit
+        const vector::Shape* shape(const std::string& source);
+
     private:
         // Загрузка и отправка на GPU / Loading and sending to the GPU
         ImageEntry load(const std::string& source);
@@ -46,6 +52,7 @@ namespace gran::render
         rhi::RenderBackend& _backend;
         std::string _base;
         std::map<std::string, ImageEntry> _entries;
+        std::map<std::string, std::shared_ptr<const vector::Shape>> _shapes;
     };
 }
 

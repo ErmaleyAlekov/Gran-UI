@@ -114,6 +114,12 @@ namespace gran::markup::internal
     // A content attribute (text, source, onClick...); false — it is not a content attribute
     bool readContentAttribute(ui::Node& node, std::string_view name, const std::string& value);
 
+    // ---- icon_shape.cpp ----
+
+    // Фигура <Icon data viewBox fillRule>; ошибка пути или viewBox — MarkupException с позицией элемента
+    // The <Icon data viewBox fillRule> shape; a path or viewBox error is MarkupException with the element position
+    void readIconShape(const beresta::Element& element, ui::Node& node);
+
     // ---- node_text.cpp ----
 
     // Текст тега по виду элемента; true — Text построен участками (его дети уже есть) / The tag text by the element kind; true — the Text is built from runs (its children exist already)

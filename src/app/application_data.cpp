@@ -36,7 +36,7 @@ namespace gran
         if (!acceptsElements(parent))
             throw GranException(ErrorCode::INVALID_ARGUMENT,
                 i18n::format(i18n::Message::MARKUP_FRAGMENT_PARENT, {ui::elementName(parent.kind)}));
-        std::unique_ptr<ui::Node> node = markup::buildFragment(markup, _state->document);
+        std::unique_ptr<ui::Node> node = markup::buildFragment(markup, app::windowOf(*_state, parent).document);
         ui::applyInitialStates(*node);
         return append(parent, std::move(node));
     }

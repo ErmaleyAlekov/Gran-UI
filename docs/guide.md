@@ -20,7 +20,8 @@
 12. [Всплывающие слои](#всплывающие-слои)
 13. [Встроенный браузер: WebView](#встроенный-браузер-webview)
 14. [Доступность](#доступность)
-15. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
+15. [Платформа: окна, файлы, иконки](#платформа-окна-файлы-иконки)
+16. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
 
 ## Быстрый старт
 
@@ -85,7 +86,7 @@ int main()
 
 ## Окно и ресурсы
 
-Корень документа — `<Window>`: `title`, `width`, `height` (по умолчанию 800 × 600), `minWidth`, `minHeight`,
+Корень документа — `<Window>`: `title`, `width`, `height` (по умолчанию 800 × 600), `minWidth`, `minHeight`, `onClose`,
 а также любые атрибуты оформления, которые наследуют дети (`background`, `color`, `fontSize`, `fontFamily`).
 Внутри — необязательный `<Resources>` и ровно один корневой элемент интерфейса.
 
@@ -118,7 +119,8 @@ int main()
 | `Scroll` | Прокрутка ровно одного ребёнка | `direction="vertical\|horizontal\|both"` |
 | `Text` | Текст, может содержать участки `Span` | `textWrap`, `textOverflow`, `maxLines`, `textAlign` |
 | `Span` | Участок оформленного текста внутри `Text` | шрифт, `color`, `background`, `textDecoration`, `onClick` (ссылка) |
-| `Image` | Картинка PNG | `source`, `fit="fill\|contain\|cover\|none"` |
+| `Icon` | Векторная иконка: путь SVG или файл `.svg`, цвет — `color` | `data`, `viewBox`, `fillRule`, `source` |
+| `Image` | Картинка PNG или JPEG | `source`, `fit="fill\|contain\|cover\|none"` |
 | `Button` | Кнопка с текстом или содержимым | `text`, `onClick`, `popup` (id своего меню или диалога) |
 | `Input` | Однострочное поле | `value`, `placeholder`, `maxLength`, `password`, `readOnly`, `onChange`, `onSubmit` |
 | `TextArea` | Многострочное поле с переносом и прокруткой | `rows`, `submitKey="ctrlEnter\|enter"`, `maxHeight`, `onSubmit` |
@@ -199,7 +201,7 @@ CSS: `padding="8"`, `"8 16"`, `"4 8 12 16"`.
 <Style name="ghost" basedOn="primary" background="transparent" borderWidth="1"/>
 ```
 
-- Состояния: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. Смена состояния плавная, если у свойства
+- Состояния: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`, `DropTarget` (над зоной `onDrop` несут файлы). Смена состояния плавная, если у свойства
   есть `transition`; состояние может и запустить анимацию: `<Hover animation="wiggle 0.4s"/>`.
 - `basedOn` наследует другой стиль. Тема по умолчанию задаёт стили с именами элементов (`Button`, `Input`,
   `TextArea`, `CheckBox`, `Slider`, `RadioButton`, `Switch`, `ProgressBar`, `Tabs`, `TabBar`, `TabHeader`, `Tab`,
@@ -315,7 +317,10 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 | `setValue(узел, число)` / `setChecked(узел, да/нет)` | Число `ProgressBar`/`Slider`, отметка `CheckBox`/`Switch`/`RadioButton` (без `onChange`) |
 | `post(задача)` | Выполнить функцию в потоке интерфейса (безопасно из любого потока) |
 | `setTimeout(секунды, функция)` / `setInterval(секунды, функция)` / `clearTimer(номер)` | Таймеры в потоке интерфейса |
-| `run()` | Цикл событий до закрытия окна; возвращает код выхода |
+| `openWindow(путь)` / `openWindowString(разметка)` / `closeWindow(узел)` | Ещё одно окно / закрыть окно узла |
+| `openFileDialog(параметры, несколько)` / `saveFileDialog` / `folderDialog` | Системные диалоги файлов |
+| `onFileDrop(имя, функция)` | Файлы, брошенные на элемент с `onDrop="имя"` |
+| `run()` | Цикл событий до закрытия главного окна; возвращает код выхода |
 
 Узел `gran::ui::Node` (`gran/ui/node.hpp`) хранит вид элемента, `id`, содержимое `content` (`text`, `value`,
 `checked`, `placeholder`…) и вычисленный стиль. После изменения содержимого из кода узел помечается
@@ -591,6 +596,74 @@ Microsoft UI Automation. Роль элемента берётся из его в
 Поток окна входит в однопоточный апартамент COM (как и для `WebView`): так UI Automation вызывает провайдер
 в потоке окна, через его очередь сообщений, и дерево не читается параллельно с изменениями. Если программа
 до создания окна перевела поток в многопоточный апартамент, дерево доступности окну не отдаётся.
+
+## Платформа: окна, файлы, иконки
+
+Образец всего раздела — `samples/platform.xml` (`gran_gallery samples/platform.xml`).
+
+**Несколько окон.** Первое загруженное окно (`loadFile`) — главное, его закрытие завершает `run()`. Ещё одно окно —
+`openWindow("окно.xml")`: у него своя тема, стили, данные и дерево, а действия (`onAction`), модели списков, таймеры
+и задачи — общие. Метод возвращает корень содержимого окна; окно появляется на ближайшем проходе цикла.
+`closeWindow(узел)` закрывает окно, которому принадлежит узел (после текущего прохода событий). `find(id)` ищет
+во всех окнах, начиная с главного.
+
+```xml
+<Window title="Настройки" width="380" height="200" onClose="settingsClosing">…</Window>
+```
+
+`onClose` — действие на попытку закрыть окно (крестик, Alt+F4). Если оно задано, окно не закрывается само: решает
+обработчик — `app.closeWindow(узел)` или ничего (например, сначала спросить о несохранённом). Без зарегистрированного
+обработчика окно закрывается как обычно.
+
+**Диалоги файлов.** Системные диалоги Windows, модальные над окном узла `owner` (по умолчанию — над главным).
+Пустой результат — пользователь отказался.
+
+```cpp
+gran::FileDialogOptions options;
+options.title = "Открыть картинку";
+options.filters = {{"Картинки", "*.png;*.jpg"}, {"Все файлы", "*.*"}};
+std::vector<std::string> files = app.openFileDialog(options, true, &node);   // несколько файлов
+std::string target = app.saveFileDialog(options);                           // спросит о замене файла
+std::string folder = app.folderDialog(options);
+```
+
+Поля параметров: `title`, `folder` (начальная папка), `fileName` (предлагаемое имя), `filters`, `defaultExtension`
+(без точки; добавляется при сохранении, если пользователь его не написал). Пути — в UTF-8.
+
+**Перетаскивание файлов.** Атрибут `onDrop="имя"` делает элемент зоной сброса. Пока над ней несут файлы, у неё
+состояние `DropTarget` (подсветка в стиле), над остальным окном курсор показывает «нельзя».
+
+```xml
+<Box onDrop="filesDropped" borderWidth="2" borderColor="#c3c8d2" transition="background 0.15s">
+  <DropTarget borderColor="#2f6fed" background="#eaf1ff"/>
+  <Text>Перетащите сюда файлы</Text>
+</Box>
+```
+
+```cpp
+app.onFileDrop("filesDropped", DropHandler{&app});   // void(ui::Node& зона, const std::vector<std::string>& пути)
+```
+
+**Иконки.** `<Icon>` рисует векторную фигуру цветом `color` (как текст, с переходами и анимациями цвета). Размер
+по умолчанию — размер `viewBox`; `width`/`height` растягивают иконку, растр строится под итоговый размер
+в пикселях устройства, поэтому иконка резкая при любом масштабе и DPI.
+
+```xml
+<Icon data="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z" color="$accent"/>      <!-- viewBox по умолчанию 0 0 24 24 -->
+<Icon data="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20zM12 6a6 6 0 1 0 0 12a6 6 0 1 0 0-12z" fillRule="evenodd"/>
+<Icon source="icons/folder.svg" width="32" height="32"/>
+```
+
+- `data` — путь SVG: все команды (`M L H V C S Q T A Z`, в обоих регистрах), неверный путь — ошибка загрузки
+  разметки с позицией. `viewBox` и `fillRule` (`nonzero` или `evenodd`) — только вместе с `data`.
+- `source` — файл `.svg`: учитываются `viewBox` (или `width`/`height`) и залитые `<path>`, `<rect>` (со скруглением),
+  `<circle>`, `<ellipse>`, `<polygon>`, `<polyline>` внутри любых `<g>`, `fill="none"` пропускается. Обводки,
+  `transform` и стили CSS не поддерживаются — для иконок с обводкой (Lucide, Feather) нужен вариант с заливкой.
+- Испорченный или недоступный файл, как у `Image`, не останавливает окно: иконка просто не рисуется.
+
+**JPEG.** `Image` понимает PNG и JPEG (формат — по содержимому файла, а не по расширению): последовательный
+и прогрессивный JPEG, серый и цветной, любая субдискретизация цветности. CMYK, 12 бит и арифметическое кодирование
+не поддерживаются.
 
 ## Ошибки и язык сообщений
 

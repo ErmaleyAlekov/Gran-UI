@@ -86,6 +86,8 @@ namespace gran::markup::internal
         node->column = element.getSourceLocation().column;
         readNodeAttributes(element, *node, context);
         readStates(element, node->declared, context);
+        if (node->kind == ui::ElementKind::ICON)
+            readIconShape(element, *node);
         if (!readTagText(element, *node, context))
             buildChildren(element, *node, context);
         if (node->kind == ui::ElementKind::COMBO_BOX)

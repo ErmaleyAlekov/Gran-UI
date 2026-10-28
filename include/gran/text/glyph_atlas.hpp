@@ -21,13 +21,20 @@ namespace gran::text
         std::uint16_t height = 0;
     };
 
-    // Ключ растра: начертание, глиф, размер в ¼ px, подпиксельный сдвиг 0..3 / A raster key: the face, the glyph, the size in ¼ px, the subpixel shift 0..3
+    /*
+    ** Ключ растра: начертание, глиф, размер в ¼ px, подпиксельный сдвиг 0..3. Растр не из шрифта
+    ** (иконка): face = nullptr, shape — номер фигуры, quarterSize и glyph — ширина и высота в ¼ px.
+    **
+    ** A raster key: the face, the glyph, the size in ¼ px, the subpixel shift 0..3. A raster not from a font
+    ** (an icon): face = nullptr, shape is the shape number, quarterSize and glyph are the width and height in ¼ px.
+    */
     struct GlyphKey
     {
         const FontFace* face = nullptr;
         std::uint16_t glyph = 0;
         std::uint16_t quarterSize = 0;
         std::uint8_t subpixel = 0;
+        std::uint32_t shape = 0;
 
         // ---- atlas_key.cpp ----
         bool operator==(const GlyphKey& other) const noexcept;
@@ -37,6 +44,16 @@ namespace gran::text
     struct GlyphKeyHash
     {
         std::size_t operator()(const GlyphKey& key) const noexcept;
+    };
+
+    // Источник растра не из шрифта (иконка): растеризует по требованию атласа / A raster source not from a font (an icon): rasterizes on the atlas demand
+    class RasterSource
+    {
+    public:
+        virtual ~RasterSource() = default;
+
+        // Растр; false — пусто / The raster; false — empty
+        virtual bool rasterize(GlyphBitmap& bitmap) = 0;
     };
 
     /*
@@ -68,6 +85,12 @@ namespace gran::text
 
         // Номер поколения: меняется при росте и сбросе / The generation number: changes on growing and resetting
         std::uint32_t generation() const noexcept;
+
+        // ---- atlas_insert.cpp ----
+
+        // Растр не из шрифта по ключу; source вызывается только при промахе; nullptr — растр пуст
+        // A raster not from a font by the key; source is called only on a miss; nullptr — the raster is empty
+        const AtlasEntry* raster(const GlyphKey& key, RasterSource& source);
 
     private:
         // ---- atlas_insert.cpp ----

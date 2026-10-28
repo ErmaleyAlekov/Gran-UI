@@ -36,10 +36,10 @@ namespace gran::render
     }
 
     /*
-    ** Чтение файла, декодирование PNG, текстура RGBA8 с предумноженной альфой. Ошибка
+    ** Чтение файла, декодирование (PNG или JPEG — по подписи), текстура RGBA8 с предумноженной альфой. Ошибка
     ** чтения, формата или нехватка слотов — запись failed (окно продолжает работать).
     **
-    ** Reading the file, decoding the PNG, an RGBA8 texture with premultiplied alpha. A read
+    ** Reading the file, decoding (PNG or JPEG — by the signature), an RGBA8 texture with premultiplied alpha. A read
     ** or format error or running out of slots — a failed entry (the window keeps working).
     */
     ImageEntry ImageStore::load(const std::string& source)
@@ -55,7 +55,7 @@ namespace gran::render
             return entry;
         try
         {
-            picture = image::decodePng(data.data(), data.size(), source);
+            picture = image::decodeImage(data.data(), data.size(), source);
             entry.slot = _backend.createTexture(rhi::TextureDesc{picture.width, picture.height, rhi::TextureFormat::RGBA8,
                 "gran.image"});
         }
@@ -69,5 +69,26 @@ namespace gran::render
             picture.pixels.data(), picture.width * 4);
         entry = ImageEntry{entry.slot, picture.width, picture.height, false};
         return entry;
+    }
+
+    // Ошибка запоминается пустой записью, как у картинок: окно продолжает работать / An error is remembered as an empty entry, as for images: the window keeps working
+    const vector::Shape* ImageStore::shape(const std::string& source)
+    {
+        auto found = _shapes.find(source);
+
+        if (found == _shapes.end())
+        {
+            std::shared_ptr<const vector::Shape> loaded;
+            try
+            {
+                loaded = vector::loadSvgFile((std::filesystem::path(_base) / source).string());
+            }
+            catch (const GranException&)
+            {
+                loaded.reset();
+            }
+            found = _shapes.emplace(source, std::move(loaded)).first;
+        }
+        return found->second.get();
     }
 }

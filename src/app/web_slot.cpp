@@ -18,8 +18,8 @@ namespace gran::app
         }
     }
 
-    WebSlot::WebSlot(Application::State& owner, ui::Node& webView) noexcept
-        : state(owner), node(&webView)
+    WebSlot::WebSlot(AppWindow& owner, ui::Node& webView) noexcept
+        : window(owner), node(&webView)
     {
     }
 
@@ -29,7 +29,7 @@ namespace gran::app
     {
         try
         {
-            state.webInbox.push_back(WebMessage{node, message});
+            window.shared.webInbox.push_back(WebMessage{node, message});
         }
         catch (...)
         {

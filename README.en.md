@@ -120,7 +120,10 @@ return app.run();
   the browser is created lazily, the page lives in a separate process, the bridge to the program is string messages.
 - Accessibility: Microsoft UI Automation provider — screen readers see buttons, fields, checkboxes, sliders, and texts
   and control them by themselves (press, toggle, select, type text, set a number); names — `accessibleName` and `labeledBy`.
-- PNG — custom decoder and custom inflate. Error messages are in Russian and English.
+- Several windows (`openWindow`), `onClose` with confirmation, the system open, save and folder dialogs,
+  dragging files from Explorer onto an `onDrop` zone with a highlight.
+- Vector icons `<Icon>`: an SVG path or an `.svg` file, crisp at any scale, colored like text.
+- PNG and JPEG (progressive too) — custom decoders and custom inflate. Error messages are in Russian and English.
 
 ### Engineering Quality
 - **No third-party dependencies:** standard C++17 library, Windows SDK, and Beresta.

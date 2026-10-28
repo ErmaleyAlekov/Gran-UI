@@ -13,7 +13,7 @@ namespace gran::markup::internal
             {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
             {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage},
             {"popup", &C::popup}, {"group", &C::group}, {"accessibleName", &C::accessibleName},
-            {"labeledBy", &C::labeledBy}};
+            {"labeledBy", &C::labeledBy}, {"onDrop", &C::onDrop}};
 
         // Числовые поля / The numeric fields
         const struct { const char* name; float C::* member; } NUMBERS[] = {

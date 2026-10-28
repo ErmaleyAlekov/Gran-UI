@@ -27,7 +27,7 @@ namespace gran
     void Application::postWebMessage(ui::Node& webView, const std::string& message)
     {
         requireWebView(webView);
-        app::WebSlot& slot = app::webSlot(*_state, webView);
+        app::WebSlot& slot = app::webSlot(app::windowOf(*_state, webView), webView);
         if (slot.view)
             slot.view->postMessage(message);
         else

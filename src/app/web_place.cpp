@@ -40,17 +40,17 @@ namespace gran::app
     ** the bounds and visibility are passed only on a change — a frame without WebView movement
     ** does not call the browser at all.
     */
-    void placeWebView(Application::State& state, ui::Node& node, const Rect& clip, std::uint32_t pass)
+    void placeWebView(AppWindow& win, ui::Node& node, const Rect& clip, std::uint32_t pass)
     {
-        WebSlot& slot = webSlot(state, node);
-        float scale = state.window->scale();
+        WebSlot& slot = webSlot(win, node);
+        float scale = win.window->scale();
         Rect content = contentRect(node);
         Rect full = scaled(content, scale);
         Rect visible = scaled(rectIntersect(content, clip), scale);
 
         slot.pass = pass;
         if (!slot.created)
-            openWebView(state, slot);
+            openWebView(win, slot);
         if (!slot.view)
             return;
         if (!sameRect(full, slot.full) || !sameRect(visible, slot.visible))
@@ -60,6 +60,6 @@ namespace gran::app
         if (!slot.shown)
             slot.view->setVisible(true);
         slot.shown = true;
-        sendContent(state, slot);
+        sendContent(win, slot);
     }
 }

@@ -28,13 +28,19 @@ namespace gran
     // ListBindings::removeNode drops the list bindings and destroys the node itself
     void Application::State::nodeRemoving(const ui::Node& node) noexcept
     {
-        app::forgetWebViews(*this, node);
-        if (router)
-            router->forget(node);
-        forgetAnimations(animator, node);
-        if (insideTree(access.focus, node))
-            access.focus = nullptr;
-        if (insideTree(pendingFocus, node))
-            pendingFocus = nullptr;
+        app::AppWindow* win = app::findWindow(*this, node);
+
+        if (win == nullptr)
+            return;
+        app::forgetWebViews(*win, node);
+        if (win->router)
+            win->router->forget(node);
+        forgetAnimations(win->animator, node);
+        if (insideTree(win->access.focus, node))
+            win->access.focus = nullptr;
+        if (insideTree(win->pendingFocus, node))
+            win->pendingFocus = nullptr;
+        if (insideTree(win->dropNode, node))
+            win->dropNode = nullptr;
     }
 }

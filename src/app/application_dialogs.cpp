@@ -18,17 +18,21 @@ namespace gran
     // Место диалога считает компоновка (центр окна), якорь не нужен / The layout computes the dialog place (the window center), no anchor is needed
     void Application::showDialog(ui::Node& dialog)
     {
+        input::InputRouter* router = app::routerOf(*_state, dialog);
+
         requireKind(dialog, ui::ElementKind::DIALOG);
-        if (_state->router)
-            _state->router->openPopup(dialog, Rect{}, false);
+        if (router != nullptr)
+            router->openPopup(dialog, Rect{}, false);
     }
 
     // Закрытие закрывает и открытые внутри меню и списки / Closing also closes the menus and lists open inside
     void Application::hideDialog(ui::Node& dialog)
     {
+        input::InputRouter* router = app::routerOf(*_state, dialog);
+
         requireKind(dialog, ui::ElementKind::DIALOG);
-        if (_state->router)
-            _state->router->closePopup(dialog);
+        if (router != nullptr)
+            router->closePopup(dialog);
     }
 
     // Работает и до run(): выбор — свойство разметки, а не ввода / Works before run() too: the choice is a markup property, not an input one
