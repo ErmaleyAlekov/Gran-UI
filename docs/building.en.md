@@ -122,6 +122,9 @@ Normal builds use embedded `*_spv.cpp` without DXC or downloading SDK components
 ## Linux
 
 Build requirements are C++17, Beresta, Vulkan SDK/system development headers and system X11 headers.
+The engine does not link `libvulkan`: the system loader `libvulkan.so.1` is opened through `dlopen` when the graphics
+are created. So the program starts without the Vulkan package too and shows a clear error with the package name
+(`libvulkan1` / `vulkan-loader`, `mesa-vulkan-drivers` to work without a GPU) instead of an OS loader refusal.
 Runtime uses the Vulkan loader, a GPU driver or Mesa lavapipe, and `libX11.so.6` for windows.
 No SDL, GLFW, Qt, GTK, FreeType or Fontconfig is added. X11 headers belong to the system window SDK;
 Xlib is the native Linux window service used by this backend. A Vulkan SDK is unnecessary at runtime.
@@ -144,7 +147,7 @@ env -u DISPLAY ./build/bin/gran_snapshot tests/render/scenes/glass.xml glass.png
 `gran_vulkan_cpu` tests real CPU Vulkan offscreen. `-DGRAN_BUILD_WINDOW_TESTS=ON` also registers
 `gran_x11_vulkan`, which needs a running X11/XWayland server. Install the system Khronos validation
 layer for strict checks; runtime continues without it when unavailable. Tests reject validation diagnostics.
-For direct linking use `-lvulkan -lX11 -ldl -pthread`; CMake propagates these through the `gran` target.
+For direct linking use `-lX11 -ldl -pthread` (the engine does not link `libvulkan`); CMake propagates these through the `gran` target.
 
 Astra Linux, ALT and RED OS use the same build path and OS capabilities, without distro-name checks.
 Use packages from the particular edition's repositories. Build binaries in the oldest target environment;

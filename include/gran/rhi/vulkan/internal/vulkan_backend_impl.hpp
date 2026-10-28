@@ -5,7 +5,7 @@
 #include "gran/rhi/vulkan/internal/owned.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
-#include <vulkan/vulkan.h>
+#include "gran/rhi/vulkan/internal/vulkan_api.hpp"
 #include <array>
 #include <algorithm>
 #include <limits>

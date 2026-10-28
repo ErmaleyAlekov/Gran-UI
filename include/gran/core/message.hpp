@@ -89,6 +89,7 @@ namespace gran::i18n
         CAPI_BUSY,
         CAPI_UNKNOWN,
         PLATFORM_FILE_DIALOG_TOOL,
+        GPU_VULKAN_LOADER,
         COUNT
     };
 }

@@ -1,6 +1,6 @@
 #ifndef GRAN_RHI_VULKAN_PIPELINE_STATE_HPP
 #define GRAN_RHI_VULKAN_PIPELINE_STATE_HPP
-#include <vulkan/vulkan.h>
+#include "gran/rhi/vulkan/internal/vulkan_api.hpp"
 
 namespace gran::rhi::vk
 {
