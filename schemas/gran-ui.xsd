@@ -388,6 +388,8 @@
       <xs:element name="Focused" type="StateType" minOccurs="0"/>
       <xs:element name="Disabled" type="StateType" minOccurs="0"/>
       <xs:element name="Checked" type="StateType" minOccurs="0"/>
+      <!-- Над зоной onDrop несут файлы / Files are carried over an onDrop zone -->
+      <xs:element name="DropTarget" type="StateType" minOccurs="0"/>
     </xs:sequence>
   </xs:group>
 
@@ -402,6 +404,7 @@
       <xs:element name="Scroll" type="ScrollType"/>
       <xs:element name="Text" type="TextType"/>
       <xs:element name="Image" type="ImageType"/>
+      <xs:element name="Icon" type="IconType"/>
       <xs:element name="Button" type="ButtonType"/>
       <xs:element name="Input" type="InputType"/>
       <xs:element name="CheckBox" type="CheckBoxType"/>
@@ -437,6 +440,8 @@
     <xs:attribute name="accessibleName" type="xs:string"/>
     <xs:attribute name="labeledBy" type="xs:NCName"/>
     <xs:attribute name="onClick" type="Action"/>
+    <!-- Действие на файлы, перетащенные на элемент (Application::onFileDrop) / The action for files dragged onto the element (Application::onFileDrop) -->
+    <xs:attribute name="onDrop" type="Action"/>
     <xs:attribute name="overflow" type="Overflow"/>
     <xs:attribute name="transition" type="Transitions"/>
     <xs:attribute name="animation" type="Animations"/>
@@ -583,6 +588,35 @@
       <xs:extension base="ElementBase">
         <xs:attribute name="source" type="xs:string" use="required"/>
         <xs:attribute name="fit" type="ImageFit"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Векторная иконка: путь SVG (data, в системе координат viewBox, по умолчанию 0 0 24 24) или файл .svg
+    (source). Цвет — свойство color (как у текста), размер по умолчанию — размер viewBox.
+    A vector icon: an SVG path (data, in the viewBox coordinate system, 0 0 24 24 by default) or an .svg file
+    (source). The color is the color property (as for text), the default size is the viewBox size.
+  -->
+  <xs:simpleType name="FillRule">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="nonzero"/>
+      <xs:enumeration value="evenodd"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="IconType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:attribute name="data" type="xs:string"/>
+        <xs:attribute name="source" type="xs:string"/>
+        <xs:attribute name="viewBox" type="xs:string"/>
+        <xs:attribute name="fillRule" type="FillRule"/>
+        <!-- Ровно один источник; viewBox и fillRule — только у data (у файла они свои) -->
+        <!-- Exactly one source; viewBox and fillRule — only with data (a file has its own) -->
+        <xs:assert test="(@data and not(@source)) or (@source and not(@data))"/>
+        <xs:assert test="@data or (not(@viewBox) and not(@fillRule))"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>

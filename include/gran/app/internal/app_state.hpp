@@ -36,6 +36,7 @@ namespace gran
         binding::ListBindings lists{this};
         std::vector<app::WebMessage> webInbox;
         std::map<std::string, WebMessageHandler> webHandlers;
+        std::map<std::string, FileDropHandler> dropHandlers;
         // Задачи других потоков (post) под замком; wakeTarget — главное окно, пока идёт run() / The tasks of other threads (post) under the lock; wakeTarget — the main window while run() goes on
         std::mutex taskMutex;
         std::vector<Task> tasks;

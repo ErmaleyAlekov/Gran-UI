@@ -68,6 +68,9 @@ namespace gran::app
         animation::Animator animator;
         // Фокус, запрошенный до создания маршрутизатора ввода / The focus requested before the input router exists
         ui::Node* pendingFocus = nullptr;
+        // Зона onDrop, над которой сейчас несут файлы, и зоны, переданные окну ОС / The onDrop zone files are carried over now and the zones passed to the OS window
+        ui::Node* dropNode = nullptr;
+        std::vector<Rect> dropZones;
         // Окно просили закрыть (крестик, closeWindow): закрывается после прохода событий / The window was asked to close (the cross, closeWindow): it closes after the event pass
         bool closing = false;
         // Окну нужен кадр в этом проходе цикла / The window needs a frame in this loop pass
@@ -138,6 +141,16 @@ namespace gran::app
 
     // Сколько окну можно спать (отрицательное — без предела) / How long the window may sleep (negative — no limit)
     double windowSleep(const AppWindow& win, double time);
+
+    // ---- file_drop.cpp ----
+
+    // События перетаскивания файлов: подсветка зоны и доставка путей обработчику; true — нужен кадр / The file drag events: the zone highlight and delivering the paths to the handler; true — a frame is needed
+    bool handleDrag(AppWindow& win, const platform::Event& event);
+
+    // ---- drop_zones.cpp ----
+
+    // После кадра: видимые зоны onDrop (с отсечением предков) — окну ОС, если изменились / After a frame: the visible onDrop zones (with the ancestor clipping) go to the OS window if they changed
+    void syncDropZones(AppWindow& win);
 
     // ---- application_access.cpp ----
 

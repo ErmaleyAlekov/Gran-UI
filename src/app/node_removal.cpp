@@ -40,5 +40,7 @@ namespace gran
             win->access.focus = nullptr;
         if (insideTree(win->pendingFocus, node))
             win->pendingFocus = nullptr;
+        if (insideTree(win->dropNode, node))
+            win->dropNode = nullptr;
     }
 }

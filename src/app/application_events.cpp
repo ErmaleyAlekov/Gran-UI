@@ -42,6 +42,8 @@ namespace gran::app
             case platform::EventKind::RESIZE: win.backend->resize(event.width, event.height); break;
             case platform::EventKind::DPI_CHANGED: break;
             case platform::EventKind::EXPOSE: return true;
+            case platform::EventKind::DRAG_MOVE: case platform::EventKind::DRAG_LEAVE:
+            case platform::EventKind::DROP: return handleDrag(win, event);
             default:
                 if (event.kind == platform::EventKind::MOUSE_DOWN || event.kind == platform::EventKind::KEY_DOWN
                     || event.kind == platform::EventKind::MOUSE_WHEEL)

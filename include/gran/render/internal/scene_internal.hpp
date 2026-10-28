@@ -225,6 +225,11 @@ namespace gran::render::internal
     // Картинка узла Image по imageFit в прямоугольнике содержимого / The Image node picture by imageFit in the content rectangle
     void paintImage(const ui::Node& node, const PaintState& state, SceneContext& context);
 
+    // ---- paint_icon.cpp ----
+
+    // Векторная иконка: растр в атласе глифов под итоговый размер, цвет — color узла / A vector icon: a raster in the glyph atlas for the final size, the color is the node color
+    void paintIcon(const ui::Node& node, const PaintState& state, SceneContext& context);
+
     // ---- paint_scrollbar.cpp ----
 
     // Тонкие полосы прокрутки поверх содержимого Scroll / Thin scrollbars over the Scroll content

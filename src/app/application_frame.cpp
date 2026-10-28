@@ -91,6 +91,7 @@ namespace gran
             syncAccessFocus(win);
             win.window->accessRefresh();
             syncWebViews(win);
+            syncDropZones(win);
         }
     }
 }

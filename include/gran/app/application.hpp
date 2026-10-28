@@ -3,6 +3,7 @@
 
 #include "gran/app/timer_queue.hpp"
 #include "gran/binding/list_bindings.hpp"
+#include "gran/platform/file_dialog.hpp"
 #include "gran/ui/node.hpp"
 
 #include <cstddef>
@@ -10,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace gran
 {
@@ -19,12 +21,19 @@ namespace gran
     // Обработчик строки из страницы <WebView onMessage="имя"> / A handler of a string from a <WebView onMessage="name"> page
     using WebMessageHandler = std::function<void(ui::Node& webView, const std::string& message)>;
 
+    // Обработчик файлов, брошенных на элемент <… onDrop="имя">: пути в UTF-8 / A handler of files dropped onto an <… onDrop="name"> element: the paths in UTF-8
+    using FileDropHandler = std::function<void(ui::Node& node, const std::vector<std::string>& files)>;
+
     // Задача для потока интерфейса (Application::post) / A task for the UI thread (Application::post)
     using Task = std::function<void()>;
 
     // Запись списка, к которой относится узел (Application::itemOf); model == nullptr — узел не из списка
     // The list record a node belongs to (Application::itemOf); model == nullptr — the node is not from a list
     using ItemRef = binding::ItemRef;
+
+    // Тип файлов и параметры системного диалога файлов / A file type and the system file dialog parameters
+    using FileFilter = platform::FileFilter;
+    using FileDialogOptions = platform::FileDialogOptions;
 
     // Номер таймера (Application::setTimeout/setInterval); 0 — «нет таймера» / A timer number (Application::setTimeout/setInterval); 0 — "no timer"
     using TimerId = app::TimerId;
@@ -89,6 +98,41 @@ namespace gran
         ** are invalid after that). The main window — leaving run(). A node not from a window — nothing.
         */
         void closeWindow(ui::Node& node);
+
+        // ---- file_drop.cpp: перетаскивание файлов (только поток интерфейса) ----
+        // ---- file_drop.cpp: dragging files (the UI thread only) ----
+
+        /*
+        ** Обработчик файлов, брошенных на элемент с onDrop="name" (из Проводника и других программ).
+        ** Пока файлы несут над таким элементом, у него состояние <DropTarget> (подсветка в стиле);
+        ** над остальными местами окна ОС показывает курсор «нельзя».
+        **
+        ** The handler of files dropped onto an element with onDrop="name" (from Explorer and other programs).
+        ** While files are carried over such an element, it has the <DropTarget> state (a highlight in the style);
+        ** over the other window places the OS shows the "no" cursor.
+        */
+        void onFileDrop(const std::string& name, FileDropHandler handler);
+
+        // ---- application_files.cpp: системные диалоги файлов (только поток интерфейса) ----
+        // ---- application_files.cpp: the system file dialogs (the UI thread only) ----
+
+        /*
+        ** Модальный диалог открытия над окном узла owner (nullptr — над главным): пути выбранных
+        ** файлов в UTF-8 (multiple — можно выбрать несколько); пусто — пользователь отказался.
+        ** Код после вызова продолжается, когда диалог закрыт. Ошибка ОС — GranException(PLATFORM).
+        **
+        ** A modal open dialog over the owner node window (nullptr — over the main one): the paths of the chosen
+        ** files in UTF-8 (multiple — several can be chosen); empty — the user cancelled.
+        ** The code after the call continues when the dialog is closed. An OS error is GranException(PLATFORM).
+        */
+        std::vector<std::string> openFileDialog(const FileDialogOptions& options, bool multiple = false,
+            const ui::Node* owner = nullptr);
+
+        // Диалог сохранения (с вопросом о замене файла); пусто — отказ / A save dialog (asking before replacing a file); empty — cancelled
+        std::string saveFileDialog(const FileDialogOptions& options, const ui::Node* owner = nullptr);
+
+        // Выбор папки; пусто — отказ / Choosing a folder; empty — cancelled
+        std::string folderDialog(const FileDialogOptions& options, const ui::Node* owner = nullptr);
 
         // ---- application_frame.cpp ----
 

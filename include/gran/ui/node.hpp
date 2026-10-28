@@ -3,6 +3,7 @@
 
 #include "gran/style/style_sheet.hpp"
 #include "gran/utils/geometry.hpp"
+#include "gran/vector/shape.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,20 +14,20 @@
 namespace gran::ui
 {
     /*
-    ** Вид элемента разметки. Виды до TAB включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** Вид элемента разметки. Виды до ICON включительно пишутся в разметке; TAB_BAR и TAB_HEADER
     ** строит движок (полоса заголовков <Tabs>), у них только стили темы TabBar и TabHeader.
     **
-    ** The markup element kind. The kinds up to TAB inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** The markup element kind. The kinds up to ICON inclusive are written in the markup; TAB_BAR and TAB_HEADER
     ** are built by the engine (the <Tabs> header strip), they have only the theme styles TabBar and TabHeader.
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
-        DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, TAB_BAR, TAB_HEADER
+        DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, TAB_BAR, TAB_HEADER
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::TAB;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::ICON;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -79,6 +80,10 @@ namespace gran::ui
         std::string items;
         // Действие на строку из страницы <WebView> (Application::onWebMessage) / The action for a string from a <WebView> page (Application::onWebMessage)
         std::string onMessage;
+        // Фигура <Icon data="…"> (из разметки; иконка из файла source — у рендерера) / The <Icon data="…"> shape (from the markup; an icon from the source file is the renderer's)
+        std::shared_ptr<const vector::Shape> shape;
+        // Действие на перетащенные файлы (Application::onFileDrop): элемент — зона сброса / The action for dragged files (Application::onFileDrop): the element is a drop zone
+        std::string onDrop;
         float minimum = 0.0f;
         float maximum = 100.0f;
         float value = 0.0f;

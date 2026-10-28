@@ -89,6 +89,7 @@ namespace gran::layout::internal
             case ui::ElementKind::PROGRESS_BAR:
                 return Size{160.0f, std::round(node.computed.fontSize * 0.5f)};
             case ui::ElementKind::IMAGE:
+            case ui::ElementKind::ICON:
                 return imageLeafSize(node, contentAvailable, pass);
             default:
                 return Size{0.0f, 0.0f};

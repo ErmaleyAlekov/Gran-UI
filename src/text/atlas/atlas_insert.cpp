@@ -39,4 +39,24 @@ namespace gran::text
             static_cast<std::uint16_t>(height)};
         return &entry;
     }
+
+    // Как glyph(), но растр даёт источник; пустой растр тоже запоминается / As glyph(), but the source gives the raster; an empty raster is remembered too
+    const AtlasEntry* GlyphAtlas::raster(const GlyphKey& key, RasterSource& source)
+    {
+        auto found = _entries.find(key);
+        GlyphBitmap bitmap;
+
+        if (found != _entries.end())
+        {
+            if (found->second.width == 0)
+                return nullptr;
+            return &found->second;
+        }
+        if (!source.rasterize(bitmap) || bitmap.width <= 0)
+        {
+            _entries[key] = AtlasEntry{};
+            return nullptr;
+        }
+        return insert(key, bitmap);
+    }
 }

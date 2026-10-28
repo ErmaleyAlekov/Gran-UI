@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace gran::a11y
 {
@@ -15,11 +16,17 @@ namespace gran::a11y
 
 namespace gran::platform
 {
-    // Вид события окна / The window event kind
+    /*
+    ** Вид события окна. Перетаскивание файлов: DRAG_MOVE — файлы несут над окном (позиция),
+    ** DRAG_LEAVE — унесли или отменили, DROP — бросили (позиция; пути — Window::takeDroppedFiles).
+    **
+    ** The window event kind. Dragging files: DRAG_MOVE — files are carried over the window (the position),
+    ** DRAG_LEAVE — carried away or cancelled, DROP — dropped (the position; the paths — Window::takeDroppedFiles).
+    */
     enum class EventKind : std::uint8_t
     {
         CLOSE, RESIZE, DPI_CHANGED, EXPOSE, MOUSE_MOVE, MOUSE_DOWN, MOUSE_UP, MOUSE_WHEEL, MOUSE_LEAVE,
-        KEY_DOWN, KEY_UP, CHARACTER, FOCUS_GAINED, FOCUS_LOST
+        KEY_DOWN, KEY_UP, CHARACTER, FOCUS_GAINED, FOCUS_LOST, DRAG_MOVE, DRAG_LEAVE, DROP
     };
 
     // Кнопка мыши / A mouse button
@@ -119,6 +126,21 @@ namespace gran::platform
         // Текст буфера обмена / The clipboard text
         virtual std::string clipboardText() = 0;
         virtual void setClipboardText(const std::string& text) = 0;
+
+        /*
+        ** Области окна (логические пиксели), принимающие файлы. Пусто — окно файлов не принимает
+        ** (курсор «нельзя»). Окно отвечает ОС по этим областям само, не обращаясь к дереву UI:
+        ** запрос ОС может прийти посреди обработчика (модальный диалог, изменение размера).
+        **
+        ** The window areas (logical pixels) that accept files. Empty — the window accepts no files
+        ** (the "no" cursor). The window answers the OS by these areas itself without touching the UI tree:
+        ** an OS request may come in the middle of a handler (a modal dialog, resizing).
+        ** По умолчанию (window_defaults.cpp) окно файлов не принимает. / By default (window_defaults.cpp) the window accepts no files.
+        */
+        virtual void setDropZones(const std::vector<Rect>& zones);
+
+        // Пути файлов самого раннего ещё не забранного события DROP (UTF-8) / The file paths of the earliest DROP event not taken yet (UTF-8)
+        virtual std::vector<std::string> takeDroppedFiles();
 
         // Дерево доступности для вспомогательных технологий ОС (nullptr — отключить) / The accessibility tree for the OS assistive technologies (nullptr — disconnect)
         virtual void setAccessTree(a11y::AccessTree* tree) = 0;

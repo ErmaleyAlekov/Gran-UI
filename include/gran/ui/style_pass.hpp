@@ -6,7 +6,7 @@
 namespace gran::ui
 {
     // Число видов элементов / The element kind count
-    constexpr std::size_t ELEMENT_KIND_COUNT = 25;
+    constexpr std::size_t ELEMENT_KIND_COUNT = 26;
 
     // Встроенные стили видов элементов (индекс — ElementKind); nullptr — без стиля
     // The built-in element kind styles (the index is ElementKind); nullptr — no style

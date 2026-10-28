@@ -9,7 +9,7 @@ namespace gran::a11y
         switch (node.kind)
         {
             case ui::ElementKind::TEXT: return Role::TEXT;
-            case ui::ElementKind::IMAGE: return Role::IMAGE;
+            case ui::ElementKind::IMAGE: case ui::ElementKind::ICON: return Role::IMAGE;
             case ui::ElementKind::BUTTON: return Role::BUTTON;
             case ui::ElementKind::INPUT: return Role::EDIT;
             case ui::ElementKind::TEXT_AREA: return Role::EDIT;

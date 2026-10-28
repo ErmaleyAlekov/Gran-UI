@@ -70,4 +70,25 @@ namespace gran::render
         entry = ImageEntry{entry.slot, picture.width, picture.height, false};
         return entry;
     }
+
+    // Ошибка запоминается пустой записью, как у картинок: окно продолжает работать / An error is remembered as an empty entry, as for images: the window keeps working
+    const vector::Shape* ImageStore::shape(const std::string& source)
+    {
+        auto found = _shapes.find(source);
+
+        if (found == _shapes.end())
+        {
+            std::shared_ptr<const vector::Shape> loaded;
+            try
+            {
+                loaded = vector::loadSvgFile((std::filesystem::path(_base) / source).string());
+            }
+            catch (const GranException&)
+            {
+                loaded.reset();
+            }
+            found = _shapes.emplace(source, std::move(loaded)).first;
+        }
+        return found->second.get();
+    }
 }
