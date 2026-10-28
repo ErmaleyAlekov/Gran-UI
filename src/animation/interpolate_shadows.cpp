@@ -45,6 +45,9 @@ namespace gran::animation::internal
             start = style::Paint{style::PaintKind::COLOR, Color{end.color.r, end.color.g, end.color.b, 0.0f}, {}};
         if (end.kind == style::PaintKind::NONE && start.kind == style::PaintKind::COLOR)
             end = style::Paint{style::PaintKind::COLOR, Color{start.color.r, start.color.g, start.color.b, 0.0f}, {}};
+        // Градиенты не смешиваются: в точке начала — начало, дальше — конец / Gradients are not mixed: at the start point — the start, further on — the end
+        if ((start.kind != style::PaintKind::COLOR || end.kind != style::PaintKind::COLOR) && k <= 0.0f)
+            return from;
         if (start.kind != style::PaintKind::COLOR || end.kind != style::PaintKind::COLOR)
             return result;
         result.kind = style::PaintKind::COLOR;

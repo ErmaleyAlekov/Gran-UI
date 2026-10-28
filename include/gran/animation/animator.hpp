@@ -1,6 +1,7 @@
 #ifndef GRAN_ANIMATION_ANIMATOR_HPP
 #define GRAN_ANIMATION_ANIMATOR_HPP
 
+#include "gran/animation/keyframes.hpp"
 #include "gran/ui/style_pass.hpp"
 
 #include <cstdint>
@@ -8,29 +9,6 @@
 
 namespace gran::animation
 {
-    // Анимируемые свойства (не влияют на компоновку — анимация не вызывает перекомпоновку)
-    // The animatable properties (they do not affect layout — an animation causes no relayout)
-    enum class Animated : std::uint8_t
-    {
-        BACKGROUND, BORDER_COLOR, COLOR, OPACITY, TRANSFORM, BOX_SHADOW, BORDER_RADIUS, ACCENT_COLOR, COUNT
-    };
-
-    // Число анимируемых свойств / The animatable property count
-    constexpr std::size_t ANIMATED_COUNT = static_cast<std::size_t>(Animated::COUNT);
-
-    // Значения анимируемых свойств / The animatable property values
-    struct VisualState
-    {
-        style::Paint background;
-        Color borderColor;
-        Color color;
-        float opacity = 1.0f;
-        style::Transform transform;
-        std::vector<style::Shadow> shadows;
-        CornerRadii radius;
-        Color accent;
-    };
-
     // Ход одного свойства: начало, задержка, длительность, кривая / The course of one property: the start, the delay, the duration, the curve
     struct Track
     {
@@ -50,6 +28,17 @@ namespace gran::animation
         std::uint32_t mask = 0;
     };
 
+    // Анимация по ключевым кадрам на узле: описание, время запуска, кадры, закончилась ли
+    // A keyframe animation on a node: the description, the start time, the frames, whether it has finished
+    struct KeyframeRun
+    {
+        ui::Node* node = nullptr;
+        style::AnimationSpec spec;
+        double start = 0.0;
+        FrameTrack track;
+        bool finished = false;
+    };
+
     /*
     ** Переходы CSS (transition). При пересчёте стиля узла (смена состояния hover/pressed...)
     ** изменившиеся анимируемые свойства с описанным переходом не прыгают к новому значению,
@@ -60,6 +49,16 @@ namespace gran::animation
     ** the changed animatable properties with a described transition do not jump to the new value,
     ** they move smoothly from the currently shown one. A recompute in the middle of an animation starts
     ** a new one from the current point — without a jerk (as in browsers).
+    **
+    ** Анимации по ключевым кадрам (свойство animation + <Keyframes>) запускаются, когда имя
+    ** появляется в стиле узла (в том числе при загрузке), и снимаются, когда исчезает. Закончившаяся
+    ** анимация не повторяется, пока имя остаётся в стиле (как в CSS). Свойства, которые ведёт
+    ** анимация по кадрам, переходами не анимируются: её значения сильнее.
+    **
+    ** Keyframe animations (the animation property + <Keyframes>) start when the name
+    ** appears in the node style (on load too) and are dropped when it disappears. A finished
+    ** animation does not repeat while the name stays in the style (as in CSS). The properties driven
+    ** by a keyframe animation are not animated by transitions: its values are stronger.
     */
     class Animator : public ui::StyleObserver
     {
@@ -78,35 +77,29 @@ namespace gran::animation
         // Узел удаляется из дерева / The node is removed from the tree
         void forget(const ui::Node& node);
 
+        // ---- animator_keyframes.cpp ----
+
+        // Наборы ключевых кадров документа (nullptr — анимаций по кадрам нет); живут дольше аниматора / The document keyframe sets (nullptr — no keyframe animations); they outlive the animator
+        void setStyleSheet(const style::StyleSheet* sheet) noexcept;
+
+        // Первый расчёт стиля узла: запуск его анимаций по кадрам / The first node style computation: starting its keyframe animations
+        void styleCreated(ui::Node& node, style::ComputedStyle& next) override;
+
     private:
+        // Запуски и снятия анимаций по кадрам узла, их значения — в next; результат — ведомые свойства (биты Animated)
+        // Starting and dropping the node keyframe animations, their values go into next; the result is the driven properties (Animated bits)
+        std::uint32_t syncKeyframes(ui::Node& node, style::ComputedStyle& next);
+
+        // ---- animator_tick.cpp ----
+
+        // Шаг анимаций по кадрам; true — какая-то ещё идёт на видимом узле / A keyframe animation step; true — some still runs on a visible node
+        bool tickKeyframes();
+
         std::vector<NodeAnimation> _animations;
+        std::vector<KeyframeRun> _runs;
+        const style::StyleSheet* _sheet = nullptr;
         double _now = 0.0;
     };
-
-    // ---- easing.cpp ----
-
-    // Значение кривой в точке t ∈ [0, 1] / The curve value at t ∈ [0, 1]
-    float evaluateEasing(const style::Easing& easing, float t) noexcept;
-
-    // ---- visual_state.cpp ----
-
-    // Снимок анимируемых свойств / A snapshot of the animatable properties
-    VisualState captureVisual(const style::ComputedStyle& style);
-
-    // Запись одного свойства в стиль / Writing one property into the style
-    void applyVisual(style::ComputedStyle& style, const VisualState& state, Animated property);
-
-    // Изменилось ли свойство / Whether the property changed
-    bool visualChanged(const VisualState& first, const VisualState& second, Animated property) noexcept;
-
-    // Номер свойства по имени из transition ("background", "boxShadow"...); COUNT — не анимируемое; all — особый случай
-    // The property number by the transition name ("background", "boxShadow"...); COUNT — not animatable; all is a special case
-    Animated animatedByName(const std::string& name) noexcept;
-
-    // ---- interpolate.cpp ----
-
-    // Промежуточное значение свойства при прогрессе k / The intermediate property value at progress k
-    void interpolate(const VisualState& from, const VisualState& to, Animated property, float k, VisualState& result);
 }
 
 #endif

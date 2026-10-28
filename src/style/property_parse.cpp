@@ -71,6 +71,7 @@ namespace gran::style
                 case ValueKind::TRANSFORM: return parseTransform(text);
                 case ValueKind::ORIGIN: return internal::parseGradientCenter(text, text);
                 case ValueKind::TRANSITIONS: return parseTransitions(text);
+                case ValueKind::ANIMATIONS: return parseAnimations(text);
                 default: return parseTracks(text);
             }
         }
@@ -83,7 +84,7 @@ namespace gran::style
         {
             case ValueKind::INSETS: case ValueKind::RADII: case ValueKind::COLOR: case ValueKind::PAINT:
             case ValueKind::SHADOWS: case ValueKind::TRANSFORM: case ValueKind::ORIGIN:
-            case ValueKind::TRANSITIONS: case ValueKind::TRACKS:
+            case ValueKind::TRANSITIONS: case ValueKind::ANIMATIONS: case ValueKind::TRACKS:
                 return parseComposite(info, text);
             default:
                 return parseScalar(info, text);

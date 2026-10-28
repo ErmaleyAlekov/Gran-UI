@@ -55,10 +55,16 @@ namespace gran::animation::internal
         style::Transform end = neutralLike(to, from);
         style::Transform result;
 
+        // Несовместимые формы не смешиваются: в самой точке начала — начало, дальше — конец
+        // Incompatible shapes are not mixed: at the start point itself — the start, further on — the end
+        if (start.size() != end.size() && k <= 0.0f)
+            return from;
         if (start.size() != end.size())
             return to;
         for (std::size_t index = 0; index < start.size(); ++index)
         {
+            if (start[index].kind != end[index].kind && k <= 0.0f)
+                return from;
             if (start[index].kind != end[index].kind)
                 return to;
             result.push_back(style::TransformStep{start[index].kind, mixNumber(start[index].x, end[index].x, k),

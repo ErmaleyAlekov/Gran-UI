@@ -17,7 +17,7 @@
  markup/   DOM → дерево узлов UI (ui::Node), ресурсы (Theme, Style, Font, Image)
         ▼
  style/    каскад: умолчания ← тема ← Style ← атрибуты ← состояния (hover/pressed/focus/disabled)
-        │   → ComputedStyle (POD) + переходы (animation/)
+        │   → ComputedStyle (POD) + переходы и ключевые кадры (animation/)
         ▼
  layout/   Stack (подмножество flexbox), Grid (px/auto/fr/minmax, span), Canvas (абсолютно),
         │   текст (text/: шрифт TrueType, кернинг, перенос строк) → LayoutBox (x, y, w, h)
@@ -47,13 +47,13 @@
 | `layout/` | Stack, Grid, Canvas, измерение текста, прокрутка |
 | `text/` | разбор TrueType/TTC, растеризация глифов (точная площадь покрытия), атлас, кернинг, перенос |
 | `image/` | inflate (zlib) и PNG — свои |
-| `animation/` | переходы свойств, кривые (`cubic-bezier`, ease, linear, steps), часы кадра |
+| `animation/` | переходы свойств и анимации по ключевым кадрам (`<Keyframes>` + `animation`), кривые (`cubic-bezier`, ease, linear, steps), часы кадра |
 | `input/` | попадание (hit-test с учётом transform), фокус, маршрут событий, правка и выделение текста, буфер обмена |
 | `a11y/` | доступность: роли, имена, навигация по дереву (нейтрально); провайдер UI Automation — в `platform/win32/uia_*` |
 | `render/` | список отрисовки, упаковка экземпляров, отсечения, сегменты, кэш глифов |
 | `rhi/` | интерфейс бэкенда, `null/`, `dx12/`, `vulkan/`, сгенерированные шейдеры `shaders_gen/` |
 | `platform/` | окно и события: `win32/`, `x11/` (затем `cocoa/`); встроенный браузер `webview2/` (по желанию) |
-| `app/` | приложение: цикл событий, привязка действий (`onClick="имя"` → функция C++), размещение `<WebView>` |
+| `app/` | приложение: цикл событий, таймеры (`setTimeout`/`setInterval`), привязка действий (`onClick="имя"` → функция C++), размещение `<WebView>` |
 
 ### Встроенный браузер (гибрид)
 

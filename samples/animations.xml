@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Анимации по ключевым кадрам и таймеры: вращение, пульс, смена цвета, неопределённый прогресс,
+  появление при загрузке, анимация состояния Hover; полоса и счётчик секунд — таймерами галереи.
+  Запуск: gran_gallery samples/animations.xml
+
+  Keyframe animations and timers: rotation, a pulse, a color cycle, an indeterminate progress,
+  an appearance on load, a Hover state animation; the bar and the seconds counter are driven by gallery timers.
+  Run: gran_gallery samples/animations.xml
+-->
+<Window title="Gran UI — анимации" width="640" height="440" background="#f5f6f8">
+  <Resources>
+    <Keyframes name="spin">
+      <Frame at="0%" transform="rotate(0deg)"/>
+      <Frame at="100%" transform="rotate(360deg)"/>
+    </Keyframes>
+    <Keyframes name="pulse">
+      <Frame at="0%" opacity="1" transform="scale(1)"/>
+      <Frame at="100%" opacity="0.35" transform="scale(0.8)"/>
+    </Keyframes>
+    <Keyframes name="colors">
+      <Frame at="0%" background="#2563eb"/>
+      <Frame at="33%" background="#16a34a"/>
+      <Frame at="66%" background="#f59e0b"/>
+      <Frame at="100%" background="#2563eb"/>
+    </Keyframes>
+    <Keyframes name="slide">
+      <Frame at="0%" transform="translate(-120, 0)"/>
+      <Frame at="100%" transform="translate(320, 0)"/>
+    </Keyframes>
+    <Keyframes name="appear">
+      <Frame at="0%" opacity="0" transform="translate(0, 16)"/>
+    </Keyframes>
+    <Keyframes name="wiggle">
+      <Frame at="25%" transform="rotate(-4deg)"/>
+      <Frame at="75%" transform="rotate(4deg)"/>
+    </Keyframes>
+    <Style name="Card" background="#ffffff" borderRadius="12" padding="16" spacing="12"
+           boxShadow="0 2 8 rgba(16,24,40,0.08)" animation="appear 0.6s ease-out"/>
+  </Resources>
+  <Stack padding="24" spacing="16">
+    <Stack style="Card">
+      <Text fontWeight="600">Ключевые кадры</Text>
+      <Stack orientation="horizontal" spacing="28" align="center">
+        <Box width="36" height="36" borderRadius="18" animation="spin 1s linear infinite"
+             background="conic-gradient(from 0deg, #2563eb, rgba(37,99,235,0))"/>
+        <Box width="28" height="28" borderRadius="14" background="#e11d48"
+             animation="pulse 0.8s ease-in-out infinite alternate"/>
+        <Box width="96" height="28" borderRadius="8" animation="colors 3s linear infinite"/>
+        <Button text="Наведи" padding="8 16">
+          <Hover animation="wiggle 0.4s ease-in-out"/>
+        </Button>
+      </Stack>
+      <Text color="#667085">Неопределённый прогресс</Text>
+      <Box width="320" height="6" borderRadius="3" background="#e4e7ec" overflow="hidden">
+        <Box width="120" height="6" borderRadius="3" background="#2563eb"
+             animation="slide 1.4s ease-in-out infinite"/>
+      </Box>
+    </Stack>
+    <Stack style="Card">
+      <Text fontWeight="600">Таймеры</Text>
+      <ProgressBar id="timerProgress" value="0" width="320"/>
+      <Stack orientation="horizontal" spacing="16" align="center">
+        <Text id="elapsed">Прошло: 0 с</Text>
+        <Button text="Через 2 секунды" onClick="delayed" padding="8 16"/>
+        <Text id="status" color="#667085">Готово</Text>
+      </Stack>
+    </Stack>
+  </Stack>
+</Window>

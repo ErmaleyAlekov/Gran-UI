@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
         gran::Application application(parseOptions(argc, argv, markup));
         application.loadFile(markup);
         gallery::registerActions(application);
+        gallery::registerTimers(application);
         return application.run();
     }
     catch (const std::exception& error)

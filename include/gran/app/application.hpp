@@ -1,6 +1,7 @@
 #ifndef GRAN_APP_APPLICATION_HPP
 #define GRAN_APP_APPLICATION_HPP
 
+#include "gran/app/timer_queue.hpp"
 #include "gran/binding/list_bindings.hpp"
 #include "gran/ui/node.hpp"
 
@@ -24,6 +25,9 @@ namespace gran
     // Запись списка, к которой относится узел (Application::itemOf); model == nullptr — узел не из списка
     // The list record a node belongs to (Application::itemOf); model == nullptr — the node is not from a list
     using ItemRef = binding::ItemRef;
+
+    // Номер таймера (Application::setTimeout/setInterval); 0 — «нет таймера» / A timer number (Application::setTimeout/setInterval); 0 — "no timer"
+    using TimerId = app::TimerId;
 
     // Параметры приложения / The application parameters
     struct AppOptions
@@ -209,6 +213,26 @@ namespace gran
         ** run() are destroyed together with the application without being called.
         */
         void post(Task task);
+
+        // ---- application_timers.cpp: таймеры (только поток интерфейса; из других потоков — через post) ----
+        // ---- application_timers.cpp: timers (the UI thread only; from other threads — through post) ----
+
+        /*
+        ** Однократный таймер: handler выполнится в потоке интерфейса не раньше чем через seconds
+        ** секунд (точность — кадр или пробуждение цикла), после него кадр перерисуется. Таймеры,
+        ** поставленные до run(), отсчитываются с момента постановки и срабатывают внутри run().
+        **
+        ** A one-shot timer: handler runs in the UI thread not earlier than seconds
+        ** seconds later (the precision is a frame or a loop wake-up), the frame is redrawn after it. Timers
+        ** set before run() count from the moment of setting and fire inside run().
+        */
+        TimerId setTimeout(double seconds, Task handler);
+
+        // Периодический таймер (период не меньше 1 мс); пропущенные срабатывания не догоняются / A periodic timer (the period is at least 1 ms); missed firings are not caught up
+        TimerId setInterval(double seconds, Task handler);
+
+        // Снять таймер (можно из его же обработчика); неизвестный номер — ничего / Clear a timer (also from its own handler); an unknown number — nothing
+        void clearTimer(TimerId id);
 
         // ---- application_run.cpp ----
 

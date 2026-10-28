@@ -59,20 +59,31 @@ namespace gran
             return true;
         }
 
-        // Сколько можно спать: до мигания каретки, появления подсказки, выхода по таймеру или без предела
-        // How long to sleep: until the caret blink, the tooltip appearance, the timed exit or without a limit
+        /*
+        ** Сколько можно спать: до мигания каретки, появления подсказки, выхода по времени, срока
+        ** ближайшего таймера или без предела (отрицательное ожидание — «ждать нечего»).
+        **
+        ** How long to sleep: until the caret blink, the tooltip appearance, the timed exit, the due time
+        ** of the nearest timer or without a limit (a negative wait means "nothing to wait for").
+        */
         double sleepTime(const Application::State& state, double time, double exitAfter)
         {
             const ui::Node* focus = state.router->focused();
+            double due = state.timers.nextDue();
+            double waits[4] = {-1.0, app::tooltipWait(state, time), -1.0, -1.0};
             double sleep = -1.0;
 
             if (focus != nullptr && ui::isTextField(*focus))
-                sleep = std::max(0.0, state.caretToggle - time);
-            double tooltip = app::tooltipWait(state, time);
-            if (tooltip >= 0.0 && (sleep < 0.0 || tooltip < sleep))
-                sleep = tooltip;
-            if (exitAfter > 0.0 && (sleep < 0.0 || exitAfter - time < sleep))
-                sleep = std::max(0.0, exitAfter - time);
+                waits[0] = std::max(0.0, state.caretToggle - time);
+            if (exitAfter > 0.0)
+                waits[2] = std::max(0.0, exitAfter - time);
+            if (due >= 0.0)
+                waits[3] = std::max(0.0, due - time);
+            for (double wait : waits)
+            {
+                if (wait >= 0.0 && (sleep < 0.0 || wait < sleep))
+                    sleep = wait;
+            }
             return sleep;
         }
     }
@@ -105,10 +116,12 @@ namespace gran
     ** Цикл: все события → кадр, если что-то изменилось или идёт анимация (vsync задаёт темп),
     ** иначе сон до события ОС или до мигания каретки. Окно показывается после первого кадра.
     ** Задачи других потоков (post) выполняются после событий: сообщение-будильник приходит как событие.
+    ** Таймеры — после задач; сон длится не дольше, чем до срока ближайшего таймера.
     **
     ** The loop: all events → a frame if something changed or an animation runs (vsync sets the pace),
     ** otherwise sleeping until an OS event or the caret blink. The window is shown after the first frame.
     ** The tasks of other threads (post) run after the events: the wake-up message arrives as an event.
+    ** The timers run after the tasks; the sleep lasts no longer than until the nearest timer due time.
     */
     int Application::run()
     {
@@ -128,6 +141,7 @@ namespace gran
             while (state.window->pollEvent(event))
                 changed = app::handleEvent(state, event) || changed;
             changed = app::runTasks(state) || changed;
+            changed = state.timers.runDue(app::now()) || changed;
             changed = app::deliverWebMessages(state) || changed;
             changed = blinkCaret(state, app::now()) || changed;
             changed = app::updateTooltip(state, app::now()) || changed;

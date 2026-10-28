@@ -1,4 +1,4 @@
-#include "gran/animation/animator.hpp"
+#include "gran/animation/visual_state.hpp"
 #include "gran/style/style_compare.hpp"
 
 #include <cstring>

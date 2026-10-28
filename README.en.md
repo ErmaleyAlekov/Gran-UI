@@ -85,7 +85,9 @@ return app.run();
   `boxShadow` (outer and inner), separate corner radii, `transform`, `opacity`, `backdropBlur`.
 - **Cascading:** defaults ← theme ← named `Style` (with `basedOn` inheritance) ← attributes ← states
   `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. Theme tokens are `$name`.
-- **Transitions:** `transition` with curves `ease`, `linear`, `cubic-bezier()`, `steps()`.
+- **Transitions and animations:** `transition` with curves `ease`, `linear`, `cubic-bezier()`, `steps()`; keyframe
+  animations `<Keyframes>` + `animation` (repeats, `infinite`, `alternate`, delay, fill), state-triggered as well
+  (`<Hover animation="…"/>`); `setTimeout`/`setInterval` timers on the UI thread.
 
 ### Layout
 - `Stack` — a subset of flexbox: `justify`, `align`, `grow`/`shrink`, `wrap`, `alignSelf`.

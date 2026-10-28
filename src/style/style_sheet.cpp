@@ -35,4 +35,24 @@ namespace gran::style
             result.push_back(rule->name);
         return result;
     }
+
+    // Наборы хранятся по значению: аниматор ищет их по имени, а не держит указатель
+    // The sets are stored by value: the animator looks them up by name and does not keep a pointer
+    KeyframesRule& StyleSheet::addKeyframes(std::string name)
+    {
+        _keyframes.push_back(KeyframesRule{});
+        _keyframes.back().name = std::move(name);
+        return _keyframes.back();
+    }
+
+    // Поиск по имени (наборов немного, поиск — при смене стиля узла) / A lookup by name (there are few sets, the lookup happens on a node style change)
+    const KeyframesRule* StyleSheet::findKeyframes(std::string_view name) const noexcept
+    {
+        for (const KeyframesRule& rule : _keyframes)
+        {
+            if (rule.name == name)
+                return &rule;
+        }
+        return nullptr;
+    }
 }

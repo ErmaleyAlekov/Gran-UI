@@ -42,6 +42,28 @@ namespace gran::style
     };
 
     /*
+    ** Ключевой кадр <Frame at="50%" …>: место на шкале анимации (0..1), анимируемые свойства
+    ** и кривая участка до следующего кадра (hasEasing == false — кривая самой анимации).
+    **
+    ** A <Frame at="50%" …> keyframe: the place on the animation scale (0..1), the animatable properties
+    ** and the curve of the segment up to the next frame (hasEasing == false — the curve of the animation itself).
+    */
+    struct Keyframe
+    {
+        float offset = 0.0f;
+        PropertySet values;
+        bool hasEasing = false;
+        Easing easing;
+    };
+
+    // Набор ключевых кадров <Keyframes name>; кадры — по возрастанию места / A <Keyframes name> set; the frames are in ascending place order
+    struct KeyframesRule
+    {
+        std::string name;
+        std::vector<Keyframe> frames;
+    };
+
+    /*
     ** Набор стилей окна. Владеет правилами; указатели на них стабильны
     ** (unique_ptr), поэтому узлы могут хранить ссылку на правило.
     **
@@ -60,8 +82,15 @@ namespace gran::style
         // Имена всех правил в порядке объявления (для проверки фрагментов разметки) / The names of all rules in the declaration order (for checking markup fragments)
         std::vector<std::string_view> names() const;
 
+        // Добавляет набор ключевых кадров; ссылка живёт до следующего добавления / Adds a keyframe set; the reference lives until the next addition
+        KeyframesRule& addKeyframes(std::string name);
+
+        // Набор ключевых кадров по имени или nullptr / A keyframe set by name or nullptr
+        const KeyframesRule* findKeyframes(std::string_view name) const noexcept;
+
     private:
         std::vector<std::unique_ptr<StyleRule>> _rules;
+        std::vector<KeyframesRule> _keyframes;
     };
 
     /*

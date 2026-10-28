@@ -127,6 +127,8 @@ namespace gran::style
 
         // ---- Движение / Motion ----
         std::vector<TransitionSpec> transitions;
+        // Анимации по ключевым кадрам (не наследуются) / The keyframe animations (not inherited)
+        std::vector<AnimationSpec> animations;
     };
 }
 
