@@ -61,10 +61,12 @@ namespace gran
 
         /*
         ** Сколько можно спать: до мигания каретки, появления подсказки, выхода по времени, срока
-        ** ближайшего таймера или без предела (отрицательное ожидание — «ждать нечего»).
+        ** ближайшего таймера или без предела (отрицательное ожидание — «ждать нечего»). Запрос доступности,
+        ** пришедший во время кадра или задач (исходящий вызов COM принимает входящие), — сна нет.
         **
         ** How long to sleep: until the caret blink, the tooltip appearance, the timed exit, the due time
-        ** of the nearest timer or without a limit (a negative wait means "nothing to wait for").
+        ** of the nearest timer or without a limit (a negative wait means "nothing to wait for"). An accessibility request
+        ** that came during the frame or the tasks (an outgoing COM call accepts incoming ones) — no sleep.
         */
         double sleepTime(const Application::State& state, double time, double exitAfter)
         {
@@ -73,6 +75,8 @@ namespace gran
             double waits[4] = {-1.0, app::tooltipWait(state, time), -1.0, -1.0};
             double sleep = -1.0;
 
+            if (!state.access.requests.empty())
+                return 0.0;
             if (focus != nullptr && ui::isTextField(*focus))
                 waits[0] = std::max(0.0, state.caretToggle - time);
             if (exitAfter > 0.0)
@@ -115,11 +119,13 @@ namespace gran
     /*
     ** Цикл: все события → кадр, если что-то изменилось или идёт анимация (vsync задаёт темп),
     ** иначе сон до события ОС или до мигания каретки. Окно показывается после первого кадра.
+    ** Запросы клиентов доступности приходят сообщениями ОС и выполняются сразу после событий.
     ** Задачи других потоков (post) выполняются после событий: сообщение-будильник приходит как событие.
     ** Таймеры — после задач; сон длится не дольше, чем до срока ближайшего таймера.
     **
     ** The loop: all events → a frame if something changed or an animation runs (vsync sets the pace),
     ** otherwise sleeping until an OS event or the caret blink. The window is shown after the first frame.
+    ** The accessibility client requests arrive as OS messages and run right after the events.
     ** The tasks of other threads (post) run after the events: the wake-up message arrives as an event.
     ** The timers run after the tasks; the sleep lasts no longer than until the nearest timer due time.
     */
@@ -140,6 +146,7 @@ namespace gran
             bool changed = false;
             while (state.window->pollEvent(event))
                 changed = app::handleEvent(state, event) || changed;
+            changed = app::runAccessRequests(state) || changed;
             changed = app::runTasks(state) || changed;
             changed = state.timers.runDue(app::now()) || changed;
             changed = app::deliverWebMessages(state) || changed;

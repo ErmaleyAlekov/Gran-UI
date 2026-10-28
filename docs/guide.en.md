@@ -19,7 +19,8 @@
 11. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
 12. [Pop-up Layers](#popup-layers)
 13. [Embedded browser: WebView](#embedded-browser-webview)
-14. [Errors and Message Language](#errors-and-message-language)
+14. [Accessibility](#accessibility)
+15. [Errors and Message Language](#errors-and-message-language)
 
 ## Quick Start
 
@@ -137,7 +138,7 @@ in `Grid` outside the tracks — error with line number and path before the wind
 Containers (`Stack`, `Box`, `Grid`, `Canvas`, `Button`, `Popup`, `Dialog`) and `ComboBox` accept `items="model"`
 together with `<ItemTemplate>` — see [Lists from data](#lists-from-data).
 
-Common attributes of all elements: `id`, `style`, `visible`, `enabled`, `tooltip`, size, margin, and styling attributes. Attribute names are camelCase and identical for all elements.
+Common attributes of all elements: `id`, `style`, `visible`, `enabled`, `tooltip`, `accessibleName`, `labeledBy` (see [Accessibility](#accessibility)), size, margin, and styling attributes. Attribute names are camelCase and identical for all elements.
 
 ## Layout
 
@@ -336,7 +337,7 @@ contacts.remove(1);                                                  // one copy
 gran::ItemRef item = app.itemOf(node);              // item.model == &contacts, item.index — record number
 ```
 
-- Substitutions `{field}` work in `text`, `placeholder`, `source`, `tooltip`, and in tag text (including
+- Substitutions `{field}` work in `text`, `placeholder`, `source`, `tooltip`, `accessibleName`, and in tag text (including
   in `Span`). `{{` and `}}` — the braces themselves; if the field does not exist in the record, it gives an empty string.
 - Model editing changes only the affected copies: insertion and deletion — their own nodes, field change — only texts
   with substitutions. Focus, selection, and scrolling of other records are preserved.
@@ -516,6 +517,44 @@ the engine is built as before, and `<WebView>` remains a white background.
 A program with `WebView` needs two things: `WebView2Loader.dll` next to the exe (the build places it next to the programs;
 it is only searched for in the program directory and in System32) and the WebView2 Runtime environment (already present in Windows 11, installed separately in Windows 10). The loader is connected via `LoadLibrary` on the first display of `WebView`, so programs without `WebView` do not know about it. If the loader or environment is not present, `WebView` remains a background, the reason is output to stderr, the program continues to work. Browser data (cache, cookies) are stored in
 `%LOCALAPPDATA%\GranUI\<program name>\WebView2`. Example — `samples/web_view.xml`.
+
+## Accessibility
+
+The window gives the element tree to screen readers (Narrator, NVDA, JAWS) and UI test tools through
+Microsoft UI Automation. The element role comes from its kind, the name — in this order:
+
+1. `accessibleName="…"` — an explicit name (as `aria-label`);
+2. `labeledBy="id"` — the text of another element, for example a label next to a field (as `aria-labelledby`; the schema
+   checks that such an `id` exists);
+3. its own text; for `Input`, `TextArea` and `ComboBox` — `placeholder` (the field text is its value); for a button
+   without text — the children texts;
+4. `tooltip`.
+
+```xml
+<Text id="volumeLabel" text="Volume"/>
+<Slider labeledBy="volumeLabel" min="0" max="100"/>
+<Input accessibleName="Search contacts" placeholder="Find…"/>
+```
+
+Control patterns are what a client can do with the element by itself:
+
+| Element | UI Automation pattern | What the client does |
+|---|---|---|
+| `Button`, `MenuItem`, any element with `onClick` | Invoke | press (as a click: onClick, a menu, choosing an item) |
+| `CheckBox`, `Switch` | Toggle | toggle (the mark and onChange) |
+| `RadioButton`, a tab header | SelectionItem | select (the group neighbors are cleared, onChange) |
+| `Input`, `TextArea`, `ComboBox` | Value | read the text; for a field — replace it (as "select all and paste", with `maxLength` and onChange) |
+| `Slider`, `ProgressBar` | RangeValue | read the number, minimum, maximum and step; for a slider — set it (with the step and onChange) |
+
+A `readOnly` field, `ComboBox` and `ProgressBar` answer "read-only". Client actions run in the application loop
+through the same functions as human input: a disabled element (`enabled="false"`, including through an ancestor)
+and the elements under an open dialog are not pressed. A client can move the focus to an element that takes it
+with Tab. Changes of the mark, the text and the number of the focused element are reported to screen readers as
+events — they read the new value at once. A password is not disclosed: the value of a `password="true"` field is empty.
+
+The window thread enters a COM single-threaded apartment (as for `WebView`): this way UI Automation calls the provider
+on the window thread, through its message queue, and the tree is never read in parallel with changes. If the program
+moved the thread into a multithreaded apartment before creating the window, the accessibility tree is not given out.
 
 ## Errors and Message Language
 

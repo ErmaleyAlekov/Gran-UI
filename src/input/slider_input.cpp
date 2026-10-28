@@ -5,30 +5,27 @@
 
 namespace gran::input
 {
-    namespace
+    /*
+    ** Новое значение: округление к шагу от минимума, ограничение диапазоном; при изменении —
+    ** перерисовка и onChange.
+    **
+    ** The new value: rounding to the step from the minimum, clamping by the range; on a change —
+    ** a repaint and onChange.
+    */
+    bool setSliderValue(RouterState& state, ui::Node& slider, float value)
     {
-        /*
-        ** Новое значение: округление к шагу от минимума, ограничение диапазоном; при изменении —
-        ** перерисовка и onChange.
-        **
-        ** The new value: rounding to the step from the minimum, clamping by the range; on a change —
-        ** a repaint and onChange.
-        */
-        bool setValue(RouterState& state, ui::Node& slider, float value)
-        {
-            ui::NodeContent& content = slider.content;
+        ui::NodeContent& content = slider.content;
 
-            if (content.step > 0.0f)
-                value = content.minimum + std::round((value - content.minimum) / content.step) * content.step;
-            value = std::min(content.maximum, std::max(content.minimum, value));
-            if (value == content.value)
-                return false;
-            content.value = value;
-            ui::markDirty(slider, ui::DIRTY_PAINT);
-            if (!content.onChange.empty())
-                state.actions->action(content.onChange, slider);
-            return true;
-        }
+        if (content.step > 0.0f)
+            value = content.minimum + std::round((value - content.minimum) / content.step) * content.step;
+        value = std::min(content.maximum, std::max(content.minimum, value));
+        if (value == content.value)
+            return false;
+        content.value = value;
+        ui::markDirty(slider, ui::DIRTY_PAINT);
+        if (!content.onChange.empty())
+            state.actions->action(content.onChange, slider);
+        return true;
     }
 
     // Та же геометрия, что у отрисовки: центр бегунка ходит от d/2 до ширины − d/2
@@ -43,7 +40,7 @@ namespace gran::input
         float travel = std::max(1.0f, width - thumb);
         float t = std::min(1.0f, std::max(0.0f, (x - left - thumb * 0.5f) / travel));
 
-        setValue(state, slider, slider.content.minimum + t * (slider.content.maximum - slider.content.minimum));
+        setSliderValue(state, slider, slider.content.minimum + t * (slider.content.maximum - slider.content.minimum));
     }
 
     // Стрелки: шаг или сотая доля диапазона / The arrows: the step or a hundredth of the range
@@ -53,6 +50,6 @@ namespace gran::input
 
         if (step <= 0.0f)
             step = (slider.content.maximum - slider.content.minimum) / 100.0f;
-        return setValue(state, slider, slider.content.value + step * static_cast<float>(direction));
+        return setSliderValue(state, slider, slider.content.value + step * static_cast<float>(direction));
     }
 }

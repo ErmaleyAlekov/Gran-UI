@@ -26,6 +26,7 @@ namespace suites
     void registerMappedFileTests(test::TestRunner& runner);
     void registerTextSelectionTests(test::TestRunner& runner);
     void registerAccessibilityTests(test::TestRunner& runner);
+    void registerAccessActionTests(test::TestRunner& runner);
     void registerPasswordMaskTests(test::TestRunner& runner);
     void registerTextAreaTests(test::TestRunner& runner);
     void registerRichTextTests(test::TestRunner& runner);

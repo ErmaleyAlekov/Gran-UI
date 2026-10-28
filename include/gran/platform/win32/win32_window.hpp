@@ -57,6 +57,7 @@ namespace gran::platform::win32
         // ---- win32_access.cpp ----
         void setAccessTree(a11y::AccessTree* tree) override;
         void accessFocusChanged() override;
+        void accessRefresh() override;
 
         // ---- win32_wake.cpp ----
         void wake() noexcept override;

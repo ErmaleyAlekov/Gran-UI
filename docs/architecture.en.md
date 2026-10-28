@@ -45,7 +45,7 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `image/` | inflate (zlib) and PNG — custom implementations |
 | `animation/` | property transitions and keyframe animations (`<Keyframes>` + `animation`), curves (`cubic-bezier`, ease, linear, steps), frame clock |
 | `input/` | hit-test (considering transform), focus, event routing, text editing and selection, clipboard |
-| `a11y/` | accessibility: roles, names, tree navigation (neutral); UI Automation provider in `platform/win32/uia_*` |
+| `a11y/` | accessibility: roles, names, control patterns, tree navigation, the client request queue (neutral); UI Automation provider in `platform/win32/uia_*`, the requests are performed by `InputRouter::perform` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/`, `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
 | `platform/` | window and events: `win32/`, `x11/` (then `cocoa/`); the embedded browser `webview2/` (optional) |

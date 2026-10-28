@@ -1,24 +1,8 @@
 #include "gran/a11y/access_tree.hpp"
+#include "gran/input/input_router.hpp"
 
 namespace gran::a11y
 {
-    namespace
-    {
-        // Тексты потомков через пробел (подпись кнопки из детей: значок + Text) / The descendant texts separated by spaces (a button label from its children: an icon + a Text)
-        void appendTexts(const ui::Node& node, std::string& out)
-        {
-            for (const std::unique_ptr<ui::Node>& child : node.children)
-            {
-                if (!child->visible)
-                    continue;
-                if (!child->content.text.empty() && !out.empty())
-                    out += ' ';
-                out += child->content.text;
-                appendTexts(*child, out);
-            }
-        }
-    }
-
     // Встроенные виды — свои роли, остальные контейнеры — группа / The built-in kinds have their roles, the other containers are groups
     Role roleOf(const ui::Node& node) noexcept
     {
@@ -46,47 +30,35 @@ namespace gran::a11y
     }
 
     /*
-    ** Имя как в HTML: у поля ввода и ComboBox — подсказка (placeholder; текст — это значение), у остальных —
-    ** свой текст, у кнопки без текста — тексты детей; последний запасной вариант — tooltip.
+    ** Значение: текст поля (кроме пароля), подпись выбранного пункта ComboBox или число ползунка и полосы
+    ** прогресса. Узел внутри отключённого предка тоже отключён (как для мыши и клавиатуры).
     **
-    ** The name as in HTML: for an input and a ComboBox — the placeholder (the text is the value), for the others —
-    ** their own text, for a button without text — the children texts; the last fallback is the tooltip.
+    ** The value: the input text (except a password), the selected ComboBox item label or the slider and progress bar
+    ** number. A node inside a disabled ancestor is disabled too (as for the mouse and the keyboard).
     */
-    std::string accessibleName(const ui::Node& node)
-    {
-        std::string name;
-
-        if (ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX)
-            name = node.content.placeholder;
-        else
-            name = node.content.text;
-        if (name.empty() && node.kind == ui::ElementKind::BUTTON)
-            appendTexts(node, name);
-        if (name.empty())
-            name = node.content.tooltip;
-        return name;
-    }
-
-    // Значение: текст поля (кроме пароля), подпись выбранного пункта ComboBox или число ползунка и полосы прогресса
-    // The value: the input text (except a password), the selected ComboBox item label or the slider and progress bar number
     AccessibleInfo describe(const ui::Node& node)
     {
         AccessibleInfo info;
+        const ui::NodeContent& content = node.content;
 
         info.role = roleOf(node);
         info.name = accessibleName(node);
-        info.help = node.content.tooltip;
-        info.enabled = node.enabled;
-        info.checked = node.content.checked;
-        info.focusable = info.role == Role::BUTTON || info.role == Role::EDIT || info.role == Role::CHECK_BOX
-            || info.role == Role::SLIDER || info.role == Role::MENU_ITEM || info.role == Role::COMBO_BOX
-            || info.role == Role::RADIO_BUTTON || info.role == Role::TAB_ITEM;
-        info.decorative = info.role == Role::GROUP && node.content.onClick.empty();
-        if ((info.role == Role::EDIT && !node.content.password) || info.role == Role::COMBO_BOX)
-            info.value = node.content.text;
-        info.minimum = node.content.minimum;
-        info.maximum = node.content.maximum;
-        info.current = node.content.value;
+        info.help = content.tooltip;
+        info.enabled = !input::disabled(&node);
+        info.checked = content.checked;
+        info.focusable = isFocusable(node);
+        info.readOnly = isReadOnly(node);
+        info.decorative = info.role == Role::GROUP && content.onClick.empty();
+        if ((info.role == Role::EDIT && !content.password) || info.role == Role::COMBO_BOX)
+            info.value = content.text;
+        info.minimum = content.minimum;
+        info.maximum = content.maximum;
+        info.current = content.value;
+        // Шаг как у стрелок ползунка: step или сотая доля диапазона / The step as for the slider arrows: step or a hundredth of the range
+        info.smallStep = content.step;
+        if (info.smallStep <= 0.0f)
+            info.smallStep = (content.maximum - content.minimum) / 100.0f;
+        info.largeStep = info.smallStep * 10.0f;
         return info;
     }
 

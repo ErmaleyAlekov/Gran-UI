@@ -66,16 +66,18 @@ namespace gran::platform::win32
     }
 
     /*
-    ** Перенос фокуса по просьбе клиента — вместе с шаблонами управления (нужен обратный вызов
-    ** в маршрутизатор ввода). Пока запрос принимается без действия.
+    ** Перенос фокуса по просьбе клиента (диктор ведёт фокус за своим курсором): запрос в очередь,
+    ** маршрутизатор ставит фокус как Tab. Узел, не принимающий фокус, — UIA_E_INVALIDOPERATION.
     **
-    ** Moving the focus at a client request comes together with the control patterns (it needs a callback
-    ** into the input router). For now the request is accepted without an action.
+    ** Moving the focus at a client request (a screen reader moves the focus after its cursor): a request into the queue,
+    ** the router puts the focus as Tab does. A node not taking the focus — UIA_E_INVALIDOPERATION.
     */
     HRESULT STDMETHODCALLTYPE UiaElement::SetFocus()
     {
         if (!alive())
             return static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE);
-        return S_OK;
+        if (!a11y::isFocusable(*_node))
+            return static_cast<HRESULT>(UIA_E_INVALIDOPERATION);
+        return post(a11y::AccessRequest{a11y::Request::FOCUS, _node, std::string(), 0.0f});
     }
 }
