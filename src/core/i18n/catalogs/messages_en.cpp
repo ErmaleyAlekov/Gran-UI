@@ -71,7 +71,8 @@ namespace gran::i18n
             {Message::WINDOW_MAXIMIZE, "Maximize"},
             {Message::WINDOW_RESTORE, "Restore"},
             {Message::WINDOW_CLOSE, "Close"},
-            {Message::PLATFORM_FILE_DIALOG_TOOL, "the system file dialog is unavailable: the zenity or kdialog program is needed"}
+            {Message::PLATFORM_FILE_DIALOG_TOOL, "the system file dialog is unavailable: the zenity or kdialog program is needed"},
+            {Message::GPU_VULKAN_LOADER, "the system Vulkan library is not found ({0}): install the libvulkan1 package (Astra Linux, Debian, Ubuntu, ALT) or vulkan-loader (RED OS); working without a GPU also needs mesa-vulkan-drivers"}
         };
     }
 

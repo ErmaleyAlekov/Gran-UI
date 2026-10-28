@@ -130,7 +130,9 @@ else
         SYSTEM_LIBS   := -framework Cocoa -framework QuartzCore
     else
         PLATFORM_DIRS := platform/x11
-        SYSTEM_LIBS   := -ldl -pthread -lvulkan -lX11
+        # libvulkan не компонуется: загрузчик открывается через dlopen (vulkan_loader.cpp)
+        # libvulkan is not linked: the loader is opened through dlopen (vulkan_loader.cpp)
+        SYSTEM_LIBS   := -ldl -pthread -lX11
     endif
 endif
 
