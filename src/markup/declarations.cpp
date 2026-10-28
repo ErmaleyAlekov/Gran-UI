@@ -5,6 +5,7 @@
 #include "beresta.hpp"
 
 #include <string>
+#include <utility>
 
 namespace gran::markup::internal
 {
@@ -62,7 +63,10 @@ namespace gran::markup::internal
         try
         {
             std::string text = substituteTokens(attribute.value, context);
-            style::setDeclaration(set, info->id, style::parsePropertyValue(*info, text));
+            style::PropertyValue value = style::parsePropertyValue(*info, text);
+            if (info->id == style::PropertyId::ANIMATION)
+                checkAnimationNames(value, context);
+            style::setDeclaration(set, info->id, std::move(value));
         }
         catch (const GranException& error)
         {

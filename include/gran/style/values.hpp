@@ -174,6 +174,47 @@ namespace gran::style
         float delay = 0.0f;
         Easing easing;
     };
+
+    // Направление повторов анимации (animation-direction) / The animation repeat direction (animation-direction)
+    enum class AnimationDirection : std::uint8_t
+    {
+        NORMAL,
+        REVERSE,
+        ALTERNATE,
+        ALTERNATE_REVERSE
+    };
+
+    // Значения до начала и после конца анимации (animation-fill-mode) / The values before the start and after the end of an animation (animation-fill-mode)
+    enum class AnimationFill : std::uint8_t
+    {
+        NONE,
+        FORWARDS,
+        BACKWARDS,
+        BOTH
+    };
+
+    /*
+    ** Анимация по ключевым кадрам: "pulse 1.2s ease-in-out 0.2s infinite alternate both".
+    ** Первое слово — имя набора <Keyframes>, первое время — длительность, второе — задержка;
+    ** число или infinite — число повторов; прочие слова — направление, заполнение или кривая
+    ** (кривая действует на каждом участке между кадрами, как animation-timing-function в CSS).
+    **
+    ** A keyframe animation: "pulse 1.2s ease-in-out 0.2s infinite alternate both".
+    ** The first word is the <Keyframes> set name, the first time is the duration, the second is the delay;
+    ** a number or infinite is the repeat count; the other words are the direction, the fill or the curve
+    ** (the curve acts on every segment between frames, as animation-timing-function in CSS).
+    */
+    struct AnimationSpec
+    {
+        std::string name;
+        float duration = 0.0f;
+        float delay = 0.0f;
+        Easing easing;
+        // Число повторов; бесконечность — infinite / The repeat count; infinity — infinite
+        float iterations = 1.0f;
+        AnimationDirection direction = AnimationDirection::NORMAL;
+        AnimationFill fill = AnimationFill::NONE;
+    };
 }
 
 #endif

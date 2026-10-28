@@ -109,6 +109,21 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Анимации по ключевым кадрам: none или «имя длительность …» через запятую; смысл проверяет парсер -->
+  <!-- Keyframe animations: none or "name duration …" separated by commas; the parser checks the meaning -->
+  <xs:simpleType name="Animations">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="none|[a-zA-Z][a-zA-Z0-9_\-]* +[0-9.]+m?s.*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Место ключевого кадра: проценты от 0% до 100% / A keyframe place: percent from 0% to 100% -->
+  <xs:simpleType name="KeyframeOffset">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="([0-9]{1,2}(\.[0-9]+)?|100(\.0+)?)%"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Преобразования: none или функции подряд / Transforms: none or functions in a row -->
   <xs:simpleType name="Transform">
     <xs:restriction base="xs:string">
@@ -353,6 +368,7 @@
     <xs:attributeGroup ref="GridAttributes"/>
     <xs:attribute name="overflow" type="Overflow"/>
     <xs:attribute name="transition" type="Transitions"/>
+    <xs:attribute name="animation" type="Animations"/>
   </xs:attributeGroup>
 
   <!-- ================= Состояния / States ================= -->
@@ -362,6 +378,7 @@
   <xs:complexType name="StateType">
     <xs:attributeGroup ref="VisualAttributes"/>
     <xs:attributeGroup ref="TextAttributes"/>
+    <xs:attribute name="animation" type="Animations"/>
   </xs:complexType>
 
   <xs:group name="States">
@@ -418,6 +435,7 @@
     <xs:attribute name="onClick" type="Action"/>
     <xs:attribute name="overflow" type="Overflow"/>
     <xs:attribute name="transition" type="Transitions"/>
+    <xs:attribute name="animation" type="Animations"/>
     <xs:attributeGroup ref="BoxAttributes"/>
     <xs:attributeGroup ref="VisualAttributes"/>
     <xs:attributeGroup ref="TextAttributes"/>
@@ -873,10 +891,38 @@
     <xs:attribute name="name" type="xs:NCName" use="required"/>
   </xs:complexType>
 
+  <!--
+    Ключевой кадр: место и только анимируемые свойства (те же, что у переходов); easing — кривая
+    участка до следующего кадра. A keyframe: the place and only the animatable properties (the same
+    as for transitions); easing is the curve of the segment up to the next frame.
+  -->
+  <xs:complexType name="FrameType">
+    <xs:attribute name="at" type="KeyframeOffset" use="required"/>
+    <xs:attribute name="easing" type="xs:string"/>
+    <xs:attribute name="background" type="Paint"/>
+    <xs:attribute name="borderColor" type="Color"/>
+    <xs:attribute name="color" type="Color"/>
+    <xs:attribute name="opacity" type="Opacity"/>
+    <xs:attribute name="transform" type="Transform"/>
+    <xs:attribute name="boxShadow" type="Shadows"/>
+    <xs:attribute name="borderRadius" type="Radii"/>
+    <xs:attribute name="accentColor" type="Color"/>
+  </xs:complexType>
+
+  <!-- Набор ключевых кадров для свойства animation / A keyframe set for the animation property -->
+  <xs:complexType name="KeyframesType">
+    <xs:sequence>
+      <xs:element name="Frame" type="FrameType" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+  </xs:complexType>
+
   <xs:complexType name="ResourcesType">
     <xs:sequence>
       <xs:element name="Theme" type="ThemeType" minOccurs="0"/>
       <xs:element name="Font" type="FontType" minOccurs="0" maxOccurs="unbounded"/>
+      <!-- Кадры — до стилей: имена в animation проверяются при чтении стиля / Keyframes go before styles: the animation names are checked when a style is read -->
+      <xs:element name="Keyframes" type="KeyframesType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Data" type="DataType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
@@ -910,6 +956,11 @@
     <!-- Имена значений темы уникальны / Theme value names are unique -->
     <xs:unique name="uniqueToken">
       <xs:selector xpath="Resources/Theme/Token"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <!-- Имена наборов ключевых кадров уникальны / Keyframe set names are unique -->
+    <xs:unique name="uniqueKeyframes">
+      <xs:selector xpath="Resources/Keyframes"/>
       <xs:field xpath="@name"/>
     </xs:unique>
     <!-- Имена наборов данных уникальны / Data set names are unique -->

@@ -12,13 +12,14 @@
 4. [Layout](#layout)
 5. [Style Values](#style-values)
 6. [Styles, Themes, and States](#styles-theme-and-states)
-7. [Text and Fonts](#text-and-fonts)
-8. [Actions and API](#actions-and-api)
-9. [Lists from data](#lists-from-data)
-10. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-11. [Pop-up Layers](#popup-layers)
-12. [Embedded browser: WebView](#embedded-browser-webview)
-13. [Errors and Message Language](#errors-and-message-language)
+7. [Animations and Timers](#animations-and-timers)
+8. [Text and Fonts](#text-and-fonts)
+9. [Actions and API](#actions-and-api)
+10. [Lists from data](#lists-from-data)
+11. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+12. [Pop-up Layers](#popup-layers)
+13. [Embedded browser: WebView](#embedded-browser-webview)
+14. [Errors and Message Language](#errors-and-message-language)
 
 ## Quick Start
 
@@ -171,6 +172,7 @@ Row and column numbers start from zero.
 | Transform | `transform="rotate(12deg) scale(1.05) translate(4, 0)"`, `transformOrigin` |
 | Opacity and Blur | `opacity="0.8"`, `backdropBlur="24"` — blurring what is behind the element |
 | Transition | `transition="background 0.15s ease, transform 0.1s cubic-bezier(0.2, 0, 0, 1)"` |
+| Animation | `animation="pulse 0.8s ease-in-out infinite alternate"` — by `<Keyframes>` keyframes |
 | Cursor | `cursor="pointer\|text\|default"` |
 
 Lengths are in logical pixels: the engine automatically multiplies them by 1.5 on a screen with a 150% scale.
@@ -191,12 +193,52 @@ Cascade, from weakest to strongest: engine defaults ← built-in theme (`schemas
 ```
 
 - States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. State change is smooth if the property
-  has a `transition`.
+  has a `transition`; a state can also start an animation: `<Hover animation="wiggle 0.4s"/>`.
 - `basedOn` inherits another style. The default theme sets styles with element names (`Button`, `Input`,
   `TextArea`, `CheckBox`, `Slider`, `RadioButton`, `Switch`, `ProgressBar`, `Tabs`, `TabBar`, `TabHeader`, `Tab`,
   `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — a `Style` with the same name replaces them.
 - Theme tokens (`<Token name="accent" value="#6d5dfc"/>`) are substituted into any value as `$accent`.
 - `color`, `accentColor`, the font and the font size are inherited by children, as in CSS.
+
+## Animations and Timers
+
+**Transitions** (`transition`) smoothly change a property from its old value to a new one when the state or style changes. **Keyframe animations** play on their own — on load, when a state appears, infinitely, — like `@keyframes` in CSS.
+
+```xml
+<Resources>
+  <Keyframes name="pulse">
+    <Frame at="0%" opacity="1" transform="scale(1)"/>
+    <Frame at="100%" opacity="0.35" transform="scale(0.8)"/>
+  </Keyframes>
+  <Keyframes name="appear">
+    <Frame at="0%" opacity="0" transform="translate(0, 16)"/>
+  </Keyframes>
+  <Style name="card" background="#ffffff" padding="16" animation="appear 0.6s ease-out"/>
+</Resources>
+…
+<Box width="28" height="28" borderRadius="14" background="#e11d48"
+     animation="pulse 0.8s ease-in-out infinite alternate"/>
+```
+
+- `<Keyframes name>` are declared in `<Resources>` before styles. A `<Frame at="0%…100%">` frame holds only animatable properties: `background` (color), `borderColor`, `color`, `accentColor`, `opacity`, `transform`, `boxShadow`, `borderRadius`. A property that is not in the 0% or 100% frame takes its usual value there (so `appear` above sets only the start). `easing` on a frame is the curve of the segment up to the next frame.
+- `animation="name duration [curve] [delay] [repeats|infinite] [direction] [fill]"`, multiple — separated by commas, `none` — no animation. Direction: `normal`, `reverse`, `alternate`, `alternate-reverse`; fill: `none`, `forwards` (hold the last frame), `backwards` (first frame during the delay), `both`. Unlike CSS, the name always comes first.
+- Animation starts when the name appears in the node's style (load, `setStyle`, state like `Hover`), and is removed when it disappears. A finished one does not repeat while the name stays in the style; to play it again, change the node's style to one without it, and then back in the next frame.
+- Properties driven by an animation are not animated by transitions. Animations of hidden nodes (`visible="false"` on the node or ancestor: closed layer, another tab) do not trigger redraws and are at their proper place at once when shown.
+- An undeclared name in `animation` is a load error with a line number. Gradients and transformations of different forms (`rotate` → `scale`) are not mixed: the value changes abruptly.
+
+**Timers** — functions that the event loop calls in the UI thread:
+
+```cpp
+gran::TimerId tick = app.setInterval(0.05, ProgressTick{&app});   // every 50 ms
+app.setTimeout(2.0, ShowHint{&app});                              // once after 2 seconds
+app.clearTimer(tick);
+```
+
+- After triggering, the frame is redrawn; in idle, the thread sleeps until the deadline of the nearest timer. Accuracy — frame (around 16 ms with vsync) or event loop wake-up; period no less than 1 ms.
+- A periodic timer calls the same function-object: its fields (e.g., counter) are saved between triggers. Missed triggers (thread was busy) are not caught up in a burst.
+- A timer can be removed from its own handler; a timer set by a handler will not trigger until the next loop pass. Timers can only be set and cleared in the UI thread — a background thread does this through `post`.
+
+Sample — `samples/animations.xml` (`gran_gallery samples/animations.xml`): rotation, pulse, color change, indeterminate progress, card appearance, hover animation; the progress bar and the seconds counter are driven by gallery timers.
 
 ## Text and Fonts
 
@@ -246,6 +288,7 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `selectTab(tabs, value)` | Select a `Tabs` page from code (without `onChange`) |
 | `setValue(node, number)` / `setChecked(node, yes/no)` | The number of a `ProgressBar`/`Slider`, the mark of a `CheckBox`/`Switch`/`RadioButton` (without `onChange`) |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
+| `setTimeout(seconds, function)` / `setInterval(seconds, function)` / `clearTimer(id)` | Timers on the UI thread |
 | `run()` | Event loop until the window is closed; returns the exit code |
 
 Node `gran::ui::Node` (`gran/ui/node.hpp`) stores the element kind, `id`, the content `content` (`text`, `value`,

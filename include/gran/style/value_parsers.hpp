@@ -75,6 +75,11 @@ namespace gran::style
     // Список переходов через запятую / A comma separated transition list
     std::vector<TransitionSpec> parseTransitions(std::string_view text);
 
+    // ---- parse_animation.cpp ----
+
+    // Список анимаций по ключевым кадрам через запятую; "none" — пустой / A comma separated keyframe animation list; "none" — empty
+    std::vector<AnimationSpec> parseAnimations(std::string_view text);
+
     // translate(), scale(), rotate(), skew() подряд; "none" — пустой
     // translate(), scale(), rotate(), skew() in a row; "none" — empty
     Transform parseTransform(std::string_view text);

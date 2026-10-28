@@ -50,6 +50,7 @@ namespace gran::style
         const Field<Vec2> ORIGINS[] = {{P::TRANSFORM_ORIGIN, &S::transformOrigin}};
         const Field<std::string> STRINGS[] = {{P::FONT_FAMILY, &S::fontFamily}};
         const Field<std::vector<TransitionSpec>> TRANSITIONS[] = {{P::TRANSITION, &S::transitions}};
+        const Field<std::vector<AnimationSpec>> ANIMATIONS[] = {{P::ANIMATION, &S::animations}};
 
         // Запись значения в поле, если свойство есть в таблице / Writing the value into the field if the property is in the table
         template <typename T, std::size_t N>
@@ -86,7 +87,8 @@ namespace gran::style
             || assign(PAINTS, style, declaration) || assign(COLORS, style, declaration)
             || assign(RADII, style, declaration) || assign(SHADOWS, style, declaration)
             || assign(TRANSFORMS, style, declaration) || assign(ORIGINS, style, declaration)
-            || assign(STRINGS, style, declaration) || assign(TRANSITIONS, style, declaration);
+            || assign(STRINGS, style, declaration) || assign(TRANSITIONS, style, declaration)
+            || assign(ANIMATIONS, style, declaration);
 
         // Неизвестное сочетание свойства и типа — ошибка программы, а не разметки
         // An unknown property and type combination is a program error, not a markup one

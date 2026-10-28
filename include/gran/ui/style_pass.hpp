@@ -18,11 +18,13 @@ namespace gran::ui
     /*
     ** Наблюдатель пересчёта стиля (паттерн Observer): аниматор подменяет в next значения,
     ** которые должны не прыгнуть, а плавно перейти от показанных (shown). Первый расчёт
-    ** стиля узла наблюдателю не сообщается — при загрузке переходы не играют (как в CSS).
+    ** стиля узла приходит отдельно (styleCreated): при загрузке переходы не играют (как в CSS),
+    ** а анимации по ключевым кадрам — запускаются.
     **
     ** A style recompute observer (the Observer pattern): the animator replaces in next the values
     ** that must not jump but move smoothly from the shown ones. The first style computation
-    ** of a node is not reported — transitions do not play on load (as in CSS).
+    ** of a node comes separately (styleCreated): transitions do not play on load (as in CSS),
+    ** while keyframe animations start.
     */
     class StyleObserver
     {
@@ -31,6 +33,9 @@ namespace gran::ui
 
         // Стиль узла пересчитан: shown — показанный сейчас, next — новый целевой / The node style is recomputed: shown is the one shown now, next is the new target
         virtual void styleChanged(Node& node, const style::ComputedStyle& shown, style::ComputedStyle& next) = 0;
+
+        // Первый расчёт стиля узла: next — его стиль / The first node style computation: next is its style
+        virtual void styleCreated(Node& node, style::ComputedStyle& next) = 0;
     };
 
     /*

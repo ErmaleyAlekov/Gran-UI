@@ -27,6 +27,7 @@ namespace gran::i18n
         STYLE_BAD_EASING,
         STYLE_BAD_DURATION,
         STYLE_BAD_TRANSITION,
+        STYLE_BAD_ANIMATION,
         STYLE_BAD_TRANSFORM,
         STYLE_BAD_TRACK,
         STYLE_UNKNOWN_PROPERTY,
@@ -41,6 +42,7 @@ namespace gran::i18n
         RESOURCE_UNKNOWN_TOKEN,
         RESOURCE_STYLE_CYCLE,
         RESOURCE_UNKNOWN_ACTION,
+        RESOURCE_UNKNOWN_KEYFRAMES,
 
         // ---- Шрифты и изображения / Fonts and images ----
         FONT_BAD_FILE,

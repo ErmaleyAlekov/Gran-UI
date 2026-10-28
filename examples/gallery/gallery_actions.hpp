@@ -15,6 +15,15 @@ namespace gallery
     ** closeDialog (closing the dialog where the button was pressed).
     */
     void registerActions(gran::Application& application);
+
+    /*
+    ** Таймеры витрины (gallery_timers.cpp): ProgressBar timerProgress растёт по кругу, Text elapsed
+    ** считает секунды, действие delayed пишет в строку состояния через 2 секунды.
+    **
+    ** The showcase timers (gallery_timers.cpp): the timerProgress ProgressBar grows in a circle, the elapsed Text
+    ** counts seconds, the delayed action writes into the status line in 2 seconds.
+    */
+    void registerTimers(gran::Application& application);
 }
 
 #endif

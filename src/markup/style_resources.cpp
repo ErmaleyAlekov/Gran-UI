@@ -84,6 +84,8 @@ namespace gran::markup::internal
                 readFont(*child, context);
             else if (name == "Data")
                 readDataSet(*child, context);
+            else if (name == "Keyframes")
+                readKeyframes(*child, context);
             else
             {
                 style::StyleRule& rule = context.document.styles.add(*findAttribute(*child, "name"));
