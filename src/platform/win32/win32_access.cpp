@@ -2,12 +2,24 @@
 
 namespace gran::platform::win32
 {
-    // Связь создаётся один раз; дерево можно заменить (новая разметка) или отключить (nullptr)
-    // The link is created once; the tree can be replaced (new markup) or disconnected (nullptr)
+    /*
+    ** Связь создаётся один раз; дерево можно заменить (новая разметка) или отключить (nullptr).
+    ** Вход в апартамент COM — как у WebView2 (тот же поток, тот же STA); парный CoUninitialize
+    ** не вызывается: клиенты UI Automation отпускают провайдеры асинхронно, до конца процесса.
+    ** RPC_E_CHANGED_MODE (поток уже в многопоточном апартаменте) — доступность недоступна.
+    **
+    ** The link is created once; the tree can be replaced (new markup) or disconnected (nullptr).
+    ** Entering the COM apartment is as for WebView2 (the same thread, the same STA); the matching CoUninitialize
+    ** is not called: UI Automation clients release the providers asynchronously, until the process ends.
+    ** RPC_E_CHANGED_MODE (the thread is already in a multithreaded apartment) — accessibility is unavailable.
+    */
     void Win32Window::setAccessTree(a11y::AccessTree* tree)
     {
         if (!access)
+        {
             access = std::make_shared<UiaHost>();
+            access->apartment = SUCCEEDED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
+        }
         access->window = window;
         access->tree = tree;
     }
@@ -27,6 +39,14 @@ namespace gran::platform::win32
         element->Release();
     }
 
+    // Изменения отметки, текста и числа узла в фокусе — дикторам (сверка — uia_events.cpp)
+    // The changes of the focused node mark, text and number go to the screen readers (the comparison is in uia_events.cpp)
+    void Win32Window::accessRefresh()
+    {
+        if (access)
+            raiseStateChanges(access);
+    }
+
     /*
     ** WM_GETOBJECT: на запрос корня UI Automation окно отдаёт элемент корня дерева; прочие
     ** запросы (MSAA, OBJID_CLIENT) — стандартной обработке, она построит прокси сама.
@@ -36,7 +56,8 @@ namespace gran::platform::win32
     */
     LRESULT answerAccessRequest(Win32Window& self, WPARAM wParam, LPARAM lParam) noexcept
     {
-        if (static_cast<long>(lParam) != UiaRootObjectId || !self.access || self.access->tree == nullptr)
+        if (static_cast<long>(lParam) != UiaRootObjectId || !self.access || self.access->tree == nullptr
+            || !self.access->apartment)
             return DefWindowProcW(self.window, WM_GETOBJECT, wParam, lParam);
         UiaElement* root = elementFor(self.access, self.access->tree->root);
         if (root == nullptr)

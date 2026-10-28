@@ -432,6 +432,10 @@
     <xs:attribute name="visible" type="xs:boolean"/>
     <xs:attribute name="enabled" type="xs:boolean"/>
     <xs:attribute name="tooltip" type="xs:string"/>
+    <!-- Имя для дикторов (как aria-label) и id элемента-подписи (как aria-labelledby) -->
+    <!-- The name for screen readers (as aria-label) and the id of the label element (as aria-labelledby) -->
+    <xs:attribute name="accessibleName" type="xs:string"/>
+    <xs:attribute name="labeledBy" type="xs:NCName"/>
     <xs:attribute name="onClick" type="Action"/>
     <xs:attribute name="overflow" type="Overflow"/>
     <xs:attribute name="transition" type="Transitions"/>
@@ -453,9 +457,9 @@
 
   <!--
     Шаблон одной записи списка: ровно один элемент интерфейса. Подстановки {поле} разрешены
-    в текстовых атрибутах (text, placeholder, source, tooltip, value у MenuItem) и в тексте тегов.
+    в текстовых атрибутах (text, placeholder, source, tooltip, accessibleName, value у MenuItem) и в тексте тегов.
     The template of one list record: exactly one UI element. {field} placeholders are allowed
-    in the text attributes (text, placeholder, source, tooltip, value of MenuItem) and in the tag text.
+    in the text attributes (text, placeholder, source, tooltip, accessibleName, value of MenuItem) and in the tag text.
   -->
   <xs:complexType name="ItemTemplateType">
     <xs:group ref="UiElement"/>
@@ -953,6 +957,11 @@
       <xs:selector xpath=".//*"/>
       <xs:field xpath="@id"/>
     </xs:unique>
+    <!-- labeledBy ссылается только на существующий id / labeledBy refers only to an existing id -->
+    <xs:keyref name="labelRef" refer="uniqueId">
+      <xs:selector xpath=".//*"/>
+      <xs:field xpath="@labeledBy"/>
+    </xs:keyref>
     <!-- Имена значений темы уникальны / Theme value names are unique -->
     <xs:unique name="uniqueToken">
       <xs:selector xpath="Resources/Theme/Token"/>

@@ -118,7 +118,8 @@ return app.run();
   and tooltips (`tooltip`); menus open from the keyboard too.
 - A hybrid with the web: `<WebView>` shows a system browser page (Windows — WebView2) inside the engine window;
   the browser is created lazily, the page lives in a separate process, the bridge to the program is string messages.
-- Accessibility: Microsoft UI Automation provider (screen readers see buttons, fields, checkboxes, sliders, and texts).
+- Accessibility: Microsoft UI Automation provider — screen readers see buttons, fields, checkboxes, sliders, and texts
+  and control them by themselves (press, toggle, select, type text, set a number); names — `accessibleName` and `labeledBy`.
 - PNG — custom decoder and custom inflate. Error messages are in Russian and English.
 
 ### Engineering Quality

@@ -69,6 +69,9 @@ namespace gran::ui
         std::string placeholder;
         std::string source;
         std::string tooltip;
+        // Имя для дикторов (как aria-label) и id узла-подписи (как aria-labelledby) / The name for screen readers (as aria-label) and the id of the label node (as aria-labelledby)
+        std::string accessibleName;
+        std::string labeledBy;
         std::string onClick;
         std::string onChange;
         std::string onSubmit;

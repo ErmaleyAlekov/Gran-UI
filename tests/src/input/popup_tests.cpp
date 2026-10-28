@@ -104,6 +104,10 @@ namespace
         {
         }
 
+        void accessRefresh() override
+        {
+        }
+
         void wake() noexcept override
         {
         }

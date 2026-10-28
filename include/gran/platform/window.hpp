@@ -126,6 +126,10 @@ namespace gran::platform
         // Фокус в дереве доступности сменился — сообщить дикторам / The accessibility tree focus changed — notify the screen readers
         virtual void accessFocusChanged() = 0;
 
+        // Сверить состояние узла в фокусе с прошлым кадром и сообщить дикторам об изменении (отметка, текст, число)
+        // Compare the focused node state with the previous frame and notify the screen readers of a change (the mark, the text, the number)
+        virtual void accessRefresh() = 0;
+
         /*
         ** Разбудить waitEvents из любого потока (единственный потокобезопасный метод окна):
         ** поток интерфейса проснётся и заберёт задачи, отправленные другими потоками.
