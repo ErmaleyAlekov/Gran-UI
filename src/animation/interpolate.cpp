@@ -1,4 +1,4 @@
-#include "gran/animation/animator.hpp"
+#include "gran/animation/visual_state.hpp"
 #include "gran/animation/internal/interpolation.hpp"
 
 namespace gran::animation

@@ -104,7 +104,9 @@ return app.run();
   `boxShadow` (внешние и внутренние), раздельные радиусы углов, `transform`, `opacity`, `backdropBlur`.
 - **Каскад:** умолчания ← тема ← именованный `Style` (с наследованием `basedOn`) ← атрибуты ← состояния
   `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`. Токены темы — `$имя`.
-- **Переходы:** `transition` с кривыми `ease`, `linear`, `cubic-bezier()`, `steps()`.
+- **Переходы и анимации:** `transition` с кривыми `ease`, `linear`, `cubic-bezier()`, `steps()`; анимации по ключевым
+  кадрам `<Keyframes>` + `animation` (повторы, `infinite`, `alternate`, задержка, заполнение), в том числе по состоянию
+  (`<Hover animation="…"/>`); таймеры `setTimeout`/`setInterval` в потоке интерфейса.
 
 ### Компоновка
 - `Stack` — подмножество flexbox: `justify`, `align`, `grow`/`shrink`, `wrap`, `alignSelf`.

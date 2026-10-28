@@ -14,8 +14,8 @@ namespace gran::ui
             StyleObserver* observer;
         };
 
-        // Новый вычисленный стиль узла; наблюдатель видит все пересчёты, кроме первого
-        // The new computed style of the node; the observer sees all recomputes except the first one
+        // Новый вычисленный стиль узла; наблюдатель видит пересчёты и отдельно — первый расчёт
+        // The new computed style of the node; the observer sees the recomputes and, separately, the first computation
         void recompute(Node& node, const style::ComputedStyle& parent, const StylePass& pass)
         {
             style::CascadeInput input;
@@ -28,6 +28,8 @@ namespace gran::ui
             style::ComputedStyle next = style::computeStyle(input);
             if (node.styled && pass.observer != nullptr)
                 pass.observer->styleChanged(node, node.computed, next);
+            else if (pass.observer != nullptr)
+                pass.observer->styleCreated(node, next);
             node.styled = true;
             if (style::affectsLayout(node.computed, next))
                 markDirty(node, DIRTY_LAYOUT);

@@ -15,7 +15,7 @@ Declarative UI on XML over Beresta. The goal is HTML + CSS level picture quality
  markup/   DOM → UI node tree (ui::Node), resources (Theme, Style, Font, Image)
         ▼
  style/    cascade: defaults ← theme ← Style ← attributes ← states (hover/pressed/focus/disabled)
-        │   → ComputedStyle (POD) + transitions (animation/)
+        │   → ComputedStyle (POD) + transitions and keyframes (animation/)
         ▼
  layout/   Stack (subset of flexbox), Grid (px/auto/fr/minmax, span), Canvas (absolute),
         │   text (text/: TrueType font, kerning, line breaks) → LayoutBox (x, y, w, h)
@@ -43,13 +43,13 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `layout/` | Stack, Grid, Canvas, text measurement, scrolling |
 | `text/` | TrueType/TTC parsing, glyph rasterization (exact coverage area), atlas, kerning, line breaks |
 | `image/` | inflate (zlib) and PNG — custom implementations |
-| `animation/` | property transitions, curves (`cubic-bezier`, ease, linear, steps), frame clock |
+| `animation/` | property transitions and keyframe animations (`<Keyframes>` + `animation`), curves (`cubic-bezier`, ease, linear, steps), frame clock |
 | `input/` | hit-test (considering transform), focus, event routing, text editing and selection, clipboard |
 | `a11y/` | accessibility: roles, names, tree navigation (neutral); UI Automation provider in `platform/win32/uia_*` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/`, `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
 | `platform/` | window and events: `win32/`, `x11/` (then `cocoa/`); the embedded browser `webview2/` (optional) |
-| `app/` | application: event loop, action binding (`onClick="name"` → C++ function), `<WebView>` placement |
+| `app/` | application: event loop, timers (`setTimeout`/`setInterval`), action binding (`onClick="name"` → C++ function), `<WebView>` placement |
 
 ### The embedded browser (hybrid)
 

@@ -35,7 +35,7 @@ namespace gran::style
         COLOR, FONT_FAMILY, FONT_SIZE, FONT_WEIGHT, FONT_STYLE, LINE_HEIGHT, LETTER_SPACING,
         TEXT_ALIGN, TEXT_WRAP, TEXT_OVERFLOW, MAX_LINES, TEXT_DECORATION, ACCENT_COLOR,
         // ---- Движение / Motion ----
-        TRANSITION,
+        TRANSITION, ANIMATION,
         COUNT
     };
 
@@ -47,12 +47,12 @@ namespace gran::style
     enum class ValueKind : std::uint8_t
     {
         NUMBER, LENGTH, INSETS, RADII, COLOR, PAINT, SHADOWS, TRANSFORM, ORIGIN,
-        TRANSITIONS, TRACKS, KEYWORD, INTEGER, BOOLEAN, STRING, FONT_WEIGHT
+        TRANSITIONS, ANIMATIONS, TRACKS, KEYWORD, INTEGER, BOOLEAN, STRING, FONT_WEIGHT
     };
 
     // Разобранное значение свойства / A parsed property value
     using PropertyValue = std::variant<float, int, bool, Length, Insets, CornerRadii, Color, Paint,
-        std::vector<Shadow>, Transform, Vec2, std::vector<TransitionSpec>, std::vector<GridTrack>, std::string>;
+        std::vector<Shadow>, Transform, Vec2, std::vector<TransitionSpec>, std::vector<AnimationSpec>, std::vector<GridTrack>, std::string>;
 
     // Объявленное значение: свойство + значение / A declared value: a property + a value
     using Declaration = std::pair<PropertyId, PropertyValue>;

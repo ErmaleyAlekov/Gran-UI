@@ -1,4 +1,4 @@
-#include "gran/animation/animator.hpp"
+#include "gran/animation/internal/keyframe_runs.hpp"
 
 #include <algorithm>
 
@@ -6,29 +6,6 @@ namespace gran::animation
 {
     namespace
     {
-        /*
-        ** Наследуемый цвет (color, accentColor) идёт вниз к потомкам, которые его не переопределили:
-        ** иначе текст внутри кнопки остался бы с начальным цветом перехода кнопки.
-        **
-        ** An inherited color (color, accentColor) goes down to the descendants that did not override it:
-        ** otherwise a text inside a button would keep the start color of the button transition.
-        */
-        void inheritDown(ui::Node& node, Animated property, const VisualState& value)
-        {
-            std::uint8_t bit = style::INHERITED_ACCENT;
-
-            if (property == Animated::COLOR)
-                bit = style::INHERITED_COLOR;
-            for (const std::unique_ptr<ui::Node>& child : node.children)
-            {
-                if ((child->computed.inheritedColors & bit) == 0)
-                    continue;
-                applyVisual(child->computed, value, property);
-                ui::markDirty(*child, ui::DIRTY_PAINT);
-                inheritDown(*child, property, value);
-            }
-        }
-
         /*
         ** Шаг одной анимации: каждое идущее свойство получает значение кривой; во время задержки
         ** держится начальное. Закончившиеся свойства снимаются с маски. Узел перерисовывается.
@@ -51,15 +28,33 @@ namespace gran::animation
                 interpolate(animation.from, animation.to, property, evaluateEasing(track.easing, progress), current);
                 applyVisual(animation.node->computed, current, property);
                 if (property == Animated::COLOR || property == Animated::ACCENT_COLOR)
-                    inheritDown(*animation.node, property, current);
+                    internal::inheritDown(*animation.node, property, current);
                 if (progress >= 1.0f)
                     animation.mask &= ~(1u << index);
             }
             ui::markDirty(*animation.node, ui::DIRTY_PAINT);
         }
+
+        // Удалить записи узла (переходы или анимации по кадрам) с сохранением порядка / Remove the node records (transitions or keyframe animations) keeping the order
+        template <typename Record>
+        void dropNode(std::vector<Record>& records, const ui::Node& node)
+        {
+            std::size_t kept = 0;
+
+            for (std::size_t index = 0; index < records.size(); ++index)
+            {
+                if (records[index].node == &node)
+                    continue;
+                if (kept != index)
+                    records[kept] = std::move(records[index]);
+                ++kept;
+            }
+            records.resize(kept);
+        }
     }
 
-    // Все анимации на шаг; пустые удаляются / All animations one step; empty ones are removed
+    // Все переходы на шаг (пустые удаляются), затем анимации по кадрам — их значения сильнее
+    // All transitions one step (empty ones are removed), then keyframe animations — their values are stronger
     bool Animator::tick()
     {
         std::size_t kept = 0;
@@ -75,23 +70,42 @@ namespace gran::animation
             ++kept;
         }
         _animations.resize(kept);
-        return !_animations.empty();
+        bool frames = tickKeyframes();
+        return frames || !_animations.empty();
+    }
+
+    /*
+    ** Закончившиеся анимации стоят (их значения с forwards кладёт в стиль syncKeyframes).
+    ** Анимация скрытого узла (сам или предок visible="false": закрытый слой, другая вкладка) не
+    ** шагает и не держит кадры: время идёт от запуска, поэтому при показе она сразу на своём месте.
+    **
+    ** Finished animations stand still (syncKeyframes puts their forwards values into the style).
+    ** An animation of a hidden node (itself or an ancestor with visible="false": a closed layer, another tab) does not
+    ** step and does not keep frames going: the time runs from the start, so when shown it is at its place at once.
+    */
+    bool Animator::tickKeyframes()
+    {
+        bool running = false;
+
+        for (KeyframeRun& run : _runs)
+        {
+            if (run.finished || !ui::isShown(*run.node))
+                continue;
+            AnimationTiming timing = animationTiming(run.spec, _now - run.start);
+            internal::writeRun(run, timing, run.node->computed);
+            internal::spreadColors(*run.node, run.track.mask);
+            ui::markDirty(*run.node, ui::DIRTY_PAINT);
+            run.finished = timing.finished;
+            running = running || !timing.finished;
+        }
+        return running;
     }
 
     // Анимации удаляемого узла снимаются: указатель на него станет недействительным
     // The animations of a node being removed are dropped: the pointer to it becomes invalid
     void Animator::forget(const ui::Node& node)
     {
-        std::size_t kept = 0;
-
-        for (std::size_t index = 0; index < _animations.size(); ++index)
-        {
-            if (_animations[index].node == &node)
-                continue;
-            if (kept != index)
-                _animations[kept] = std::move(_animations[index]);
-            ++kept;
-        }
-        _animations.resize(kept);
+        dropNode(_animations, node);
+        dropNode(_runs, node);
     }
 }

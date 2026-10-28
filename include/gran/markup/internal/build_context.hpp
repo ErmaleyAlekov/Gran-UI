@@ -50,6 +50,15 @@ namespace gran::markup::internal
     // <Resources>: тема, шрифты, стили / <Resources>: the theme, fonts, styles
     void readResources(const beresta::Element& resources, BuildContext& context);
 
+    // ---- keyframes_resources.cpp ----
+
+    // <Keyframes name><Frame at …/>…</Keyframes> в набор стилей документа / <Keyframes name><Frame at …/>…</Keyframes> into the document style set
+    void readKeyframes(const beresta::Element& keyframes, BuildContext& context);
+
+    // Все имена анимаций значения animation объявлены в <Keyframes>; иначе GranException(RESOURCE)
+    // All animation names of an animation value are declared in <Keyframes>; otherwise GranException(RESOURCE)
+    void checkAnimationNames(const style::PropertyValue& value, const BuildContext& context);
+
     // ---- declarations.cpp ----
 
     // Один атрибут-свойство в набор; false — это не свойство стиля

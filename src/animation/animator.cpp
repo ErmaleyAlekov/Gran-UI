@@ -54,17 +54,23 @@ namespace gran::animation
         _now = now;
     }
 
-    // Каждое изменившееся свойство с переходом начинает ход; без перехода — прыжок к цели (и остановка хода)
-    // Every changed property with a transition starts a course; without a transition — a jump to the target (and the course stops)
+    /*
+    ** Каждое изменившееся свойство с переходом начинает ход; без перехода — прыжок к цели (и остановка хода).
+    ** Свойства, которые ведёт анимация по кадрам, переходами не трогаются: их значение уже в next.
+    **
+    ** Every changed property with a transition starts a course; without a transition — a jump to the target (and the course stops).
+    ** The properties driven by a keyframe animation are not touched by transitions: their value is already in next.
+    */
     void Animator::styleChanged(ui::Node& node, const style::ComputedStyle& shown, style::ComputedStyle& next)
     {
         VisualState from = captureVisual(shown);
         VisualState to = captureVisual(next);
+        std::uint32_t driven = syncKeyframes(node, next);
 
         for (std::size_t index = 0; index < ANIMATED_COUNT; ++index)
         {
             Animated property = static_cast<Animated>(index);
-            if (!visualChanged(from, to, property))
+            if (!visualChanged(from, to, property) || (driven & (1u << index)) != 0)
                 continue;
             const style::TransitionSpec* spec = findTransition(next.transitions, property);
             if (spec == nullptr || spec->duration <= 0.0f)

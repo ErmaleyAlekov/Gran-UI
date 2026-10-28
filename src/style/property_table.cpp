@@ -40,7 +40,7 @@ namespace gran::style
             {"textWrap", P::TEXT_WRAP, K::KEYWORD, true}, {"textOverflow", P::TEXT_OVERFLOW, K::KEYWORD, false},
             {"maxLines", P::MAX_LINES, K::INTEGER, false}, {"textDecoration", P::TEXT_DECORATION, K::KEYWORD, true},
             {"accentColor", P::ACCENT_COLOR, K::COLOR, true},
-            {"transition", P::TRANSITION, K::TRANSITIONS, false}
+            {"transition", P::TRANSITION, K::TRANSITIONS, false}, {"animation", P::ANIMATION, K::ANIMATIONS, false}
         };
     }
 

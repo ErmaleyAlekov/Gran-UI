@@ -66,6 +66,8 @@ namespace gran
         std::mutex taskMutex;
         std::vector<Task> tasks;
         platform::Window* wakeTarget = nullptr;
+        // Таймеры setTimeout/setInterval (только поток интерфейса) / The setTimeout/setInterval timers (the UI thread only)
+        app::TimerQueue timers;
         // Фокус, запрошенный до создания маршрутизатора ввода / The focus requested before the input router exists
         ui::Node* pendingFocus = nullptr;
         bool quit = false;
