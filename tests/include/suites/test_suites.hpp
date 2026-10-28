@@ -23,6 +23,7 @@ namespace suites
 
     // ---- Текст и файлы / Text and files ----
     void registerUtf8PngTests(test::TestRunner& runner);
+    void registerJpegTests(test::TestRunner& runner);
     void registerMappedFileTests(test::TestRunner& runner);
     void registerTextSelectionTests(test::TestRunner& runner);
     void registerAccessibilityTests(test::TestRunner& runner);

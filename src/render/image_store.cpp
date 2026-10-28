@@ -36,10 +36,10 @@ namespace gran::render
     }
 
     /*
-    ** Чтение файла, декодирование PNG, текстура RGBA8 с предумноженной альфой. Ошибка
+    ** Чтение файла, декодирование (PNG или JPEG — по подписи), текстура RGBA8 с предумноженной альфой. Ошибка
     ** чтения, формата или нехватка слотов — запись failed (окно продолжает работать).
     **
-    ** Reading the file, decoding the PNG, an RGBA8 texture with premultiplied alpha. A read
+    ** Reading the file, decoding (PNG or JPEG — by the signature), an RGBA8 texture with premultiplied alpha. A read
     ** or format error or running out of slots — a failed entry (the window keeps working).
     */
     ImageEntry ImageStore::load(const std::string& source)
@@ -55,7 +55,7 @@ namespace gran::render
             return entry;
         try
         {
-            picture = image::decodePng(data.data(), data.size(), source);
+            picture = image::decodeImage(data.data(), data.size(), source);
             entry.slot = _backend.createTexture(rhi::TextureDesc{picture.width, picture.height, rhi::TextureFormat::RGBA8,
                 "gran.image"});
         }
