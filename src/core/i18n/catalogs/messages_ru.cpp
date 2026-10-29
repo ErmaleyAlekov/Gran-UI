@@ -60,6 +60,7 @@ namespace gran::i18n
             {Message::MARKUP_FRAGMENT_PARENT, "фрагмент разметки нельзя вставить в {0}: у этого элемента нет детей-элементов"},
             {Message::WEBVIEW_WRONG_NODE, "элемент {0} — не WebView"},
             {Message::WEBVIEW_UNAVAILABLE, "встроенный браузер недоступен (код 0x{0}): нужен WebView2Loader.dll рядом с программой и среда WebView2 Runtime"},
+            {Message::WEBVIEW_NOT_BUILT, "программа собрана без встроенного браузера: <WebView> показывает только фон (сборка с WEBVIEW2_SDK — см. docs/building.md)"},
             {Message::APP_WRONG_ELEMENT, "элемент {0} здесь не подходит: нужен {1}"},
             {Message::PLATFORM_WINDOW_FAILED, "не удалось создать окно: {0}"},
             {Message::PLATFORM_FILE_DIALOG_FAILED, "системный диалог файлов не открылся (код 0x{0})"},

@@ -46,7 +46,11 @@ namespace gran::app
         failed = true;
         try
         {
-            std::cerr << i18n::format(i18n::Message::WEBVIEW_UNAVAILABLE, {hexCode(code)}) << '\n';
+            // Код 0 — браузера нет в сборке (заглушка web_view_fallback.cpp) / The code 0 — the build has no browser (the web_view_fallback.cpp stub)
+            if (code == 0)
+                std::cerr << i18n::format(i18n::Message::WEBVIEW_NOT_BUILT) << '\n';
+            else
+                std::cerr << i18n::format(i18n::Message::WEBVIEW_UNAVAILABLE, {hexCode(code)}) << '\n';
         }
         catch (...)
         {

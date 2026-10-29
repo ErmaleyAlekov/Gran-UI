@@ -60,6 +60,7 @@ namespace gran::i18n
             {Message::MARKUP_FRAGMENT_PARENT, "a markup fragment cannot be inserted into {0}: this element has no element children"},
             {Message::WEBVIEW_WRONG_NODE, "element {0} is not a WebView"},
             {Message::WEBVIEW_UNAVAILABLE, "the embedded browser is unavailable (code 0x{0}): WebView2Loader.dll next to the program and the WebView2 Runtime are needed"},
+            {Message::WEBVIEW_NOT_BUILT, "the program is built without the embedded browser: <WebView> shows only its background (build with WEBVIEW2_SDK — see docs/building.md)"},
             {Message::APP_WRONG_ELEMENT, "element {0} does not fit here: {1} is needed"},
             {Message::PLATFORM_WINDOW_FAILED, "failed to create window: {0}"},
             {Message::PLATFORM_FILE_DIALOG_FAILED, "the system file dialog failed to open (code 0x{0})"},
