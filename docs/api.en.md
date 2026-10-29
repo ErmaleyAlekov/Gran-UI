@@ -117,6 +117,30 @@ When directly editing node fields, use `ui::markDirty(node, flags)` from `gran/u
 `DIRTY_STYLE` for cascade recalculation, `DIRTY_LAYOUT` for layout, `DIRTY_PAINT` for drawing.
 Do not save a reference to a deleted node. Tree and model changes are performed in the UI thread.
 
+## Events
+
+`using EventHandler = std::function<void(ui::Node& node, ui::UiEvent& event)>` (`gran/ui/ui_event.hpp`),
+`node` — the node whose handler is called (`event.current`). Everything — only in the UI thread.
+
+- `onEvent(name, EventHandler)`: event handler from the event attributes (`onKeyDown`, `onPointerMove`,
+  `onDropCapture`, `on="custom:name"`…); replaces the previous one. Without it, the name is searched among `onAction` and `gran:…`.
+- `addEventListener(node, type, EventHandler, capture = false) -> ListenerId`: listener for the node; `type` —
+  built-in name (`pointerDown`, `keyUp`, `dragOver`…) or custom. The listener is stored in the node (`ui::Node::listeners`),
+  `cloneTree` does not copy it. `removeEventListener(node, id)` — remove (can be from the listener itself).
+- `dispatchEvent(target, type, detail = "", bubbles = true) -> bool`: custom event along the capture → target →
+  bubble route; `false` — `preventDefault` was called. Works even before `run()` (without the OS window).
+- `capturePointer(node)` / `releasePointer(node)`: capture the mouse until the button is released; before `run()` — nothing.
+
+`ui::UiEvent`: `type` (`ui::EventType`), `name`, `target`, `current`, `related`, `phase` (1 capture, 2 target,
+3 bubble), `position` (window, logical pixels), `local` (current system: `ui::windowToNode` minus the top-left corner of the frame), `wheel`, `button`, `key`, `modifiers`, `clicks`, `detail`, `drag` (`format`, `data`), `dropped`,
+`bubbles`, `cancelable`, `defaultPrevented`, `handled`; methods `stopPropagation()`, `stopImmediatePropagation()`,
+`preventDefault()`. `ui::makeEvent(type, target, name)` builds an event with flags as in DOM, `ui::eventName` /
+`ui::eventType` translate type to name and back, `platform::keyName(Key)` — key name.
+
+Routing — `input::dispatchEvent(event, sink)` (`gran/input/input_router.hpp`); in your
+`input::ActionSink` its handlers from the markup go to the virtual `event(name, node, event)` (by default —
+`action(name, node)`), and `treeVersion()` reports on node removals (delivery stops).
+
 ## Tasks, Timers, and Layers
 
 `post(Task)` is safe from other threads: the task is copied to the queue and wakes the window; executed

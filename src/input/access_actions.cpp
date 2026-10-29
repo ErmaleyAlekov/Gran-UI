@@ -71,20 +71,22 @@ namespace gran::input
     bool InputRouter::perform(const a11y::AccessRequest& request)
     {
         ui::Node& node = const_cast<ui::Node&>(*request.node);
+        bool changed = true;
 
         if (!reachable(_state, node))
             return false;
-        switch (request.kind)
-        {
-            case a11y::Request::FOCUS: focus(&node); return true;
-            case a11y::Request::INVOKE: activate(_state, node); return true;
-            case a11y::Request::TOGGLE: changeChoice(_state, node); return true;
-            case a11y::Request::SELECT: changeChoice(_state, node); return true;
-            case a11y::Request::SET_TEXT: return replaceText(_state, node, request.text);
-            case a11y::Request::SET_VALUE: break;
-        }
-        if (node.kind != ui::ElementKind::SLIDER)
-            return false;
-        return setSliderValue(_state, node, request.value);
+        if (request.kind == a11y::Request::FOCUS)
+            focus(&node);
+        else if (request.kind == a11y::Request::INVOKE)
+            activate(_state, node);
+        else if (request.kind == a11y::Request::TOGGLE || request.kind == a11y::Request::SELECT)
+            changeChoice(_state, node);
+        else if (request.kind == a11y::Request::SET_TEXT)
+            changed = replaceText(_state, node, request.text);
+        else
+            changed = node.kind == ui::ElementKind::SLIDER && setSliderValue(_state, node, request.value);
+        // Фокус и выбор могли поставить уведомления focus/blur в очередь / The focus and the choice might queue focus/blur notifications
+        flushEvents(_state);
+        return changed;
     }
 }

@@ -43,6 +43,23 @@ class TestApplication(unittest.TestCase):
         count = self.app.model_count("test_model")
         self.assertEqual(count, 0)
 
+    def test_events_listen_dispatch(self):
+        # Своё событие: всплытие от go к root, слушатель кода и обработчик разметки on="ping:named"
+        # A custom event: bubbling from go to root, a code listener and the on="ping:named" markup handler
+        self.app.command("appendMarkup", "root", '<Stack id="box" on="ping:named"><Button id="inner" text="I"/></Stack>')
+        seen = []
+        def listener(event):
+            seen.append((event.type, event.target, event.current, event.phase, event.detail))
+            event.prevent_default()
+        def named(event):
+            seen.append(("named", event.current))
+        number = self.app.listen("root", "ping", listener)
+        self.app.on_event("named", named)
+        self.assertFalse(self.app.dispatch("inner", "ping", "data"))
+        self.assertEqual(seen, [("named", "box"), ("ping", "inner", "root", 3, "data")])
+        self.app.unlisten("root", number)
+        self.assertTrue(self.app.dispatch("inner", "ping"))
+
     def test_invalid_id_errors(self):
         with self.assertRaises(RuntimeError):
             self.app.read("invalid_id", "property")

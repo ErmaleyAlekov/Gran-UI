@@ -6,12 +6,14 @@ namespace gran::input
     void InputRouter::openPopup(ui::Node& popup, const Rect& anchor, bool passive)
     {
         openLayer(_state, popup, anchor, passive);
+        flushEvents(_state);
     }
 
     // Закрытого слоя в списке нет — закрытие ничего не меняет, кроме видимости / A closed layer is not in the list — closing changes nothing but the visibility
     void InputRouter::closePopup(ui::Node& popup)
     {
         closeLayer(_state, popup);
+        flushEvents(_state);
     }
 
     // Для подсказок: над каким узлом стоит мышь / For tooltips: which node the mouse stands over

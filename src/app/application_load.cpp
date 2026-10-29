@@ -24,6 +24,9 @@ namespace gran::app
 
         if (win.document.root)
         {
+            // Узлы прежнего документа уходят: обработчик, во время которого это случилось, прекращает доставку
+            // The former document nodes go away: the handler during which this happened stops the delivery
+            state.treeVersion++;
             state.lists.forget(*win.document.root);
             forgetWebViews(win, *win.document.root);
         }
