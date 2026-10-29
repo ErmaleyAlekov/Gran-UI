@@ -54,12 +54,17 @@ namespace gran::app
             return true;
         }
 
-        // Якорь меню без аргумента — сам узел (ему не нужен id) / A menu anchor without an argument is the node itself (it needs no id)
+        // Якорь меню без аргумента — сам узел (ему не нужен id); захват указателя без id — тоже сам узел
+        // A menu anchor without an argument is the node itself (it needs no id); the pointer capture without an id is the node itself too
         void runBuiltin(Application::State& state, const BuiltinCall& call, ui::Node& node)
         {
             if (call.target.empty() && windowBuiltin(windowOf(state, node), call.command))
                 return;
-            if (call.command == "showPopup" && call.argument.empty())
+            if (call.target.empty() && call.command == "capturePointer")
+                state.owner->capturePointer(node);
+            else if (call.target.empty() && call.command == "releasePointer")
+                state.owner->releasePointer(node);
+            else if (call.command == "showPopup" && call.argument.empty())
                 state.owner->showPopup(requireNode(*state.owner, call.target), node);
             else
                 executeCommand(*state.owner, call.command, call.target, call.argument);

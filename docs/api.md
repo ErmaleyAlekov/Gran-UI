@@ -119,6 +119,31 @@ int main()
 `DIRTY_STYLE` для пересчёта каскада, `DIRTY_LAYOUT` для компоновки, `DIRTY_PAINT` для рисования.
 Не сохраняйте ссылку на удаляемый узел. Изменения дерева и моделей выполняются в потоке UI.
 
+## События
+
+`using EventHandler = std::function<void(ui::Node& node, ui::UiEvent& event)>` (`gran/ui/ui_event.hpp`),
+`node` — узел, чей обработчик вызван (`event.current`). Всё — только в потоке UI.
+
+- `onEvent(name, EventHandler)`: обработчик имени из атрибутов событий (`onKeyDown`, `onPointerMove`,
+  `onDropCapture`, `on="своё:name"`…); заменяет прежний. Без него имя ищется среди `onAction` и `gran:…`.
+- `addEventListener(node, type, EventHandler, capture = false) -> ListenerId`: слушатель у узла; `type` —
+  встроенное имя (`pointerDown`, `keyUp`, `dragOver`…) или своё. Слушатель хранится в узле (`ui::Node::listeners`),
+  `cloneTree` его не копирует. `removeEventListener(node, id)` — снять (можно из самого слушателя).
+- `dispatchEvent(target, type, detail = "", bubbles = true) -> bool`: своё событие по маршруту захват → цель →
+  всплытие; `false` — вызван `preventDefault`. Работает и до `run()` (без окна ОС).
+- `capturePointer(node)` / `releasePointer(node)`: захват мыши до отпускания кнопки; до `run()` — ничего.
+
+`ui::UiEvent`: `type` (`ui::EventType`), `name`, `target`, `current`, `related`, `phase` (1 захват, 2 цель,
+3 всплытие), `position` (окно, логические пиксели), `local` (система `current`: `ui::windowToNode` минус левый
+верхний угол рамки), `wheel`, `button`, `key`, `modifiers`, `clicks`, `detail`, `drag` (`format`, `data`), `dropped`,
+`bubbles`, `cancelable`, `defaultPrevented`, `handled`; методы `stopPropagation()`, `stopImmediatePropagation()`,
+`preventDefault()`. `ui::makeEvent(type, target, name)` строит событие с флагами как в DOM, `ui::eventName` /
+`ui::eventType` переводят вид в имя и обратно, `platform::keyName(Key)` — имя клавиши.
+
+Маршрутизация — `input::dispatchEvent(event, sink)` (`gran/input/input_router.hpp`); у своего
+`input::ActionSink` её обработчики разметки идут в виртуальный `event(name, node, event)` (по умолчанию —
+`action(name, node)`), а `treeVersion()` сообщает об удалении узлов (доставка прекращается).
+
 ## Задачи, таймеры и слои
 
 `post(Task)` безопасен из других потоков: задача копируется в очередь и будит окно; выполняется

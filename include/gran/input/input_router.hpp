@@ -4,6 +4,7 @@
 #include "gran/a11y/access_tree.hpp"
 #include "gran/platform/window.hpp"
 #include "gran/ui/node.hpp"
+#include "gran/ui/ui_event.hpp"
 
 #include <string>
 #include <vector>
@@ -24,6 +25,26 @@ namespace gran::input
 
         // Действие с именем name от узла node / The action named name from the node
         virtual void action(const std::string& name, ui::Node& node) = 0;
+
+        // ---- action_sink.cpp ----
+
+        /*
+        ** Обработчик события из разметки (onPointerDown="name"): node — узел с атрибутом (current).
+        ** По умолчанию — то же, что действие action(name, node): onAction и встроенные gran:… работают и здесь.
+        **
+        ** An event handler from the markup (onPointerDown="name"): node is the node with the attribute (current).
+        ** By default it is the same as the action(name, node): onAction and the built-in gran:… work here too.
+        */
+        virtual void event(const std::string& name, ui::Node& node, ui::UiEvent& event);
+
+        /*
+        ** Счётчик удалений узлов: растёт, когда из дерева что-то удалено. Изменился во время обработчика —
+        ** указатели на узлы могли повиснуть, доставка и действие по умолчанию прекращаются. По умолчанию 0.
+        **
+        ** The node removal counter: it grows when something is removed from the tree. It changed during a handler —
+        ** the node pointers might dangle, the delivery and the default action stop. By default 0.
+        */
+        virtual std::uint32_t treeVersion() const noexcept;
     };
 
     /*
@@ -68,6 +89,25 @@ namespace gran::input
     };
 
     /*
+    ** Внутреннее перетаскивание узла: source — нажатый перетаскиваемый узел (кандидат, пока мышь не ушла
+    ** дальше порога), origin — точка нажатия, active — перетаскивание идёт (dragStart не отменён), data — формат
+    ** и данные, zone — зона под мышью, принимающая формат, allowed — зона согласна (dragOver не отменён).
+    **
+    ** The internal node drag: source is the pressed draggable node (a candidate until the mouse goes past
+    ** the threshold), origin is the press point, active — the drag goes on (dragStart is not cancelled), data is the format
+    ** and the data, zone is the zone under the mouse that accepts the format, allowed — the zone agrees (dragOver is not cancelled).
+    */
+    struct NodeDrag
+    {
+        ui::Node* source = nullptr;
+        Vec2 origin;
+        bool active = false;
+        ui::DragData data;
+        ui::Node* zone = nullptr;
+        bool allowed = false;
+    };
+
+    /*
     ** Состояние маршрутизатора: корень, получатели и узлы под мышью, нажатый, в фокусе, перетаскиваемый
     ** ползунок; selection — узел с текущим выделением (поле ввода или Text), selecting — узел,
     ** в котором мышь сейчас тянет выделение.
@@ -105,6 +145,21 @@ namespace gran::input
         // Текущее событие — нажатие клавиши: открытое им меню сразу ставит фокус на пункт (как в Windows)
         // The current event is a key press: a menu opened by it puts the focus on an item at once (as in Windows)
         bool keyboard = false;
+        // Захват указателя: события мыши идут этому узлу, где бы ни была мышь (до отпускания кнопки)
+        // The pointer capture: the mouse events go to this node wherever the mouse is (until the button release)
+        ui::Node* capture = nullptr;
+        NodeDrag nodeDrag;
+        // Отложенные уведомления (focus, blur, pointerEnter, pointerLeave): доставляются после встроенной обработки события
+        // The deferred notifications (focus, blur, pointerEnter, pointerLeave): delivered after the built-in event handling
+        std::vector<ui::UiEvent> pending;
+        // Щелчков у последнего нажатия левой кнопки (2 — после отпускания будет doubleClick)
+        // The clicks of the last left button press (2 — doubleClick comes after the release)
+        std::uint8_t downClicks = 0;
+        // keyDown отменён приложением: символы этой клавиши в поле не вставляются / keyDown is cancelled by the application: the characters of this key are not inserted into a field
+        bool suppressCharacter = false;
+        // Обработчиков вызвано за текущее событие окна: были — нужен кадр (обработчик мог что-то поменять)
+        // The handlers called during the current window event: there were some — a frame is needed (a handler might change something)
+        std::uint32_t delivered = 0;
     };
 
     /*
@@ -168,9 +223,126 @@ namespace gran::input
         // An accessibility client request (press, toggle, text, number, focus); true — something changed
         bool perform(const a11y::AccessRequest& request);
 
+        // ---- input_router_events.cpp ----
+
+        // Своё событие из кода: доставка по пути цели и отложенные уведомления; true — действие не отменено
+        // A custom event from code: the delivery along the target path and the deferred notifications; true — the action is not cancelled
+        bool dispatch(ui::UiEvent& event);
+
+        // Захватить указатель узлом (nullptr — отпустить); захват снимается и отпусканием кнопки мыши
+        // Capture the pointer by the node (nullptr — release it); the capture is also removed by the mouse button release
+        void capturePointer(ui::Node* node) noexcept;
+
+        // Узел, захвативший указатель, или nullptr / The node that captured the pointer or nullptr
+        const ui::Node* pointerCapture() const noexcept;
+
+        // Идёт ли перетаскивание узла / Whether a node drag goes on
+        bool draggingNode() const noexcept;
+
     private:
         RouterState _state;
     };
+
+    // ---- event_dispatch.cpp ----
+
+    /*
+    ** Доставка события по пути цели: захват (корень → родитель цели), цель, всплытие (если bubbles) —
+    ** обработчики разметки узла, затем слушатели кода. Удаление узлов обработчиком (treeVersion) прекращает
+    ** доставку. true — действие по умолчанию не отменено.
+    **
+    ** Delivering the event along the target path: capture (the root → the target parent), the target, bubbling (if bubbles) —
+    ** the node markup handlers, then the code listeners. Removing nodes by a handler (treeVersion) stops
+    ** the delivery. true — the default action is not cancelled.
+    */
+    bool dispatchEvent(ui::UiEvent& event, ActionSink& sink);
+
+    // ---- event_queue.cpp ----
+
+    // Доставить сейчас; true — действие по умолчанию разрешено (не отменено, дерево не менялось) / Deliver now; true — the default action is allowed (not cancelled, the tree did not change)
+    bool fire(RouterState& state, ui::UiEvent& event);
+
+    // Отложить уведомление до конца обработки события окна / Defer a notification until the end of the window event handling
+    void queueEvent(RouterState& state, ui::UiEvent event);
+
+    // Доставить отложенные уведомления по порядку / Deliver the deferred notifications in order
+    void flushEvents(RouterState& state);
+
+    // Отложенные уведомления об узлах поддерева отбрасываются (поддерево удаляется) / The deferred notifications about the subtree nodes are dropped (the subtree is removed)
+    void forgetEvents(RouterState& state, const ui::Node& subtree) noexcept;
+
+    // ---- pointer_events.cpp ----
+
+    // Событие указателя вида type для узла target из события окна / A pointer event of the type kind for the target node from a window event
+    ui::UiEvent pointerEvent(ui::EventType type, ui::Node& target, const platform::Event& source);
+
+    // Цель событий указателя: узел захвата, иначе узел под мышью / The pointer event target: the capture node, otherwise the node under the mouse
+    ui::Node* pointerTarget(const RouterState& state, ui::Node* hit) noexcept;
+
+    // Событие указателя сейчас; target == nullptr — нечего доставлять (true) / A pointer event now; target == nullptr — nothing to deliver (true)
+    bool firePointer(RouterState& state, ui::EventType type, ui::Node* target, const platform::Event& source);
+
+    // ---- notify_events.cpp ----
+
+    // pointerLeave узлам старой цепочки и pointerEnter новой (отложенно) / pointerLeave to the old chain nodes and pointerEnter to the new one (deferred)
+    void notifyHover(RouterState& state, ui::Node* from, ui::Node* to);
+
+    // blur старому узлу фокуса и focus новому (отложенно) / blur to the old focus node and focus to the new one (deferred)
+    void notifyFocus(RouterState& state, ui::Node* from, ui::Node* to);
+
+    // ---- key_events.cpp ----
+
+    // keyDown или keyUp узлу фокуса (без него — верхнему слою или корню); true — действие разрешено
+    // keyDown or keyUp to the focus node (without it — to the top layer or the root); true — the action is allowed
+    bool fireKey(RouterState& state, const platform::Event& source);
+
+    // Клавиша меню и Shift+F10: contextMenu узлу фокуса, встроенное меню у текста; true — обработано
+    // The menu key and Shift+F10: contextMenu to the focus node, the built-in menu at a text; true — handled
+    bool contextKey(RouterState& state, const platform::Event& source);
+
+    // Esc во время перетаскивания узла отменяет его; true — обработано / Esc during a node drag cancels it; true — handled
+    bool dragKey(RouterState& state, const platform::Event& source);
+
+    // ---- press_input.cpp ----
+
+    // Нажатие левой кнопки: выделение текста, нажатый элемент, фокус, ползунок, кандидат перетаскивания
+    // A left button press: the text selection, the pressed control, the focus, a slider, a drag candidate
+    void pressLeft(RouterState& state, ui::Node* hit, const platform::Event& event);
+
+    // Отпускание левой кнопки: активация элемента, над которым и нажали (кроме ползунка), затем doubleClick
+    // A left button release: activating the control it was pressed over (except a slider), then doubleClick
+    void releaseLeft(RouterState& state, ui::Node* hit, const platform::Event& event, bool allowed);
+
+    // Запомнить кандидата перетаскивания и его данные по умолчанию (nullptr — нет) / Remember the drag candidate and its default data (nullptr — none)
+    void armDrag(RouterState& state, ui::Node* draggable, Vec2 point);
+
+    // ---- node_drag.cpp ----
+
+    // Движение мыши: начало за порогом (dragStart), зона и dragOver; true — событие поглощено перетаскиванием
+    // A mouse move: the start past the threshold (dragStart), the zone and dragOver; true — the event is consumed by the drag
+    bool moveDrag(RouterState& state, const platform::Event& event);
+
+    // Отпускание: drop в согласную зону и dragEnd источнику; true — шло перетаскивание
+    // A release: drop into an agreeing zone and dragEnd to the source; true — a drag was going on
+    bool finishDrag(RouterState& state, const platform::Event& event);
+
+    // Отмена (Esc, потеря фокуса окном): dragLeave зоне и dragEnd источнику / Cancelling (Esc, the window losing focus): dragLeave to the zone and dragEnd to the source
+    void cancelDrag(RouterState& state);
+
+    // ---- drag_zone.cpp ----
+
+    // Перетаскиваемый узел под нажатием: сам hit или предок с draggable, если элемент управления не глубже его
+    // The draggable node under a press: hit itself or an ancestor with draggable if the control is not deeper than it
+    ui::Node* draggableOf(ui::Node* hit, ui::Node* control) noexcept;
+
+    // Ближайшая к точке включённая зона, принимающая формат перетаскивания (вне поддерева источника)
+    // The enabled zone nearest to the point that accepts the drag format (outside the source subtree)
+    ui::Node* dropZoneAt(RouterState& state, Vec2 point);
+
+    // Смена зоны: состояние DropTarget, dragLeave старой и dragEnter новой (notify) / Changing the zone: the DropTarget state, dragLeave to the old one and dragEnter to the new one (notify)
+    void changeZone(RouterState& state, ui::Node* zone, const platform::Event& source, bool notify);
+
+    // Событие перетаскивания для узла node: данные, related — второй участник / A drag event for the node: the data, related is the second participant
+    ui::UiEvent dragEvent(const RouterState& state, ui::EventType type, ui::Node& node, const platform::Event& source);
 
     // ---- hit_test.cpp ----
 
@@ -181,6 +353,9 @@ namespace gran::input
     ui::Node* hitLayer(ui::Node& popup, Vec2 point);
 
     // ---- node_states.cpp ----
+
+    // Бит состояния одному узлу (изменение — пересчёт стиля) / A state bit to one node (a change — a style recompute)
+    void setNodeState(ui::Node& node, std::uint8_t bit, bool on);
 
     // Бит состояния узлу и всем предкам (hover и pressed в CSS действуют на цепочку) / A state bit to the node and all ancestors
     void setChainState(ui::Node* node, std::uint8_t bit, bool on);

@@ -33,12 +33,30 @@ namespace gran::platform
     // Кнопка мыши / A mouse button
     enum class MouseButton : std::uint8_t { LEFT, RIGHT, MIDDLE };
 
-    // Клавиши, которые движок обрабатывает сам (остальные — UNKNOWN) / The keys the engine handles itself (the others are UNKNOWN)
+    /*
+    ** Клавиши, которые различает движок (остальные — UNKNOWN): служебные, латинские буквы A–Z по физическому
+    ** положению (Ctrl+C работает и в русской раскладке), цифры верхнего ряда, F1–F12, Insert и клавиша меню.
+    ** Буквы, цифры и F1–F12 идут подряд: код вычисляется сдвигом от A, DIGIT_0 и F1.
+    **
+    ** The keys the engine distinguishes (the others are UNKNOWN): the service keys, the Latin letters A–Z by the physical
+    ** position (Ctrl+C works in the Russian layout too), the top row digits, F1–F12, Insert and the menu key.
+    ** The letters, the digits and F1–F12 go in a row: a code is computed as an offset from A, DIGIT_0 and F1.
+    */
     enum class Key : std::uint8_t
     {
         UNKNOWN, BACKSPACE, TAB, ENTER, ESCAPE, SPACE, LEFT, RIGHT, UP, DOWN, HOME, END, DELETE_KEY,
-        PAGE_UP, PAGE_DOWN, A, C, V, X, Z
+        PAGE_UP, PAGE_DOWN, INSERT, CONTEXT_MENU,
+        A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+        DIGIT_0, DIGIT_1, DIGIT_2, DIGIT_3, DIGIT_4, DIGIT_5, DIGIT_6, DIGIT_7, DIGIT_8, DIGIT_9,
+        F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12
     };
+
+    // Имя клавиши для приложения ("A", "Enter", "ArrowLeft", "F5"; UNKNOWN — "Unidentified"), key_names.cpp
+    // The key name for the application ("A", "Enter", "ArrowLeft", "F5"; UNKNOWN — "Unidentified"), key_names.cpp
+    const char* keyName(Key key) noexcept;
+
+    // Клавиша со сдвигом offset от первой в ряду (A, DIGIT_0, F1) / The key at offset from the first in a row (A, DIGIT_0, F1)
+    Key keyAfter(Key first, unsigned offset) noexcept;
 
     // Модификаторы клавиатуры (биты) / The keyboard modifiers (bits)
     enum Modifier : std::uint8_t

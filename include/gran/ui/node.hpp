@@ -2,6 +2,7 @@
 #define GRAN_UI_NODE_HPP
 
 #include "gran/style/style_sheet.hpp"
+#include "gran/ui/ui_event.hpp"
 #include "gran/utils/geometry.hpp"
 #include "gran/vector/shape.hpp"
 #include "gran/platform/window_frame.hpp"
@@ -119,6 +120,15 @@ namespace gran::ui
         std::string group;
         // Dialog: Esc закрывает диалог (closable="false" — закрыть может только код) / Dialog: Esc closes the dialog (closable="false" — only the code can close it)
         bool closable = true;
+        // Обработчики событий из разметки (onPointerDown, onKeyDownCapture, on="своё:действие"…)
+        // The event handlers from the markup (onPointerDown, onKeyDownCapture, on="custom:action"…)
+        std::vector<EventBinding> events;
+        // Перетаскивание узла: источник (draggable, формат и данные) и зона (форматы acceptDrop через пробел, * — любой)
+        // Dragging a node: the source (draggable, the format and the data) and the zone (the acceptDrop formats by spaces, * — any)
+        bool draggable = false;
+        std::string dragFormat;
+        std::string dragData;
+        std::string acceptDrop;
     };
 
     // Запомненное измерение: доступный размер → результат / A remembered measurement: the available size → the result
@@ -172,6 +182,9 @@ namespace gran::ui
         std::vector<std::unique_ptr<Node>> children;
         // Шаблон одной записи списка (<ItemTemplate>) — вне дерева, только образец для копий / The template of one list record (<ItemTemplate>) — outside the tree, only a sample for copies
         std::unique_ptr<Node> itemTemplate;
+        // Слушатели из кода (Application::addEventListener); копия cloneTree их не получает
+        // The listeners from code (Application::addEventListener); a cloneTree copy does not get them
+        std::vector<EventListener> listeners;
     };
 
     // Добавляет ребёнка и возвращает его (node.cpp) / Adds a child and returns it (node.cpp)

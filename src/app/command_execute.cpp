@@ -34,6 +34,8 @@ namespace gran::app
         else if (command == "loadHtml") app.loadHtml(node, argument);
         else if (command == "postMessage") app.postWebMessage(node, argument);
         else if (command == "appendMarkup") app.appendMarkup(node, argument);
+        else if (command == "capturePointer") app.capturePointer(node);
+        else if (command == "releasePointer") app.releasePointer(node);
         else throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::CAPI_COMMAND, {command}));
     }
 }

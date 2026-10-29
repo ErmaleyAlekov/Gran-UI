@@ -161,10 +161,25 @@
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
-          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup)(:.*)?"/>
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer)(:.*)?"/>
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
+  </xs:simpleType>
+
+  <!-- Свои события: пары «имя:действие» через пробелы (on="itemChosen:pick rowMoved:gran:reload").
+       Custom events: "name:action" pairs by spaces (on="itemChosen:pick rowMoved:gran:reload"). -->
+  <xs:simpleType name="CustomEvents">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\s*[A-Za-z_][A-Za-z0-9_.\-]*:\S+(\s+[A-Za-z_][A-Za-z0-9_.\-]*:\S+)*\s*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Форматы, которые принимает зона перетаскивания (через пробелы; * — любой) / The formats a drop zone accepts (by spaces; * — any) -->
+  <xs:simpleType name="DragFormats">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\s*(\*|[A-Za-z_][A-Za-z0-9_.\-]*)(\s+(\*|[A-Za-z_][A-Za-z0-9_.\-]*))*\s*"/>
+    </xs:restriction>
   </xs:simpleType>
 
   <xs:simpleType name="Orientation">
@@ -310,6 +325,62 @@
   <!-- ================= Группы атрибутов / Attribute groups ================= -->
 
   <!-- Размер и место блока в родителе / The box size and its place in the parent -->
+  <!--
+    События элемента (Application::onEvent, обработчик получает ui::UiEvent): клавиши, указатель, двойной щелчок,
+    колесо, фокус, контекстное меню, перетаскивание узлов. Суффикс Capture — фаза захвата (от корня к цели).
+    onDrop — сброс узла (если acceptDrop принимает формат) и файлов из Проводника (Application::onFileDrop).
+    on — свои события «имя:действие». draggable — узел можно тащить (данные dragFormat/dragData, по умолчанию
+    "node" и id); acceptDrop — форматы, которые узел принимает как зона.
+    The element events (Application::onEvent, the handler gets a ui::UiEvent): keys, the pointer, a double click,
+    the wheel, the focus, the context menu, dragging nodes. The Capture suffix is the capture phase (from the root to the target).
+    onDrop is a node drop (if acceptDrop accepts the format) and files from Explorer (Application::onFileDrop).
+    on is custom "name:action" events. draggable — the node can be dragged (the dragFormat/dragData data, by default
+    "node" and the id); acceptDrop — the formats the node accepts as a zone.
+  -->
+  <xs:attributeGroup name="EventAttributes">
+    <xs:attribute name="onKeyDown" type="Action"/>
+    <xs:attribute name="onKeyDownCapture" type="Action"/>
+    <xs:attribute name="onKeyUp" type="Action"/>
+    <xs:attribute name="onKeyUpCapture" type="Action"/>
+    <xs:attribute name="onPointerDown" type="Action"/>
+    <xs:attribute name="onPointerDownCapture" type="Action"/>
+    <xs:attribute name="onPointerMove" type="Action"/>
+    <xs:attribute name="onPointerMoveCapture" type="Action"/>
+    <xs:attribute name="onPointerUp" type="Action"/>
+    <xs:attribute name="onPointerUpCapture" type="Action"/>
+    <xs:attribute name="onPointerEnter" type="Action"/>
+    <xs:attribute name="onPointerEnterCapture" type="Action"/>
+    <xs:attribute name="onPointerLeave" type="Action"/>
+    <xs:attribute name="onPointerLeaveCapture" type="Action"/>
+    <xs:attribute name="onDoubleClick" type="Action"/>
+    <xs:attribute name="onDoubleClickCapture" type="Action"/>
+    <xs:attribute name="onWheel" type="Action"/>
+    <xs:attribute name="onWheelCapture" type="Action"/>
+    <xs:attribute name="onFocus" type="Action"/>
+    <xs:attribute name="onFocusCapture" type="Action"/>
+    <xs:attribute name="onBlur" type="Action"/>
+    <xs:attribute name="onBlurCapture" type="Action"/>
+    <xs:attribute name="onContextMenu" type="Action"/>
+    <xs:attribute name="onContextMenuCapture" type="Action"/>
+    <xs:attribute name="onDragStart" type="Action"/>
+    <xs:attribute name="onDragStartCapture" type="Action"/>
+    <xs:attribute name="onDragEnter" type="Action"/>
+    <xs:attribute name="onDragEnterCapture" type="Action"/>
+    <xs:attribute name="onDragOver" type="Action"/>
+    <xs:attribute name="onDragOverCapture" type="Action"/>
+    <xs:attribute name="onDragLeave" type="Action"/>
+    <xs:attribute name="onDragLeaveCapture" type="Action"/>
+    <xs:attribute name="onDrop" type="Action"/>
+    <xs:attribute name="onDropCapture" type="Action"/>
+    <xs:attribute name="onDragEnd" type="Action"/>
+    <xs:attribute name="onDragEndCapture" type="Action"/>
+    <xs:attribute name="on" type="CustomEvents"/>
+    <xs:attribute name="draggable" type="xs:boolean"/>
+    <xs:attribute name="dragFormat" type="xs:NCName"/>
+    <xs:attribute name="dragData" type="xs:string"/>
+    <xs:attribute name="acceptDrop" type="DragFormats"/>
+  </xs:attributeGroup>
+
   <xs:attributeGroup name="BoxAttributes">
     <xs:attribute name="width" type="Length"/>
     <xs:attribute name="height" type="Length"/>
@@ -414,8 +485,10 @@
       <xs:element name="Checked" type="StateType" minOccurs="0"/>
       <!-- Окно развёрнуто (для кнопок заголовка) / The window is maximized (for the title bar buttons) -->
       <xs:element name="Maximized" type="StateType" minOccurs="0"/>
-      <!-- Над зоной onDrop несут файлы / Files are carried over an onDrop zone -->
+      <!-- Над зоной onDrop несут файлы или узел, который она примет / Files or a node it accepts are carried over an onDrop zone -->
       <xs:element name="DropTarget" type="StateType" minOccurs="0"/>
+      <!-- Узел сейчас перетаскивают (draggable) / The node is being dragged now (draggable) -->
+      <xs:element name="Dragging" type="StateType" minOccurs="0"/>
     </xs:sequence>
   </xs:group>
 
@@ -467,8 +540,7 @@
     <xs:attribute name="accessibleName" type="xs:string"/>
     <xs:attribute name="labeledBy" type="xs:NCName"/>
     <xs:attribute name="onClick" type="Action"/>
-    <!-- Действие на файлы, перетащенные на элемент (Application::onFileDrop) / The action for files dragged onto the element (Application::onFileDrop) -->
-    <xs:attribute name="onDrop" type="Action"/>
+    <xs:attributeGroup ref="EventAttributes"/>
     <xs:attribute name="overflow" type="Overflow"/>
     <xs:attribute name="transition" type="Transitions"/>
     <xs:attribute name="animation" type="Animations"/>
@@ -489,9 +561,9 @@
 
   <!--
     Шаблон одной записи списка: ровно один элемент интерфейса. Подстановки {поле} разрешены
-    в текстовых атрибутах (text, placeholder, source, tooltip, accessibleName, value у MenuItem) и в тексте тегов.
+    в текстовых атрибутах (text, placeholder, source, tooltip, accessibleName, dragData, value у MenuItem) и в тексте тегов.
     The template of one list record: exactly one UI element. {field} placeholders are allowed
-    in the text attributes (text, placeholder, source, tooltip, accessibleName, value of MenuItem) and in the tag text.
+    in the text attributes (text, placeholder, source, tooltip, accessibleName, dragData, value of MenuItem) and in the tag text.
   -->
   <xs:complexType name="ItemTemplateType">
     <xs:group ref="UiElement"/>
@@ -663,7 +735,7 @@
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="@text or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
                          or self::Focused or self::Disabled or self::Checked or self::Maximized
-                         or self::DropTarget)]"/>
+                         or self::DropTarget or self::Dragging)]"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>

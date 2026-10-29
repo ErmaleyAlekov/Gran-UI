@@ -15,14 +15,15 @@
 7. [Анимации и таймеры](#анимации-и-таймеры)
 8. [Текст и шрифты](#текст-и-шрифты)
 9. [Действия и программный интерфейс](#действия-и-программный-интерфейс)
-10. [Списки из данных](#списки-из-данных)
-11. [Вкладки, радиокнопки, переключатели](#вкладки-радиокнопки-переключатели)
-12. [Всплывающие слои](#всплывающие-слои)
-13. [Встроенный браузер: WebView](#встроенный-браузер-webview)
-14. [Доступность](#доступность)
-15. [Платформа: окна, файлы, иконки](#платформа-окна-файлы-иконки)
-16. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
-17. [Свой заголовок окна](#свой-заголовок-окна)
+10. [События](#события)
+11. [Списки из данных](#списки-из-данных)
+12. [Вкладки, радиокнопки, переключатели](#вкладки-радиокнопки-переключатели)
+13. [Всплывающие слои](#всплывающие-слои)
+14. [Встроенный браузер: WebView](#встроенный-браузер-webview)
+15. [Доступность](#доступность)
+16. [Платформа: окна, файлы, иконки](#платформа-окна-файлы-иконки)
+17. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
+18. [Свой заголовок окна](#свой-заголовок-окна)
 
 ## Быстрый старт
 
@@ -336,6 +337,10 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 | `Application(AppOptions)` | `debugLayer` — отладочный слой D3D12, `vsync`, `exitAfter` — выход через N секунд |
 | `loadFile(путь)` / `loadString(разметка)` | Загрузить и проверить разметку, построить окно |
 | `onAction(имя, функция)` | Связать имя действия из разметки с функцией C++ |
+| `onEvent(имя, функция)` | Обработчик событий разметки (`onPointerDown="имя"`…), функция получает узел и `UiEvent` |
+| `addEventListener(узел, вид, функция, захват)` / `removeEventListener` | Слушатель события у узла из кода |
+| `dispatchEvent(узел, вид, строка)` | Своё событие: захват → цель → всплытие; `false` — отменено |
+| `capturePointer(узел)` / `releasePointer(узел)` | Захват указателя до отпускания кнопки |
 | `find(id)` | Найти узел по `id` (или `nullptr`) |
 | `setStyle(узел, имя)` | Сменить именованный стиль узла |
 | `append(родитель, узел)` / `remove(узел)` | Вставить узел (например, копию шаблона `ui::cloneTree`) / удалить |
@@ -352,7 +357,7 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 | `setTimeout(секунды, функция)` / `setInterval(секунды, функция)` / `clearTimer(номер)` | Таймеры в потоке интерфейса |
 | `openWindow(путь)` / `openWindowString(разметка)` / `closeWindow(узел)` | Ещё одно окно / закрыть окно узла |
 | `openFileDialog(параметры, несколько)` / `saveFileDialog` / `folderDialog` | Системные диалоги файлов |
-| `onFileDrop(имя, функция)` | Файлы, брошенные на элемент с `onDrop="имя"` |
+| `onFileDrop(имя, функция)` | Файлы, брошенные на элемент с `onDrop="имя"` (узлы — событие `drop`, раздел «События») |
 | `run()` | Цикл событий до закрытия главного окна; возвращает код выхода |
 
 Узел `gran::ui::Node` (`gran/ui/node.hpp`) хранит вид элемента, `id`, содержимое `content` (`text`, `value`,
@@ -365,6 +370,100 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 
 **Фоновые потоки.** Обращаться к узлам можно только из потока интерфейса. Поток сети или вычислений передаёт
 результат через `app.post(задача)` — задача выполнится в цикле событий, а окно проснётся само.
+
+## События
+
+Кроме действий (`onClick`, `onChange`) у любого элемента есть события — как в DOM браузера. Обработчик
+получает узел и событие `ui::UiEvent` (`gran/ui/ui_event.hpp`) и может остановить его или отменить действие
+движка по умолчанию.
+
+```xml
+<Stack id="board" onKeyDownCapture="hotKeys">
+  <Box id="pad" onPointerDown="padDown" onPointerMove="padMove" onWheel="padWheel" onContextMenu="padMenu"/>
+</Stack>
+```
+
+```cpp
+app.onEvent("padMove", [](gran::ui::Node& pad, gran::UiEvent& event) {
+    // event.local — точка в системе pad (с его transform), event.position — точка окна
+});
+app.onEvent("padMenu", [&](gran::ui::Node&, gran::UiEvent& event) {
+    event.preventDefault();                                   // без встроенного меню «Копировать / Вставить»
+    app.showPopupAt(*app.find("myMenu"), event.position);
+});
+```
+
+**Маршрут.** Событие идёт от корня к цели (фаза захвата, атрибуты с суффиксом `Capture`), затем у самой цели
+и обратно к корню (всплытие). `event.stopPropagation()` останавливает путь (обработчики текущего узла
+довызываются), `stopImmediatePropagation()` — сразу. `event.target` — узел, которому событие адресовано,
+`event.current` — узел, чей обработчик вызван, `event.phase` — фаза. Путь собирается до доставки; если
+обработчик удалил узлы (`remove`, правка модели списка), доставка и действие по умолчанию прекращаются.
+
+| Событие | Атрибут | Цель | Отмена (`preventDefault`) |
+|---|---|---|---|
+| `keyDown` / `keyUp` | `onKeyDown` / `onKeyUp` | узел в фокусе, без него — верхний слой или корень | `keyDown`: Tab, правка поля, Enter/пробел, стрелки и **символы** этой клавиши |
+| `pointerDown` / `pointerUp` | `onPointerDown` / `onPointerUp` | узел под мышью или захвативший указатель | нажатие: фокус, выделение, ползунок, контекстное меню; отпускание: щелчок `onClick` и `doubleClick` |
+| `pointerMove` | `onPointerMove` | то же | выделение мышью, ползунок, подменю |
+| `pointerEnter` / `pointerLeave` | `onPointerEnter` / `onPointerLeave` | каждый узел, вошедший в цепочку под мышью или вышедший из неё | — (не всплывают) |
+| `doubleClick` | `onDoubleClick` | узел под мышью (после второго отпускания) | — |
+| `wheel` | `onWheel` | узел под мышью | прокрутка |
+| `focus` / `blur` | `onFocus` / `onBlur` | получивший / потерявший фокус | — (не всплывают; `related` — второй узел) |
+| `contextMenu` | `onContextMenu` | правый щелчок, клавиша меню, Shift+F10 | встроенное меню текста и полей |
+| свои | `on="имя:действие …"` | `Application::dispatchEvent` | по договорённости приложения |
+
+Неотменяемые события (`pointerEnter/Leave`, `focus/blur`, `dragEnter/Leave`, `dragEnd`) `preventDefault`
+игнорируют. Уведомления `focus`, `blur`, `pointerEnter`, `pointerLeave` приходят после встроенной обработки
+события окна (порядок как в браузере: `pointerDown`, `blur`, `focus`, `pointerUp`, `onClick`). Клавиши —
+`event.key` (`platform::Key`: буквы A–Z по физической клавише, цифры, F1–F12, стрелки…), имя —
+`platform::keyName(key)` («A», «Enter», «ArrowLeft», «F5»), модификаторы — `event.modifiers`.
+
+**Обработчики.** Имя из атрибута ищется сначала среди `onEvent`, затем среди `onAction` (функция получает
+только узел) и встроенных команд: `onDoubleClick="gran:maximize"`, `onPointerDown="gran:capturePointer"`
+работают без кода. Из кода — слушатели узла:
+
+```cpp
+gran::ListenerId id = app.addEventListener(*app.find("list"), "keyDown", handler, /*capture*/ true);
+app.removeEventListener(*app.find("list"), id);   // слушатель уходит и вместе с узлом
+```
+
+**Свои события.** `app.dispatchEvent(узел, "itemChosen", "строка")` проходит тот же маршрут; разметка ловит
+его атрибутом `on="itemChosen:pickItem"`. Результат — `false`, если обработчик вызвал `preventDefault`.
+Так элемент сообщает «наверх», не зная, кто его слушает (пример: кнопка «Сбросить доску» в `samples/events.xml`).
+
+**Захват указателя.** `app.capturePointer(узел)` (или `gran:capturePointer` в разметке) направляет события мыши
+узлу, где бы ни была мышь, до отпускания кнопки или `releasePointer(узел)` — так пишутся свои ползунки,
+ручки изменения размера, рисование.
+
+### Перетаскивание узлов
+
+```xml
+<Stack items="todo" acceptDrop="task" onDrop="moveTask">
+  <ItemTemplate>
+    <Box style="card" draggable="true" dragFormat="task" dragData="{title}" onDoubleClick="flipTask">…</Box>
+  </ItemTemplate>
+</Stack>
+```
+
+Узел с `draggable="true"` начинает перетаскивание, когда мышь с нажатой кнопкой уходит дальше 4 пикселей.
+Данные — формат `dragFormat` (по умолчанию `node`) и строка `dragData` (по умолчанию `id`, в шаблонах —
+подстановки `{поле}`); `event.drag` в `dragStart` их можно сменить, `preventDefault` — отменить перетаскивание.
+Зона — ближайший к мыши узел с `acceptDrop`, в списке которого есть формат (`*` — любой); поддерево
+источника зоной не бывает. Зона получает `dragEnter`, `dragOver` (отмена — «сюда нельзя»), `dragLeave`
+и `drop` (`event.related` — перетаскиваемый узел), источник — `dragStart` и `dragEnd` (`event.dropped`).
+Пока идёт перетаскивание, источник в состоянии `<Dragging>`, согласная зона — в `<DropTarget>`, курсор
+«переместить» или «нельзя»; Esc и потеря фокуса окном отменяют его. `onDrop` у той же зоны принимает и файлы
+из Проводника (`onFileDrop`). Типичный обработчик `drop` переносит запись модели списка:
+
+```cpp
+app.onEvent("moveTask", [&](gran::ui::Node& column, gran::UiEvent& event) {
+    gran::ItemRef item = app.itemOf(*event.related);
+    gran::data::Record record = item.model->at(item.index);
+    item.model->remove(item.index);                    // узел карточки удаляется привязкой
+    app.model(column.content.items).append(record);
+});
+```
+
+Пример целиком — `gran_gallery samples/events.xml` (обработчики — `examples/gallery/gallery_board.cpp`).
 
 ## Списки из данных
 

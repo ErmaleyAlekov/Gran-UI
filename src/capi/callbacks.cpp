@@ -12,17 +12,10 @@ namespace gran::capi
         std::string option = node.content.option;
         std::string payload = message;
         std::string modelName;
-        ItemRef item = app->application.itemOf(node);
-        if (item.model != nullptr)
-        {
-            for (const ui::Node* parent = node.parent; parent != nullptr; parent = parent->parent)
-            {
-                if (!parent->content.items.empty()) { modelName = parent->content.items; break; }
-            }
-        }
-        gran_event event{target.c_str(), modelName.c_str(), SIZE_MAX, textValue.c_str(), option.c_str(),
+        size_t index = SIZE_MAX;
+        listPosition(app, &node, modelName, index);
+        gran_event event{target.c_str(), modelName.c_str(), index, textValue.c_str(), option.c_str(),
             payload.c_str(), node.content.value, 0};
-        if (item.model != nullptr) event.index = item.index;
         if (node.content.checked) event.checked = 1;
         callback(user, &event);
     }

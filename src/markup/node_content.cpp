@@ -13,7 +13,8 @@ namespace gran::markup::internal
             {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
             {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage},
             {"popup", &C::popup}, {"group", &C::group}, {"accessibleName", &C::accessibleName},
-            {"labeledBy", &C::labeledBy}, {"onDrop", &C::onDrop}};
+            {"labeledBy", &C::labeledBy}, {"dragFormat", &C::dragFormat}, {"dragData", &C::dragData},
+            {"acceptDrop", &C::acceptDrop}};
 
         // Числовые поля / The numeric fields
         const struct { const char* name; float C::* member; } NUMBERS[] = {
@@ -22,7 +23,7 @@ namespace gran::markup::internal
         // Логические поля / The boolean fields
         const struct { const char* name; bool C::* member; } BOOLEANS[] = {
             {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}, {"virtual", &C::virtualize},
-            {"closable", &C::closable}};
+            {"closable", &C::closable}, {"draggable", &C::draggable}};
 
         // Перечисления (fit у Image, direction у Scroll, submitKey у TextArea) и целые числа
     // The enumerations (fit of Image, direction of Scroll, submitKey of TextArea) and the integers
@@ -111,7 +112,7 @@ namespace gran::markup::internal
             readValue(node, value);
             return true;
         }
-        if (readField(node.content, name, value))
+        if (readField(node.content, name, value) || readEventAttribute(node, name, value))
             return true;
         return readEnumeration(node, name, value);
     }

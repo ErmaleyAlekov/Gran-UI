@@ -30,6 +30,8 @@ namespace gran
     {
         app::AppWindow* win = app::findWindow(*this, node);
 
+        // Указатели доставки событий на эти узлы повиснут — доставка прервётся / The event delivery pointers to these nodes will dangle — the delivery breaks off
+        treeVersion++;
         if (win == nullptr)
             return;
         app::forgetWebViews(*win, node);

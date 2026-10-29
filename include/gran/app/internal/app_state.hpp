@@ -40,6 +40,12 @@ namespace gran
         std::vector<app::WebMessage> webInbox;
         std::map<std::string, WebMessageHandler> webHandlers;
         std::map<std::string, FileDropHandler> dropHandlers;
+        // Именованные обработчики событий разметки (onEvent) / The named markup event handlers (onEvent)
+        std::map<std::string, EventHandler> eventHandlers;
+        // Номер последнего слушателя кода; счётчик удалений узлов для доставки событий (ActionSink::treeVersion)
+        // The last code listener number; the node removal counter for the event delivery (ActionSink::treeVersion)
+        ListenerId lastListener = 0;
+        std::uint32_t treeVersion = 0;
         // Задачи других потоков (post) под замком; wakeTarget — главное окно, пока идёт run() / The tasks of other threads (post) under the lock; wakeTarget — the main window while run() goes on
         std::mutex taskMutex;
         std::vector<Task> tasks;

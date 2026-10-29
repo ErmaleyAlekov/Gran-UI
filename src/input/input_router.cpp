@@ -13,22 +13,36 @@ namespace gran::input
         _state.contextMenu = createContextMenu(root);
     }
 
-    // Мышь, затем клавиатура; потеря фокуса окном отпускает нажатие / The mouse, then the keyboard; the window losing focus releases the press
+    /*
+    ** Мышь, затем клавиатура; потеря фокуса окном отпускает нажатие, захват и перетаскивание узла.
+    ** Отложенные уведомления (focus, blur, enter, leave) доставляются в конце; вызванный обработчик — повод для кадра.
+    **
+    ** The mouse, then the keyboard; the window losing focus releases the press, the capture and a node drag.
+    ** The deferred notifications (focus, blur, enter, leave) are delivered at the end; a called handler is a reason for a frame.
+    */
     bool InputRouter::handle(const platform::Event& event)
     {
+        bool changed = true;
+
+        _state.delivered = 0;
         if (event.kind == platform::EventKind::FOCUS_LOST)
         {
+            cancelDrag(_state);
             changePressed(_state, nullptr);
             _state.drag = nullptr;
             _state.selecting = nullptr;
-            return true;
+            _state.capture = nullptr;
         }
-        // Признак клавиатуры живёт только на время события: слой, открытый кодом позже, фокус не забирает
-        // The keyboard flag lives only during the event: a layer opened by code later does not take the focus
-        _state.keyboard = event.kind == platform::EventKind::KEY_DOWN;
-        bool changed = handlePointer(_state, event) || handleKeyboard(_state, event);
-        _state.keyboard = false;
-        return changed;
+        else
+        {
+            // Признак клавиатуры живёт только на время события: слой, открытый кодом позже, фокус не забирает
+            // The keyboard flag lives only during the event: a layer opened by code later does not take the focus
+            _state.keyboard = event.kind == platform::EventKind::KEY_DOWN;
+            changed = handlePointer(_state, event) || handleKeyboard(_state, event);
+            _state.keyboard = false;
+        }
+        flushEvents(_state);
+        return changed || _state.delivered != 0;
     }
 
     /*
@@ -40,6 +54,11 @@ namespace gran::input
     */
     platform::CursorShape InputRouter::cursor() const noexcept
     {
+        // Перетаскивание узла: «переместить» над согласной зоной, иначе «нельзя» / A node drag: "move" over an agreeing zone, otherwise "no"
+        if (_state.nodeDrag.active && _state.nodeDrag.allowed)
+            return platform::CursorShape::MOVE;
+        if (_state.nodeDrag.active)
+            return platform::CursorShape::NOT_ALLOWED;
         if (_state.hover == nullptr)
             return platform::CursorShape::ARROW;
         if (_state.hover->computed.cursor == static_cast<int>(style::Cursor::DEFAULT)

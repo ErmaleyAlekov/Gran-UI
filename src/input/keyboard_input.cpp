@@ -79,14 +79,31 @@ namespace gran::input
         }
     }
 
-    // Нажатия и символы; символы идут только в поле ввода в фокусе / Presses and characters; characters go only into a focused input
+    /*
+    ** Нажатия и символы. keyDown сначала идёт приложению: отменённый — ни встроенной обработки, ни символов
+    ** этой клавиши в поле (как preventDefault у keydown в браузере); keyUp — только приложению.
+    ** Символы идут только в поле ввода в фокусе.
+    **
+    ** Presses and characters. keyDown goes to the application first: a cancelled one gets neither the built-in handling nor the characters
+    ** of this key in a field (as preventDefault on keydown in a browser); keyUp goes to the application only.
+    ** Characters go only into a focused input.
+    */
     bool handleKeyboard(RouterState& state, const platform::Event& event)
     {
         std::string text;
 
         if (event.kind == platform::EventKind::KEY_DOWN)
-            return keyDown(state, event);
-        if (event.kind != platform::EventKind::CHARACTER || state.focus == nullptr)
+        {
+            if (dragKey(state, event))
+                return true;
+            state.suppressCharacter = !fireKey(state, event);
+            if (state.suppressCharacter)
+                return true;
+            return contextKey(state, event) || keyDown(state, event);
+        }
+        if (event.kind == platform::EventKind::KEY_UP)
+            fireKey(state, event);
+        if (event.kind != platform::EventKind::CHARACTER || state.focus == nullptr || state.suppressCharacter)
             return false;
         if (!ui::isTextField(*state.focus) || state.focus->content.readOnly)
             return false;

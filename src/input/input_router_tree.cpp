@@ -26,14 +26,17 @@ namespace gran::input
         changeFocus(_state, node);
         if (node != nullptr && ui::isTextField(*node))
             _state.selection = node;
+        flushEvents(_state);
     }
 
     /*
     ** Указатели маршрутизатора невладеющие: после удаления поддерева они повисли бы.
-    ** Состояния (hover, pressed) снимать не нужно — узлы уходят вместе с ними.
+    ** Состояния (hover, pressed) снимать не нужно — узлы уходят вместе с ними; отложенные уведомления
+    ** об этих узлах отбрасываются.
     **
     ** The router pointers are non-owning: after the subtree removal they would dangle.
-    ** The states (hover, pressed) need not be cleared — the nodes go away together with them.
+    ** The states (hover, pressed) need not be cleared — the nodes go away together with them; the deferred notifications
+    ** about these nodes are dropped.
     */
     void InputRouter::forget(const ui::Node& subtree) noexcept
     {
@@ -45,6 +48,10 @@ namespace gran::input
         drop(_state.selecting, subtree);
         drop(_state.contextMenu, subtree);
         drop(_state.contextTarget, subtree);
+        drop(_state.capture, subtree);
+        drop(_state.nodeDrag.source, subtree);
+        drop(_state.nodeDrag.zone, subtree);
+        forgetEvents(_state, subtree);
         for (std::size_t index = _state.layers.size(); index > 0; --index)
         {
             drop(_state.layers[index - 1].returnFocus, subtree);

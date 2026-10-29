@@ -42,6 +42,15 @@ public class Smoke {
             // Check if the application is still open
             localStaticCheck(app.read("text","text").equals("Привет 🌲"));
 
+            // Своё событие всплывает от go к root; отменённое — dispatch возвращает false
+            // A custom event bubbles from go to root; a cancelled one — dispatch returns false
+            java.util.List<String> seen=new java.util.ArrayList<>();
+            long listener=app.listen("root","ping",e -> { seen.add(e.type+":"+e.target+":"+e.current+":"+e.phase+":"+e.detail); e.preventDefault(); });
+            localStaticCheck(!app.dispatch("go","ping","data"));
+            localStaticCheck(seen.size()==1 && seen.get(0).equals("ping:go:root:3:data"));
+            app.unlisten("root",listener);
+            localStaticCheck(app.dispatch("go","ping"));
+
             // Apply updates to the UI
             app.apply(new Application.Update("text", "text", "Hello World 🌍"));
 

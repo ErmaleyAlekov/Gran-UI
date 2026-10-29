@@ -4,16 +4,27 @@ namespace gran::platform::win32
 {
     namespace
     {
-        // Виртуальная клавиша → Key / A virtual key → Key
+        /*
+        ** Виртуальная клавиша → Key. Коды VK букв и цифр совпадают с ASCII ('A'…'Z', '0'…'9'), F1–F12 идут
+        ** подряд — для них сдвиг в ряду Key, для остальных таблица.
+        **
+        ** A virtual key → Key. The VK codes of the letters and the digits match ASCII ('A'…'Z', '0'…'9'), F1–F12 go
+        ** in a row — they are an offset in the Key row, the others use the table.
+        */
         Key mapKey(WPARAM virtualKey) noexcept
         {
             static const struct { WPARAM code; Key key; } KEYS[] = {
                 {VK_BACK, Key::BACKSPACE}, {VK_TAB, Key::TAB}, {VK_RETURN, Key::ENTER}, {VK_ESCAPE, Key::ESCAPE},
                 {VK_SPACE, Key::SPACE}, {VK_LEFT, Key::LEFT}, {VK_RIGHT, Key::RIGHT}, {VK_UP, Key::UP},
                 {VK_DOWN, Key::DOWN}, {VK_HOME, Key::HOME}, {VK_END, Key::END}, {VK_DELETE, Key::DELETE_KEY},
-                {VK_PRIOR, Key::PAGE_UP}, {VK_NEXT, Key::PAGE_DOWN}, {'A', Key::A}, {'C', Key::C}, {'V', Key::V},
-                {'X', Key::X}, {'Z', Key::Z}};
+                {VK_PRIOR, Key::PAGE_UP}, {VK_NEXT, Key::PAGE_DOWN}, {VK_INSERT, Key::INSERT}, {VK_APPS, Key::CONTEXT_MENU}};
 
+            if (virtualKey >= 'A' && virtualKey <= 'Z')
+                return keyAfter(Key::A, static_cast<unsigned>(virtualKey - 'A'));
+            if (virtualKey >= '0' && virtualKey <= '9')
+                return keyAfter(Key::DIGIT_0, static_cast<unsigned>(virtualKey - '0'));
+            if (virtualKey >= VK_F1 && virtualKey <= VK_F12)
+                return keyAfter(Key::F1, static_cast<unsigned>(virtualKey - VK_F1));
             for (const auto& entry : KEYS)
             {
                 if (entry.code == virtualKey)
@@ -59,8 +70,8 @@ namespace gran::platform::win32
         return modifiers;
     }
 
-    // Клавиши (WM_SYSKEYDOWN уходит и в DefWindowProc: Alt+F4 работает) и символы
-    // Keys (WM_SYSKEYDOWN also goes to DefWindowProc: Alt+F4 works) and characters
+    // Клавиши (WM_SYSKEYDOWN и WM_SYSKEYUP уходят и в DefWindowProc: Alt+F4 работает) и символы
+    // Keys (WM_SYSKEYDOWN and WM_SYSKEYUP also go to DefWindowProc: Alt+F4 works) and characters
     bool translateKeyboard(Win32Window& window, UINT message, WPARAM wParam)
     {
         Event event;
@@ -70,14 +81,14 @@ namespace gran::platform::win32
             translateCharacter(window, wParam);
             return true;
         }
-        if (message != WM_KEYDOWN && message != WM_KEYUP && message != WM_SYSKEYDOWN)
+        if (message != WM_KEYDOWN && message != WM_KEYUP && message != WM_SYSKEYDOWN && message != WM_SYSKEYUP)
             return false;
         event.kind = EventKind::KEY_DOWN;
-        if (message == WM_KEYUP)
+        if (message == WM_KEYUP || message == WM_SYSKEYUP)
             event.kind = EventKind::KEY_UP;
         event.key = mapKey(wParam);
         event.modifiers = currentModifiers();
         window.push(event);
-        return message != WM_SYSKEYDOWN;
+        return message != WM_SYSKEYDOWN && message != WM_SYSKEYUP;
     }
 }

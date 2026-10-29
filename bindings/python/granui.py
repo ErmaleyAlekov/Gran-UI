@@ -27,6 +27,38 @@ class _Event(C.Structure):
                 ("value", C.c_double), ("checked", C.c_int32)]
 
 _Action = C.CFUNCTYPE(None, C.c_void_p, C.POINTER(_Event))
+
+class _InputEvent(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("phase", C.c_int32)] + [(name, C.c_char_p) for name in (
+                "type", "target", "current", "related", "key", "detail", "drag_format", "drag_data", "model",
+                "related_model")] + [("index", C.c_size_t), ("related_index", C.c_size_t)] + [(name, C.c_double)
+                for name in ("x", "y", "window_x", "window_y", "wheel_x", "wheel_y")] + [(name, C.c_int32)
+                for name in ("button", "clicks", "modifiers", "dropped")]
+
+_EventFn = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.POINTER(_InputEvent))
+
+class Event:
+    """Снимок события интерфейса; методы ставят флаги, которые уходят ядру после возврата обработчика.
+    A UI event snapshot; the methods set flags that go to the core after the handler returns."""
+    _TEXT = ("type", "target", "current", "related", "key", "detail", "drag_format", "drag_data", "model", "related_model")
+    _NUMBERS = ("phase", "index", "related_index", "x", "y", "window_x", "window_y", "wheel_x", "wheel_y",
+                "button", "clicks", "modifiers")
+
+    def __init__(self, native):
+        for field in self._TEXT:
+            setattr(self, field, (getattr(native, field) or b"").decode("utf-8"))
+        for field in self._NUMBERS:
+            setattr(self, field, getattr(native, field))
+        self.dropped, self.flags = bool(native.dropped), 0
+
+    def prevent_default(self):
+        self.flags |= 1
+
+    def stop_propagation(self):
+        self.flags |= 2
+
+    def stop_immediate_propagation(self):
+        self.flags |= 6
 _Task = C.CFUNCTYPE(None, C.c_void_p)
 
 class _Timer(C.Structure):
@@ -49,6 +81,10 @@ def _configure(lib):
         "app_run": (C.c_int32, [p, C.POINTER(C.c_int32)]),
         "app_on_action": (C.c_int32, [p, s, _Action, p]), "app_on_message": (C.c_int32, [p, s, _Action, p]),
         "app_post": (C.c_int32, [p, _Task, p]),
+        "app_on_event": (C.c_int32, [p, s, _EventFn, p]),
+        "app_listen": (C.c_int32, [p, s, s, C.c_int32, _EventFn, p, C.POINTER(C.c_uint64)]),
+        "app_unlisten": (C.c_int32, [p, s, C.c_uint64]),
+        "app_dispatch": (C.c_int32, [p, s, s, s, C.POINTER(C.c_int32)]),
         "app_timer": (C.c_int32, [p, C.POINTER(_Timer), C.POINTER(C.c_uint64)]),
         "app_clear_timer": (C.c_int32, [p, C.c_uint64]),
         "app_read": (C.c_int32, [p, s, s, C.POINTER(p)]),
@@ -144,6 +180,43 @@ class Application:
 
     def on_message(self, name, callback):
         self._on("app_on_message", name, callback)
+
+    def _event_entry(self, callback):
+        # Флаги события возвращаются ядру; исключение — как у действий (закрытие и повтор в run).
+        # The event flags return to the core; an exception — as for actions (closing and re-raising in run).
+        def invoke(user, pointer):
+            event = Event(pointer.contents)
+            self._protect(callback, event)
+            return event.flags
+        wrapped = _EventFn(invoke)
+        self._callbacks.append(wrapped)
+        return wrapped
+
+    def on_event(self, name, callback):
+        """Обработчик имени из разметки (onPointerDown="name"). / A markup name handler (onPointerDown="name")."""
+        self._call("app_on_event", _encode(name), self._event_entry(callback), None)
+
+    def listen(self, target, type, callback, capture=False):
+        """Слушатель события у узла; возвращает номер для unlisten. / A node event listener; returns the number for unlisten."""
+        result = C.c_uint64()
+        self._call("app_listen", _encode(target), _encode(type), 1 if capture else 0, self._event_entry(callback),
+                   None, C.byref(result))
+        return result.value
+
+    def unlisten(self, target, listener):
+        self._call("app_unlisten", _encode(target), listener)
+
+    def dispatch(self, target, type, detail=None):
+        """Своё событие; False — обработчик отменил действие. / A custom event; False — a handler cancelled the action."""
+        allowed = C.c_int32()
+        self._call("app_dispatch", _encode(target), _encode(type), _encode(detail), C.byref(allowed))
+        return bool(allowed.value)
+
+    def capture_pointer(self, target):
+        self.command("capturePointer", target)
+
+    def release_pointer(self, target):
+        self.command("releasePointer", target)
 
     def _add_task(self, callback, repeat):
         if not callable(callback):
