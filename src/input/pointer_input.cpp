@@ -4,11 +4,24 @@ namespace gran::input
 {
     namespace
     {
-        // Движение: новый узел под мышью; при перетаскивании — значение ползунка / A move: a new node under the mouse; while dragging — the slider value
+        /*
+        ** Движение: новый узел под мышью (pointerLeave/pointerEnter — до pointerMove, как в браузере),
+        ** перетаскивание узла; иначе pointerMove цели (узлу захвата или под мышью), затем действия
+        ** по умолчанию — подменю, выделение мышью, значение ползунка.
+        **
+        ** A move: a new node under the mouse (pointerLeave/pointerEnter — before pointerMove, as in a browser),
+        ** a node drag; otherwise pointerMove to the target (the capture node or the one under the mouse), then the default
+        ** actions — the submenus, the mouse selection, the slider value.
+        */
         void pointerMove(RouterState& state, const platform::Event& event)
         {
             state.pointer = event.position;
             changeHover(state, spanAt(state, pickNode(state, event.position), event.position));
+            flushEvents(state);
+            if (moveDrag(state, event))
+                return;
+            if (!firePointer(state, ui::EventType::POINTER_MOVE, pointerTarget(state, state.hover), event))
+                return;
             hoverMenus(state, state.hover);
             dragTextSelection(state, event.position);
             if (state.drag != nullptr)
@@ -16,67 +29,52 @@ namespace gran::input
         }
 
         /*
-        ** Нажатие мимо открытого меню только закрывает его; правая кнопка открывает контекстное меню.
-        ** Нажатие левой кнопкой: элемент управления становится нажатым и получает фокус
-        ** (нажатие мимо элементов снимает фокус), ползунок начинает перетаскивание,
-        ** в поле ввода и Text начинается выделение (нажатие мимо текста его снимает).
+        ** Нажатие мимо открытого меню только закрывает его (событий нет). Иначе pointerDown цели; если он
+        ** не отменён — правая кнопка: contextMenu и встроенное меню, левая — нажатие элемента (pressLeft).
         **
-        ** A press outside an open menu only closes it; the right button opens the context menu.
-        ** A left button press: the control becomes pressed and gets the focus
-        ** (a press outside the controls removes the focus), a slider starts dragging,
-        ** in an input and a Text a selection starts (a press outside the text removes it).
+        ** A press outside an open menu only closes it (no events). Otherwise pointerDown to the target; if it
+        ** is not cancelled — the right button: contextMenu and the built-in menu, the left one — pressing a control (pressLeft).
         */
         void pointerDown(RouterState& state, const platform::Event& event)
         {
             ui::Node* hit = spanAt(state, pickNode(state, event.position), event.position);
-            ui::Node* control = controlOf(hit);
 
             if (closeOutside(state, event.position))
                 return;
-            if (event.button == platform::MouseButton::RIGHT)
-                contextClick(state, event);
-            if (event.button != platform::MouseButton::LEFT)
+            if (event.button == platform::MouseButton::LEFT)
+                state.downClicks = event.clicks;
+            if (!firePointer(state, ui::EventType::POINTER_DOWN, pointerTarget(state, hit), event))
                 return;
-            if (control != nullptr && disabled(control))
-                control = nullptr;
-            ui::Node* text = textTarget(hit, control);
-            // Нажатие в меню выделение не снимает: команда «Копировать» берёт именно его
-            // A press in a menu does not drop the selection: the "Copy" command takes exactly it
-            if (text != nullptr)
-                beginTextSelection(state, *text, event);
-            else if (ui::popupOf(hit) == nullptr)
-                clearSelection(state);
-            changePressed(state, control);
-            changeFocus(state, control);
-            if (control != nullptr && control->kind == ui::ElementKind::SLIDER)
-            {
-                state.drag = control;
-                dragSlider(state, *control, ui::windowToNode(*control, event.position).x);
-            }
+            if (event.button == platform::MouseButton::RIGHT
+                && firePointer(state, ui::EventType::CONTEXT_MENU, hit, event))
+                contextClick(state, event);
+            if (event.button == platform::MouseButton::LEFT)
+                pressLeft(state, hit, event);
         }
 
-        // Отпускание над тем же элементом — щелчок (кроме ползунка: его значение уже менялось)
-        // A release over the same control is a click (except a slider: its value was already changing)
+        // Отпускание: конец перетаскивания узла или pointerUp; захват снимается; левая кнопка — щелчок (releaseLeft)
+        // A release: the end of a node drag or pointerUp; the capture is removed; the left button — a click (releaseLeft)
         void pointerUp(RouterState& state, const platform::Event& event)
         {
-            ui::Node* control = controlOf(spanAt(state, pickNode(state, event.position), event.position));
-            ui::Node* pressed = state.pressed;
+            ui::Node* hit = spanAt(state, pickNode(state, event.position), event.position);
+            bool allowed = false;
 
-            if (event.button != platform::MouseButton::LEFT)
-                return;
-            changePressed(state, nullptr);
-            state.drag = nullptr;
-            state.selecting = nullptr;
-            if (pressed != nullptr && pressed == control && pressed->kind != ui::ElementKind::SLIDER)
-                activate(state, *pressed);
+            if (event.button != platform::MouseButton::LEFT || !finishDrag(state, event))
+                allowed = firePointer(state, ui::EventType::POINTER_UP, pointerTarget(state, hit), event);
+            state.capture = nullptr;
+            if (event.button == platform::MouseButton::LEFT)
+                releaseLeft(state, hit, event, allowed);
         }
 
-        // Колесо: ближайшая прокрутка сдвигается на 48 логических пикселей за «щелчок»; под диалогом прокрутки нет
-        // The wheel: the nearest scroll moves by 48 logical pixels per "notch"; there is no scrolling under a dialog
+        // Колесо: wheel узлу под мышью, затем ближайшая прокрутка — на 48 логических пикселей за «щелчок»; под диалогом прокрутки нет
+        // The wheel: wheel to the node under the mouse, then the nearest scroll — by 48 logical pixels per "notch"; there is no scrolling under a dialog
         void pointerWheel(RouterState& state, const platform::Event& event)
         {
-            ui::Node* scroll = scrollOf(pickNode(state, event.position));
+            ui::Node* hit = pickNode(state, event.position);
 
+            if (!firePointer(state, ui::EventType::WHEEL, hit, event))
+                return;
+            ui::Node* scroll = scrollOf(hit);
             if (scroll == nullptr)
                 return;
             scroll->layout.scrollOffset.x -= event.wheel.x * 48.0f;

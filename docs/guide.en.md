@@ -15,14 +15,15 @@
 7. [Animations and Timers](#animations-and-timers)
 8. [Text and Fonts](#text-and-fonts)
 9. [Actions and API](#actions-and-api)
-10. [Lists from data](#lists-from-data)
-11. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-12. [Pop-up Layers](#popup-layers)
-13. [Embedded browser: WebView](#embedded-browser-webview)
-14. [Accessibility](#accessibility)
-15. [Platform: windows, files, icons](#platform-windows-files-icons)
-16. [Errors and Message Language](#errors-and-message-language)
-17. [Custom window title bar](#custom-window-title-bar)
+10. [Events](#events)
+11. [Lists from data](#lists-from-data)
+12. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+13. [Pop-up Layers](#popup-layers)
+14. [Embedded browser: WebView](#embedded-browser-webview)
+15. [Accessibility](#accessibility)
+16. [Platform: windows, files, icons](#platform-windows-files-icons)
+17. [Errors and Message Language](#errors-and-message-language)
+18. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -312,6 +313,10 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `Application(AppOptions)` | `debugLayer` — D3D12 debug layer, `vsync`, `exitAfter` — exit after N seconds |
 | `loadFile(path)` / `loadString(markup)` | Load and validate markup, build the window |
 | `onAction(name, function)` | Bind an action name from the markup to a C++ function |
+| `onEvent(name, function)` | A markup event handler (`onPointerDown="name"`…), the function gets the node and the `UiEvent` |
+| `addEventListener(node, type, function, capture)` / `removeEventListener` | A node event listener from code |
+| `dispatchEvent(node, type, string)` | A custom event: capture → target → bubbling; `false` — cancelled |
+| `capturePointer(node)` / `releasePointer(node)` | The pointer capture until the button release |
 | `find(id)` | Find a node by `id` (or `nullptr`) |
 | `setStyle(node, name)` | Change the named style of a node |
 | `append(parent, node)` / `remove(node)` | Insert a node (e.g., a copy of the template `ui::cloneTree`) / remove |
@@ -328,7 +333,7 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `setTimeout(seconds, function)` / `setInterval(seconds, function)` / `clearTimer(id)` | Timers on the UI thread |
 | `openWindow(path)` / `openWindowString(markup)` / `closeWindow(node)` | One more window / close the node window |
 | `openFileDialog(options, multiple)` / `saveFileDialog` / `folderDialog` | The system file dialogs |
-| `onFileDrop(name, function)` | Files dropped onto an element with `onDrop="name"` |
+| `onFileDrop(name, function)` | Files dropped onto an element with `onDrop="name"` (nodes — the `drop` event, see «Events») |
 | `run()` | Event loop until the main window is closed; returns the exit code |
 
 Node `gran::ui::Node` (`gran/ui/node.hpp`) stores the element kind, `id`, the content `content` (`text`, `value`,
@@ -342,6 +347,76 @@ fragment with `appendMarkup`, or a hidden sample can be copied with `ui::cloneTr
 **Background threads.** Access to nodes can only be made from the UI thread. A network or computation thread
 passes the result through `app.post(task)` — the task will be executed in the event loop, and the window will
 wake up itself.
+
+## Events
+
+In addition to actions (`onClick`, `onChange`), any element has events, similar to those in a browser's DOM. The handler receives the node and the `ui::UiEvent` (`gran/ui/ui_event.hpp`) and can stop it or prevent the default engine action.
+
+```xml
+<Stack id="board" onKeyDownCapture="hotKeys">
+  <Box id="pad" onPointerDown="padDown" onPointerMove="padMove" onWheel="padWheel" onContextMenu="padMenu"/>
+</Stack>
+```
+
+```cpp
+app.onEvent("padMove", [](gran::ui::Node& pad, gran::UiEvent& event) {
+    // event.local — point in the pad's coordinate system (with its transform), event.position — window point
+});
+app.onEvent("padMenu", [&](gran::ui::Node&, gran::UiEvent& event) {
+    event.preventDefault();                                   // no built-in "Copy / Paste" menu
+    app.showPopupAt(*app.find("myMenu"), event.position);
+});
+```
+
+**Propagation.** The event travels from the root to the target (capture phase, attributes with the `Capture` suffix), then at the target itself and back to the root (bubble phase). `event.stopPropagation()` stops the path (current node handlers are still called), `stopImmediatePropagation()` — immediately. `event.target` — the node to which the event is addressed, `event.current` — the node whose handler is called, `event.phase` — phase. The path is collected before delivery; if the handler removes nodes (`remove`, list model editing), delivery and the default action are stopped.
+
+| Event | Attribute | Target | Cancellation (`preventDefault`) |
+|---|---|---|---|
+| `keyDown` / `keyUp` | `onKeyDown` / `onKeyUp` | focused node, if none — top layer or root | `keyDown`: Tab, field editing, Enter/Space, arrows and **characters** of this key |
+| `pointerDown` / `pointerUp` | `onPointerDown` / `onPointerUp` | node under the mouse or capturing the pointer | press: focus, selection, slider, context menu; release: `onClick` and `doubleClick` |
+| `pointerMove` | `onPointerMove` | the same | mouse selection, slider, sub-menu |
+| `pointerEnter` / `pointerLeave` | `onPointerEnter` / `onPointerLeave` | each node entering the mouse chain or leaving it | — (do not bubble) |
+| `doubleClick` | `onDoubleClick` | node under the mouse (after the second release) | — |
+| `wheel` | `onWheel` | node under the mouse | scrolling |
+| `focus` / `blur` | `onFocus` / `onBlur` | receiving / losing focus | — (do not bubble; `related` — second node) |
+| `contextMenu` | `onContextMenu` | right-click, menu key, Shift+F10 | built-in text and field menu |
+| custom | `on="name:action …"` | `Application::dispatchEvent` | by application agreement |
+
+Non-cancelable events (`pointerEnter/Leave`, `focus/blur`, `dragEnter/Leave`, `dragEnd`) ignore `preventDefault`. Notifications `focus`, `blur`, `pointerEnter`, `pointerLeave` arrive after the built-in window event handling (order as in the browser: `pointerDown`, `blur`, `focus`, `pointerUp`, `onClick`). Keys — `event.key` (`platform::Key`: letters A–Z by physical key, digits, F1–F12, arrows…), name — `platform::keyName(key)` («A», «Enter», «ArrowLeft», «F5»), modifiers — `event.modifiers`.
+
+**Handlers.** The name from the attribute is first searched among `onEvent`, then among `onAction` (the function receives only the node) and built-in commands: `onDoubleClick="gran:maximize"`, `onPointerDown="gran:capturePointer"` work without code. From the code — node listeners:
+
+```cpp
+gran::ListenerId id = app.addEventListener(*app.find("list"), "keyDown", handler, /*capture*/ true);
+app.removeEventListener(*app.find("list"), id);   // listener goes away with the node
+```
+
+**Custom events.** `app.dispatchEvent(node, "itemChosen", "string")` follows the same path; markup catches it with the attribute `on="itemChosen:pickItem"`. The result is `false` if the handler called `preventDefault`. Thus, the element reports "upwards", not knowing who is listening to it (example: the "Reset Board" button in `samples/events.xml`).
+
+**Pointer capture.** `app.capturePointer(node)` (or `gran:capturePointer` in markup) directs mouse events to the node, wherever the mouse is, until the button is released or `releasePointer(node)` — this is how custom sliders, size change handles, and drawing are written.
+
+### Dragging nodes
+
+```xml
+<Stack items="todo" acceptDrop="task" onDrop="moveTask">
+  <ItemTemplate>
+    <Box style="card" draggable="true" dragFormat="task" dragData="{title}" onDoubleClick="flipTask">…</Box>
+  </ItemTemplate>
+</Stack>
+```
+
+A node with `draggable="true"` starts dragging when the mouse, with a button pressed, moves more than 4 pixels. Data — format `dragFormat` (default `node`) and string `dragData` (default `id`, in templates — substitutions `{field}`); `event.drag` in `dragStart` can change them, `preventDefault` — cancel dragging. Zone — the nearest node to the mouse with `acceptDrop`, in which the format exists (`*` — any); the source subtree is not a zone. The zone receives `dragEnter`, `dragOver` (cancellation — "not here"), `dragLeave` and `drop` (`event.related` — the dragged node), the source — `dragStart` and `dragEnd` (`event.dropped`). While dragging, the source is in the `<Dragging>` state, the agreeing zone — in `<DropTarget>`, the cursor is "move" or "not allowed"; Esc and window focus loss cancel it. `onDrop` in the same zone also accepts files from the Explorer (`onFileDrop`). A typical `drop` handler transfers the list model record:
+
+```cpp
+app.onEvent("moveTask", [&](gran::ui::Node& column, gran::UiEvent& event) {
+    gran::ItemRef item = app.itemOf(*event.related);
+    gran::data::Record record = item.model->at(item.index);
+    item.model->remove(item.index);                    // the card node is deleted by binding
+    app.model(column.content.items).append(record);
+});
+```
+
+Complete example — `gran_gallery samples/events.xml` (handlers — `examples/gallery/gallery_board.cpp`).
 
 ## Lists from data
 

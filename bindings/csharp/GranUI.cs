@@ -9,11 +9,35 @@ namespace GranUI;
 public sealed record Event(string Target, string Model, nuint Index, string Text,
     string Option, string Message, double Value, bool Checked);
 
+// Снимок события интерфейса; методы ставят флаги, которые уходят ядру после возврата обработчика.
+// A UI event snapshot; the methods set flags that go to the core after the handler returns.
+public sealed class UiEvent
+{
+    public string Type = "", Target = "", Current = "", Related = "", Key = "", Detail = "";
+    public string DragFormat = "", DragData = "", Model = "", RelatedModel = "";
+    public int Phase, Button, Clicks, Modifiers;
+    public nuint Index, RelatedIndex;
+    public double X, Y, WindowX, WindowY, WheelX, WheelY;
+    public bool Dropped;
+    internal int Flags;
+    public void PreventDefault() => Flags |= 1;
+    public void StopPropagation() => Flags |= 2;
+    public void StopImmediatePropagation() => Flags |= 6;
+}
+
 internal static class Native
 {
     const string Library = "gran_c";
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void ActionFn(IntPtr user, IntPtr value);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void TaskFn(IntPtr user);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate int EventFn(IntPtr user, IntPtr value);
+    [StructLayout(LayoutKind.Sequential)] internal struct InputEvent {
+        internal uint Size; internal int Phase;
+        internal IntPtr Type, Target, Current, Related, Key, Detail, DragFormat, DragData, Model, RelatedModel;
+        internal nuint Index, RelatedIndex;
+        internal double X, Y, WindowX, WindowY, WheelX, WheelY;
+        internal int Button, Clicks, Modifiers, Dropped;
+    }
     [StructLayout(LayoutKind.Sequential)] internal struct Options {
         internal uint Size; internal int Backend, Debug, Warp, Watch, NoVsync; internal double ExitAfter;
     }
@@ -35,6 +59,10 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_action(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ActionFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_message(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ActionFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_post(IntPtr app, TaskFn callback, IntPtr user);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_event(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, EventFn callback, IntPtr user);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_listen(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, int capture, EventFn callback, IntPtr user, out ulong result);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_unlisten(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, ulong listener);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_dispatch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, [MarshalAs(UnmanagedType.LPUTF8Str)] string? detail, out int allowed);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_timer(IntPtr app, ref Timer timer, out ulong result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_clear_timer(IntPtr app, ulong timer);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string property, out IntPtr result);
@@ -140,6 +168,36 @@ public sealed class Application : IDisposable
     }
     public void OnAction(string name, Action<Event> callback) => On(name, callback, false);
     public void OnMessage(string name, Action<Event> callback) => On(name, callback, true);
+    // Переходник события: снимок, вызов под Protect, флаги — ядру / The event trampoline: a snapshot, a call under Protect, the flags go to the core
+    Native.EventFn EventEntry(Action<UiEvent> callback) {
+        ArgumentNullException.ThrowIfNull(callback);
+        Native.EventFn native = (_, pointer) => {
+            var n = Marshal.PtrToStructure<Native.InputEvent>(pointer);
+            var e = new UiEvent { Type=String(n.Type), Target=String(n.Target), Current=String(n.Current), Related=String(n.Related),
+                Key=String(n.Key), Detail=String(n.Detail), DragFormat=String(n.DragFormat), DragData=String(n.DragData),
+                Model=String(n.Model), RelatedModel=String(n.RelatedModel), Phase=n.Phase, Button=n.Button, Clicks=n.Clicks,
+                Modifiers=n.Modifiers, Index=n.Index, RelatedIndex=n.RelatedIndex, X=n.X, Y=n.Y, WindowX=n.WindowX,
+                WindowY=n.WindowY, WheelX=n.WheelX, WheelY=n.WheelY, Dropped=n.Dropped != 0 };
+            Protect(() => callback(e));
+            return e.Flags;
+        };
+        callbacks.Add(native);
+        return native;
+    }
+    public void OnEvent(string name, Action<UiEvent> callback) =>
+        Check(Native.gran_app_on_event(Handle, Arguments.Text(name), EventEntry(callback), IntPtr.Zero));
+    public ulong Listen(string target, string type, Action<UiEvent> callback, bool capture=false) {
+        Check(Native.gran_app_listen(Handle, Arguments.Text(target), Arguments.Text(type), capture ? 1 : 0, EventEntry(callback), IntPtr.Zero, out var result));
+        return result;
+    }
+    public void Unlisten(string target, ulong listener) => Check(Native.gran_app_unlisten(Handle, Arguments.Text(target), listener));
+    public bool Dispatch(string target, string type, string? detail=null) {
+        if (detail != null) Arguments.Text(detail);
+        Check(Native.gran_app_dispatch(Handle, Arguments.Text(target), Arguments.Text(type), detail, out var allowed));
+        return allowed != 0;
+    }
+    public void CapturePointer(string target) => Command("capturePointer", target);
+    public void ReleasePointer(string target) => Command("releasePointer", target);
     long AddTask(Action callback, bool repeat) {
         ArgumentNullException.ThrowIfNull(callback);
         long key = Interlocked.Increment(ref nextTask);

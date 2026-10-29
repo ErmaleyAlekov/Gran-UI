@@ -59,9 +59,30 @@ go through one shared trampoline: a one-shot task is released after its call, a 
 The number of waiting tasks is `pending_tasks()` / `PendingTasks` / `pendingTasks()`.
 Timers and background tasks are executed in the UI thread.
 
+### UI events
+
+Event attributes (`onPointerDown`, `onKeyDownCapture`, `onDrop`, `on="custom:name"`, see «Events» in
+[guide](guide.en.md#events)) are linked to the language by name as well:
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `on_event(name, f)` | `OnEvent(name, f)` | `onEvent(name, f)` | `gran_app_on_event` |
+| `listen(id, type, f, capture)` → number | `Listen(...)` | `listen(...)` | `gran_app_listen` |
+| `unlisten(id, number)` | `Unlisten` | `unlisten` | `gran_app_unlisten` |
+| `dispatch(id, type, detail)` → `bool` | `Dispatch` | `dispatch` | `gran_app_dispatch` |
+| `capture_pointer(id)` / `release_pointer(id)` | `CapturePointer` / `ReleasePointer` | `capturePointer` / `releasePointer` | `command("capturePointer", id)` |
+
+The handler receives a snapshot of `gran_input_event`: `type`, `target`, `current`, `related` (node ids),
+`phase` (1 capture, 2 target, 3 bubble), `x`/`y` in the `current` system, `window_x`/`window_y`, `wheel_x`/`wheel_y`,
+`button`, `clicks`, `modifiers` (1 Shift, 2 Ctrl, 4 Alt), `key` ("A", "Enter", "F5"), `detail`, `drag_format`,
+`drag_data`, `dropped`, `model`/`index` of the `current` node and `related_model`/`related_index` of the `related`
+(node being dragged — immediately its record). Snapshot methods `prevent_default()` / `PreventDefault()` /
+`preventDefault()`, `stop_propagation()` and `stop_immediate_propagation()` set flags that are sent to the core
+after the handler returns (in C ABI — return value `GRAN_EVENT_*`). The `listen` listener lives in the node and is removed with it; `dispatch` works even before `run`.
+
 `command` supports `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
-`loadHtml`, `postMessage`, `appendMarkup`. The window commands of `command` belong to the main window.
+`loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`. The window commands of `command` belong to the main window.
 For `showPopup`, the argument is the id of the anchor;
 for `appendMarkup`, it is an XML fragment that the core checks against the common XSD.
 

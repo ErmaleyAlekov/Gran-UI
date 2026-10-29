@@ -99,10 +99,66 @@ GRAN_API gran_status gran_app_read(gran_app* app, const char* target, const char
 GRAN_API gran_status gran_app_apply(gran_app* app, const gran_update* updates, size_t count);
 
 /* command: close/minimize/maximize/restore/reload/focus/remove/showDialog/hideDialog/
- * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup. target и argument могут быть NULL.
+ * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup/capturePointer/releasePointer.
+ * target и argument могут быть NULL.
  * command: close/minimize/maximize/restore/reload/focus/remove/showDialog/hideDialog/
- * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup. target and argument may be NULL. */
+ * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup/capturePointer/releasePointer.
+ * target and argument may be NULL. */
 GRAN_API gran_status gran_app_command(gran_app* app, const char* command, const char* target, const char* argument);
+
+/* События интерфейса (onPointerDown="имя", on="своё:имя", слушатели). Снимок действителен только внутри
+ * callback; size — размер структуры (новые поля добавляются в конец). phase: 1 захват, 2 цель, 3 всплытие.
+ * button: 0 левая, 1 правая, 2 средняя; modifiers: 1 Shift, 2 Ctrl, 4 Alt; key — имя клавиши ("A", "Enter", "F5").
+ * x, y — точка в системе узла current (от его левого верхнего угла); window_x, window_y — в окне (логические
+ * пиксели). related — откуда/куда ушли указатель или фокус, источник перетаскивания у зоны, зона у dragEnd.
+ * index и related_index == SIZE_MAX — узел не из списка. Возврат callback — флаги GRAN_EVENT_*.
+ * UI events (onPointerDown="name", on="custom:name", listeners). The snapshot is valid only inside
+ * callback; size is the structure size (new fields are appended). phase: 1 capture, 2 target, 3 bubbling.
+ * button: 0 left, 1 right, 2 middle; modifiers: 1 Shift, 2 Ctrl, 4 Alt; key is the key name ("A", "Enter", "F5").
+ * x, y is the point in the current node system (from its top left corner); window_x, window_y — in the window (logical
+ * pixels). related is where the pointer or the focus came from/went to, the drag source for a zone, the zone for dragEnd.
+ * index and related_index == SIZE_MAX — the node is not from a list. The callback returns GRAN_EVENT_* flags. */
+typedef struct gran_input_event {
+    uint32_t size;
+    int32_t phase;
+    const char* type;
+    const char* target;
+    const char* current;
+    const char* related;
+    const char* key;
+    const char* detail;
+    const char* drag_format;
+    const char* drag_data;
+    const char* model;
+    const char* related_model;
+    size_t index;
+    size_t related_index;
+    double x;
+    double y;
+    double window_x;
+    double window_y;
+    double wheel_x;
+    double wheel_y;
+    int32_t button;
+    int32_t clicks;
+    int32_t modifiers;
+    int32_t dropped;
+} gran_input_event;
+enum { GRAN_EVENT_PREVENT_DEFAULT = 1, GRAN_EVENT_STOP_PROPAGATION = 2, GRAN_EVENT_STOP_IMMEDIATE = 4 };
+typedef int32_t (*gran_event_fn)(void* user, const gran_input_event* event);
+
+/* on_event — обработчик имени из разметки (NULL снимает, тогда имя ищется среди on_action); listen —
+ * слушатель type у узла target (capture != 0 — фаза захвата), снимается unlisten или удалением узла;
+ * dispatch — своё событие из кода, *allowed (может быть NULL) = 0, если обработчик отменил действие.
+ * on_event is the handler of a markup name (NULL clears it, then the name is looked for among on_action); listen is
+ * a listener of type at the target node (capture != 0 — the capture phase), removed by unlisten or by removing the node;
+ * dispatch is a custom event from code, *allowed (may be NULL) = 0 if a handler cancelled the action. */
+GRAN_API gran_status gran_app_on_event(gran_app* app, const char* name, gran_event_fn callback, void* user);
+GRAN_API gran_status gran_app_listen(gran_app* app, const char* target, const char* type, int32_t capture,
+    gran_event_fn callback, void* user, uint64_t* result);
+GRAN_API gran_status gran_app_unlisten(gran_app* app, const char* target, uint64_t listener);
+GRAN_API gran_status gran_app_dispatch(gran_app* app, const char* target, const char* type, const char* detail,
+    int32_t* allowed);
 GRAN_API gran_status gran_model_count(gran_app* app, const char* model, size_t* result);
 GRAN_API gran_status gran_model_read(gran_app* app, const char* model, size_t index, const char* field, char** result);
 /* insert: index == SIZE_MAX добавляет в конец; set меняет поля одной записи за вызов.

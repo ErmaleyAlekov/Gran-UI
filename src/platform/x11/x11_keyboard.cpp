@@ -3,10 +3,19 @@
 
 namespace gran::platform::x11
 {
-    // Служебные клавиши и латинские shortcuts независимо от регистра.
-    // Navigation keys and Latin shortcuts independent of case.
+    /*
+    ** Служебные клавиши, латинские буквы без учёта регистра, цифры и F1–F12: у букв, цифр и F-клавиш
+    ** коды KeySym идут подряд, как и в Key, — сдвиг от первой.
+    **
+    ** The service keys, the Latin letters regardless of case, the digits and F1–F12: the KeySym codes of the letters,
+    ** the digits and the F keys go in a row, as in Key, — an offset from the first one.
+    */
     Key X11Window::key(KeySym symbol)
     {
+        if (symbol >= XK_a && symbol <= XK_z) return keyAfter(Key::A, static_cast<unsigned>(symbol - XK_a));
+        if (symbol >= XK_A && symbol <= XK_Z) return keyAfter(Key::A, static_cast<unsigned>(symbol - XK_A));
+        if (symbol >= XK_0 && symbol <= XK_9) return keyAfter(Key::DIGIT_0, static_cast<unsigned>(symbol - XK_0));
+        if (symbol >= XK_F1 && symbol <= XK_F12) return keyAfter(Key::F1, static_cast<unsigned>(symbol - XK_F1));
         switch (symbol)
         {
             case XK_BackSpace: return Key::BACKSPACE; case XK_Tab: case XK_ISO_Left_Tab: return Key::TAB;
@@ -15,32 +24,31 @@ namespace gran::platform::x11
             case XK_Up: return Key::UP; case XK_Down: return Key::DOWN; case XK_Home: return Key::HOME;
             case XK_End: return Key::END; case XK_Delete: return Key::DELETE_KEY;
             case XK_Page_Up: return Key::PAGE_UP; case XK_Page_Down: return Key::PAGE_DOWN;
-            case XK_a: case XK_A: return Key::A; case XK_c: case XK_C: return Key::C;
-            case XK_v: case XK_V: return Key::V; case XK_x: case XK_X: return Key::X;
-            case XK_z: case XK_Z: return Key::Z; default: return Key::UNKNOWN;
+            case XK_Insert: return Key::INSERT; case XK_Menu: return Key::CONTEXT_MENU;
+            default: return Key::UNKNOWN;
         }
     }
 
     /*
     ** Раскладка без латинской группы (только «ru»): у клавиши A нет символа XK_a, и Ctrl+C не узнать
-    ** по символу. Как Qt и GTK, берём физическую клавишу: коды <AC01>, <AB01>…<AB04> одинаковы
-    ** в наборах evdev и xfree86 (XWayland, Xorg).
+    ** по символу. Как Qt и GTK, берём физическую клавишу: коды рядов <AD01>…<AD10> (Q…P), <AC01>…<AC09>
+    ** (A…L), <AB01>…<AB07> (Z…M) и цифр <AE01>…<AE10> одинаковы в наборах evdev и xfree86 (XWayland, Xorg).
     **
     ** A layout without a Latin group ("ru" only): the A key has no XK_a symbol, and Ctrl+C cannot be recognized
-    ** by the symbol. Like Qt and GTK, take the physical key: the <AC01>, <AB01>…<AB04> codes are the same
-    ** in the evdev and xfree86 sets (XWayland, Xorg).
+    ** by the symbol. Like Qt and GTK, take the physical key: the codes of the rows <AD01>…<AD10> (Q…P), <AC01>…<AC09>
+    ** (A…L), <AB01>…<AB07> (Z…M) and the digits <AE01>…<AE10> are the same in the evdev and xfree86 sets (XWayland, Xorg).
     */
     Key X11Window::physicalKey(unsigned keycode)
     {
-        switch (keycode)
-        {
-            case 38: return Key::A;
-            case 52: return Key::Z;
-            case 53: return Key::X;
-            case 54: return Key::C;
-            case 55: return Key::V;
-            default: return Key::UNKNOWN;
-        }
+        static const char ROWS[] = "QWERTYUIOP....ASDFGHJKL.....ZXCVBNM";
+
+        if (keycode >= 10 && keycode <= 18)
+            return keyAfter(Key::DIGIT_1, keycode - 10);
+        if (keycode == 19)
+            return Key::DIGIT_0;
+        if (keycode < 24 || keycode - 24 >= sizeof(ROWS) - 1 || ROWS[keycode - 24] == '.')
+            return Key::UNKNOWN;
+        return keyAfter(Key::A, static_cast<unsigned>(ROWS[keycode - 24] - 'A'));
     }
 
     // X11 и движок имеют разные значения битов Control и Alt.

@@ -36,6 +36,19 @@ namespace gran::capi
         void operator()(ui::Node& node, const std::string& message) const;
         void deliver(ui::Node& node, const std::string& message) const;
     };
+    // Обработчик событий интерфейса: снимок со строками-копиями, флаги возврата — в событие ядра
+    // A UI event handler: a snapshot with string copies, the return flags go into the core event
+    struct EventCallback
+    {
+        gran_app* app;
+        gran_event_fn callback;
+        void* user;
+        void operator()(ui::Node& node, ui::UiEvent& event) const;
+    };
+
+    // Модель и номер записи списка, к которой относится узел (index == SIZE_MAX — не из списка)
+    // The model and the number of the list record the node belongs to (index == SIZE_MAX — not from a list)
+    void listPosition(gran_app* app, const ui::Node* node, std::string& model, size_t& index);
     struct Task
     {
         gran_task_fn callback;

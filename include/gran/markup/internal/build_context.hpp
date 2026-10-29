@@ -114,6 +114,17 @@ namespace gran::markup::internal
     // A content attribute (text, source, onClick...); false — it is not a content attribute
     bool readContentAttribute(ui::Node& node, std::string_view name, const std::string& value);
 
+    // ---- node_events.cpp ----
+
+    /*
+    ** Атрибут события: on<Событие> и on<Событие>Capture (onPointerDown, onKeyDownCapture), on="своё:действие …";
+    ** onDrop — и событие сброса узла, и зона файлов (content.onDrop). false — это не атрибут события.
+    **
+    ** An event attribute: on<Event> and on<Event>Capture (onPointerDown, onKeyDownCapture), on="custom:action …";
+    ** onDrop is both the node drop event and the file zone (content.onDrop). false — it is not an event attribute.
+    */
+    bool readEventAttribute(ui::Node& node, std::string_view name, const std::string& value);
+
     // ---- icon_shape.cpp ----
 
     // Фигура <Icon data viewBox fillRule>; ошибка пути или viewBox — MarkupException с позицией элемента

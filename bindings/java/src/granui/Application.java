@@ -161,6 +161,74 @@ public final class Application implements AutoCloseable {
             status(message ? "gran_app_on_message" : "gran_app_on_action",app,utf8(scope,name),function,MemorySegment.NULL);
         }
     }
+    // Снимок события интерфейса (gran_input_event, 168 байт); методы ставят флаги, которые уходят ядру после возврата.
+    // A UI event snapshot (gran_input_event, 168 bytes); the methods set flags that go to the core after the return.
+    public static final class UiEvent {
+        public final String type, target, current, related, key, detail, dragFormat, dragData, model, relatedModel;
+        public final int phase, button, clicks, modifiers;
+        public final long index, relatedIndex;
+        public final double x, y, windowX, windowY, wheelX, wheelY;
+        public final boolean dropped;
+        int flags;
+        UiEvent(MemorySegment e) {
+            phase=e.get(JAVA_INT,4); type=text(e.get(ADDRESS,8)); target=text(e.get(ADDRESS,16));
+            current=text(e.get(ADDRESS,24)); related=text(e.get(ADDRESS,32)); key=text(e.get(ADDRESS,40));
+            detail=text(e.get(ADDRESS,48)); dragFormat=text(e.get(ADDRESS,56)); dragData=text(e.get(ADDRESS,64));
+            model=text(e.get(ADDRESS,72)); relatedModel=text(e.get(ADDRESS,80));
+            index=e.get(JAVA_LONG,88); relatedIndex=e.get(JAVA_LONG,96);
+            x=e.get(JAVA_DOUBLE,104); y=e.get(JAVA_DOUBLE,112); windowX=e.get(JAVA_DOUBLE,120); windowY=e.get(JAVA_DOUBLE,128);
+            wheelX=e.get(JAVA_DOUBLE,136); wheelY=e.get(JAVA_DOUBLE,144);
+            button=e.get(JAVA_INT,152); clicks=e.get(JAVA_INT,156); modifiers=e.get(JAVA_INT,160); dropped=e.get(JAVA_INT,164)!=0;
+        }
+        public void preventDefault() { flags |= 1; }
+        public void stopPropagation() { flags |= 2; }
+        public void stopImmediatePropagation() { flags |= 6; }
+    }
+    private final class EventCallback {
+        private final Consumer<UiEvent> handler;
+        EventCallback(Consumer<UiEvent> handler) { this.handler=handler; }
+        int event(MemorySegment user, MemorySegment pointer) {
+            UiEvent event=new UiEvent(pointer.reinterpret(168));
+            protect(() -> handler.accept(event));
+            return event.flags;
+        }
+    }
+    private MemorySegment eventStub(Consumer<UiEvent> handler) {
+        ensureOpen();
+        try {
+            EventCallback callback=new EventCallback(Objects.requireNonNull(handler));
+            MethodHandle method=MethodHandles.lookup().findVirtual(EventCallback.class,"event",
+                MethodType.methodType(int.class,MemorySegment.class,MemorySegment.class)).bindTo(callback);
+            MemorySegment result=Linker.nativeLinker().upcallStub(method,FunctionDescriptor.of(JAVA_INT,ADDRESS,ADDRESS),lifetime);
+            callbacks.add(callback); return result;
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+    }
+    public void onEvent(String name, Consumer<UiEvent> handler) {
+        MemorySegment function=eventStub(handler);
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_on_event",app,utf8(scope,name),function,MemorySegment.NULL); }
+    }
+    public long listen(String target, String type, Consumer<UiEvent> handler) { return listen(target,type,handler,false); }
+    public long listen(String target, String type, Consumer<UiEvent> handler, boolean capture) {
+        MemorySegment function=eventStub(handler);
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_LONG);
+            status("gran_app_listen",app,utf8(scope,target),utf8(scope,type),capture ? 1 : 0,function,MemorySegment.NULL,output);
+            return output.get(JAVA_LONG,0);
+        }
+    }
+    public void unlisten(String target, long listener) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_unlisten",app,utf8(scope,target),listener); }
+    }
+    public boolean dispatch(String target, String type) { return dispatch(target,type,null); }
+    public boolean dispatch(String target, String type, String detail) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_INT);
+            status("gran_app_dispatch",app,utf8(scope,target),utf8(scope,type),utf8(scope,detail),output);
+            return output.get(JAVA_INT,0) != 0;
+        }
+    }
+    public void capturePointer(String target) { command("capturePointer",target,null); }
+    public void releasePointer(String target) { command("releasePointer",target,null); }
     private synchronized MemorySegment taskEntry() {
         ensureOpen();
         if (taskEntry == null) {

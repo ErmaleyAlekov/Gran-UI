@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Модель событий: перетаскивание карточек между колонками (draggable, acceptDrop, onDrop), двойной щелчок,
+  захват указателя и координаты в системе узла, колесо, фокус, клавиши в фазе захвата, своё событие
+  и своё контекстное меню. Обработчики — examples/gallery/gallery_events.cpp.
+  Запуск: gran_gallery samples/events.xml
+
+  The event model: dragging cards between columns (draggable, acceptDrop, onDrop), a double click,
+  the pointer capture and the coordinates in the node system, the wheel, the focus, the keys in the capture phase,
+  a custom event and a custom context menu. The handlers are examples/gallery/gallery_events.cpp.
+  Run: gran_gallery samples/events.xml
+-->
+<Window title="Gran UI — события" width="760" height="380" background="#f5f6f8">
+  <Resources>
+    <Style name="column" spacing="8" padding="12" minHeight="220" background="#eceff3" borderRadius="12"
+           borderWidth="2" borderColor="#eceff3">
+      <DropTarget borderColor="#2f6fed" background="#eaf1ff"/>
+    </Style>
+    <Style name="card" padding="10 12" background="#ffffff" borderRadius="8" borderWidth="1" borderColor="#e4e7ec"
+           cursor="grab">
+      <Hover borderColor="#98a2b3"/>
+      <Dragging opacity="0.45"/>
+    </Style>
+    <Style name="caption" fontSize="13" color="#667085"/>
+    <Data name="todo">
+      <Item title="Макет окна настроек"/>
+      <Item title="Горячие клавиши"/>
+      <Item title="Отмена и повтор"/>
+    </Data>
+    <Data name="done">
+      <Item title="Модель событий"/>
+    </Data>
+  </Resources>
+  <Stack id="board" padding="20" spacing="14" onKeyDownCapture="keyLog" on="boardReset:resetBoard">
+    <Stack orientation="horizontal" spacing="12" align="center">
+      <Text fontSize="20" fontWeight="700">События</Text>
+      <Button text="Сбросить доску" onClick="reset"/>
+      <Text id="status" style="caption" grow="1">Перетащите карточку в другую колонку или дважды щёлкните по ней</Text>
+    </Stack>
+    <Stack orientation="horizontal" spacing="16">
+      <Stack spacing="6" width="220" shrink="0">
+        <Text fontWeight="600">Сделать</Text>
+        <Stack id="todoColumn" style="column" items="todo" acceptDrop="task" onDrop="moveTask">
+          <ItemTemplate>
+            <Box style="card" draggable="true" dragFormat="task" dragData="{title}" onDoubleClick="flipTask">
+              <Text>{title}</Text>
+            </Box>
+          </ItemTemplate>
+        </Stack>
+      </Stack>
+      <Stack spacing="6" width="220" shrink="0">
+        <Text fontWeight="600">Готово</Text>
+        <Stack id="doneColumn" style="column" items="done" acceptDrop="task" onDrop="moveTask">
+          <ItemTemplate>
+            <Box style="card" draggable="true" dragFormat="task" dragData="{title}" onDoubleClick="flipTask">
+              <Text>{title}</Text>
+            </Box>
+          </ItemTemplate>
+        </Stack>
+      </Stack>
+      <Stack spacing="8" grow="1">
+        <Text fontWeight="600">Указатель</Text>
+        <Box id="pad" height="150" background="#ffffff" borderRadius="12" borderWidth="1" borderColor="#d0d5dd"
+             cursor="move" onPointerDown="padDown" onPointerMove="padMove" onPointerUp="padUp" onWheel="padWheel"
+             onContextMenu="padMenu" onPointerLeave="padLeave">
+          <Text style="caption" padding="10">Нажмите и ведите мышь за край — захват держит координаты</Text>
+        </Box>
+        <Text id="pointerInfo" style="caption">x = —, y = —</Text>
+        <Input id="field" placeholder="Поле: фокус и клавиши" onFocus="fieldFocus" onBlur="fieldBlur"/>
+        <Text id="keyInfo" style="caption">Последняя клавиша: —</Text>
+      </Stack>
+    </Stack>
+    <Popup id="padMenu">
+      <MenuItem text="Очистить координаты" onClick="padClear"/>
+    </Popup>
+  </Stack>
+</Window>

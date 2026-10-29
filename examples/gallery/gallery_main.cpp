@@ -75,6 +75,7 @@ int main(int argc, char* argv[])
         gallery::registerActions(application);
         gallery::registerTimers(application);
         gallery::registerPlatform(application, markup);
+        gallery::registerEvents(application);
         return application.run();
     }
     catch (const std::exception& error)

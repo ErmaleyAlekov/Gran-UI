@@ -37,6 +37,17 @@ namespace gallery
     ** (the second window onClose) — close it; filesDropped — the dropped files go into the status line.
     */
     void registerPlatform(gran::Application& application, const std::string& markup);
+
+    /*
+    ** События (gallery_board.cpp, samples/events.xml): moveTask (onDrop колонки) и flipTask (двойной щелчок)
+    ** переносят карточки между моделями todo и done; reset/resetBoard — своё событие boardReset; поле pad —
+    ** захват указателя, колесо, своё контекстное меню; keyLog — клавиши в фазе захвата; фокус поля field.
+    **
+    ** The events (gallery_board.cpp, samples/events.xml): moveTask (the column onDrop) and flipTask (a double click)
+    ** move cards between the todo and done models; reset/resetBoard is the boardReset custom event; the pad area is
+    ** the pointer capture, the wheel, a custom context menu; keyLog is the keys in the capture phase; the field focus.
+    */
+    void registerEvents(gran::Application& application);
 }
 
 #endif

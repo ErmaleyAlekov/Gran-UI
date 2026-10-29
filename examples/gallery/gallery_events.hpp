@@ -1,0 +1,31 @@
+#ifndef GRAN_GALLERY_EVENTS_HPP
+#define GRAN_GALLERY_EVENTS_HPP
+
+#include "gran/app/application.hpp"
+
+#include <string>
+
+namespace gallery
+{
+    // ---- gallery_reset.cpp ----
+
+    // Текст узла id (нет узла — ничего) и перерисовка / The text of the id node (no node — nothing) and a repaint
+    void setText(gran::Application& application, const char* id, const std::string& text);
+
+    // Кнопка «Сбросить доску» шлёт своё событие boardReset, доска возвращает колонки к началу
+    // The "Reset the board" button sends the boardReset custom event, the board returns the columns to the start
+    void registerReset(gran::Application& application);
+
+    // ---- gallery_pointer.cpp ----
+
+    // Поле pad: захват указателя, координаты в системе узла, колесо, своё контекстное меню
+    // The pad area: the pointer capture, the coordinates in the node system, the wheel, a custom context menu
+    void registerPointer(gran::Application& application);
+
+    // ---- gallery_keys.cpp ----
+
+    // Клавиши в фазе захвата у доски и фокус поля field / The keys in the capture phase at the board and the field focus
+    void registerKeys(gran::Application& application);
+}
+
+#endif

@@ -54,6 +54,14 @@ namespace gran::app
         std::size_t lineMove(const ui::Node& node, std::size_t offset, int lines, float& goalX) override;
         int pageLines(const ui::Node& node) override;
 
+        // ---- app_window_events.cpp ----
+
+        // Событие из разметки: обработчик onEvent, без него — действие onAction или gran:… / A markup event: the onEvent handler, without it — the onAction action or gran:…
+        void event(const std::string& name, ui::Node& node, ui::UiEvent& event) override;
+
+        // Общий счётчик удалений узлов всех окон / The shared node removal counter of all the windows
+        std::uint32_t treeVersion() const noexcept override;
+
         // Общее состояние приложения / The shared application state
         Application::State& shared;
         markup::UiDocument document;

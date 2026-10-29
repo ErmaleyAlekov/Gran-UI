@@ -19,6 +19,17 @@ namespace gran
     // Обработчик действия разметки (onClick="имя") / A markup action handler (onClick="name")
     using ActionHandler = std::function<void(ui::Node& node)>;
 
+    /*
+    ** Событие интерфейса и его обработчик (onPointerDown="имя", addEventListener): узел, чей обработчик вызван,
+    ** и событие — его флаги stopPropagation/preventDefault видят остальные обработчики и движок.
+    **
+    ** A UI event and its handler (onPointerDown="name", addEventListener): the node whose handler is called
+    ** and the event — its stopPropagation/preventDefault flags are seen by the other handlers and the engine.
+    */
+    using UiEvent = ui::UiEvent;
+    using EventHandler = ui::EventHandler;
+    using ListenerId = ui::ListenerId;
+
     // Обработчик строки из страницы <WebView onMessage="имя"> / A handler of a string from a <WebView onMessage="name"> page
     using WebMessageHandler = std::function<void(ui::Node& webView, const std::string& message)>;
 
@@ -93,6 +104,58 @@ namespace gran
 
         // Обработчик действия по имени / An action handler by name
         void onAction(const std::string& name, ActionHandler handler);
+
+        // ---- app_event_handlers.cpp: события интерфейса (только поток интерфейса) ----
+        // ---- app_event_handlers.cpp: UI events (the UI thread only) ----
+
+        /*
+        ** Обработчик событий разметки по имени: onKeyDown="name", onPointerMove="name", on="своё:name"…
+        ** Узел обработчика — тот, у кого атрибут (event.current), цель — event.target. Без onEvent имя
+        ** ищется среди onAction (обработчик получает только узел) и встроенных gran:….
+        **
+        ** A markup event handler by name: onKeyDown="name", onPointerMove="name", on="custom:name"…
+        ** The handler node is the one with the attribute (event.current), the target is event.target. Without onEvent the name
+        ** is looked for among onAction (the handler gets the node only) and the built-in gran:….
+        */
+        void onEvent(const std::string& name, EventHandler handler);
+
+        /*
+        ** Слушатель события type ("pointerDown", "keyUp", своё имя) у узла: capture — фаза захвата.
+        ** Слушатель живёт в узле: удаление узла снимает его. Номер — для removeEventListener.
+        **
+        ** A listener of the type event ("pointerDown", "keyUp", a custom name) at the node: capture — the capture phase.
+        ** The listener lives in the node: removing the node drops it. The number is for removeEventListener.
+        */
+        ListenerId addEventListener(ui::Node& node, const std::string& type, EventHandler handler, bool capture = false);
+
+        // Снять слушателя (можно из него самого); чужой или неизвестный номер — ничего / Remove a listener (also from itself); a foreign or an unknown number — nothing
+        void removeEventListener(ui::Node& node, ListenerId id);
+
+        // ---- app_event_dispatch.cpp ----
+
+        /*
+        ** Своё событие из кода: захват → цель → всплытие (bubbles), обработчики разметки on="type:…" и слушатели.
+        ** detail — строка для обработчиков. Встроенное имя (pointerDown) даёт событие этого вида без действий
+        ** движка. true — никто не вызвал preventDefault.
+        **
+        ** A custom event from code: capture → the target → bubbling (bubbles), the on="type:…" markup handlers and the listeners.
+        ** detail is a string for the handlers. A built-in name (pointerDown) gives an event of this kind without the engine
+        ** actions. true — nobody called preventDefault.
+        */
+        bool dispatchEvent(ui::Node& target, const std::string& type, const std::string& detail = std::string(),
+            bool bubbles = true);
+
+        /*
+        ** Захват указателя (как setPointerCapture): события мыши идут узлу, где бы ни была мышь, до отпускания
+        ** кнопки или releasePointer. До run() и для узла вне окна — ничего.
+        **
+        ** The pointer capture (as setPointerCapture): the mouse events go to the node wherever the mouse is until the button
+        ** release or releasePointer. Before run() and for a node outside a window — nothing.
+        */
+        void capturePointer(ui::Node& node);
+
+        // Отпустить захват, если его держит node / Release the capture if node holds it
+        void releasePointer(ui::Node& node);
 
         // ---- application_windows.cpp: несколько окон (только поток интерфейса) ----
         // ---- application_windows.cpp: several windows (the UI thread only) ----

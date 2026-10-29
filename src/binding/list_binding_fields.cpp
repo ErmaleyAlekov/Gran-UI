@@ -9,10 +9,10 @@ namespace gran::binding
     {
         using C = ui::NodeContent;
 
-        // Текстовые поля, в которых разрешены подстановки (как в схеме; option — value пункта ComboBox)
-        // The text fields where placeholders are allowed (as in the schema; option is the ComboBox item value)
+        // Текстовые поля, в которых разрешены подстановки (как в схеме; option — value пункта ComboBox, dragData — данные перетаскивания)
+        // The text fields where placeholders are allowed (as in the schema; option is the ComboBox item value, dragData is the drag data)
         std::string C::* const BOUND_FIELDS[] = {&C::text, &C::placeholder, &C::source, &C::tooltip, &C::option,
-            &C::accessibleName};
+            &C::accessibleName, &C::dragData};
 
         // Поля одного узла; текст Text с участками — склейка участков, его не трогаем
         // The fields of one node; the text of a Text with runs is the joined runs, it is left alone

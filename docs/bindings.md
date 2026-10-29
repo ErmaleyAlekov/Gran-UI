@@ -70,9 +70,31 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 Число ждущих задач — `pending_tasks()` / `PendingTasks` / `pendingTasks()`.
 Таймеры и фоновые задачи исполняются в потоке UI.
 
+### События интерфейса
+
+Атрибуты событий (`onPointerDown`, `onKeyDownCapture`, `onDrop`, `on="своё:имя"`, см. «События» в
+[руководстве](guide.md#события)) связываются с языком так же по имени:
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `on_event(name, f)` | `OnEvent(name, f)` | `onEvent(name, f)` | `gran_app_on_event` |
+| `listen(id, type, f, capture)` → номер | `Listen(...)` | `listen(...)` | `gran_app_listen` |
+| `unlisten(id, номер)` | `Unlisten` | `unlisten` | `gran_app_unlisten` |
+| `dispatch(id, type, detail)` → `bool` | `Dispatch` | `dispatch` | `gran_app_dispatch` |
+| `capture_pointer(id)` / `release_pointer(id)` | `CapturePointer` / `ReleasePointer` | `capturePointer` / `releasePointer` | `command("capturePointer", id)` |
+
+Обработчик получает снимок `gran_input_event`: `type`, `target`, `current`, `related` (id узлов),
+`phase` (1 захват, 2 цель, 3 всплытие), `x`/`y` в системе `current`, `window_x`/`window_y`, `wheel_x`/`wheel_y`,
+`button`, `clicks`, `modifiers` (1 Shift, 2 Ctrl, 4 Alt), `key` («A», «Enter», «F5»), `detail`, `drag_format`,
+`drag_data`, `dropped`, `model`/`index` узла `current` и `related_model`/`related_index` узла `related`
+(перетаскиваемая карточка списка — сразу её запись). Методы снимка `prevent_default()` / `PreventDefault()` /
+`preventDefault()`, `stop_propagation()` и `stop_immediate_propagation()` ставят флаги, которые уходят ядру
+после возврата обработчика (в C ABI — возвращаемое значение `GRAN_EVENT_*`). Слушатель `listen` живёт
+в узле и снимается вместе с ним; `dispatch` работает и до `run`.
+
 `command` поддерживает `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
-`loadHtml`, `postMessage`, `appendMarkup`. Команды окна из `command` относятся к главному окну.
+`loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`. Команды окна из `command` относятся к главному окну.
 Для `showPopup` аргумент — id якоря;
 для `appendMarkup` — XML-фрагмент, который ядро проверяет общей XSD.
 

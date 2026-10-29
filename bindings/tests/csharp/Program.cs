@@ -39,6 +39,15 @@ class Program
 
             Assert(app.Read("text", "text") == "Привет 🌲");
 
+            // Своё событие всплывает от go к root; отменённое — Dispatch возвращает false
+            // A custom event bubbles from go to root; a cancelled one — Dispatch returns false
+            var seen = new List<string>();
+            ulong listener = app.Listen("root", "ping", e => { seen.Add(e.Type + ":" + e.Target + ":" + e.Current + ":" + e.Phase + ":" + e.Detail); e.PreventDefault(); });
+            Assert(!app.Dispatch("go", "ping", "data"));
+            Assert(seen.Count == 1 && seen[0] == "ping:go:root:3:data");
+            app.Unlisten("root", listener);
+            Assert(app.Dispatch("go", "ping"));
+
             var model = new Dictionary<string, string>
             {
                 { "key1", "value1" },
