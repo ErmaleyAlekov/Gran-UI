@@ -84,7 +84,9 @@ namespace gran::a11y
             return windowButtonName(node);
         if (ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX)
             name = node.content.placeholder;
-        else
+        // Текст WebView — HTML страницы, а не имя: экранный диктор озвучивал бы разметку
+        // The WebView text is the page HTML, not a name: a screen reader would speak the markup
+        else if (node.kind != ui::ElementKind::WEB_VIEW)
             name = node.content.text;
         if (name.empty() && node.kind == ui::ElementKind::BUTTON)
             appendTexts(node, name);

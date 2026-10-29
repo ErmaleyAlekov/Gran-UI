@@ -26,6 +26,12 @@ namespace gallery
 
     // Клавиши в фазе захвата у доски и фокус поля field / The keys in the capture phase at the board and the field focus
     void registerKeys(gran::Application& application);
+
+    // ---- gallery_web.cpp ----
+
+    // Страница <WebView onMessage="fromPage">: статус в окне и ответ обратно в страницу
+    // The <WebView onMessage="fromPage"> page: the status in the window and an answer back into the page
+    void registerWeb(gran::Application& application);
 }
 
 #endif

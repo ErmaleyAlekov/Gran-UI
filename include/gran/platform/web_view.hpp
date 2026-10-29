@@ -28,8 +28,8 @@ namespace gran::platform
         // Строка из страницы: window.chrome.webview.postMessage("…") / A string from the page: window.chrome.webview.postMessage("…")
         virtual void webMessage(const std::string& message) noexcept = 0;
 
-        // Браузер не создан (нет среды выполнения, загрузчика или доступа к папке данных); code — код ОС
-        // The browser was not created (no runtime, loader or access to the data folder); code is the OS code
+        // Браузер не создан (нет среды выполнения, загрузчика или доступа к папке данных); code — код ОС, 0 — сборка без браузера
+        // The browser was not created (no runtime, loader or access to the data folder); code is the OS code, 0 — a build without a browser
         virtual void webFailed(long long code) noexcept = 0;
     };
 

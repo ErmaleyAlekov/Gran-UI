@@ -47,6 +47,10 @@ namespace gran::render::internal
             ui::ElementKind kind = node.kind;
             bool marked = kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX;
 
+            // Текст WebView — HTML страницы для браузера, а не подпись: движок рисует только фон и обводку
+            // The WebView text is the page HTML for the browser, not a label: the engine paints only the background and border
+            if (kind == ui::ElementKind::WEB_VIEW)
+                return;
             if (kind == ui::ElementKind::CHECKBOX || kind == ui::ElementKind::SLIDER || kind == ui::ElementKind::RADIO_BUTTON
                 || kind == ui::ElementKind::SWITCH || kind == ui::ElementKind::PROGRESS_BAR)
                 paintControl(node, inner, context);
