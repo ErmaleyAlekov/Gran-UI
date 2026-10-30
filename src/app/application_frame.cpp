@@ -60,11 +60,11 @@ namespace gran
         }
 
         /*
-        ** Кадр: стили (с наблюдателем-аниматором), шаг анимаций, компоновка только при
+        ** Кадр: состояние команд отмены, стили (с наблюдателем-аниматором), шаг анимаций, компоновка только при
         ** DIRTY_LAYOUT у корня, отрисовка с кареткой фокусированного поля. Потеря устройства —
         ** пересоздание графики и повтор кадра со следующим проходом цикла.
         **
-        ** A frame: styles (with the animator observer), an animation step, layout only with
+        ** A frame: the undo commands state, styles (with the animator observer), an animation step, layout only with
         ** DIRTY_LAYOUT on the root, rendering with the caret of the focused input. A device loss —
         ** recreating the graphics and repeating the frame on the next loop pass.
         */
@@ -78,6 +78,9 @@ namespace gran
 
             win.animator.setTime(now());
             syncWindowFrame(win);
+            // Текст поля мог смениться из кода (история сбрасывается): включённость gran:undo — до стилей кадра
+            // The field text might change from code (the history is reset): the gran:undo enabled state — before the frame styles
+            refreshUndoCommands(win.shared, std::string());
             ui::resolveStyles(root, win.windowStyle, theme.kinds, &win.animator);
             win.animating = win.animator.tick();
             if ((root.dirty & ui::DIRTY_LAYOUT) != 0)

@@ -23,7 +23,7 @@ namespace gran::markup::internal
 
         // Логические поля / The boolean fields
         const struct { const char* name; bool C::* member; } BOOLEANS[] = {
-            {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}, {"virtual", &C::virtualize},
+            {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}, {"undo", &C::undoable}, {"virtual", &C::virtualize},
             {"closable", &C::closable}, {"draggable", &C::draggable}};
 
         // Перечисления (fit у Image, direction у Scroll, submitKey у TextArea) и целые числа

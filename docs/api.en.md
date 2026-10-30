@@ -117,6 +117,16 @@ do not call the user's `onChange` again.
 - `setCommandEnabled(id, bool)`: enable or disable the command in all the windows together with the `command="id"`
   controls (the Disabled state) and its shortcuts; the value is kept for a reload and new windows.
 - `commandEnabled(id) -> bool`: whether the command is enabled; an unknown one is `false`.
+- `undoStack(name = "") -> UndoStack&`: an undo stack (`gran/undo/undo_stack.hpp`, as `QUndoStack`), created
+  on the first access: `push(unique_ptr<UndoStep>)` records an already done step (or absorbs it into the top one by
+  `mergeId`/`mergeWith`), `undo`, `redo`, `canUndo`, `canRedo`, `isClean`/`setClean` ("the document is saved"), `clear`,
+  `count`, `index`, `setLimit` (0 — no limit), `breakMerge`. The `gran:undo[:name]` / `gran:redo[:name]` commands (without a name — the focused field first)
+  are enabled by the stack themselves.
+- `pushUndo(undo, redo, name = "")`: record a done action as a pair of handlers (`undo::ActionStep`).
+- `undo(name = "") -> bool`, `redo(name = "") -> bool`: undo / redo a step; `false` — nothing to do.
+- `onUndoChanged(UndoHandler)`: a `(stack name, stack)` handler after every change of any stack.
+- `Input`/`TextArea` edits go to the field's own history (`content.history`, Ctrl+Z/Ctrl+Y); assigning
+  `content.text` from code invalidates it (reset on the next edit or undo).
 
 When directly editing node fields, use `ui::markDirty(node, flags)` from `gran/ui/node.hpp`:
 `DIRTY_STYLE` for cascade recalculation, `DIRTY_LAYOUT` for layout, `DIRTY_PAINT` for drawing.

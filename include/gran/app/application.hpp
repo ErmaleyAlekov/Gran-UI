@@ -6,6 +6,7 @@
 #include "gran/platform/file_dialog.hpp"
 #include "gran/ui/node.hpp"
 #include "gran/rhi/render_backend.hpp"
+#include "gran/undo/undo_stack.hpp"
 
 #include <cstddef>
 #include <functional>
@@ -49,6 +50,13 @@ namespace gran
 
     // Номер таймера (Application::setTimeout/setInterval); 0 — «нет таймера» / A timer number (Application::setTimeout/setInterval); 0 — "no timer"
     using TimerId = app::TimerId;
+
+    // Стек отмены и его шаг (Application::undoStack) / An undo stack and its step (Application::undoStack)
+    using UndoStack = undo::UndoStack;
+    using UndoStep = undo::UndoStep;
+
+    // Обработчик смены стека отмены: имя стека ("" — основной) и сам стек / An undo stack change handler: the stack name ("" is the main one) and the stack itself
+    using UndoHandler = std::function<void(const std::string& name, const UndoStack& stack)>;
 
     // Параметры приложения / The application parameters
     struct AppOptions
@@ -382,6 +390,38 @@ namespace gran
 
         // Включена ли команда (первая найденная по окнам); неизвестная — false / Whether the command is enabled (the first one found in the windows); an unknown one — false
         bool commandEnabled(const std::string& id) const;
+
+        // ---- application_undo.cpp: стеки отмены (только поток интерфейса) ----
+        // ---- application_undo.cpp: the undo stacks (the UI thread only) ----
+
+        /*
+        ** Стек отмены бизнес-логики по имени ("" — основной), создаётся при первом обращении. Шаг кладётся
+        ** уже выполненным (push не вызывает redo); свои шаги с объединением — наследники UndoStep.
+        ** Команды <Command action="gran:undo"/"gran:redo"> (":имя" — свой стек) включаются по стеку сами.
+        ** Поля Input и TextArea ведут свои истории (Ctrl+Z в поле), в этот стек они не пишут.
+        **
+        ** A business logic undo stack by name ("" is the main one), created on the first access. A step is pushed
+        ** already done (push does not call redo); own merging steps are UndoStep descendants.
+        ** The <Command action="gran:undo"/"gran:redo"> commands (":name" — an own stack) are enabled by the stack themselves.
+        ** Input and TextArea fields keep their own histories (Ctrl+Z in a field), they do not write to this stack.
+        */
+        UndoStack& undoStack(const std::string& name = std::string());
+
+        // Записать выполненное действие парой обработчиков отмены и повтора / Record a done action as a pair of undo and redo handlers
+        void pushUndo(Task undoHandler, Task redoHandler, const std::string& stack = std::string());
+
+        // Отменить / повторить шаг стека; false — нечего (то же делают gran:undo[:имя], gran:redo[:имя]) / Undo / redo a stack step; false — nothing (gran:undo[:name], gran:redo[:name] do the same)
+        bool undo(const std::string& stack = std::string());
+        bool redo(const std::string& stack = std::string());
+
+        /*
+        ** Обработчик смены любого стека (шаг, отмена, повтор, setClean, clear): например, «* имя» в заголовке
+        ** по !stack.isClean(). Один на приложение; пустой — снять.
+        **
+        ** A handler of any stack change (a step, undo, redo, setClean, clear): for example, "* name" in the title
+        ** by !stack.isClean(). One per application; an empty one — remove it.
+        */
+        void onUndoChanged(UndoHandler handler);
 
         // ---- application_tasks.cpp ----
 

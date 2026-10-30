@@ -16,17 +16,15 @@ namespace gallery
             }
         };
 
-        // Del на заметке: узел исполнителя — заметка в фокусе (область focus внутри notes) / Del on a note: the running node is the focused note (the focus scope inside notes)
-        struct DeleteNote
+        // «Сохранить»: текущая позиция стека отмены — «чистая», «*» в заголовке пропадает / "Save": the current undo stack position is clean, "*" in the title disappears
+        struct SaveDoc
         {
             gran::Application* application;
 
-            void operator()(gran::ui::Node& node) const
+            void operator()(gran::ui::Node&) const
             {
-                if (node.kind != gran::ui::ElementKind::BUTTON || node.parent == nullptr || node.parent->id != "notes")
-                    return;
-                setText(*application, "status", "Заметка «" + node.content.text + "» удалена");
-                application->remove(node);
+                application->undoStack().setClean();
+                setText(*application, "status", "Команда «Сохранить» (Ctrl+S): изменения сохранены");
             }
         };
 
@@ -49,10 +47,10 @@ namespace gallery
     {
         application.onAction("cmdNew", CommandStatus{&application, "Команда «Новый» (Ctrl+N)"});
         application.onAction("cmdOpen", CommandStatus{&application, "Команда «Открыть…» (Ctrl+O)"});
-        application.onAction("cmdSave", CommandStatus{&application, "Команда «Сохранить» (Ctrl+S)"});
+        application.onAction("cmdSave", SaveDoc{&application});
         application.onAction("cmdSaveAs", CommandStatus{&application, "Команда «Сохранить как…» (Ctrl+Shift+S)"});
         application.onAction("cmdRefresh", CommandStatus{&application, "Команда «Обновить» (F5 или Ctrl+R)"});
-        application.onAction("cmdDelete", DeleteNote{&application});
         application.onAction("toggleSave", ToggleSave{&application});
+        registerNotes(application);
     }
 }

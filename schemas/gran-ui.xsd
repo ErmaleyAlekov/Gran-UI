@@ -161,7 +161,7 @@
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
-          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand)(:.*)?"/>
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit)(:.*)?"/>
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
@@ -775,6 +775,8 @@
         <xs:attribute name="maxLength" type="xs:positiveInteger"/>
         <xs:attribute name="password" type="xs:boolean"/>
         <xs:attribute name="readOnly" type="xs:boolean"/>
+        <!-- false — правки поля не попадают в историю отмены / false — the field edits do not go to the undo history -->
+        <xs:attribute name="undo" type="xs:boolean"/>
         <xs:attribute name="onChange" type="Action"/>
         <xs:attribute name="onSubmit" type="Action"/>
         <xs:assert test="not(@maxLength) or not(@value) or string-length(@value) &lt;= @maxLength"/>
@@ -796,6 +798,8 @@
         <xs:attribute name="placeholder" type="xs:string"/>
         <xs:attribute name="maxLength" type="xs:positiveInteger"/>
         <xs:attribute name="readOnly" type="xs:boolean"/>
+        <!-- false — правки поля не попадают в историю отмены / false — the field edits do not go to the undo history -->
+        <xs:attribute name="undo" type="xs:boolean"/>
         <xs:attribute name="rows" type="xs:positiveInteger"/>
         <xs:attribute name="submitKey" type="SubmitKey"/>
         <xs:attribute name="onChange" type="Action"/>

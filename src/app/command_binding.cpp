@@ -26,8 +26,13 @@ namespace gran::app
         }
     }
 
-    // Значение кода важнее разметки: после перезагрузки выключенная командой кнопка остаётся выключенной
-    // The code value beats the markup: after a reload a button disabled by its command stays disabled
+    /*
+    ** Значение кода важнее разметки: после перезагрузки выключенная командой кнопка остаётся выключенной.
+    ** Команды отмены и повтора важнее и того, и другого: их включённость — состояние стека.
+    **
+    ** The code value beats the markup: after a reload a button disabled by its command stays disabled.
+    ** The undo and redo commands beat both: their enabled value is the stack state.
+    */
     void applyCommandStates(AppWindow& win)
     {
         for (ui::Command& command : win.document.commands)
@@ -36,6 +41,7 @@ namespace gran::app
             if (state != win.shared.commandStates.end())
                 command.enabled = state->second;
         }
+        linkUndoCommands(win.shared, win);
     }
 
     // Все команды поддерева: при загрузке документа и вставке узлов / All the subtree commands: on loading a document and inserting nodes

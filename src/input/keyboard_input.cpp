@@ -1,4 +1,5 @@
 #include "gran/input/input_router.hpp"
+#include "gran/input/internal/text_history.hpp"
 #include "gran/utils/utf8.hpp"
 
 namespace gran::input
@@ -110,6 +111,6 @@ namespace gran::input
         if ((event.modifiers & platform::MODIFIER_CONTROL) != 0 && (event.modifiers & platform::MODIFIER_ALT) == 0)
             return false;
         appendUtf8(text, event.character);
-        return insertText(state, *state.focus, text);
+        return internal::typeText(state, *state.focus, text);
     }
 }

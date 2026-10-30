@@ -37,6 +37,8 @@ namespace gran::input::internal
     void textChanged(RouterState& state, ui::Node& input)
     {
         ui::markDirty(input, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+        // История поля изменилась: команды отмены пересчитывают включённость / The field history changed: the undo commands recompute their enabled state
+        state.actions->editingChanged();
         if (!input.content.onChange.empty())
             state.actions->action(input.content.onChange, input);
     }

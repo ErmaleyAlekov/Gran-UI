@@ -32,6 +32,11 @@ namespace gallery
     // Действия команд samples/commands.xml и флажок, выключающий «Сохранить» / The samples/commands.xml command actions and the check box disabling "Save"
     void registerCommands(gran::Application& application);
 
+    // ---- gallery_notes.cpp ----
+
+    // Удаление заметки с отменой и «*» в заголовке при несохранённых изменениях / Deleting a note with undo and "*" in the title with unsaved changes
+    void registerNotes(gran::Application& application);
+
     // ---- gallery_web.cpp ----
 
     // Страница <WebView onMessage="fromPage">: статус в окне и ответ обратно в страницу

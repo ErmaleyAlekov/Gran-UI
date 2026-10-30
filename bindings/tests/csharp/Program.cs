@@ -48,6 +48,23 @@ class Program
             app.Unlisten("root", listener);
             Assert(app.Dispatch("go", "ping"));
 
+            // Стек отмены: шаг кладётся выполненным, Undo/Redo вызывают обработчики, «чистое» состояние
+            // The undo stack: a step is pushed done, Undo/Redo call the handlers, the clean state
+            int value = 1;
+            string changed = "-";
+            app.OnUndoChanged((stack, state) => changed = stack);
+            app.PushUndo(() => value = 0, () => value = 1);
+            Assert(app.GetUndoState() == new GranUI.UndoState(true, false, false) && changed == "");
+            app.Undo();
+            Assert(value == 0 && app.GetUndoState().Clean && app.GetUndoState().CanRedo);
+            app.Redo();
+            Assert(value == 1);
+            app.SetUndoClean();
+            app.SetUndoLimit(10, "doc");
+            app.ClearUndo();
+            Assert(!app.GetUndoState().CanUndo);
+            app.OnUndoChanged(null);
+
             var model = new Dictionary<string, string>
             {
                 { "key1", "value1" },

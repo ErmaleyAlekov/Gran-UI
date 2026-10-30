@@ -99,11 +99,13 @@ GRAN_API gran_status gran_app_read(gran_app* app, const char* target, const char
 GRAN_API gran_status gran_app_apply(gran_app* app, const gran_update* updates, size_t count);
 
 /* command: close/minimize/maximize/restore/reload/focus/remove/showDialog/hideDialog/
- * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup/capturePointer/releasePointer.
- * target и argument могут быть NULL.
+ * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup/capturePointer/releasePointer,
+ * runCommand/enableCommand/disableCommand (target — id команды), undo/redo/clearUndo/setUndoClean/setUndoLimit
+ * (target — имя стека отмены). target и argument могут быть NULL.
  * command: close/minimize/maximize/restore/reload/focus/remove/showDialog/hideDialog/
- * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup/capturePointer/releasePointer.
- * target and argument may be NULL. */
+ * showPopup/hidePopup/navigate/loadHtml/postMessage/appendMarkup/capturePointer/releasePointer,
+ * runCommand/enableCommand/disableCommand (target is a command id), undo/redo/clearUndo/setUndoClean/setUndoLimit
+ * (target is an undo stack name). target and argument may be NULL. */
 GRAN_API gran_status gran_app_command(gran_app* app, const char* command, const char* target, const char* argument);
 
 /* События интерфейса (onPointerDown="имя", on="своё:имя", слушатели). Снимок действителен только внутри
@@ -167,6 +169,33 @@ GRAN_API gran_status gran_model_insert(gran_app* app, const char* model, const g
 GRAN_API gran_status gran_model_set(gran_app* app, const char* model, const gran_record* record);
 GRAN_API gran_status gran_model_remove(gran_app* app, const char* model, size_t index);
 GRAN_API gran_status gran_model_clear(gran_app* app, const char* model);
+
+/* Стеки отмены приложения по имени (NULL или "" — основной; поля Input/TextArea ведут свои истории).
+ * undo_push записывает уже выполненное действие: undo/redo вызываются при отмене и повторе (новые шаги
+ * из них не записываются), release (может быть NULL) — один раз, когда стек отбросил шаг (новый шаг поверх
+ * отменённых, предел, clearUndo, destroy). undo_state — флаги GRAN_UNDO_*. on_undo — обработчик смены
+ * любого стека (имя стека и флаги); NULL снимает. Отмена, повтор, «чистое» состояние и предел — через
+ * gran_app_command: undo, redo, clearUndo, setUndoClean (target — имя стека), setUndoLimit (argument — число шагов,
+ * "0" — без предела).
+ * The application undo stacks by name (NULL or "" is the main one; Input/TextArea fields keep their own histories).
+ * undo_push records an already done action: undo/redo are called on undo and redo (new steps
+ * from them are not recorded), release (may be NULL) is called once when the stack dropped the step (a new step over
+ * undone ones, the limit, clearUndo, destroy). undo_state is GRAN_UNDO_* flags. on_undo is a handler of a change
+ * of any stack (the stack name and the flags); NULL clears it. Undo, redo, the clean state and the limit go through
+ * gran_app_command: undo, redo, clearUndo, setUndoClean (target is the stack name), setUndoLimit (argument is the step count,
+ * "0" — no limit). */
+enum { GRAN_UNDO_CAN_UNDO = 1, GRAN_UNDO_CAN_REDO = 2, GRAN_UNDO_CLEAN = 4 };
+typedef struct gran_undo_step {
+    uint32_t size;
+    gran_task_fn undo;
+    gran_task_fn redo;
+    gran_task_fn release;
+    void* user;
+} gran_undo_step;
+typedef void (*gran_undo_fn)(void* user, const char* stack, uint32_t flags);
+GRAN_API gran_status gran_app_undo_push(gran_app* app, const char* stack, const gran_undo_step* step);
+GRAN_API gran_status gran_app_undo_state(gran_app* app, const char* stack, uint32_t* flags);
+GRAN_API gran_status gran_app_on_undo(gran_app* app, gran_undo_fn callback, void* user);
 
 #ifdef __cplusplus
 }

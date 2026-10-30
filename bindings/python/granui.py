@@ -64,6 +64,23 @@ _Task = C.CFUNCTYPE(None, C.c_void_p)
 class _Timer(C.Structure):
     _fields_ = [("seconds", C.c_double), ("repeat", C.c_int32), ("callback", _Task), ("user", C.c_void_p)]
 
+class _UndoStep(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("undo", _Task), ("redo", _Task), ("release", _Task), ("user", C.c_void_p)]
+
+_UndoFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_uint32)
+
+class UndoState(tuple):
+    """Состояние стека отмены: можно ли отменить и повторить, «чистое» ли оно (документ сохранён).
+    An undo stack state: whether undo and redo are possible, whether it is clean (the document is saved)."""
+    __slots__ = ()
+
+    def __new__(cls, flags):
+        return tuple.__new__(cls, (bool(flags & 1), bool(flags & 2), bool(flags & 4)))
+
+    can_undo = property(lambda self: self[0])
+    can_redo = property(lambda self: self[1])
+    clean = property(lambda self: self[2])
+
 def _encode(value):
     if value is None:
         return None
@@ -86,6 +103,9 @@ def _configure(lib):
         "app_unlisten": (C.c_int32, [p, s, C.c_uint64]),
         "app_dispatch": (C.c_int32, [p, s, s, s, C.POINTER(C.c_int32)]),
         "app_timer": (C.c_int32, [p, C.POINTER(_Timer), C.POINTER(C.c_uint64)]),
+        "app_undo_push": (C.c_int32, [p, s, C.POINTER(_UndoStep)]),
+        "app_undo_state": (C.c_int32, [p, s, C.POINTER(C.c_uint32)]),
+        "app_on_undo": (C.c_int32, [p, _UndoFn, p]),
         "app_clear_timer": (C.c_int32, [p, C.c_uint64]),
         "app_read": (C.c_int32, [p, s, s, C.POINTER(p)]),
         "app_apply": (C.c_int32, [p, C.POINTER(_Update), z]), "app_command": (C.c_int32, [p, s, s, s]),
@@ -115,6 +135,13 @@ class Application:
         self._tasks, self._timer_keys, self._key_timers = {}, {}, {}
         self._task_lock, self._task_keys = threading.Lock(), itertools.count(1)
         self._task_entry = _Task(self._run_task)
+        # Шаги отмены: user — номер пары обработчиков; release снимает её, когда стек отбросил шаг.
+        # The undo steps: user is the number of a handler pair; release removes it when the stack dropped the step.
+        self._undo_steps, self._undo_keys = {}, itertools.count(1)
+        self._undo_entry = _Task(lambda user: self._run_undo(user, 0))
+        self._redo_entry = _Task(lambda user: self._run_undo(user, 1))
+        self._release_entry = _Task(lambda user: self._undo_steps.pop(user or 0, None))
+        self._undo_handler = None
         options = _Options(C.sizeof(_Options), backend, 0, warp, 0, 0, exit_after)
         self._check(self._lib.gran_app_create(C.byref(options), C.byref(self._app)))
 
@@ -226,6 +253,61 @@ class Application:
         """Включить/выключить команду и её кнопки и пункты меню. / Enable/disable a command and its buttons and menu items."""
         self.command("enableCommand" if enabled else "disableCommand", command_id)
 
+    def _run_undo(self, user, side):
+        entry = self._undo_steps.get(user or 0)
+        if entry is not None:
+            self._protect(entry[side])
+
+    def push_undo(self, undo, redo, stack=None):
+        """Записать выполненное действие парой обработчиков (стек None — основной).
+        Record a done action as a pair of handlers (the stack None is the main one)."""
+        if not callable(undo) or not callable(redo):
+            raise TypeError("undo and redo must be callable")
+        key = next(self._undo_keys)
+        self._undo_steps[key] = (undo, redo)
+        step = _UndoStep(C.sizeof(_UndoStep), self._undo_entry, self._redo_entry, self._release_entry, C.c_void_p(key))
+        try:
+            self._call("app_undo_push", _encode(stack), C.byref(step))
+        except BaseException:
+            self._undo_steps.pop(key, None)
+            raise
+
+    def undo(self, stack=None):
+        self.command("undo", stack)
+
+    def redo(self, stack=None):
+        self.command("redo", stack)
+
+    def undo_state(self, stack=None):
+        """UndoState(can_undo, can_redo, clean) стека. / The stack UndoState(can_undo, can_redo, clean)."""
+        flags = C.c_uint32()
+        self._call("app_undo_state", _encode(stack), C.byref(flags))
+        return UndoState(flags.value)
+
+    def set_undo_clean(self, stack=None):
+        """Текущая позиция — «документ сохранён». / The current position is "the document is saved"."""
+        self.command("setUndoClean", stack)
+
+    def clear_undo(self, stack=None):
+        self.command("clearUndo", stack)
+
+    def set_undo_limit(self, limit, stack=None):
+        """Глубина стека (0 — без предела). / The stack depth (0 — no limit)."""
+        self.command("setUndoLimit", stack, str(int(limit)))
+
+    def on_undo_changed(self, callback):
+        """callback(stack, UndoState) после каждой смены любого стека; None снимает.
+        callback(stack, UndoState) after every change of any stack; None removes it."""
+        if callback is None:
+            self._call("app_on_undo", _UndoFn(), None)
+            self._undo_handler = None
+            return
+        def invoke(user, stack, flags):
+            self._protect(callback, (stack or b"").decode("utf-8"), UndoState(flags))
+        wrapped = _UndoFn(invoke)
+        self._call("app_on_undo", wrapped, None)
+        self._undo_handler = wrapped
+
     def _add_task(self, callback, repeat):
         if not callable(callback):
             raise TypeError("callback must be callable")
@@ -325,6 +407,8 @@ class Application:
             self._call("app_destroy")
             self._app = C.c_void_p()
             self._callbacks.clear()
+            self._undo_steps.clear()
+            self._undo_handler = None
             with self._task_lock:
                 self._tasks.clear()
                 self._timer_keys.clear()

@@ -17,14 +17,15 @@
 9. [Actions and API](#actions-and-api)
 10. [Events](#events)
 11. [Commands and shortcuts](#commands-and-shortcuts)
-12. [Lists from data](#lists-from-data)
-13. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-14. [Pop-up Layers](#popup-layers)
-15. [Embedded browser: WebView](#embedded-browser-webview)
-16. [Accessibility](#accessibility)
-17. [Platform: windows, files, icons](#platform-windows-files-icons)
-18. [Errors and Message Language](#errors-and-message-language)
-19. [Custom window title bar](#custom-window-title-bar)
+12. [Undo and redo](#undo-and-redo)
+13. [Lists from data](#lists-from-data)
+14. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+15. [Pop-up Layers](#popup-layers)
+16. [Embedded browser: WebView](#embedded-browser-webview)
+17. [Accessibility](#accessibility)
+18. [Platform: windows, files, icons](#platform-windows-files-icons)
+19. [Errors and Message Language](#errors-and-message-language)
+20. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -461,6 +462,64 @@ app.runCommand("refresh");                 // execute from code; false — no su
 
 `setCommandEnabled` acts on all windows, survives a markup reload and applies to the windows opened later (can be called before `loadFile`). In the markup, the same operations — `gran:runCommand:id`, `gran:enableCommand:id`, `gran:disableCommand:id`. A button from another window can reference a command `scope="global"` from the main window.
 Complete example — `gran_gallery samples/commands.xml` (actions — `examples/gallery/gallery_commands.cpp`).
+
+## Undo and redo
+
+**In fields.** Every `Input` and `TextArea` has its own edit history: Ctrl+Z undoes, Ctrl+Y and Ctrl+Shift+Z
+redo; the same "Undo" and "Redo" items are in the field context menu (disabled when there are no steps).
+Typing in a row is one step (as in browsers and Qt), so are Backspace in a row and Delete in a row. A new step
+starts after a caret move (the mouse, arrows, Home/End, Ctrl+A), a typing pause longer than a second, pasting,
+cutting, erasing a selection and a new line. Undo restores the text and the selection as they were before the edit
+and calls `onChange` like an ordinary edit. A field history holds 100 steps; a text set from code (`gran_app_apply`,
+a list record, a reload, assigning `content.text`) resets it. `undo="false"` on a field — the edits are not
+recorded at all (a field whose text the code drives).
+
+**In the program.** For your own actions (delete a note, move a shape) there are application undo stacks
+(as `QUndoStack`): a step is pushed already done, undo and redo call its handlers.
+
+```cpp
+std::string removed = notes.take(index);              // the action is done
+app.pushUndo([&, index, removed] { notes.insert(index, removed); },   // undo
+             [&, index] { notes.take(index); });                     // redo
+app.undo();                     // or <Command action="gran:undo"/>; false — nothing to undo
+app.undoStack().setClean();     // the document is saved
+app.onUndoChanged([&](const std::string& stack, const gran::UndoStack& state) {
+    showTitle(state.isClean() ? name : "* " + name);  // an own function: "*" — unsaved changes
+});
+```
+
+```xml
+<Command id="undo" text="Undo" key="Mod+Z" action="gran:undo"/>
+<Command id="redo" text="Redo" key="Mod+Y Mod+Shift+Z" action="gran:redo"/>
+<Command id="undoLayer" key="Mod+Alt+Z" action="gran:undo:layers"/>   <!-- an own stack "layers" -->
+```
+
+Commands with the `gran:undo`, `gran:redo` action (`:name` — an own stack) are enabled and disabled by the stack
+themselves — they need no `setCommandEnabled`. Stacks are created on the first access, `""` is the main one.
+
+**The field and the program together.** `gran:undo` and `gran:redo` without a stack name work with the edited field
+of the window first — as Ctrl+Z in it: "Edit → Undo" with the focus in a field undoes the typing, and when the field has
+nothing to undo — a program step. The edited field is the focused field or the field the menu was opened from. Buttons
+with `command` or `popup` (a toolbar, a menu button) do not take the focus from the field on a click, as in desktop
+programs; Tab moves the focus to them as usual. The enabled state of these commands takes the field into account too.
+Named stacks (`gran:undo:name`), as well as `app.undo()` and `gran_app_command("undo")` from code, work with the
+program stack only.
+
+| Operation | Meaning |
+|---|---|
+| `undoStack(name)` | The stack (`gran::UndoStack`): `push`, `undo`, `redo`, `canUndo`, `canRedo`, `isClean`, `setClean`, `clear`, `count`, `index`, `setLimit` (0 — no limit) |
+| `pushUndo(undo, redo, name)` | Record a done action as a pair of handlers |
+| `undo(name)`, `redo(name)` | The same as `gran:undo[:name]`, `gran:redo[:name]` |
+| `onUndoChanged(handler)` | Called after every change of any stack (a step, undo, redo, `setClean`, `clear`) |
+| `gran:clearUndo[:name]`, `gran:setUndoClean[:name]`, `gran:setUndoLimit:name:N` | The same operations from markup and the C ABI |
+
+An own merging step is a `gran::UndoStep` descendant (`gran/undo/undo_stack.hpp`): `mergeId()` ≥ 0 and
+`mergeWith(next)` absorbs the next step of the same kind until merging is interrupted (`breakMerge`, undo, redo,
+`setClean`; steps do not merge on the clean position). The limit drops the oldest steps; if the clean position
+went away with them, `isClean()` will not come back to it. A step handler does not call `undo`/`redo` of its own stack,
+and the steps recorded during undo are ignored (the change is a consequence of undo, not a new edit).
+The stacks survive a markup reload — steps find nodes by id (`app.find`) instead of keeping pointers.
+Example — `gran_gallery samples/commands.xml` (notes: deleting and adding are undoable, "*" in the title).
 
 ## Lists from data
 

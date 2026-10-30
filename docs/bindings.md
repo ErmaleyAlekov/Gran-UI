@@ -94,10 +94,31 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 после возврата обработчика (в C ABI — возвращаемое значение `GRAN_EVENT_*`). Слушатель `listen` живёт
 в узле и снимается вместе с ним; `dispatch` работает и до `run`.
 
+### Отмена и повтор
+
+Стеки отмены приложения (см. «Отмена и повтор» в [руководстве](guide.md#отмена-и-повтор)); имя стека
+`None`/`null` — основной. Шаг кладётся уже выполненным: обёртка хранит пару функций и отпускает её, когда
+стек отбросил шаг (новый шаг поверх отменённых, предел, `clear_undo`, закрытие приложения). Поля `Input`
+и `TextArea` ведут свои истории (Ctrl+Z в поле) и в эти стеки не пишут.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `push_undo(undo, redo, stack)` | `PushUndo(undo, redo, stack)` | `pushUndo(undo, redo, stack)` | `gran_app_undo_push` |
+| `undo(stack)` / `redo(stack)` | `Undo` / `Redo` | `undo` / `redo` | `command("undo" / "redo", stack)` |
+| `undo_state(stack)` → `UndoState(can_undo, can_redo, clean)` | `GetUndoState` → `UndoState` | `undoState` → `UndoState` | `gran_app_undo_state` (флаги `GRAN_UNDO_*`) |
+| `set_undo_clean(stack)` | `SetUndoClean` | `setUndoClean` | `command("setUndoClean", stack)` |
+| `clear_undo(stack)` | `ClearUndo` | `clearUndo` | `command("clearUndo", stack)` |
+| `set_undo_limit(n, stack)` | `SetUndoLimit` | `setUndoLimit` | `command("setUndoLimit", stack, "n")` |
+| `on_undo_changed(f(stack, state))` | `OnUndoChanged` | `onUndoChanged` | `gran_app_on_undo` |
+
+Команды `<Command action="gran:undo">` / `gran:redo` (`gran:undo:имя` — свой стек) включаются по стеку сами;
+`on_undo_changed` удобен для «*» в заголовке (`not state.clean`).
+
 `command` поддерживает `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
 `loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,
-`disableCommand` (для трёх последних цель — id команды `<Command>`, а не узла). Команды окна из `command` относятся к главному окну.
+`disableCommand` (для этих трёх цель — id команды `<Command>`, а не узла), `undo`, `redo`, `clearUndo`,
+`setUndoClean`, `setUndoLimit` (цель — имя стека отмены). Команды окна из `command` относятся к главному окну.
 Для `showPopup` аргумент — id якоря;
 для `appendMarkup` — XML-фрагмент, который ядро проверяет общей XSD.
 

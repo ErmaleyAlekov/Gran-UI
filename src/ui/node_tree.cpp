@@ -14,6 +14,8 @@ namespace gran::ui
             copy->rule = node.rule;
             copy->declared = node.declared;
             copy->content = node.content;
+            // Шаги истории ссылаются на свой узел: копия начинает свою / The history steps refer to their own node: the copy starts its own
+            copy->content.history.reset();
             copy->visible = node.visible;
             copy->enabled = node.enabled;
             copy->line = node.line;

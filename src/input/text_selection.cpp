@@ -1,4 +1,5 @@
 #include "gran/input/internal/text_cursor.hpp"
+#include "gran/input/internal/text_history.hpp"
 
 #include <algorithm>
 
@@ -14,9 +15,16 @@ namespace gran::input::internal
         return from < to;
     }
 
-    // Изменение каретки или выделения видно только на кадре: DIRTY_PAINT / A caret or selection change shows only in the frame: DIRTY_PAINT
+    /*
+    ** Изменение каретки или выделения видно только на кадре: DIRTY_PAINT. Переставленная каретка
+    ** (мышь, стрелки, Home/End) закрывает шаг набора: следующий символ — уже новый шаг отмены.
+    **
+    ** A caret or selection change shows only in the frame: DIRTY_PAINT. A moved caret
+    ** (the mouse, the arrows, Home/End) closes the typing step: the next character is a new undo step.
+    */
     void placeCaret(ui::Node& node, std::size_t position, bool extend)
     {
+        breakTyping(node);
         node.content.caret = std::min(position, node.content.text.size());
         if (!extend)
             node.content.anchor = node.content.caret;
@@ -31,11 +39,7 @@ namespace gran::input::internal
 
         if (input.content.readOnly || !selectionRange(input.content, from, to))
             return false;
-        input.content.text.erase(from, to - from);
-        input.content.caret = from;
-        input.content.anchor = from;
-        textChanged(state, input);
-        return true;
+        return applyEdit(state, input, TextEdit{from, to, std::string(), EditKind::OTHER});
     }
 
     /*
@@ -50,6 +54,7 @@ namespace gran::input::internal
         std::size_t from = 0;
         std::size_t to = node.content.text.size();
 
+        breakTyping(node);
         if (!node.content.password)
             wordBounds(node.content.text, position, from, to);
         node.content.anchor = from;

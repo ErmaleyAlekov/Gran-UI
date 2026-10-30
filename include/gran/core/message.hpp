@@ -93,6 +93,8 @@ namespace gran::i18n
         GPU_VULKAN_LOADER,
         MARKUP_BAD_SHORTCUT,
         APP_UNKNOWN_COMMAND,
+        MENU_UNDO,
+        MENU_REDO,
         COUNT
     };
 }

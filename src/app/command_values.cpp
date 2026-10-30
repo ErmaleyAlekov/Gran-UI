@@ -26,11 +26,12 @@ namespace gran::app
         return *node;
     }
 
-    // Текст полей сохраняет границы каретки и выделения в новом содержимом.
-    // Field text keeps caret and selection bounds inside the new content.
+    // Текст полей сохраняет границы каретки и выделения в новом содержимом; значение из кода сбрасывает историю правок поля.
+    // Field text keeps caret and selection bounds inside the new content; a value from code resets the field edit history.
     static void writeText(ui::Node& node, const std::string& value)
     {
         node.content.text = value;
+        node.content.history.reset();
         node.content.caret = value.size();
         node.content.anchor = value.size();
         ui::markDirty(node, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);

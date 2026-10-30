@@ -49,6 +49,9 @@ namespace suites
     void registerBuiltinCommandTests(test::TestRunner& runner);
     void registerShortcutTests(test::TestRunner& runner);
     void registerCommandTests(test::TestRunner& runner);
+    void registerUndoStackTests(test::TestRunner& runner);
+    void registerTextUndoTests(test::TestRunner& runner);
+    void registerAppUndoTests(test::TestRunner& runner);
     void registerPixelCompareTests(test::TestRunner& runner);
     void registerWindowFrameTests(test::TestRunner& runner);
     void registerPlatformFrameTests(test::TestRunner& runner);
