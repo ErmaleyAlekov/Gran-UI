@@ -71,6 +71,8 @@ Event attributes (`onPointerDown`, `onKeyDownCapture`, `onDrop`, `on="custom:nam
 | `unlisten(id, number)` | `Unlisten` | `unlisten` | `gran_app_unlisten` |
 | `dispatch(id, type, detail)` → `bool` | `Dispatch` | `dispatch` | `gran_app_dispatch` |
 | `capture_pointer(id)` / `release_pointer(id)` | `CapturePointer` / `ReleasePointer` | `capturePointer` / `releasePointer` | `command("capturePointer", id)` |
+| `run_command(id)` | `RunCommand(id)` | `runCommand(id)` | `command("runCommand", id)` |
+| `set_command_enabled(id, bool)` | `SetCommandEnabled(id, bool)` | `setCommandEnabled(id, bool)` | `command("enableCommand" / "disableCommand", id)` |
 
 The handler receives a snapshot of `gran_input_event`: `type`, `target`, `current`, `related` (node ids),
 `phase` (1 capture, 2 target, 3 bubble), `x`/`y` in the `current` system, `window_x`/`window_y`, `wheel_x`/`wheel_y`,
@@ -82,7 +84,8 @@ after the handler returns (in C ABI — return value `GRAN_EVENT_*`). The `liste
 
 `command` supports `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
-`loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`. The window commands of `command` belong to the main window.
+`loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,
+`disableCommand` (for the last three the target is a `<Command>` id, not a node one). The window commands of `command` belong to the main window.
 For `showPopup`, the argument is the id of the anchor;
 for `appendMarkup`, it is an XML fragment that the core checks against the common XSD.
 

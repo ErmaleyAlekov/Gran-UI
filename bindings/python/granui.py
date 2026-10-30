@@ -218,6 +218,14 @@ class Application:
     def release_pointer(self, target):
         self.command("releasePointer", target)
 
+    def run_command(self, command_id):
+        """Выполнить <Command id> (выключенная — ничего). / Run a <Command id> (a disabled one does nothing)."""
+        self.command("runCommand", command_id)
+
+    def set_command_enabled(self, command_id, enabled):
+        """Включить/выключить команду и её кнопки и пункты меню. / Enable/disable a command and its buttons and menu items."""
+        self.command("enableCommand" if enabled else "disableCommand", command_id)
+
     def _add_task(self, callback, repeat):
         if not callable(callback):
             raise TypeError("callback must be callable")

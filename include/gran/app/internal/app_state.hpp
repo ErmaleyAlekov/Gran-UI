@@ -40,6 +40,9 @@ namespace gran
         std::vector<app::WebMessage> webInbox;
         std::map<std::string, WebMessageHandler> webHandlers;
         std::map<std::string, FileDropHandler> dropHandlers;
+        // enabled команд, заданные кодом (setCommandEnabled): переживают перезагрузку и действуют на окна, открытые позже
+        // The command enabled values set by the code (setCommandEnabled): they survive a reload and apply to the windows opened later
+        std::map<std::string, bool> commandStates;
         // Именованные обработчики событий разметки (onEvent) / The named markup event handlers (onEvent)
         std::map<std::string, EventHandler> eventHandlers;
         // Номер последнего слушателя кода; счётчик удалений узлов для доставки событий (ActionSink::treeVersion)
@@ -82,6 +85,32 @@ namespace gran
         ** The bindings of the former document of this window are dropped.
         */
         void adoptDocument(AppWindow& win, markup::UiDocument document, const std::string& base);
+
+        // ---- app_commands.cpp ----
+
+        // Команда по id: своего окна (любая область), затем global других окон; nullptr — нет такой
+        // A command by id: of the own window (any scope), then the global ones of the other windows; nullptr — none
+        ui::Command* findCommand(Application::State& state, AppWindow& own, const std::string& id);
+
+        // Выполнить действие команды (action или id) от узла node / Run the command action (action or id) from the node
+        void runCommand(AppWindow& win, const ui::Command& command, ui::Node& node);
+
+        // ---- command_binding.cpp ----
+
+        // enabled команд нового документа — из заданных кодом / The enabled values of the new document commands — from the ones set by the code
+        void applyCommandStates(AppWindow& win);
+
+        /*
+        ** Узлы поддерева (и шаблоны списков) с command: enabled команды, её подпись (если своей нет) и подпись
+        ** первого сочетания. Неизвестная команда узел не меняет.
+        **
+        ** The subtree nodes (and the list templates) with command: the command enabled, its label (if there is no own one) and the label
+        ** of the first combination. An unknown command does not change the node.
+        */
+        void bindCommands(AppWindow& win, ui::Node& subtree);
+
+        // После смены enabled команды id — её узлы во всех окнах / After the command id enabled changes — its nodes in all the windows
+        void refreshCommand(Application::State& state, const std::string& id);
 
         // ---- application_reload.cpp, reload_document.cpp, reload_source.cpp, reload_fonts.cpp ----
 

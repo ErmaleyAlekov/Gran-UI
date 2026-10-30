@@ -145,6 +145,8 @@ namespace gran::input
             return;
         if (combo != nullptr && ui::selectOption(*combo, &item) && !combo->content.onChange.empty())
             state.actions->action(combo->content.onChange, *combo);
+        if (!item.content.command.empty())
+            state.actions->command(item.content.command, item);
         if (!item.content.onClick.empty())
             state.actions->action(item.content.onClick, item);
     }

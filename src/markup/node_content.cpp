@@ -14,7 +14,8 @@ namespace gran::markup::internal
             {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage},
             {"popup", &C::popup}, {"group", &C::group}, {"accessibleName", &C::accessibleName},
             {"labeledBy", &C::labeledBy}, {"dragFormat", &C::dragFormat}, {"dragData", &C::dragData},
-            {"acceptDrop", &C::acceptDrop}};
+            {"acceptDrop", &C::acceptDrop},
+            {"command", &C::command}};
 
         // Числовые поля / The numeric fields
         const struct { const char* name; float C::* member; } NUMBERS[] = {

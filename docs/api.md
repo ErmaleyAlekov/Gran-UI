@@ -114,6 +114,11 @@ int main()
 - `setChecked(node, bool)`: CheckBox/Switch/RadioButton; выбор радиокнопки снимает соседей группы.
 - `selectOption(comboBox, value)`: выбор по значению; неизвестное значение снимает выбор.
 - `selectTab(tabs, value)`: выбор страницы; неизвестное значение сохраняет прежний выбор.
+- `runCommand(id) -> bool`: выполнить `<Command id>` (окна по порядку, главное первым) от корня её окна;
+  `false` — команды нет или она выключена.
+- `setCommandEnabled(id, bool)`: включить или выключить команду во всех окнах вместе с элементами
+  `command="id"` (состояние Disabled) и её сочетаниями; значение сохраняется для перезагрузки и новых окон.
+- `commandEnabled(id) -> bool`: включена ли команда; неизвестная — `false`.
 
 При прямой правке полей узла используйте `ui::markDirty(node, flags)` из `gran/ui/node.hpp`:
 `DIRTY_STYLE` для пересчёта каскада, `DIRTY_LAYOUT` для компоновки, `DIRTY_PAINT` для рисования.
@@ -143,6 +148,10 @@ int main()
 Маршрутизация — `input::dispatchEvent(event, sink)` (`gran/input/input_router.hpp`); у своего
 `input::ActionSink` её обработчики разметки идут в виртуальный `event(name, node, event)` (по умолчанию —
 `action(name, node)`), а `treeVersion()` сообщает об удалении узлов (доставка прекращается).
+Команды `<Command>` (`gran/ui/command.hpp`: `ui::Command`, `ui::Shortcut`, `parseShortcut`, `shortcutText`)
+маршрутизатор передаёт в `shortcut(CommandQuery)` (горячая клавиша, `true` — выполнена) и `command(id, node)`
+(кнопка или пункт меню с `command`); поиск по сочетанию с областями — `input::matchCommand(sources, query)`.
+Загрузчик кладёт команды в `UiDocument::commands` и сразу привязывает к ним элементы своего документа.
 
 ## Задачи, таймеры и слои
 

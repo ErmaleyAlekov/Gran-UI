@@ -54,8 +54,8 @@ namespace gran::render::internal
         }
     }
 
-    // Стрелка — в середине правого отступа (ComboBox) или у правого края содержимого (пункт с подменю)
-    // The arrow is in the middle of the right padding (a ComboBox) or at the right content edge (an item with a submenu)
+    // Стрелка — в середине правого отступа (ComboBox) или у правого края содержимого (пункт с подменю); у пункта без подменю — подпись сочетания
+    // The arrow is in the middle of the right padding (a ComboBox) or at the right content edge (an item with a submenu); an item without a submenu gets the shortcut label
     void paintMark(const ui::Node& node, const PaintState& state, SceneContext& context)
     {
         const style::ComputedStyle& style = node.computed;
@@ -65,7 +65,10 @@ namespace gran::render::internal
             size, colorWithOpacity(style.color, 0.65f)};
 
         if (node.kind == ui::ElementKind::MENU_ITEM && ui::submenuOf(node) == nullptr)
+        {
+            paintShortcut(node, state, context);
             return;
+        }
         if (node.kind == ui::ElementKind::COMBO_BOX)
         {
             mark.center.x = content.x + content.width + style.padding.right * 0.5f;

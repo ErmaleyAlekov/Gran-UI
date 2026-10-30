@@ -154,6 +154,12 @@ namespace gran::render::internal
     // A color or gradient fill into an instance (the gradient geometry is in its coordinates)
     void applyPaint(GpuInstance& instance, const style::Paint& paint, SceneContext& context);
 
+    // ---- paint_shortcut.cpp ----
+
+    // Подпись сочетания пункта меню у правого края содержимого, приглушённым цветом пункта
+    // The menu item shortcut label at the right content edge, in the muted item color
+    void paintShortcut(const ui::Node& node, const PaintState& state, SceneContext& context);
+
     // ---- paint_text.cpp ----
 
     // Текст узла в прямоугольнике содержимого / The node text in the content rectangle

@@ -78,6 +78,20 @@ class TestApplication(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.app.read("new_button", "text")
 
+    def test_commands(self):
+        self.app.load_string('<Window title="BindingsPython" width="320" height="200"><Resources><Command id="saveDoc" text="Save" key="Mod+S" action="business"/></Resources><Stack id="root"><Button id="save" command="saveDoc"/></Stack></Window>')
+        calls = []
+        self.app.on_action("business", lambda event: calls.append(event["target"]))
+        self.assertEqual(self.app.read("save", "text"), "Save")
+        self.app.run_command("saveDoc")
+        self.assertEqual(calls, ["root"])
+        self.app.set_command_enabled("saveDoc", False)
+        self.assertEqual(self.app.read("save", "enabled"), "false")
+        self.app.run_command("saveDoc")
+        self.assertEqual(len(calls), 1)
+        self.app.set_command_enabled("saveDoc", True)
+        self.assertEqual(self.app.read("save", "enabled"), "true")
+
     @unittest.skipUnless(os.name == "nt", "this case injects Win32 keyboard messages")
     def test_live_test_app(self):
         happened = []

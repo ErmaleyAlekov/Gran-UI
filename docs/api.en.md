@@ -112,6 +112,11 @@ do not call the user's `onChange` again.
 - `setChecked(node, bool)`: CheckBox/Switch/RadioButton; selecting a radio button deselects group neighbors.
 - `selectOption(comboBox, value)`: selection by value; unknown value deselects.
 - `selectTab(tabs, value)`: page selection; unknown value retains the previous selection.
+- `runCommand(id) -> bool`: run a `<Command id>` (the windows in order, the main one first) from its window root;
+  `false` — there is no such command or it is disabled.
+- `setCommandEnabled(id, bool)`: enable or disable the command in all the windows together with the `command="id"`
+  controls (the Disabled state) and its shortcuts; the value is kept for a reload and new windows.
+- `commandEnabled(id) -> bool`: whether the command is enabled; an unknown one is `false`.
 
 When directly editing node fields, use `ui::markDirty(node, flags)` from `gran/ui/node.hpp`:
 `DIRTY_STYLE` for cascade recalculation, `DIRTY_LAYOUT` for layout, `DIRTY_PAINT` for drawing.
@@ -140,6 +145,10 @@ Do not save a reference to a deleted node. Tree and model changes are performed 
 Routing — `input::dispatchEvent(event, sink)` (`gran/input/input_router.hpp`); in your
 `input::ActionSink` its handlers from the markup go to the virtual `event(name, node, event)` (by default —
 `action(name, node)`), and `treeVersion()` reports on node removals (delivery stops).
+The router passes the `<Command>` commands (`gran/ui/command.hpp`: `ui::Command`, `ui::Shortcut`, `parseShortcut`,
+`shortcutText`) to `shortcut(CommandQuery)` (a shortcut, `true` — it ran) and `command(id, node)` (a button or
+a menu item with `command`); the search by a combination with scopes is `input::matchCommand(sources, query)`.
+The loader puts the commands into `UiDocument::commands` and binds the controls of its own document to them at once.
 
 ## Tasks, Timers, and Layers
 

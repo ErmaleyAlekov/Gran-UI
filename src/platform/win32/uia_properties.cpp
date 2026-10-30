@@ -61,6 +61,7 @@ namespace gran::platform::win32
             case UIA_NamePropertyId: return setString(value, info.name);
             case UIA_HelpTextPropertyId: return setString(value, info.help);
             case UIA_AutomationIdPropertyId: return setString(value, node.id);
+            case UIA_AcceleratorKeyPropertyId: return setString(value, node.content.shortcut);
             case UIA_ControlTypePropertyId: value->vt = VT_I4; value->lVal = controlType(info.role); return true;
             case UIA_IsEnabledPropertyId: return setBool(value, info.enabled);
             case UIA_IsKeyboardFocusablePropertyId: return setBool(value, info.focusable && info.enabled);

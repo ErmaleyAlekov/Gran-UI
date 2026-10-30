@@ -113,6 +113,10 @@ namespace gran::ui
         // Button: id слоя (Popup или Dialog), который кнопка открывает сама (щелчок, Enter, пробел, стрелка вниз)
         // Button: the id of the layer (a Popup or a Dialog) the button opens by itself (a click, Enter, space, the down arrow)
         std::string popup;
+        // Button, MenuItem: id команды <Command> (действие, enabled, подпись) и подпись её сочетания для меню и доступности
+        // Button, MenuItem: the <Command> id (the action, enabled, the label) and its shortcut label for menus and accessibility
+        std::string command;
+        std::string shortcut;
         // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
         // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
@@ -235,6 +239,20 @@ namespace gran::ui
 
     // Включить или выключить узел (enabled и состояние DISABLED) / Enabling or disabling the node (enabled and the DISABLED state)
     void setEnabled(Node& node, bool enabled);
+
+    // ---- menu_shortcut.cpp ----
+
+    // Зазор между подписью пункта меню и подписью сочетания — в кеглях / The gap between a menu item label and the shortcut label — in font sizes
+    constexpr float SHORTCUT_GAP = 2.0f;
+
+    /*
+    ** Подпись сочетания пункта меню (content.shortcut) как отдельный текстовый узел вне дерева: тот же
+    ** вычисленный стиль, что у пункта, поэтому компоновка меряет, а сцена рисует его общим текстовым движком.
+    **
+    ** The menu item shortcut label (content.shortcut) as a separate text node outside the tree: the same
+    ** computed style as the item, so the layout measures and the scene paints it with the shared text engine.
+    */
+    Node shortcutLabel(const Node& item);
 
     // ---- node_tree.cpp ----
 

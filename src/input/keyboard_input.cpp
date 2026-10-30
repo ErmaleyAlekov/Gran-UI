@@ -81,11 +81,11 @@ namespace gran::input
 
     /*
     ** Нажатия и символы. keyDown сначала идёт приложению: отменённый — ни встроенной обработки, ни символов
-    ** этой клавиши в поле (как preventDefault у keydown в браузере); keyUp — только приложению.
+    ** этой клавиши в поле (как preventDefault у keydown в браузере); затем горячие клавиши команд; keyUp — только приложению.
     ** Символы идут только в поле ввода в фокусе.
     **
     ** Presses and characters. keyDown goes to the application first: a cancelled one gets neither the built-in handling nor the characters
-    ** of this key in a field (as preventDefault on keydown in a browser); keyUp goes to the application only.
+    ** of this key in a field (as preventDefault on keydown in a browser); then the command shortcuts; keyUp goes to the application only.
     ** Characters go only into a focused input.
     */
     bool handleKeyboard(RouterState& state, const platform::Event& event)
@@ -99,7 +99,7 @@ namespace gran::input
             state.suppressCharacter = !fireKey(state, event);
             if (state.suppressCharacter)
                 return true;
-            return contextKey(state, event) || keyDown(state, event);
+            return contextKey(state, event) || commandKey(state, event) || keyDown(state, event);
         }
         if (event.kind == platform::EventKind::KEY_UP)
             fireKey(state, event);

@@ -2,6 +2,7 @@
 #define GRAN_MARKUP_MARKUP_LOADER_HPP
 
 #include "gran/data/list_model.hpp"
+#include "gran/ui/command.hpp"
 #include "gran/ui/node.hpp"
 
 #include <cstddef>
@@ -71,6 +72,8 @@ namespace gran::markup
         TokenMap tokens;
         // Начальные данные моделей списков / The initial data of the list models
         std::vector<DataSet> data;
+        // Команды <Command> окна (enabled меняет приложение) / The window <Command> commands (the application changes enabled)
+        std::vector<ui::Command> commands;
         // Каталог для относительных путей картинок (из LoadOptions) / The directory for relative image paths (from LoadOptions)
         std::string baseDirectory;
     };

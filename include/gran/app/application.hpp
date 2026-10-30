@@ -357,6 +357,32 @@ namespace gran
         */
         void setChecked(ui::Node& node, bool checked);
 
+        // ---- application_commands.cpp: команды <Command> (только поток интерфейса) ----
+        // ---- application_commands.cpp: the <Command> commands (the UI thread only) ----
+
+        /*
+        ** Выполнить команду по id (окна по порядку, главное первым) от корня её окна: действие action
+        ** или onAction(id). false — команды нет или она выключена.
+        **
+        ** Run a command by id (the windows in order, the main one first) from its window root: the action
+        ** or onAction(id). false — there is no such command or it is disabled.
+        */
+        bool runCommand(const std::string& id);
+
+        /*
+        ** Включить или выключить команду id во всех окнах: кнопки и пункты меню с command="id" меняют
+        ** состояние Disabled, её сочетания перестают срабатывать. Значение сохраняется для перезагрузки
+        ** и окон, открытых позже (можно задать и до загрузки разметки).
+        **
+        ** Enable or disable the command id in all the windows: the buttons and menu items with command="id" change
+        ** the Disabled state, its shortcuts stop firing. The value is kept for a reload
+        ** and the windows opened later (it can be set before loading the markup too).
+        */
+        void setCommandEnabled(const std::string& id, bool enabled);
+
+        // Включена ли команда (первая найденная по окнам); неизвестная — false / Whether the command is enabled (the first one found in the windows); an unknown one — false
+        bool commandEnabled(const std::string& id) const;
+
         // ---- application_tasks.cpp ----
 
         /*

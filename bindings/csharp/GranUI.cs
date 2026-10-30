@@ -198,6 +198,8 @@ public sealed class Application : IDisposable
     }
     public void CapturePointer(string target) => Command("capturePointer", target);
     public void ReleasePointer(string target) => Command("releasePointer", target);
+    public void RunCommand(string id) => Command("runCommand", id);
+    public void SetCommandEnabled(string id, bool enabled) => Command(enabled ? "enableCommand" : "disableCommand", id);
     long AddTask(Action callback, bool repeat) {
         ArgumentNullException.ThrowIfNull(callback);
         long key = Interlocked.Increment(ref nextTask);

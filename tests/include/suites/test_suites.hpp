@@ -47,6 +47,8 @@ namespace suites
     void registerKeyframeAnimatorTests(test::TestRunner& runner);
     void registerReloadTests(test::TestRunner& runner);
     void registerBuiltinCommandTests(test::TestRunner& runner);
+    void registerShortcutTests(test::TestRunner& runner);
+    void registerCommandTests(test::TestRunner& runner);
     void registerPixelCompareTests(test::TestRunner& runner);
     void registerWindowFrameTests(test::TestRunner& runner);
     void registerPlatformFrameTests(test::TestRunner& runner);

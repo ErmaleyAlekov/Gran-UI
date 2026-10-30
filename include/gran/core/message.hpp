@@ -91,6 +91,8 @@ namespace gran::i18n
         CAPI_UNKNOWN,
         PLATFORM_FILE_DIALOG_TOOL,
         GPU_VULKAN_LOADER,
+        MARKUP_BAD_SHORTCUT,
+        APP_UNKNOWN_COMMAND,
         COUNT
     };
 }

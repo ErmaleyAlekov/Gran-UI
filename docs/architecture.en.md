@@ -75,6 +75,10 @@ The engine draws the interface itself and does not use a browser for this. `<Web
   `textDecoration`, link `onClick`), `Popup` (popup layer: hidden until `Application::showPopup`, out of the flow,
   above everything; Esc and clicking outside close it) and `MenuItem` (menu item in `Popup`). The `tooltip` attribute on any
   element — tooltip after 0.6 seconds; right-click on text and fields — built-in context menu.
+- The `<Command id text action key scope within enabled>` commands in `<Resources>` (the Command pattern, as QAction):
+  `Button` and `MenuItem` refer to them with the `command` attribute; the loader gives the controls the label,
+  the shortcut label and enabled at once (`ui::bindCommandTree`), the application — the enabled state from code and the global
+  commands of other windows. `input::matchCommand` looks up shortcuts by scopes: focus (inside `within`) → window → global.
 - Attribute names — camelCase and identical for all elements (`gridRow`, `borderRadius`, `justify`, `align`).
   Differences from the concept draft: `grid-row` → `gridRow`; `alignment`/`verticalAlignment` →
   `justify` (main axis) and `align` (cross axis) — they do not depend on the orientation and are not confused.

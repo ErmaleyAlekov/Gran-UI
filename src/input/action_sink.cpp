@@ -14,4 +14,15 @@ namespace gran::input
     {
         return 0;
     }
+
+    // Получатель без команд не знает сочетаний: клавиша идёт встроенной обработке / A receiver without commands knows no shortcuts: the key goes to the built-in handling
+    bool ActionSink::shortcut(const CommandQuery&)
+    {
+        return false;
+    }
+
+    // Получатель без команд пропускает ссылку, как действие без обработчика / A receiver without commands skips the reference, as an action without a handler
+    void ActionSink::command(const std::string&, ui::Node&)
+    {
+    }
 }

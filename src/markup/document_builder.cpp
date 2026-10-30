@@ -79,10 +79,10 @@ namespace gran::markup::internal
 
     /*
     ** Порядок: сначала ресурсы (тема нужна для подстановки $значений везде), затем
-    ** параметры окна, затем единственный корневой элемент содержимого.
+    ** параметры окна, затем единственный корневой элемент содержимого и его ссылки на команды.
     **
     ** The order: resources first (the theme is needed to substitute $values everywhere), then
-    ** the window parameters, then the single root content element.
+    ** the window parameters, then the single root content element and its command references.
     */
     UiDocument buildDocument(const beresta::Document& dom, const LoadOptions& options)
     {
@@ -99,6 +99,8 @@ namespace gran::markup::internal
         readWindow(window, context);
         if (child != nullptr)
             document.root = buildNode(*child, context);
+        if (document.root)
+            ui::bindCommandTree(*document.root, document.commands);
         document.nodeCount = context.nodeCount;
         document.baseDirectory = options.baseDirectory;
         document.tokens = std::move(context.tokens);
