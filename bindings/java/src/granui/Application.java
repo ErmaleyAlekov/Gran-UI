@@ -229,6 +229,8 @@ public final class Application implements AutoCloseable {
     }
     public void capturePointer(String target) { command("capturePointer",target,null); }
     public void releasePointer(String target) { command("releasePointer",target,null); }
+    public void runCommand(String id) { command("runCommand",id,null); }
+    public void setCommandEnabled(String id, boolean enabled) { command(enabled ? "enableCommand" : "disableCommand",id,null); }
     private synchronized MemorySegment taskEntry() {
         ensureOpen();
         if (taskEntry == null) {

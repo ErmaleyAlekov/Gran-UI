@@ -69,5 +69,6 @@ namespace gallery
         registerPointer(application);
         registerKeys(application);
         registerWeb(application);
+        registerCommands(application);
     }
 }

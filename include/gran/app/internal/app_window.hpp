@@ -62,6 +62,16 @@ namespace gran::app
         // Общий счётчик удалений узлов всех окон / The shared node removal counter of all the windows
         std::uint32_t treeVersion() const noexcept override;
 
+        // ---- app_commands.cpp ----
+
+        // Горячая клавиша: команда этого окна или global другого; выполняется от узла фокуса (без него — корня)
+        // A shortcut: a command of this window or a global one of another; it runs from the focus node (without it — the root)
+        bool shortcut(const input::CommandQuery& query) override;
+
+        // Кнопка или пункт меню command="id": выключенная команда — ничего, неизвестная — сообщение в stderr
+        // A command="id" button or menu item: a disabled command — nothing, an unknown one — a message to stderr
+        void command(const std::string& id, ui::Node& node) override;
+
         // Общее состояние приложения / The shared application state
         Application::State& shared;
         markup::UiDocument document;

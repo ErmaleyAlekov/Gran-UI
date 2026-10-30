@@ -16,14 +16,15 @@
 8. [Text and Fonts](#text-and-fonts)
 9. [Actions and API](#actions-and-api)
 10. [Events](#events)
-11. [Lists from data](#lists-from-data)
-12. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-13. [Pop-up Layers](#popup-layers)
-14. [Embedded browser: WebView](#embedded-browser-webview)
-15. [Accessibility](#accessibility)
-16. [Platform: windows, files, icons](#platform-windows-files-icons)
-17. [Errors and Message Language](#errors-and-message-language)
-18. [Custom window title bar](#custom-window-title-bar)
+11. [Commands and shortcuts](#commands-and-shortcuts)
+12. [Lists from data](#lists-from-data)
+13. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+14. [Pop-up Layers](#popup-layers)
+15. [Embedded browser: WebView](#embedded-browser-webview)
+16. [Accessibility](#accessibility)
+17. [Platform: windows, files, icons](#platform-windows-files-icons)
+18. [Errors and Message Language](#errors-and-message-language)
+19. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -417,6 +418,49 @@ app.onEvent("moveTask", [&](gran::ui::Node& column, gran::UiEvent& event) {
 ```
 
 Complete example — `gran_gallery samples/events.xml` (handlers — `examples/gallery/gallery_board.cpp`).
+
+## Commands and shortcuts
+
+A `<Command>` (similar to `QAction` in Qt) is a single action for a button, menu item, and key combination.
+Elements reference it via the `command` attribute; a disabled command disables all of them and stops responding to the keyboard.
+
+```xml
+<Resources>
+  <Command id="saveDoc" text="Save" key="Mod+S" action="save"/>
+  <Command id="refresh" text="Refresh" key="F5 Mod+R"/>
+  <Command id="deleteNote" text="Delete" key="Del" scope="focus" within="notes" action="deleteNote"/>
+  <Command id="quit" text="Exit" key="Mod+Q" action="gran:close"/>
+</Resources>
+…
+<Button command="saveDoc"/>                          <!-- the "Save" label comes from the command -->
+<Popup id="fileMenu">
+  <MenuItem command="saveDoc"/>                      <!-- "Ctrl+S" on the right -->
+  <MenuItem command="quit"/>
+</Popup>
+```
+
+| Attribute | Value |
+|---|---|
+| `id` | command name (unique together with `id` of window elements) |
+| `action` | action (`onAction`, `gran:…`); without it — action with the name `id` |
+| `text` | label for buttons and menu items that do not have their own |
+| `key` | combinations separated by spaces: modifiers `Mod` (= Ctrl), `Ctrl`, `Shift`, `Alt` through `+` and key — `S`, `F5`, `Enter`, `Del`, `Esc`, `Left`, `PgUp`, `Insert`… (case does not matter) |
+| `scope` | `window` (by default) — in its own window; `focus` — while focus is inside the element `within`; `global` — in all program windows |
+| `enabled` | `false` — command and its elements are disabled |
+
+**Who receives the key.** First `keyDown` goes to the handlers (one cancelled with `preventDefault` never reaches the commands), then a command is looked up: the `focus` scope commands whose `within` contains the focus (the deepest one first), then the `window` and `global` ones of its window, then the `global` ones of the other windows. Commands do not intercept what the focused element does itself: in an input field — typing and editing (everything without Ctrl and Alt, except F1–F12; Ctrl+A/C/X/V/Z/Y, Ctrl+arrows, Home/End, Backspace/Delete; Ctrl+Alt — this is AltGr), on buttons, checkboxes, and sliders — arrows, space, and Enter, on selected text — Ctrl+A/C; Tab always transfers focus. When a menu or list is open, commands do not trigger, when a modal dialog is open — only `focus` commands inside it. Shortcuts work within the program, not system-wide. The triggered command consumes the key (its characters do not appear in the field).
+
+**Execution.** The action receives the node: for a button and menu item — themselves, for a combination — the node in focus (without focus — the root of the window). Command labels are received only by elements without their own `text` and without children (an icon button remains without a label); the label of the first combination is visible on the right in the menu item and is available to screen readers (UIA AcceleratorKey property). The schema forbids `command` and `enabled` on one element: the command sets whether it is enabled.
+
+```cpp
+app.onAction("save", [&](gran::ui::Node& from) { /* … */ });
+app.setCommandEnabled("saveDoc", false);   // button, menu item, and Ctrl+S are disabled
+app.commandEnabled("saveDoc");             // false
+app.runCommand("refresh");                 // execute from code; false — no such command or disabled
+```
+
+`setCommandEnabled` acts on all windows, survives a markup reload and applies to the windows opened later (can be called before `loadFile`). In the markup, the same operations — `gran:runCommand:id`, `gran:enableCommand:id`, `gran:disableCommand:id`. A button from another window can reference a command `scope="global"` from the main window.
+Complete example — `gran_gallery samples/commands.xml` (actions — `examples/gallery/gallery_commands.cpp`).
 
 ## Lists from data
 

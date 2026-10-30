@@ -22,6 +22,13 @@ namespace gran::app
     void executeCommand(Application& app, const std::string& command, const std::string& target, const std::string& argument)
     {
         if (windowCommand(app, command)) return;
+        // Команды <Command> адресуются id команды, а не узла / The <Command> commands are addressed by the command id, not a node one
+        if (command == "runCommand") { app.runCommand(target); return; }
+        if (command == "enableCommand" || command == "disableCommand")
+        {
+            app.setCommandEnabled(target, command == "enableCommand");
+            return;
+        }
         if (command == "focus" && target.empty()) { app.focus(nullptr); return; }
         ui::Node& node = requireNode(app, target);
         if (command == "focus") app.focus(&node);

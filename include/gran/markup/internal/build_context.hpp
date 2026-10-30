@@ -84,6 +84,12 @@ namespace gran::markup::internal
     // <Data name><Item …/>…</Data>: записи модели списка; уникальность имён проверила схема / <Data name><Item …/>…</Data>: the list model records; the schema has checked the name uniqueness
     void readDataSet(const beresta::Element& data, BuildContext& context);
 
+    // ---- command_resources.cpp ----
+
+    // <Command id text action key scope within enabled>; неверное сочетание — MarkupException с позицией
+    // <Command id text action key scope within enabled>; a wrong shortcut is MarkupException with the position
+    void readCommand(const beresta::Element& command, BuildContext& context);
+
     // ---- dom_helpers.cpp ----
 
     // Первый дочерний элемент или nullptr / The first child element or nullptr

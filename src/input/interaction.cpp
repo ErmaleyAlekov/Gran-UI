@@ -61,12 +61,12 @@ namespace gran::input
     ** Активация: пункт меню закрывает свой слой и выполняет команду (пункт с подменю открывает его);
     ** флажок и переключатель переключаются, радиокнопка и вкладка выбираются (CHECKED и onChange);
     ** кнопка с popup и ComboBox открывают свой слой;
-    ** затем выполняется onClick. Состояния узлов меняются до вызова приложения — его обработчик видит новое значение.
+    ** затем выполняется команда command и onClick. Состояния узлов меняются до вызова приложения — его обработчик видит новое значение.
     **
     ** Activation: a menu item closes its layer and runs its command (an item with a submenu opens it);
     ** a check box and a switch toggle, a radio button and a tab get chosen (CHECKED and onChange);
     ** a button with popup and a ComboBox open their layer;
-    ** then onClick runs. The node states change before calling the application — its handler sees the new value.
+    ** then the command and onClick run. The node states change before calling the application — its handler sees the new value.
     */
     void activate(RouterState& state, ui::Node& control)
     {
@@ -81,6 +81,8 @@ namespace gran::input
             return;
         openAttached(state, control);
         changeChoice(state, control);
+        if (!control.content.command.empty())
+            state.actions->command(control.content.command, control);
         if (!control.content.onClick.empty())
             state.actions->action(control.content.onClick, control);
     }

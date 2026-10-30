@@ -161,10 +161,33 @@
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
-          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer)(:.*)?"/>
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand)(:.*)?"/>
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
+  </xs:simpleType>
+
+  <!-- Сочетание клавиш: модификаторы Mod (= Ctrl), Ctrl, Shift, Alt через «+» и клавиша (S, F5, Enter, Del…);
+       имена клавиш и модификаторов проверяет загрузчик. A key combination: the Mod (= Ctrl), Ctrl, Shift, Alt
+       modifiers joined by "+" and a key (S, F5, Enter, Del…); the loader checks the key and modifier names. -->
+  <xs:simpleType name="ShortcutToken">
+    <xs:restriction base="xs:token">
+      <xs:pattern value="([A-Za-z]+\+)*[A-Za-z0-9]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Несколько сочетаний через пробел (key="Mod+Y Mod+Shift+Z") / Several combinations by spaces (key="Mod+Y Mod+Shift+Z") -->
+  <xs:simpleType name="ShortcutList">
+    <xs:list itemType="ShortcutToken"/>
+  </xs:simpleType>
+
+  <!-- Где действует сочетание команды / Where the command shortcut works -->
+  <xs:simpleType name="CommandScope">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="window"/>
+      <xs:enumeration value="focus"/>
+      <xs:enumeration value="global"/>
+    </xs:restriction>
   </xs:simpleType>
 
   <!-- Свои события: пары «имя:действие» через пробелы (on="itemChosen:pick rowMoved:gran:reload").
@@ -732,8 +755,11 @@
       <xs:extension base="ContainerBase">
         <xs:attribute name="text" type="xs:string"/>
         <xs:attribute name="popup" type="xs:NCName"/>
+        <xs:attribute name="command" type="xs:NCName"/>
         <xs:attributeGroup ref="StackAttributes"/>
-        <xs:assert test="@text or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
+        <!-- enabled кнопки с командой задаёт команда / The enabled of a button with a command is set by the command -->
+        <xs:assert test="not(@command and @enabled)"/>
+        <xs:assert test="@text or @command or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
                          or self::Focused or self::Disabled or self::Checked or self::Maximized
                          or self::DropTarget or self::Dragging)]"/>
       </xs:extension>
@@ -809,9 +835,15 @@
         <xs:sequence>
           <xs:element name="Popup" type="PopupType" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="text" type="xs:string" use="required"/>
+        <xs:attribute name="text" type="xs:string"/>
         <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="command" type="xs:NCName"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
+        <!-- Подпись — своя или команды; пункт с подменю команду не выполняет; enabled задаёт команда
+             The label is its own or the command one; an item with a submenu runs no command; the command sets enabled -->
+        <xs:assert test="@text or @command"/>
+        <xs:assert test="not(@command and Popup)"/>
+        <xs:assert test="not(@command and @enabled)"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -1030,6 +1062,28 @@
   </xs:complexType>
 
   <!--
+    Команда (как QAction): кнопки и пункты меню ссылаются на неё атрибутом command, сочетания key работают
+    в области scope (window — окно, focus — фокус внутри элемента within, global — все окна приложения).
+    action — действие (без него — действие с именем id), text — подпись элементов без своей, enabled="false" —
+    команда и её элементы выключены (код меняет это setCommandEnabled).
+    A command (as QAction): buttons and menu items refer to it by the command attribute, the key shortcuts work
+    in the scope area (window — the window, focus — the focus inside the within element, global — all the application windows).
+    action is the action (without it — the action named id), text is the label of the controls without their own, enabled="false" —
+    the command and its controls are disabled (the code changes it with setCommandEnabled).
+  -->
+  <xs:complexType name="CommandType">
+    <xs:attribute name="id" type="xs:NCName" use="required"/>
+    <xs:attribute name="text" type="xs:string"/>
+    <xs:attribute name="action" type="Action"/>
+    <xs:attribute name="key" type="ShortcutList"/>
+    <xs:attribute name="scope" type="CommandScope" default="window"/>
+    <xs:attribute name="within" type="xs:NCName"/>
+    <xs:attribute name="enabled" type="xs:boolean"/>
+    <!-- within нужен ровно области focus / within is needed exactly by the focus scope -->
+    <xs:assert test="(@scope = 'focus') = exists(@within)"/>
+  </xs:complexType>
+
+  <!--
     Ключевой кадр: место и только анимируемые свойства (те же, что у переходов); easing — кривая
     участка до следующего кадра. A keyframe: the place and only the animatable properties (the same
     as for transitions); easing is the curve of the segment up to the next frame.
@@ -1063,6 +1117,7 @@
       <xs:element name="Keyframes" type="KeyframesType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Data" type="DataType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Command" type="CommandType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
@@ -1099,6 +1154,11 @@
     <xs:keyref name="labelRef" refer="uniqueId">
       <xs:selector xpath=".//*"/>
       <xs:field xpath="@labeledBy"/>
+    </xs:keyref>
+    <!-- within команды ссылается только на существующий id / A command within refers only to an existing id -->
+    <xs:keyref name="withinRef" refer="uniqueId">
+      <xs:selector xpath="Resources/Command"/>
+      <xs:field xpath="@within"/>
     </xs:keyref>
     <!-- Имена значений темы уникальны / Theme value names are unique -->
     <xs:unique name="uniqueToken">

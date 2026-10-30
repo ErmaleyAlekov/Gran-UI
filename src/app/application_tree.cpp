@@ -21,6 +21,7 @@ namespace gran
         ui::Node& added = ui::appendChild(parent, std::move(child));
 
         ui::markDirty(added, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+        app::bindCommands(app::windowOf(*_state, added), added);
         _state->lists.bind(added);
         ui::syncComboBoxes(added);
         return added;

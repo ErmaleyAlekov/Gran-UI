@@ -82,6 +82,8 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 | `unlisten(id, номер)` | `Unlisten` | `unlisten` | `gran_app_unlisten` |
 | `dispatch(id, type, detail)` → `bool` | `Dispatch` | `dispatch` | `gran_app_dispatch` |
 | `capture_pointer(id)` / `release_pointer(id)` | `CapturePointer` / `ReleasePointer` | `capturePointer` / `releasePointer` | `command("capturePointer", id)` |
+| `run_command(id)` | `RunCommand(id)` | `runCommand(id)` | `command("runCommand", id)` |
+| `set_command_enabled(id, bool)` | `SetCommandEnabled(id, bool)` | `setCommandEnabled(id, bool)` | `command("enableCommand" / "disableCommand", id)` |
 
 Обработчик получает снимок `gran_input_event`: `type`, `target`, `current`, `related` (id узлов),
 `phase` (1 захват, 2 цель, 3 всплытие), `x`/`y` в системе `current`, `window_x`/`window_y`, `wheel_x`/`wheel_y`,
@@ -94,7 +96,8 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 
 `command` поддерживает `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
-`loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`. Команды окна из `command` относятся к главному окну.
+`loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,
+`disableCommand` (для трёх последних цель — id команды `<Command>`, а не узла). Команды окна из `command` относятся к главному окну.
 Для `showPopup` аргумент — id якоря;
 для `appendMarkup` — XML-фрагмент, который ядро проверяет общей XSD.
 

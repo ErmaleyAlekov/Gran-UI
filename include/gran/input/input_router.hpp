@@ -3,6 +3,7 @@
 
 #include "gran/a11y/access_tree.hpp"
 #include "gran/platform/window.hpp"
+#include "gran/ui/command.hpp"
 #include "gran/ui/node.hpp"
 #include "gran/ui/ui_event.hpp"
 
@@ -11,6 +12,34 @@
 
 namespace gran::input
 {
+    /*
+    ** Нажатое сочетание и где оно нажато: узел фокуса (nullptr — нет) и открытый модальный диалог
+    ** (nullptr — нет; при нём действуют только команды области focus внутри диалога).
+    **
+    ** The pressed combination and where it was pressed: the focus node (nullptr — none) and the open modal dialog
+    ** (nullptr — none; with it only the focus scope commands inside the dialog work).
+    */
+    struct CommandQuery
+    {
+        ui::Shortcut pressed;
+        ui::Node* focus = nullptr;
+        const ui::Node* modal = nullptr;
+    };
+
+    /*
+    ** Команды одного окна для поиска по сочетанию: root — корень окна (для within), own — окно, где нажали
+    ** (его команды window и focus действуют, у прочих окон — только global).
+    **
+    ** The commands of one window for the search by a combination: root is the window root (for within), own — the window
+    ** where it was pressed (its window and focus commands work, for the other windows only global ones).
+    */
+    struct CommandSource
+    {
+        std::vector<ui::Command>* commands = nullptr;
+        ui::Node* root = nullptr;
+        bool own = false;
+    };
+
     /*
     ** Получатель действий приложения: onClick="имя", onChange, onSubmit. Приложение
     ** сопоставляет имя со своей функцией (паттерн Command: разметка хранит имя команды).
@@ -45,6 +74,19 @@ namespace gran::input
         ** the node pointers might dangle, the delivery and the default action stop. By default 0.
         */
         virtual std::uint32_t treeVersion() const noexcept;
+
+        /*
+        ** Горячая клавиша: найти включённую команду по сочетанию и выполнить; true — выполнена (клавиша
+        ** поглощена). По умолчанию команд нет — false.
+        **
+        ** A shortcut: find an enabled command by the combination and run it; true — it ran (the key
+        ** is consumed). By default there are no commands — false.
+        */
+        virtual bool shortcut(const CommandQuery& query);
+
+        // Кнопка или пункт меню с command="id" активирован (node — он сам); по умолчанию — ничего
+        // A button or a menu item with command="id" is activated (node is itself); by default — nothing
+        virtual void command(const std::string& id, ui::Node& node);
     };
 
     /*
@@ -493,6 +535,32 @@ namespace gran::input
     // Клавиши при открытом слое: Esc — закрыть, стрелки — пункты меню и подменю; true — обработано
     // Keys with an open layer: Esc — close, the arrows — the menu items and submenus; true — handled
     bool popupKey(RouterState& state, const platform::Event& event);
+
+    // ---- command_match.cpp ----
+
+    /*
+    ** Включённая команда по сочетанию. Порядок: команды focus своего окна, чей within содержит фокус
+    ** (самый глубокий within первым); при модальном диалоге — только они и только внутри него; затем window
+    ** и global своего окна, затем global других окон (по порядку sources). nullptr — нет такой.
+    **
+    ** An enabled command by the combination. The order: the focus commands of the own window whose within holds the focus
+    ** (the deepest within first); with a modal dialog — only them and only inside it; then the window
+    ** and global ones of the own window, then the global ones of the other windows (in the sources order). nullptr — none.
+    */
+    ui::Command* matchCommand(const std::vector<CommandSource>& sources, const CommandQuery& query);
+
+    // ---- command_keys.cpp ----
+
+    /*
+    ** Нажатие как горячая клавиша (после keyDown приложения, до встроенной обработки). Не команда: при открытом
+    ** меню или списке, Tab, клавиши, которые элемент в фокусе обрабатывает сам (набор и правка в поле,
+    ** стрелки, пробел и Enter у элементов, Ctrl+A/C у выделенного текста). true — команда выполнена.
+    **
+    ** A press as a shortcut (after the application keyDown, before the built-in handling). Not a command: with an open
+    ** menu or list, Tab, the keys the focused control handles itself (typing and editing in a field,
+    ** the arrows, space and Enter on controls, Ctrl+A/C on a selected text). true — a command ran.
+    */
+    bool commandKey(RouterState& state, const platform::Event& event);
 
     // ---- keyboard_input.cpp ----
 

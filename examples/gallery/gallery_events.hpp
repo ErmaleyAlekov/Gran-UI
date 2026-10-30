@@ -27,6 +27,11 @@ namespace gallery
     // Клавиши в фазе захвата у доски и фокус поля field / The keys in the capture phase at the board and the field focus
     void registerKeys(gran::Application& application);
 
+    // ---- gallery_commands.cpp ----
+
+    // Действия команд samples/commands.xml и флажок, выключающий «Сохранить» / The samples/commands.xml command actions and the check box disabling "Save"
+    void registerCommands(gran::Application& application);
+
     // ---- gallery_web.cpp ----
 
     // Страница <WebView onMessage="fromPage">: статус в окне и ответ обратно в страницу

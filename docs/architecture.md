@@ -87,6 +87,10 @@
   `textDecoration`, ссылка `onClick`), `Popup` (всплывающий слой: скрыт до `Application::showPopup`, вне потока,
   поверх всего; Esc и щелчок мимо закрывают) и `MenuItem` (пункт меню в `Popup`). Атрибут `tooltip` у любого
   элемента — подсказка через 0,6 с; правый щелчок по тексту и полям — встроенное контекстное меню.
+- Команды `<Command id text action key scope within enabled>` в `<Resources>` (паттерн Command, как QAction):
+  `Button` и `MenuItem` ссылаются на них атрибутом `command`; загрузчик сразу даёт элементам подпись,
+  подпись сочетания и enabled (`ui::bindCommandTree`), приложение — включённость из кода и глобальные команды
+  других окон. Горячие клавиши ищет `input::matchCommand` по областям: focus (внутри `within`) → window → global.
 - Имена атрибутов — camelCase и одинаковые у всех элементов (`gridRow`, `borderRadius`, `justify`, `align`).
   Отличия от черновика концепции: `grid-row` → `gridRow`; `alignment`/`verticalAlignment` →
   `justify` (главная ось) и `align` (поперечная ось) — не зависят от ориентации и не путаются.
