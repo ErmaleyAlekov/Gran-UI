@@ -56,6 +56,9 @@ namespace gran::binding
             if (slot == value)
                 continue;
             slot = std::move(value);
+            // Текст поля из записи — значение из кода: прежние правки к нему не относятся / A field text from a record is a value from code: the former edits do not belong to it
+            if (field.member == &C::text)
+                field.node->content.history.reset();
             ui::markDirty(*field.node, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
             if (field.node->kind == ui::ElementKind::SPAN && field.node->parent != nullptr)
                 ui::joinSpans(*field.node->parent);

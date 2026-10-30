@@ -25,12 +25,23 @@ public sealed class UiEvent
     public void StopImmediatePropagation() => Flags |= 6;
 }
 
+// Состояние стека отмены: можно ли отменить и повторить, «чистое» ли оно (документ сохранён).
+// An undo stack state: whether undo and redo are possible, whether it is clean (the document is saved).
+public readonly record struct UndoState(bool CanUndo, bool CanRedo, bool Clean)
+{
+    internal static UndoState From(uint flags) => new((flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0);
+}
+
 internal static class Native
 {
     const string Library = "gran_c";
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void ActionFn(IntPtr user, IntPtr value);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void TaskFn(IntPtr user);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate int EventFn(IntPtr user, IntPtr value);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void UndoFn(IntPtr user, IntPtr stack, uint flags);
+    [StructLayout(LayoutKind.Sequential)] internal struct UndoStep {
+        internal uint Size; internal TaskFn Undo, Redo, Release; internal IntPtr User;
+    }
     [StructLayout(LayoutKind.Sequential)] internal struct InputEvent {
         internal uint Size; internal int Phase;
         internal IntPtr Type, Target, Current, Related, Key, Detail, DragFormat, DragData, Model, RelatedModel;
@@ -65,6 +76,9 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_dispatch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, [MarshalAs(UnmanagedType.LPUTF8Str)] string? detail, out int allowed);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_timer(IntPtr app, ref Timer timer, out ulong result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_clear_timer(IntPtr app, ulong timer);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_undo_push(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? stack, ref UndoStep step);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_undo_state(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? stack, out uint flags);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_undo(IntPtr app, UndoFn? callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string property, out IntPtr result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_apply(IntPtr app, IntPtr updates, nuint count);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_command(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string? target, [MarshalAs(UnmanagedType.LPUTF8Str)] string? argument);
@@ -114,6 +128,11 @@ public sealed class Application : IDisposable
     readonly ConcurrentDictionary<long, ulong> keyTimers = new();
     readonly Native.TaskFn taskEntry;
     long nextTask;
+    // Шаги отмены: user — номер пары обработчиков; release снимает её, когда стек отбросил шаг.
+    // The undo steps: user is the number of a handler pair; release removes it when the stack dropped the step.
+    readonly ConcurrentDictionary<long, (Action Undo, Action Redo)> undoSteps = new();
+    readonly Native.TaskFn undoEntry, redoEntry, releaseEntry;
+    Native.UndoFn? undoHandler;
     ExceptionDispatchInfo? pending;
     IntPtr Handle => app != IntPtr.Zero ? app : throw new ObjectDisposedException(nameof(Application));
     static string String(IntPtr value) => Marshal.PtrToStringUTF8(value) ?? "";
@@ -126,12 +145,15 @@ public sealed class Application : IDisposable
         if (Native.gran_abi_version() != 1) throw new NotSupportedException("unsupported Gran UI ABI");
         var options = new Native.Options { Size=(uint)Marshal.SizeOf<Native.Options>(), Backend=backend, ExitAfter=exitAfter, Warp=warp ? 1 : 0 };
         taskEntry = RunTask;
+        undoEntry = user => RunUndo(user, false);
+        redoEntry = user => RunUndo(user, true);
+        releaseEntry = user => undoSteps.TryRemove((long)user, out _);
         Check(Native.gran_app_create(ref options, out app));
     }
     public void Dispose() {
         if (app == IntPtr.Zero) return;
         Check(Native.gran_app_destroy(app));
-        app = IntPtr.Zero; callbacks.Clear(); tasks.Clear(); timerKeys.Clear(); keyTimers.Clear();
+        app = IntPtr.Zero; callbacks.Clear(); tasks.Clear(); timerKeys.Clear(); keyTimers.Clear(); undoSteps.Clear(); undoHandler = null;
     }
     public void LoadString(string xml) => Check(Native.gran_app_load(Handle, Arguments.Text(xml), 0));
     public void LoadFile(string path) => Check(Native.gran_app_load(Handle, Arguments.Text(path), 1));
@@ -200,6 +222,38 @@ public sealed class Application : IDisposable
     public void ReleasePointer(string target) => Command("releasePointer", target);
     public void RunCommand(string id) => Command("runCommand", id);
     public void SetCommandEnabled(string id, bool enabled) => Command(enabled ? "enableCommand" : "disableCommand", id);
+    void RunUndo(IntPtr user, bool redo) {
+        if (undoSteps.TryGetValue((long)user, out var step)) Protect(redo ? step.Redo : step.Undo);
+    }
+    // Записать выполненное действие парой обработчиков (стек null — основной) / Record a done action as a pair of handlers (the stack null is the main one)
+    public void PushUndo(Action undo, Action redo, string? stack=null) {
+        ArgumentNullException.ThrowIfNull(undo); ArgumentNullException.ThrowIfNull(redo);
+        if (stack != null) Arguments.Text(stack);
+        long key = Interlocked.Increment(ref nextTask);
+        undoSteps[key] = (undo, redo);
+        var step = new Native.UndoStep { Size=(uint)Marshal.SizeOf<Native.UndoStep>(), Undo=undoEntry, Redo=redoEntry, Release=releaseEntry, User=(IntPtr)key };
+        try { Check(Native.gran_app_undo_push(Handle, stack, ref step)); }
+        catch { undoSteps.TryRemove(key, out _); throw; }
+    }
+    public void Undo(string? stack=null) => Command("undo", stack);
+    public void Redo(string? stack=null) => Command("redo", stack);
+    public UndoState GetUndoState(string? stack=null) {
+        if (stack != null) Arguments.Text(stack);
+        Check(Native.gran_app_undo_state(Handle, stack, out var flags));
+        return UndoState.From(flags);
+    }
+    // Текущая позиция — «документ сохранён» / The current position is "the document is saved"
+    public void SetUndoClean(string? stack=null) => Command("setUndoClean", stack);
+    public void ClearUndo(string? stack=null) => Command("clearUndo", stack);
+    public void SetUndoLimit(int limit, string? stack=null) =>
+        Command("setUndoLimit", stack, limit >= 0 ? limit.ToString(System.Globalization.CultureInfo.InvariantCulture) : throw new ArgumentOutOfRangeException(nameof(limit)));
+    // Обработчик смены любого стека (имя стека и состояние); null снимает / A handler of any stack change (the stack name and the state); null removes it
+    public void OnUndoChanged(Action<string, UndoState>? callback) {
+        Native.UndoFn? native = null;
+        if (callback != null) native = (_, stack, flags) => Protect(() => callback(String(stack), UndoState.From(flags)));
+        Check(Native.gran_app_on_undo(Handle, native, IntPtr.Zero));
+        undoHandler = native;
+    }
     long AddTask(Action callback, bool repeat) {
         ArgumentNullException.ThrowIfNull(callback);
         long key = Interlocked.Increment(ref nextTask);

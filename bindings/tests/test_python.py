@@ -92,6 +92,34 @@ class TestApplication(unittest.TestCase):
         self.app.set_command_enabled("saveDoc", True)
         self.assertEqual(self.app.read("save", "enabled"), "true")
 
+    def test_undo_stack(self):
+        # Команды gran:undo/gran:redo следуют за стеком; шаг кладётся выполненным, release — при отбрасывании
+        # The gran:undo/gran:redo commands follow the stack; a step is pushed done, release — when dropped
+        self.app.load_string('<Window title="BindingsPython" width="320" height="200"><Resources><Command id="undo" key="Mod+Z" action="gran:undo"/><Command id="redo" key="Mod+Y" action="gran:redo"/></Resources><Stack id="root"><Button id="u" command="undo" text="U"/><Button id="r" command="redo" text="R"/></Stack></Window>')
+        values, changes = [0], []
+        self.app.on_undo_changed(lambda stack, state: changes.append((stack, state)))
+        self.assertEqual(self.app.read("u", "enabled"), "false")
+        values[0] = 1
+        self.app.push_undo(lambda: values.__setitem__(0, 0), lambda: values.__setitem__(0, 1))
+        self.assertEqual(self.app.undo_state(), (True, False, False))
+        self.assertEqual(self.app.read("u", "enabled"), "true")
+        self.app.run_command("undo")
+        self.assertEqual(values[0], 0)
+        self.assertTrue(self.app.undo_state().clean)
+        self.assertEqual(self.app.read("r", "enabled"), "true")
+        self.app.redo()
+        self.assertEqual(values[0], 1)
+        self.app.set_undo_clean()
+        self.assertTrue(self.app.undo_state().clean)
+        self.assertEqual(changes[-1][0], "")
+        self.app.clear_undo()
+        self.assertEqual(len(self.app._undo_steps), 0)
+        self.app.push_undo(lambda: None, lambda: None, "doc")
+        self.assertEqual(self.app.undo_state("doc").can_undo, True)
+        self.assertEqual(self.app.undo_state().can_undo, False)
+        self.app.set_undo_limit(1, "doc")
+        self.app.on_undo_changed(None)
+
     @unittest.skipUnless(os.name == "nt", "this case injects Win32 keyboard messages")
     def test_live_test_app(self):
         happened = []

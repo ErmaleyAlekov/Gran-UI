@@ -75,7 +75,9 @@ namespace gran::i18n
             {Message::PLATFORM_FILE_DIALOG_TOOL, "the system file dialog is unavailable: the zenity or kdialog program is needed"},
             {Message::GPU_VULKAN_LOADER, "the system Vulkan library is not found ({0}): install the libvulkan1 package (Astra Linux, Debian, Ubuntu, ALT) or vulkan-loader (RED OS); working without a GPU also needs mesa-vulkan-drivers"},
             {Message::MARKUP_BAD_SHORTCUT, "wrong key combination \"{0}\": expected the Mod, Ctrl, Shift, Alt modifiers joined by \"+\" and a key name (S, F5, Enter, Del…)"},
-            {Message::APP_UNKNOWN_COMMAND, "the command \"{0}\" is not declared by a <Command> of this window (or by a global command of another window)"}
+            {Message::APP_UNKNOWN_COMMAND, "the command \"{0}\" is not declared by a <Command> of this window (or by a global command of another window)"},
+            {Message::MENU_UNDO, "Undo"},
+            {Message::MENU_REDO, "Redo"}
         };
     }
 

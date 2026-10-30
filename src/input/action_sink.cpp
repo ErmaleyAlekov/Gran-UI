@@ -25,4 +25,9 @@ namespace gran::input
     void ActionSink::command(const std::string&, ui::Node&)
     {
     }
+
+    // Получатель без команд отмены не следит за полями / A receiver without undo commands does not watch the fields
+    void ActionSink::editingChanged()
+    {
+    }
 }

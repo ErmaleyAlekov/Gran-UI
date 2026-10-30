@@ -87,6 +87,15 @@ namespace gran::input
         // Кнопка или пункт меню с command="id" активирован (node — он сам); по умолчанию — ничего
         // A button or a menu item with command="id" is activated (node is itself); by default — nothing
         virtual void command(const std::string& id, ui::Node& node);
+
+        /*
+        ** Сменилось редактируемое поле (фокус) или его текст и история: команды отмены пересчитывают
+        ** включённость (gran:undo работает и с полем). По умолчанию — ничего.
+        **
+        ** The edited field (the focus) or its text and history changed: the undo commands recompute
+        ** their enabled state (gran:undo works with the field too). By default — nothing.
+        */
+        virtual void editingChanged();
     };
 
     /*
@@ -280,6 +289,14 @@ namespace gran::input
 
         // Идёт ли перетаскивание узла / Whether a node drag goes on
         bool draggingNode() const noexcept;
+
+        // ---- field_history.cpp ----
+
+        // Есть ли в редактируемом поле что отменить (redo — повторить) / Whether the edited field has something to undo (redo — to redo)
+        bool canUndoField(bool redo);
+
+        // Отменить / повторить правку редактируемого поля; false — нечего (тогда — стек приложения) / Undo / redo an edit of the edited field; false — nothing (then — the application stack)
+        bool undoField(bool redo);
 
     private:
         RouterState _state;
@@ -486,6 +503,17 @@ namespace gran::input
 
     // Верхний непассивный слой (подсказки клавиш и мыши не ловят) или nullptr / The top non-passive layer (tooltips catch neither keys nor the mouse) or nullptr
     ui::Node* topLayer(const RouterState& state) noexcept;
+
+    // ---- field_history.cpp ----
+
+    /*
+    ** Редактируемое поле: поле ввода в фокусе, а если фокус в открытом меню — поле, откуда меню открыли
+    ** (фокус вернётся туда при закрытии). Диалог — свой мир фокуса: дальше него не ищется. nullptr — нет.
+    **
+    ** The edited field: the focused input, and if the focus is in an open menu — the field the menu was opened from
+    ** (the focus returns there on closing). A dialog is its own focus world: the search does not go past it. nullptr — none.
+    */
+    ui::Node* editingField(const RouterState& state) noexcept;
 
     // Верхний открытый диалог: ввод ниже него заблокирован; nullptr — модального слоя нет
     // The top open dialog: the input below it is blocked; nullptr — there is no modal layer

@@ -45,7 +45,8 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `image/` | inflate (zlib), PNG and JPEG (baseline and progressive) — custom implementations; the format is by the signature (`decodeImage`) |
 | `vector/` | icon vector shapes: SVG path parsing (with arcs), `.svg` files through Beresta, rasterizing by exact area (nonzero/evenodd) |
 | `animation/` | property transitions and keyframe animations (`<Keyframes>` + `animation`), curves (`cubic-bezier`, ease, linear, steps), frame clock |
-| `input/` | hit-test (considering transform), focus, event routing, text editing and selection, clipboard |
+| `undo/` | the undo stack (as `QUndoStack`): `UndoStep` steps with merging, the position, the clean state, the limit; used by the input fields and the application stacks |
+| `input/` | hit-test (considering transform), focus, event routing, text editing and selection, clipboard, the field edit history (Ctrl+Z/Ctrl+Y) |
 | `a11y/` | accessibility: roles, names, control patterns, tree navigation, the client request queue (neutral); UI Automation provider in `platform/win32/uia_*`, the requests are performed by `InputRouter::perform` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/`, `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |

@@ -119,6 +119,16 @@ int main()
 - `setCommandEnabled(id, bool)`: включить или выключить команду во всех окнах вместе с элементами
   `command="id"` (состояние Disabled) и её сочетаниями; значение сохраняется для перезагрузки и новых окон.
 - `commandEnabled(id) -> bool`: включена ли команда; неизвестная — `false`.
+- `undoStack(name = "") -> UndoStack&`: стек отмены (`gran/undo/undo_stack.hpp`, как `QUndoStack`), создаётся
+  при первом обращении: `push(unique_ptr<UndoStep>)` записывает уже выполненный шаг (или вбирает его в верхний по
+  `mergeId`/`mergeWith`), `undo`, `redo`, `canUndo`, `canRedo`, `isClean`/`setClean` («документ сохранён»), `clear`,
+  `count`, `index`, `setLimit` (0 — без предела), `breakMerge`. Команды `gran:undo[:name]` / `gran:redo[:name]` (без имени — сначала поле в фокусе)
+  включаются по стеку сами.
+- `pushUndo(undo, redo, name = "")`: записать выполненное действие парой обработчиков (`undo::ActionStep`).
+- `undo(name = "") -> bool`, `redo(name = "") -> bool`: отменить / повторить шаг; `false` — нечего.
+- `onUndoChanged(UndoHandler)`: обработчик `(имя стека, стек)` после каждой смены любого стека.
+- Правки полей `Input`/`TextArea` идут в историю самого поля (`content.history`, Ctrl+Z/Ctrl+Y); присваивание
+  `content.text` из кода делает её недействительной (сброс при следующей правке или отмене).
 
 При прямой правке полей узла используйте `ui::markDirty(node, flags)` из `gran/ui/node.hpp`:
 `DIRTY_STYLE` для пересчёта каскада, `DIRTY_LAYOUT` для компоновки, `DIRTY_PAINT` для рисования.

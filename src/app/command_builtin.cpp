@@ -54,11 +54,27 @@ namespace gran::app
             return true;
         }
 
+        /*
+        ** gran:undo и gran:redo без имени стека сначала работают с редактируемым полем окна (фокус или поле,
+        ** откуда открыли меню), как Ctrl+Z; нечего отменять в поле — основной стек приложения.
+        **
+        ** gran:undo and gran:redo without a stack name work with the edited field of the window first (the focus or the field
+        ** the menu was opened from), as Ctrl+Z does; nothing to undo in the field — the main application stack.
+        */
+        bool fieldHistory(AppWindow& win, const std::string& command)
+        {
+            if ((command != "undo" && command != "redo") || !win.router)
+                return false;
+            return win.router->undoField(command == "redo");
+        }
+
         // Якорь меню без аргумента — сам узел (ему не нужен id); захват указателя без id — тоже сам узел
         // A menu anchor without an argument is the node itself (it needs no id); the pointer capture without an id is the node itself too
         void runBuiltin(Application::State& state, const BuiltinCall& call, ui::Node& node)
         {
             if (call.target.empty() && windowBuiltin(windowOf(state, node), call.command))
+                return;
+            if (call.target.empty() && fieldHistory(windowOf(state, node), call.command))
                 return;
             if (call.target.empty() && call.command == "capturePointer")
                 state.owner->capturePointer(node);

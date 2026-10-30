@@ -75,7 +75,9 @@ namespace gran::i18n
             {Message::PLATFORM_FILE_DIALOG_TOOL, "системный диалог файлов недоступен: нужна программа zenity или kdialog"},
             {Message::GPU_VULKAN_LOADER, "не найдена системная библиотека Vulkan ({0}): установите пакет libvulkan1 (Astra Linux, Debian, Ubuntu, Альт) или vulkan-loader (РЕД ОС); для работы без видеокарты нужен ещё mesa-vulkan-drivers"},
             {Message::MARKUP_BAD_SHORTCUT, "неверное сочетание клавиш \"{0}\": ожидались модификаторы Mod, Ctrl, Shift, Alt через «+» и имя клавиши (S, F5, Enter, Del…)"},
-            {Message::APP_UNKNOWN_COMMAND, "команда \"{0}\" не объявлена в <Command> этого окна (или глобальной командой другого окна)"}
+            {Message::APP_UNKNOWN_COMMAND, "команда \"{0}\" не объявлена в <Command> этого окна (или глобальной командой другого окна)"},
+            {Message::MENU_UNDO, "Отменить"},
+            {Message::MENU_REDO, "Повторить"}
         };
     }
 

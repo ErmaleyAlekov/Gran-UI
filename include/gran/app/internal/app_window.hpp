@@ -72,6 +72,10 @@ namespace gran::app
         // A command="id" button or menu item: a disabled command — nothing, an unknown one — a message to stderr
         void command(const std::string& id, ui::Node& node) override;
 
+        // Поле в фокусе или его история сменились: команды gran:undo / gran:redo основного стека пересчитываются
+        // The focused field or its history changed: the gran:undo / gran:redo commands of the main stack are recomputed
+        void editingChanged() override;
+
         // Общее состояние приложения / The shared application state
         Application::State& shared;
         markup::UiDocument document;

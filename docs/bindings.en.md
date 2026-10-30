@@ -82,10 +82,31 @@ The handler receives a snapshot of `gran_input_event`: `type`, `target`, `curren
 `preventDefault()`, `stop_propagation()` and `stop_immediate_propagation()` set flags that are sent to the core
 after the handler returns (in C ABI — return value `GRAN_EVENT_*`). The `listen` listener lives in the node and is removed with it; `dispatch` works even before `run`.
 
+### Undo and redo
+
+The application undo stacks (see "Undo and redo" in the [guide](guide.en.md#undo-and-redo)); the stack name
+`None`/`null` is the main one. A step is pushed already done: the wrapper keeps a pair of functions and lets it go when
+the stack dropped the step (a new step over undone ones, the limit, `clear_undo`, closing the application). `Input`
+and `TextArea` fields keep their own histories (Ctrl+Z in a field) and do not write to these stacks.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `push_undo(undo, redo, stack)` | `PushUndo(undo, redo, stack)` | `pushUndo(undo, redo, stack)` | `gran_app_undo_push` |
+| `undo(stack)` / `redo(stack)` | `Undo` / `Redo` | `undo` / `redo` | `command("undo" / "redo", stack)` |
+| `undo_state(stack)` → `UndoState(can_undo, can_redo, clean)` | `GetUndoState` → `UndoState` | `undoState` → `UndoState` | `gran_app_undo_state` (`GRAN_UNDO_*` flags) |
+| `set_undo_clean(stack)` | `SetUndoClean` | `setUndoClean` | `command("setUndoClean", stack)` |
+| `clear_undo(stack)` | `ClearUndo` | `clearUndo` | `command("clearUndo", stack)` |
+| `set_undo_limit(n, stack)` | `SetUndoLimit` | `setUndoLimit` | `command("setUndoLimit", stack, "n")` |
+| `on_undo_changed(f(stack, state))` | `OnUndoChanged` | `onUndoChanged` | `gran_app_on_undo` |
+
+The `<Command action="gran:undo">` / `gran:redo` commands (`gran:undo:name` — an own stack) are enabled by the stack
+themselves; `on_undo_changed` is handy for "*" in the title (`not state.clean`).
+
 `command` supports `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
 `loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,
-`disableCommand` (for the last three the target is a `<Command>` id, not a node one). The window commands of `command` belong to the main window.
+`disableCommand` (for these three the target is a `<Command>` id, not a node one), `undo`, `redo`, `clearUndo`,
+`setUndoClean`, `setUndoLimit` (the target is an undo stack name). The window commands of `command` belong to the main window.
 For `showPopup`, the argument is the id of the anchor;
 for `appendMarkup`, it is an XML fragment that the core checks against the common XSD.
 

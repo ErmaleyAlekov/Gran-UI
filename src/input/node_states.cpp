@@ -64,6 +64,7 @@ namespace gran::input
         state.focus = node;
         if (node != nullptr)
             setNodeState(*node, style::stateBit(style::State::FOCUSED), true);
+        state.actions->editingChanged();
         notifyFocus(state, old, node);
     }
 }

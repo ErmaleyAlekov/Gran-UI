@@ -64,6 +64,11 @@ namespace gran::app
         return true;
     }
 
+    void AppWindow::editingChanged()
+    {
+        refreshUndoCommands(shared, std::string());
+    }
+
     // Ошибка ссылки не завершает программу: разметку можно писать раньше команд другого окна / A reference error does not end the program: the markup can be written before the commands of another window
     void AppWindow::command(const std::string& id, ui::Node& node)
     {

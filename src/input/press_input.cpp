@@ -3,11 +3,29 @@
 namespace gran::input
 {
     /*
-    ** Нажатие левой кнопкой: элемент управления становится нажатым и получает фокус (нажатие мимо
+    ** Кнопка команды или меню (command, popup) не забирает фокус у поля ввода — как панели инструментов
+    ** и строка меню настольных программ: «Отменить», «Вставить» и меню «Правка» работают с этим полем.
+    ** Tab переводит фокус на такую кнопку как обычно.
+    **
+    ** A command or menu button (command, popup) does not take the focus from an input — as toolbars
+    ** and the menu bar of desktop programs: "Undo", "Paste" and the "Edit" menu work with this field.
+    ** Tab moves the focus to such a button as usual.
+    */
+    static bool keepsEditing(const RouterState& state, const ui::Node* control) noexcept
+    {
+        if (control == nullptr || control->kind != ui::ElementKind::BUTTON)
+            return false;
+        if (state.focus == nullptr || !ui::isTextField(*state.focus))
+            return false;
+        return !control->content.command.empty() || !control->content.popup.empty();
+    }
+
+    /*
+    ** Нажатие левой кнопкой: элемент управления становится нажатым и получает фокус (кроме keepsEditing; нажатие мимо
     ** элементов снимает фокус), ползунок начинает перетаскивание, в поле ввода и Text начинается выделение
     ** (нажатие мимо текста его снимает). У перетаскиваемого узла текст не выделяется: мышь тянет узел.
     **
-    ** A left button press: the control becomes pressed and gets the focus (a press outside the controls
+    ** A left button press: the control becomes pressed and gets the focus (except keepsEditing; a press outside the controls
     ** removes the focus), a slider starts dragging, in an input and a Text a selection starts
     ** (a press outside the text removes it). A draggable node text is not selected: the mouse drags the node.
     */
@@ -18,6 +36,7 @@ namespace gran::input
 
         if (control != nullptr && disabled(control))
             control = nullptr;
+        bool keep = keepsEditing(state, control);
         ui::Node* draggable = draggableOf(hit, control);
         if (draggable == nullptr)
             text = textTarget(hit, control);
@@ -25,10 +44,11 @@ namespace gran::input
         // A press in a menu does not drop the selection: the "Copy" command takes exactly it
         if (text != nullptr)
             beginTextSelection(state, *text, event);
-        else if (ui::popupOf(hit) == nullptr)
+        else if (ui::popupOf(hit) == nullptr && !keep)
             clearSelection(state);
         changePressed(state, control);
-        changeFocus(state, control);
+        if (!keep)
+            changeFocus(state, control);
         armDrag(state, draggable, event.position);
         if (control != nullptr && control->kind == ui::ElementKind::SLIDER)
         {

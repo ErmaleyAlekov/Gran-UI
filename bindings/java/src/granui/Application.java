@@ -33,6 +33,18 @@ public final class Application implements AutoCloseable {
     private final AtomicLong nextTask = new AtomicLong();
     private MemorySegment taskEntry;
     private MemorySegment app = MemorySegment.NULL;
+    // Шаги отмены: user — номер пары обработчиков; release снимает её, когда стек отбросил шаг.
+    // The undo steps: user is the number of a handler pair; release removes it when the stack dropped the step.
+    private record UndoPair(Runnable undo, Runnable redo) {}
+    private final ConcurrentMap<Long,UndoPair> undoSteps = new ConcurrentHashMap<>();
+    private MemorySegment undoEntry, redoEntry, releaseEntry;
+    // Состояние стека отмены: можно ли отменить и повторить, «чистое» ли оно (документ сохранён).
+    // An undo stack state: whether undo and redo are possible, whether it is clean (the document is saved).
+    public record UndoState(boolean canUndo, boolean canRedo, boolean clean) {
+        static UndoState of(int flags) { return new UndoState((flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0); }
+    }
+    // Обработчик смены стека: имя стека и состояние / A stack change handler: the stack name and the state
+    public interface UndoListener { void changed(String stack, UndoState state); }
 
     public Application(String library) { this(library, 0, 0, false); }
     public Application(String library, int backend, double exitAfter, boolean warp) {
@@ -242,6 +254,74 @@ public final class Application implements AutoCloseable {
         }
         return taskEntry;
     }
+    private MemorySegment entry(String name, MethodType type, FunctionDescriptor descriptor, Object target) {
+        try {
+            MethodHandle method=MethodHandles.lookup().findVirtual(target.getClass(),name,type).bindTo(target);
+            return Linker.nativeLinker().upcallStub(method,descriptor,lifetime);
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+    }
+    private synchronized void undoEntries() {
+        ensureOpen();
+        if (undoEntry != null) return;
+        MethodType type=MethodType.methodType(void.class,MemorySegment.class);
+        FunctionDescriptor descriptor=FunctionDescriptor.ofVoid(ADDRESS);
+        undoEntry=entry("runUndo",type,descriptor,this);
+        redoEntry=entry("runRedo",type,descriptor,this);
+        releaseEntry=entry("releaseUndo",type,descriptor,this);
+    }
+    private void runUndo(MemorySegment user) { UndoPair pair=undoSteps.get(user.address()); if (pair != null) protect(pair.undo()); }
+    private void runRedo(MemorySegment user) { UndoPair pair=undoSteps.get(user.address()); if (pair != null) protect(pair.redo()); }
+    private void releaseUndo(MemorySegment user) { undoSteps.remove(user.address()); }
+    // Записать выполненное действие парой обработчиков (стек null — основной) / Record a done action as a pair of handlers (the stack null is the main one)
+    public void pushUndo(Runnable undo, Runnable redo) { pushUndo(undo,redo,null); }
+    public void pushUndo(Runnable undo, Runnable redo, String stack) {
+        undoEntries();
+        long key=nextTask.incrementAndGet();
+        undoSteps.put(key,new UndoPair(Objects.requireNonNull(undo),Objects.requireNonNull(redo)));
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment step=scope.allocate(40,8);
+            step.set(JAVA_INT,0,40); step.set(ADDRESS,8,undoEntry); step.set(ADDRESS,16,redoEntry);
+            step.set(ADDRESS,24,releaseEntry); step.set(ADDRESS,32,MemorySegment.ofAddress(key));
+            status("gran_app_undo_push",app,utf8(scope,stack),step);
+        } catch (RuntimeException | Error failure) { undoSteps.remove(key); throw failure; }
+    }
+    public void undo() { undo(null); }
+    public void undo(String stack) { command("undo",stack,null); }
+    public void redo() { redo(null); }
+    public void redo(String stack) { command("redo",stack,null); }
+    public UndoState undoState() { return undoState(null); }
+    public UndoState undoState(String stack) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_INT);
+            status("gran_app_undo_state",app,utf8(scope,stack),output);
+            return UndoState.of(output.get(JAVA_INT,0));
+        }
+    }
+    // Текущая позиция — «документ сохранён» / The current position is "the document is saved"
+    public void setUndoClean(String stack) { command("setUndoClean",stack,null); }
+    public void clearUndo(String stack) { command("clearUndo",stack,null); }
+    public void setUndoLimit(int limit, String stack) {
+        if (limit < 0) throw new IllegalArgumentException("limit");
+        command("setUndoLimit",stack,Integer.toString(limit));
+    }
+    private final class UndoCallback {
+        private final UndoListener listener;
+        UndoCallback(UndoListener listener) { this.listener=listener; }
+        void changed(MemorySegment user, MemorySegment stack, int flags) {
+            protect(() -> listener.changed(text(stack),UndoState.of(flags)));
+        }
+    }
+    // Обработчик смены любого стека; null снимает / A handler of any stack change; null removes it
+    public void onUndoChanged(UndoListener listener) {
+        MemorySegment function=MemorySegment.NULL;
+        if (listener != null) {
+            UndoCallback callback=new UndoCallback(listener);
+            function=entry("changed",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class,int.class),
+                FunctionDescriptor.ofVoid(ADDRESS,ADDRESS,JAVA_INT),callback);
+            callbacks.add(callback);
+        }
+        status("gran_app_on_undo",app,function,MemorySegment.NULL);
+    }
     private long addTask(Runnable callback, boolean repeat) {
         long key=nextTask.incrementAndGet();
         tasks.put(key,new Pending(Objects.requireNonNull(callback),repeat)); return key;
@@ -326,6 +406,6 @@ public final class Application implements AutoCloseable {
     public void close() {
         if (app.address() == 0) return;
         status("gran_app_destroy",app);
-        app=MemorySegment.NULL; callbacks.clear(); tasks.clear(); timerKeys.clear(); keyTimers.clear(); lifetime.close();
+        app=MemorySegment.NULL; callbacks.clear(); tasks.clear(); timerKeys.clear(); keyTimers.clear(); undoSteps.clear(); lifetime.close();
     }
 }

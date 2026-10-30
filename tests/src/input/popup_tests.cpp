@@ -242,12 +242,18 @@ namespace
 
         auto* menu = doc.root->children.back().get();
         TEST_ASSERT(menu->visible == true);
-        TEST_ASSERT(menu->children.size() == 3);
+        TEST_ASSERT(menu->children.size() == 5);
 
-        auto* item1 = menu->children[0].get();
-        auto* item2 = menu->children[1].get();
-        auto* item3 = menu->children[2].get();
+        auto* undoItem = menu->children[0].get();
+        auto* redoItem = menu->children[1].get();
+        auto* item1 = menu->children[2].get();
+        auto* item2 = menu->children[3].get();
+        auto* item3 = menu->children[4].get();
 
+        TEST_ASSERT(undoItem->content.text == u8"Отменить");
+        TEST_ASSERT(redoItem->content.text == u8"Повторить");
+        // У Text нет истории правок / A Text has no edit history
+        TEST_ASSERT(!undoItem->enabled && !redoItem->enabled);
         TEST_ASSERT(item1->content.text == u8"Копировать");
         TEST_ASSERT(item2->content.text == u8"Вставить");
         TEST_ASSERT(item3->content.text == u8"Выделить всё");

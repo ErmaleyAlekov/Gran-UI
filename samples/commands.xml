@@ -3,14 +3,22 @@
   Команды и горячие клавиши: одна команда <Command> — для кнопки, пункта меню и сочетания клавиш.
   Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, F5 и Ctrl+R работают во всём окне, Del — только когда фокус на
   заметке (scope="focus"), в поле ввода буквы и Del правят текст. Флажок выключает команду «Сохранить»:
-  кнопка, пункт меню и Ctrl+S выключаются вместе. Запуск: gran_gallery samples/commands.xml
+  кнопка, пункт меню и Ctrl+S выключаются вместе. Удаление заметки отменяется: Ctrl+Z / Ctrl+Y (вне поля),
+  кнопки и пункты меню «Отменить» / «Повторить» включаются сами по стеку отмены (action="gran:undo"),
+  «*» в заголовке — есть несохранённые изменения, Ctrl+S их «сохраняет». В поле Ctrl+Z, кнопка и пункт меню
+  «Отменить» отменяют набор (кнопки команд фокус у поля не забирают), а когда в поле отменять нечего — удаление.
+  Запуск: gran_gallery samples/commands.xml
 
   Commands and shortcuts: one <Command> serves a button, a menu item and a key combination.
   Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, F5 and Ctrl+R work in the whole window, Del — only while the focus is on
   a note (scope="focus"), in an input the letters and Del edit the text. The check box disables the "Save" command:
-  the button, the menu item and Ctrl+S get disabled together. Run: gran_gallery samples/commands.xml
+  the button, the menu item and Ctrl+S get disabled together. Deleting a note is undoable: Ctrl+Z / Ctrl+Y (outside an input),
+  the "Undo" / "Redo" buttons and menu items are enabled by the undo stack themselves (action="gran:undo"),
+  "*" in the title — there are unsaved changes, Ctrl+S "saves" them. In an input Ctrl+Z, the "Undo" button and menu item
+  undo the typing (command buttons keep the field focus), and when the field has nothing to undo — the deletion.
+  Run: gran_gallery samples/commands.xml
 -->
-<Window title="Gran UI — команды и горячие клавиши" width="680" height="460" background="#f5f6f8">
+<Window title="Gran UI — команды и горячие клавиши" width="900" height="460" background="#f5f6f8">
   <Resources>
     <Command id="newDoc" text="Новый" key="Mod+N" action="cmdNew"/>
     <Command id="openDoc" text="Открыть…" key="Mod+O" action="cmdOpen"/>
@@ -19,21 +27,26 @@
     <Command id="refresh" text="Обновить" key="F5 Mod+R" action="cmdRefresh"/>
     <Command id="deleteNote" text="Удалить заметку" key="Del" scope="focus" within="notes" action="cmdDelete"/>
     <Command id="quit" text="Выход" key="Mod+Q" action="gran:close"/>
+    <Command id="undo" text="Отменить" key="Mod+Z" action="gran:undo" enabled="false"/>
+    <Command id="redo" text="Повторить" key="Mod+Y Mod+Shift+Z" action="gran:redo" enabled="false"/>
   </Resources>
   <Stack padding="24" spacing="14">
+    <Text id="docTitle" fontSize="18" fontWeight="600">Заметки</Text>
     <Stack orientation="horizontal" spacing="10" align="center">
       <Button id="fileMenu" text="Файл ▾" popup="fileItems"/>
       <Button command="newDoc"/>
       <Button command="saveDoc"/>
       <Button command="refresh"/>
+      <Button command="undo"/>
+      <Button command="redo"/>
       <CheckBox id="canSave" text="Можно сохранять" checked="true" onChange="toggleSave"/>
     </Stack>
     <Input id="title" placeholder="Заголовок: буквы и Del правят поле, Ctrl+S — команда"/>
     <Text color="#667085">Заметки (Tab — к заметке, Del — удалить её):</Text>
     <Stack id="notes" orientation="horizontal" spacing="8">
-      <Button text="Купить хлеб"/>
-      <Button text="Позвонить Ивану"/>
-      <Button text="Отчёт к пятнице"/>
+      <Button id="note1" text="Купить хлеб"/>
+      <Button id="note2" text="Позвонить Ивану"/>
+      <Button id="note3" text="Отчёт к пятнице"/>
     </Stack>
     <Text id="status" color="#667085">Нажмите Ctrl+N, Ctrl+S, F5 или откройте меню «Файл».</Text>
     <Popup id="fileItems">
@@ -41,6 +54,8 @@
       <MenuItem command="openDoc"/>
       <MenuItem command="saveDoc"/>
       <MenuItem command="saveAs"/>
+      <MenuItem command="undo"/>
+      <MenuItem command="redo"/>
       <MenuItem command="quit"/>
     </Popup>
   </Stack>

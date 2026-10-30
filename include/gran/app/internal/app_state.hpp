@@ -13,6 +13,32 @@
 
 namespace gran
 {
+    namespace app
+    {
+        /*
+        ** Именованный стек отмены приложения и его наблюдатель (паттерн Observer): после каждой смены
+        ** стека включаются и выключаются команды gran:undo[:имя] / gran:redo[:имя] всех окон и вызывается
+        ** обработчик onUndoChanged. Стек — поле связи, поэтому наблюдатель не переживает свой стек.
+        **
+        ** A named application undo stack and its observer (the Observer pattern): after every stack change
+        ** the gran:undo[:name] / gran:redo[:name] commands of all the windows are enabled and disabled and
+        ** the onUndoChanged handler is called. The stack is a field of the link, so the observer does not outlive its stack.
+        */
+        class UndoLink final : public undo::UndoObserver
+        {
+        public:
+            // ---- undo_link.cpp ----
+            UndoLink(Application::State& state, std::string name);
+            void undoChanged(const undo::UndoStack& changed) override;
+
+            undo::UndoStack stack;
+
+        private:
+            Application::State& _state;
+            std::string _name;
+        };
+    }
+
     /*
     ** Состояние приложения — общее для всех окон. Порядок полей важен: окна объявлены после шрифтов
     ** (их рендереры ссылаются на библиотеку шрифтов) и до привязок списков (привязки ссылаются на узлы
@@ -43,6 +69,9 @@ namespace gran
         // enabled команд, заданные кодом (setCommandEnabled): переживают перезагрузку и действуют на окна, открытые позже
         // The command enabled values set by the code (setCommandEnabled): they survive a reload and apply to the windows opened later
         std::map<std::string, bool> commandStates;
+        // Стеки отмены приложения по имени ("" — основной) и обработчик их смены / The application undo stacks by name ("" is the main one) and their change handler
+        std::map<std::string, std::unique_ptr<app::UndoLink>> undoStacks;
+        UndoHandler undoHandler;
         // Именованные обработчики событий разметки (onEvent) / The named markup event handlers (onEvent)
         std::map<std::string, EventHandler> eventHandlers;
         // Номер последнего слушателя кода; счётчик удалений узлов для доставки событий (ActionSink::treeVersion)
@@ -111,6 +140,14 @@ namespace gran
 
         // После смены enabled команды id — её узлы во всех окнах / After the command id enabled changes — its nodes in all the windows
         void refreshCommand(Application::State& state, const std::string& id);
+
+        // ---- undo_commands.cpp ----
+
+        // Команды gran:undo / gran:redo окна следуют за своим стеком (стека ещё нет — выключены) / The gran:undo / gran:redo window commands follow their stack (no stack yet — disabled)
+        void linkUndoCommands(Application::State& state, AppWindow& win);
+
+        // После смены стека name — его команды и их узлы во всех окнах / After the name stack changes — its commands and their nodes in all the windows
+        void refreshUndoCommands(Application::State& state, const std::string& name);
 
         // ---- application_reload.cpp, reload_document.cpp, reload_source.cpp, reload_fonts.cpp ----
 

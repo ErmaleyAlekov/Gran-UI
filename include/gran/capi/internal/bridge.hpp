@@ -56,6 +56,22 @@ namespace gran::capi
         void operator()() const;
     };
     data::Record record(const gran_record* value);
+
+    // ---- undo_step.cpp, undo_api.cpp ----
+
+    // Шаг стека отмены из обратных вызовов языка (release — при отбрасывании шага) / An undo stack step of language callbacks (release — when the step is dropped)
+    std::unique_ptr<undo::UndoStep> callbackStep(const gran_undo_step& step);
+
+    // Флаги стека GRAN_UNDO_* / The GRAN_UNDO_* stack flags
+    uint32_t undoFlags(const undo::UndoStack& stack) noexcept;
+
+    // Обработчик смены стеков отмены: имя стека и флаги / An undo stack change handler: the stack name and the flags
+    struct UndoCallback
+    {
+        gran_undo_fn callback;
+        void* user;
+        void operator()(const std::string& name, const undo::UndoStack& stack) const;
+    };
 }
 
 // Единый барьер: исключения C++ никогда не пересекают ABI.

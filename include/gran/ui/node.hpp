@@ -6,6 +6,7 @@
 #include "gran/utils/geometry.hpp"
 #include "gran/vector/shape.hpp"
 #include "gran/platform/window_frame.hpp"
+#include "gran/undo/undo_stack.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -58,6 +59,21 @@ namespace gran::ui
     };
 
     /*
+    ** История правок поля ввода (Input, TextArea): свой стек отмены у каждого поля. textSize — длина текста
+    ** после последней записанной правки: другая длина значит, что текст сменили в обход правки (код
+    ** приложения присвоил content.text), и прежние шаги к нему уже не применимы — история сбрасывается.
+    **
+    ** The edit history of an input (Input, TextArea): each field has its own undo stack. textSize is the text length
+    ** after the last recorded edit: another length means the text was changed bypassing the editing (the application
+    ** code assigned content.text), and the former steps no longer apply to it — the history is reset.
+    */
+    struct TextHistory
+    {
+        undo::UndoStack steps;
+        std::size_t textSize = 0;
+    };
+
+    /*
     ** Содержимое элемента, не относящееся к стилю: текст, источник картинки,
     ** значения полей ввода и имена действий. Хранится плоско (без иерархии классов
     ** виджетов): у каждого вида свои поля, остальные пусты.
@@ -101,6 +117,9 @@ namespace gran::ui
         bool checked = false;
         bool password = false;
         bool readOnly = false;
+        // Input, TextArea: undo="false" — правки не записываются в историю (Ctrl+Z ничего не отменяет)
+        // Input, TextArea: undo="false" — the edits are not recorded in the history (Ctrl+Z undoes nothing)
+        bool undoable = true;
         // Виртуальный список (virtual="true"): копии только у записей около видимой области / A virtual list (virtual="true"): copies only for the records near the visible area
         bool virtualize = false;
         ImageFit fit = ImageFit::FILL;
@@ -133,6 +152,11 @@ namespace gran::ui
         std::string dragFormat;
         std::string dragData;
         std::string acceptDrop;
+        // Input, TextArea: история правок для Ctrl+Z / Ctrl+Y; создаётся при первой правке, сбрасывается значением из кода.
+        // shared_ptr — ради копирования содержимого (копии шаблонов списков); копия узла историю не делит (copyTree её снимает).
+        // Input, TextArea: the edit history for Ctrl+Z / Ctrl+Y; created on the first edit, reset by a value from code.
+        // shared_ptr — for copying the content (the list template copies); a node copy does not share the history (copyTree drops it).
+        std::shared_ptr<TextHistory> history;
     };
 
     // Запомненное измерение: доступный размер → результат / A remembered measurement: the available size → the result

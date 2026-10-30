@@ -51,6 +51,23 @@ public class Smoke {
             app.unlisten("root",listener);
             localStaticCheck(app.dispatch("go","ping"));
 
+            // Стек отмены: шаг кладётся выполненным, undo/redo вызывают обработчики, «чистое» состояние
+            // The undo stack: a step is pushed done, undo/redo call the handlers, the clean state
+            int[] value={1};
+            String[] changed={"-"};
+            app.onUndoChanged((stack,state) -> changed[0]=stack);
+            app.pushUndo(() -> value[0]=0, () -> value[0]=1);
+            localStaticCheck(app.undoState().equals(new Application.UndoState(true,false,false)) && changed[0].isEmpty());
+            app.undo();
+            localStaticCheck(value[0]==0 && app.undoState().clean() && app.undoState().canRedo());
+            app.redo();
+            localStaticCheck(value[0]==1);
+            app.setUndoClean(null);
+            app.setUndoLimit(10,"doc");
+            app.clearUndo(null);
+            localStaticCheck(!app.undoState().canUndo());
+            app.onUndoChanged(null);
+
             // Apply updates to the UI
             app.apply(new Application.Update("text", "text", "Hello World 🌍"));
 

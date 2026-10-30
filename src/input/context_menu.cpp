@@ -1,4 +1,5 @@
 #include "gran/input/internal/text_cursor.hpp"
+#include "gran/input/internal/text_history.hpp"
 #include "gran/core/i18n.hpp"
 
 #include <memory>
@@ -8,7 +9,7 @@ namespace gran::input
     namespace
     {
         // Встроенные команды; номер команды хранится в content.value пункта / The built-in commands; the command number is kept in the item content.value
-        enum class Command : int { COPY, PASTE, SELECT_ALL };
+        enum class Command : int { UNDO, REDO, COPY, PASTE, SELECT_ALL };
 
         // Пункт меню с текстом из каталога сообщений (язык интерфейса) / A menu item with the text from the message catalog (the interface language)
         void addItem(ui::Node& menu, i18n::Message text, Command command)
@@ -21,18 +22,26 @@ namespace gran::input
             ui::appendChild(menu, std::move(item));
         }
 
-        // Доступность пунктов по цели: копировать — есть выделение (не пароль), вставить — поле не только для чтения
-        // The item availability by the target: copy — there is a selection (not a password), paste — a field that is not read-only
-        void prepareItems(RouterState& state, const ui::Node& target)
+        /*
+        ** Доступность пунктов по цели (порядок детей — как Command): отменить и повторить — есть шаги в истории поля,
+        ** копировать — есть выделение (не пароль), вставить — поле не только для чтения.
+        **
+        ** The item availability by the target (the children order is as Command): undo and redo — the field history has steps,
+        ** copy — there is a selection (not a password), paste — a field that is not read-only.
+        */
+        void prepareItems(RouterState& state, ui::Node& target)
         {
             std::size_t from = 0;
             std::size_t to = 0;
             bool selected = internal::selectionRange(target.content, from, to) && !target.content.password;
+            bool field = ui::isTextField(target);
             const std::vector<std::unique_ptr<ui::Node>>& items = state.contextMenu->children;
 
-            ui::setEnabled(*items[0], selected);
-            ui::setEnabled(*items[1], ui::isTextField(target) && !target.content.readOnly);
-            ui::setEnabled(*items[2], !target.content.text.empty());
+            ui::setEnabled(*items[0], field && internal::canUndoText(target));
+            ui::setEnabled(*items[1], field && internal::canRedoText(target));
+            ui::setEnabled(*items[2], selected);
+            ui::setEnabled(*items[3], field && !target.content.readOnly);
+            ui::setEnabled(*items[4], !target.content.text.empty());
         }
     }
 
@@ -43,6 +52,8 @@ namespace gran::input
 
         menu->kind = ui::ElementKind::POPUP;
         menu->visible = false;
+        addItem(*menu, i18n::Message::MENU_UNDO, Command::UNDO);
+        addItem(*menu, i18n::Message::MENU_REDO, Command::REDO);
         addItem(*menu, i18n::Message::MENU_COPY, Command::COPY);
         addItem(*menu, i18n::Message::MENU_PASTE, Command::PASTE);
         addItem(*menu, i18n::Message::MENU_SELECT_ALL, Command::SELECT_ALL);
@@ -86,7 +97,7 @@ namespace gran::input
         openLayer(state, *state.contextMenu, Rect{event.position.x, event.position.y, 0.0f, 0.0f}, false);
     }
 
-    // Команда выполняется над целью меню; вставка — только в поле / The command runs on the menu target; pasting — only into a field
+    // Команда выполняется над целью меню; отмена, повтор и вставка — только в поле / The command runs on the menu target; undo, redo and pasting — only into a field
     bool runContextCommand(RouterState& state, const ui::Node& item)
     {
         Command command = static_cast<Command>(static_cast<int>(item.content.value));
@@ -94,7 +105,11 @@ namespace gran::input
         if (state.contextMenu == nullptr || item.parent != state.contextMenu || state.contextTarget == nullptr)
             return false;
         ui::Node& target = *state.contextTarget;
-        if (command == Command::COPY)
+        if (command == Command::UNDO && ui::isTextField(target))
+            internal::undoText(state, target);
+        else if (command == Command::REDO && ui::isTextField(target))
+            internal::redoText(state, target);
+        else if (command == Command::COPY)
             internal::copySelection(state, target);
         else if (command == Command::PASTE && ui::isTextField(target) && state.window != nullptr)
             insertText(state, target, state.window->clipboardText());
