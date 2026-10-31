@@ -95,6 +95,8 @@ namespace gran::i18n
         APP_UNKNOWN_COMMAND,
         MENU_UNDO,
         MENU_REDO,
+        MARKUP_NOT_LIVE,
+        MARKUP_BAD_ATTRIBUTE,
         COUNT
     };
 }

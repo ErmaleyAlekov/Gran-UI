@@ -73,7 +73,15 @@ tasks, and timers. Therefore, the handler can call `loadFile`, `loadString`, or 
 its node in the middle of the call. Several loads before the loop boundary leave the last successful one.
 Before `run()`, replacement is applied immediately. All these methods are called in the UI thread; from other threads — through `post`.
 
-On replacement:
+The reload is partial. If the `<Window>` parameters and `<Resources>` (styles, theme, data, commands) did not change,
+the new DOM is compared with the live one: equal branches stay as they were (the same `ui::Node` objects, listeners, state,
+list record copies), changed ones are rebuilt in place — the changed node itself stays the same object,
+its descendants are built anew. Adding or removing a child rebuilds the parent. Models are not touched.
+Otherwise the tree is replaced as a whole (below). In both cases the user state — the `Input`/`TextArea` text
+with the caret and history, check marks, Slider/ProgressBar values, the ComboBox and Tabs choice, `Scroll` scrolling and
+the focus — moves to the new nodes with the same `id`, and for nodes without an `id` — by place relative to the nearest ancestor with an `id`.
+
+On a full replacement:
 
 - only the main window is reloaded; the windows from `openWindow` and their nodes do not change;
 - the OS window, GPU backend, action and WebView message handlers, tasks, and timers are preserved;
@@ -82,16 +90,48 @@ On replacement:
 - the document, styles, animations, input, selection, popup layers, WebView browsers, and renderer caches are recreated;
 - models obtained through `model()` are preserved; `<Data>` of the new document replaces data of identically named models;
 - pointers and references to the previous `ui::Node`, including those captured by handlers, become invalid:
-  repeat `find(id)` after replacement;
+  repeat `find(id)` after replacement (on a partial one — for the nodes of the rebuilt branches);
 - `loadString` disables the source file; modified title, original size, and other window OS creation parameters
   are applied on a new launch. The current window size is saved, the background and content are updated.
 
 Reloading observes the main XML. Changes to a separate PNG or font require `reload()` or
-re-saving the XML. The DOM after parsing is not stored: a new verified document is built separately.
+re-saving the XML. The new document is first built and checked as a whole, and only then compared
+with the live one and applied.
 The guarantee of retaining the old interface applies to loading errors; memory/GPU exhaustion when applying
 the prepared document may terminate the cycle with an exception.
 
 For the gallery: `bin/gran_gallery samples/showcase.xml --watch --d3d11 --debug`.
+
+## Live Document
+
+The Beresta DOM stays in the window document after loading (`markup::UiDocument::dom`), and every node built
+from the markup knows its element (`ui::Node::domElement`; nodes from code, list record copies, the Tabs header
+strip and the ComboBox layer have `nullptr`). The markup becomes a source of truth that can be changed
+at run time and saved:
+
+- `markupAttribute(node, name) -> std::optional<std::string>`: the node element attribute — from the file or written
+  by code; `nullopt` — no attribute or the node is not from the markup.
+- `setMarkupAttribute(node, name, value)`, `removeMarkupAttribute(node, name)`: write or remove the attribute
+  in the DOM and rebuild the node as if it were written so in the file. The whole document is checked by the schema; a schema
+  or value error is `MarkupException`, the DOM and the interface stay as they were. The node itself stays the same object (references
+  to it, `addEventListener` listeners, hover and focus are kept), its descendants are built anew —
+  look the references to them up again with `find`. The descendants state moves as on a reload; writing `text`,
+  `value` or `checked` changes the state of the node itself. Children added at run time (`append` from code)
+  stay in place. A node not from the markup is `GranException(INVALID_ARGUMENT)`.
+- `appendMarkup(parent, …)` under a parent from the markup inserts the element into the DOM too; `remove(node)` removes its element.
+- `saveMarkup(window = nullptr) -> std::string`, `saveMarkupFile(path, window = nullptr)`: the live markup of the window
+  of the node `window` (the main one by default) as XML: with the edits, insertions and removals, indented by two spaces,
+  comments are kept. Nodes from code and the state (typed text, model data) are not in the markup.
+
+```cpp
+gran::ui::Node& panel = *app.find("sidebar");
+app.setMarkupAttribute(panel, "width", "320");      // schema check, the panel is rebuilt
+app.saveMarkupFile("layout.xml");                   // the markup with the new width
+```
+
+The lower level is `gran/markup/live_document.hpp`: `editMarkupAttribute`, `rebuildFromElement`, `serializeMarkup`,
+`detachMarkup`, `planPatch`. The application changes the window tree nodes (it needs the bindings, the input and the animations), so
+use the `Application` methods from application code.
 
 ## Nodes, Actions, and Data
 
@@ -103,8 +143,9 @@ do not call the user's `onChange` again.
 - `setStyle(node, name)`: named style of the current document; unknown style — `RESOURCE` error.
 - `append(parent, std::unique_ptr<ui::Node>)`: transfers ownership of the child to the tree, returns a reference to it.
 - `appendMarkup(parent, std::string_view)`: one root XML fragment with schema validation, document styles
-  and immediate connection of list bindings.
-- `remove(node)`: removes the subtree, removes input, animation, and accessibility references. The root cannot be deleted.
+  and immediate connection of list bindings; under a parent from the markup the fragment also goes into the live DOM.
+- `remove(node)`: removes the subtree (and its element from the live DOM), removes input, animation, and accessibility references.
+  The root cannot be deleted.
 - `focus(ui::Node*)`: focus from code, `nullptr` clears; before `run()`, the request is remembered.
 - `model(name)`: reference to `data::ListModel`; unknown name creates an empty model.
 - `itemOf(node)`: `ItemRef` of the nearest list entry; `model == nullptr` if the node is outside the binding.

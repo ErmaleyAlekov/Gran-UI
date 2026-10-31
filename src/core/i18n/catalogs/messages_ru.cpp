@@ -77,7 +77,9 @@ namespace gran::i18n
             {Message::MARKUP_BAD_SHORTCUT, "неверное сочетание клавиш \"{0}\": ожидались модификаторы Mod, Ctrl, Shift, Alt через «+» и имя клавиши (S, F5, Enter, Del…)"},
             {Message::APP_UNKNOWN_COMMAND, "команда \"{0}\" не объявлена в <Command> этого окна (или глобальной командой другого окна)"},
             {Message::MENU_UNDO, "Отменить"},
-            {Message::MENU_REDO, "Повторить"}
+            {Message::MENU_REDO, "Повторить"},
+            {Message::MARKUP_NOT_LIVE, "у элемента {0} нет элемента разметки: он создан кодом, копией списка или движком"},
+            {Message::MARKUP_BAD_ATTRIBUTE, "атрибут \"{0}\" нельзя записать: {1}"}
         };
     }
 

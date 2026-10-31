@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -93,12 +94,21 @@ namespace gran
 
         /*
         ** Перезагрузить последний файл; внутри run замена откладывается до границы цикла.
-        ** Ошибка разбора сохраняет старое дерево. После замены повторите find: старые узлы
-        ** удалены. Обработчики, таймеры и внешние модели сохраняются, данные XML загружаются снова.
+        ** Ошибка разбора сохраняет старое дерево. После замены повторите find: старые узлы могут быть
+        ** удалены. Обработчики, таймеры и внешние модели сохраняются, данные XML при полной замене загружаются снова.
         **
         ** Reload the last file; inside run replacement is deferred to a loop boundary.
-        ** A parse error preserves the old tree. After replacement call find again: old nodes
-        ** are deleted. Handlers, timers and external models remain; XML data is loaded again.
+        ** A parse error preserves the old tree. After replacement call find again: old nodes may be
+        ** deleted. Handlers, timers and external models remain; XML data is loaded again on a full replacement.
+        **
+        ** Перезагрузка частичная: если <Window> и <Resources> не изменились, новый DOM сравнивается со старым,
+        ** и перестраиваются только изменившиеся ветви (остальные узлы и данные моделей остаются как были);
+        ** иначе дерево заменяется целиком. В обоих случаях текст полей, отметки, выбор, вкладки, прокрутка
+        ** и фокус переходят на новые узлы по id или месту.
+        ** The reload is partial: if <Window> and <Resources> did not change, the new DOM is compared with the old one,
+        ** and only the changed branches are rebuilt (the other nodes and the model data stay as they were);
+        ** otherwise the tree is replaced as a whole. In both cases the field texts, check marks, choices, tabs, scrolling
+        ** and the focus move to the new nodes by id or place.
         */
         void reload();
 
@@ -276,8 +286,49 @@ namespace gran
         ** Insert a markup fragment as the last child of parent: one root element, checked by the same
         ** schema, the styles and the theme are the document ones (an error is MarkupException with a position in the fragment).
         ** The items="…" lists in the fragment are bound at once.
+        **
+        ** Если parent построен из разметки, фрагмент входит и в живой DOM (его сохранит saveMarkup).
+        ** If parent is built from the markup, the fragment also goes into the live DOM (saveMarkup saves it).
         */
         ui::Node& appendMarkup(ui::Node& parent, std::string_view markup);
+
+        // ---- Живой документ: DOM разметки остаётся после загрузки / The live document: the markup DOM stays after loading ----
+
+        // Атрибут узла в живой разметке (из файла или записанный кодом); nullopt — нет атрибута или узел не из разметки
+        // The node attribute in the live markup (from the file or written by code); nullopt — no attribute or the node is not from the markup
+        std::optional<std::string> markupAttribute(const ui::Node& node, const std::string& name) const;
+
+        /*
+        ** Записать (удалить) атрибут элемента узла в живом DOM и перестроить узел из разметки — как если бы
+        ** так было написано в файле. Сам узел остаётся тем же объектом: ссылки на него, слушатели
+        ** addEventListener, фокус и наведение сохраняются. Потомки строятся заново — ссылки на них ищите
+        ** снова (find). Состояние потомков (текст полей, отметки, выбор, вкладки, прокрутка) переходит
+        ** на новые узлы по id или месту; запись text, value или checked меняет состояние самого узла.
+        ** Весь документ проверяется схемой: ошибка — MarkupException, документ и интерфейс прежние.
+        ** Узел не из разметки (из кода, копия записи списка, полоса вкладок) — GranException.
+        **
+        ** Write (remove) an attribute of the node element in the live DOM and rebuild the node from the markup — as if
+        ** it were written so in the file. The node itself stays the same object: the references to it, the addEventListener
+        ** listeners, the focus and the hover are kept. The descendants are built anew — look the references to them up
+        ** again (find). The descendants state (the field texts, check marks, choices, tabs, scrolling) moves
+        ** to the new nodes by id or place; writing text, value or checked changes the state of the node itself.
+        ** The whole document is checked by the schema: an error is MarkupException, the document and the interface stay as they were.
+        ** A node not from the markup (from code, a list record copy, the tab strip) is GranException.
+        */
+        void setMarkupAttribute(ui::Node& node, const std::string& name, const std::string& value);
+        void removeMarkupAttribute(ui::Node& node, const std::string& name);
+
+        /*
+        ** Живая разметка окна узла window (nullptr — главного) как XML: файл с правками setMarkupAttribute,
+        ** вставками appendMarkup и удалениями remove. Узлы, созданные кодом, и состояние (набранный текст,
+        ** данные моделей) в разметку не входят. saveMarkupFile пишет то же в файл (ошибка — GranException IO).
+        **
+        ** The live markup of the window of the node window (nullptr — the main one) as XML: the file with the setMarkupAttribute edits,
+        ** the appendMarkup insertions and the remove removals. The nodes created by code and the state (the typed text,
+        ** the model data) are not in the markup. saveMarkupFile writes the same into a file (an error is GranException IO).
+        */
+        std::string saveMarkup(const ui::Node* window = nullptr) const;
+        void saveMarkupFile(const std::string& path, const ui::Node* window = nullptr) const;
 
         // Запись списка, из копии шаблона которой узел (ближайший список) — для обработчиков onClick в шаблоне
         // The list record whose template copy holds the node (the nearest list) — for onClick handlers in a template

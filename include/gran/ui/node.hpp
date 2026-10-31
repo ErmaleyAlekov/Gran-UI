@@ -14,6 +14,11 @@
 #include <string>
 #include <vector>
 
+namespace beresta
+{
+    class Element;
+}
+
 namespace gran::ui
 {
     /*
@@ -207,6 +212,16 @@ namespace gran::ui
         std::size_t line = 0;
         std::size_t column = 0;
         Node* parent = nullptr;
+        /*
+        ** Элемент живого DOM документа, из которого построен узел (невладеющий; владеет UiDocument::dom).
+        ** nullptr — узел создан кодом, копией шаблона или движком (TabBar, слой ComboBox): в разметке его нет.
+        ** Указатель действителен, пока узел в дереве окна: удаление и перестройка узла снимают его вместе с элементом.
+        **
+        ** The live DOM element of the document the node is built from (non-owning; UiDocument::dom owns it).
+        ** nullptr — the node is created by code, as a template copy or by the engine (TabBar, the ComboBox layer): it is not in the markup.
+        ** The pointer is valid while the node is in a window tree: removing and rebuilding the node drop it together with the element.
+        */
+        const beresta::Element* domElement = nullptr;
         std::vector<std::unique_ptr<Node>> children;
         // Шаблон одной записи списка (<ItemTemplate>) — вне дерева, только образец для копий / The template of one list record (<ItemTemplate>) — outside the tree, only a sample for copies
         std::unique_ptr<Node> itemTemplate;

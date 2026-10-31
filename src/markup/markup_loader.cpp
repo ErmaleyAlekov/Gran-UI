@@ -3,15 +3,24 @@
 #include "beresta.hpp"
 
 #include <filesystem>
+#include <memory>
 
 namespace gran::markup
 {
-    // Разбор и проверка текста, затем построение дерева / Parsing and checking a text, then building the tree
+    /*
+    ** DOM переносится в кучу до построения: узлы запоминают адреса элементов, и эти адреса
+    ** должны быть окончательными (перенос документа после построения на них не влияет, но так
+    ** нет даже повода об этом думать).
+    **
+    ** The DOM moves to the heap before building: the nodes remember the element addresses, and these addresses
+    ** must be final (moving the document after building does not affect them, but this way
+    ** there is no reason to even think about it).
+    */
     UiDocument loadMarkupString(std::string_view text, const LoadOptions& options)
     {
-        beresta::Document dom = internal::parseMarkupText(text);
+        std::shared_ptr<beresta::Document> dom = std::make_shared<beresta::Document>(internal::parseMarkupText(text));
 
-        return internal::buildDocument(dom, options);
+        return internal::buildDocument(std::move(dom), options);
     }
 
     // Каталог файла — база для относительных путей картинок и шрифтов
@@ -22,7 +31,7 @@ namespace gran::markup
 
         if (fileOptions.baseDirectory.empty())
             fileOptions.baseDirectory = std::filesystem::path(path).parent_path().string();
-        beresta::Document dom = internal::parseMarkupFile(path);
-        return internal::buildDocument(dom, fileOptions);
+        std::shared_ptr<beresta::Document> dom = std::make_shared<beresta::Document>(internal::parseMarkupFile(path));
+        return internal::buildDocument(std::move(dom), fileOptions);
     }
 }

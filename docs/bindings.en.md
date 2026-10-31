@@ -102,6 +102,18 @@ and `TextArea` fields keep their own histories (Ctrl+Z in a field) and do not wr
 The `<Command action="gran:undo">` / `gran:redo` commands (`gran:undo:name` — an own stack) are enabled by the stack
 themselves; `on_undo_changed` is handy for "*" in the title (`not state.clean`).
 
+### Live document
+
+The markup stays live after loading (see the [API](api.en.md#live-document)): a node attribute can be read, written
+with the schema check and a node rebuild (the state of the fields inside is kept), and the window markup can be saved to XML.
+A schema error is a language exception (`RuntimeError`, `InvalidOperationException`, `IllegalStateException`), the markup stays as it was.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `markup_attribute(target, name)` → `str` or `None` | `MarkupAttribute` → `string?` | `markupAttribute` → `String` or `null` | `gran_app_markup_read` (`*result == NULL` — none) |
+| `set_markup_attribute(target, name, value)` (`None` removes) | `SetMarkupAttribute` | `setMarkupAttribute` | `gran_app_markup_write` (`value == NULL` removes) |
+| `save_markup(window)` → XML | `SaveMarkup` | `saveMarkup` | `gran_app_markup_save` |
+
 `command` supports `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
 `loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,

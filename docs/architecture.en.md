@@ -35,7 +35,7 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 |---|---|
 | `core/` | `GranException` + `ErrorCode`, message catalog `i18n` (ru, en), logger |
 | `utils/` | UTF-8, number and list parsing, geometry (`Vec2`, `Rect`, `Affine2D`), color |
-| `markup/` | loading through Beresta, built-in schema `gran-ui.xsd`, building `ui::Node` |
+| `markup/` | loading through Beresta, built-in schema `gran-ui.xsd`, building `ui::Node`, the live DOM (`live_document.hpp`) |
 | `style/` | value parsing (color, length, margins, radii, shadows, gradients, transitions), cascade, theme |
 | `ui/` | UI node, element types, states, traversal |
 | `data/` | the `ListModel` list model (string records, observers), `{field}` substitution |
@@ -89,6 +89,26 @@ The engine draws the interface itself and does not use a browser for this. `<Web
     `Button` has text or content, `Scroll` contains exactly one element, etc.;
   - `xs:unique` on `id` in the window, `xs:key`/`xs:keyref` — links `style="…"` only to declared styles.
   An error comes with the position and path before the window is created.
+- **Live document.** The Beresta DOM is not thrown away after building: `UiDocument::dom` (`shared_ptr`, so that
+  the public header gets by with a `beresta::Document` declaration), a node knows its element by a non-owning const
+  link `ui::Node::domElement` (an element can be changed only through `internal::editableElement`). The nodes that are not
+  in the markup (from code, list record copies, the Tabs strip, the ComboBox layer, the window tooltip and context menu) have
+  no link. Invariant: the link is valid while the node is in a window tree — `remove` removes the element together with the node
+  (`detachMarkup`), `appendMarkup` moves the fragment element into the parent DOM (`keepFragment`).
+  - Editing an attribute: writing into the DOM → checking the whole DOM by the schema (`xsd::SchemaValidator`) → building a subtree
+    from the element; any error rolls the attributes back. The application replaces the node **in place** (`app::rebuildInPlace`):
+    the node stays the same object (the parent, listeners, hover, focus), its content and descendants are new;
+    the children added at run time (`markup::isRuntimeChild`) are carried over as they are.
+  - The user state (`ui/node_state.hpp`): the field text with the caret and history, check marks, values,
+    the ComboBox/Tabs choice, scrolling and the focus are captured by `#id` or "ancestor key/index" keys and given back
+    to the nodes of the same kind — when a node is rebuilt and on any reload.
+  - Partial reload (`markup::planPatch` → `app::patchDocument`): the new document is built as a whole (the check
+    and the rollback as before); if `<Window>` and `<Resources>` are equal, its DOM is compared with the live one: an equal subtree
+    (`isEqualNode`) stays, for a node with the same "shell" (the name, attributes, own text, states, template) and the same
+    children the children are compared, otherwise the node is rebuilt in place from the new element with the live document styles.
+    All the branches are built first, then applied. A different prologue is a full replacement carrying the state over.
+  - Saving: `serializeMarkup` is the Beresta serializer with indentation (the parser does not keep whitespace indentation,
+    mixed content is written inline, comments are kept).
 
 ## 4. Rendering
 

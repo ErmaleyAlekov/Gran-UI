@@ -13,6 +13,11 @@
 #include <string_view>
 #include <vector>
 
+namespace beresta
+{
+    class Document;
+}
+
 namespace beresta::xsd
 {
     class Schema;
@@ -55,17 +60,31 @@ namespace gran::markup
     };
 
     /*
-    ** Загруженная разметка: окно, стили, шрифты и корень дерева. DOM «Берёсты»
-    ** после построения не хранится — дерево UI компактнее и живёт само по себе.
+    ** Загруженная разметка: окно, стили, шрифты, корень дерева и живой DOM «Берёсты». DOM —
+    ** источник правды для разметки: правки атрибутов идут в него и перестраивают узлы
+    ** (live_document.hpp), из него же документ сохраняется обратно в XML и сравнивается
+    ** при перезагрузке. Узлы ссылаются на свои элементы (ui::Node::domElement).
     **
-    ** The loaded markup: the window, styles, fonts and the tree root. The Beresta DOM
-    ** is not kept after building — the UI tree is more compact and lives on its own.
+    ** The loaded markup: the window, styles, fonts, the tree root and the live Beresta DOM. The DOM is
+    ** the source of truth for the markup: attribute edits go into it and rebuild the nodes
+    ** (live_document.hpp), the document is saved back to XML from it and compared
+    ** on a reload. The nodes refer to their elements (ui::Node::domElement).
     */
     struct UiDocument
     {
         WindowSpec window;
         style::StyleSheet styles;
         std::vector<FontFace> fonts;
+        /*
+        ** shared_ptr, а не unique_ptr: удалитель запоминается при создании, поэтому заголовок обходится
+        ** объявлением beresta::Document без включения «Берёсты». Объявлен до root: поля уничтожаются
+        ** в обратном порядке, и узлы уходят раньше элементов, на которые ссылаются.
+        **
+        ** shared_ptr, not unique_ptr: the deleter is captured at creation, so the header gets by with
+        ** a beresta::Document declaration without including Beresta. Declared before root: the fields are destroyed
+        ** in reverse order, and the nodes go before the elements they refer to.
+        */
+        std::shared_ptr<beresta::Document> dom;
         std::unique_ptr<ui::Node> root;
         std::size_t nodeCount = 0;
         // Значения темы — для фрагментов, вставляемых во время работы / The theme values — for fragments inserted at run time
@@ -111,8 +130,15 @@ namespace gran::markup
     ** A markup fragment (one root UI element) for inserting at run time.
     ** It is checked by the same schema as the main file; the styles ($theme values, style="…")
     ** come from document. Error positions are relative to the fragment start.
+    **
+    ** parent — будущий родитель: если он построен из разметки, элемент фрагмента сразу встаёт в его
+    ** DOM (последним ребёнком-элементом), и вставка попадает в сохранённую разметку; иначе (nullptr,
+    ** узел из кода) узлы фрагмента не связаны с DOM.
+    ** parent is the future parent: if it is built from the markup, the fragment element goes into its
+    ** DOM at once (as the last element child), and the insertion gets into the saved markup; otherwise (nullptr,
+    ** a node from code) the fragment nodes are not linked to the DOM.
     */
-    std::unique_ptr<ui::Node> buildFragment(std::string_view text, UiDocument& document);
+    std::unique_ptr<ui::Node> buildFragment(std::string_view text, UiDocument& document, const ui::Node* parent = nullptr);
 
     // ---- markup_schema.cpp ----
 

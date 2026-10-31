@@ -323,6 +323,8 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `setStyle(node, name)` | Change the named style of a node |
 | `append(parent, node)` / `remove(node)` | Insert a node (e.g., a copy of the template `ui::cloneTree`) / remove |
 | `appendMarkup(parent, "<Stack>…</Stack>")` | Insert a markup fragment (the same schema, the document styles and theme) |
+| `markupAttribute(node, name)` / `setMarkupAttribute(node, name, value)` / `removeMarkupAttribute` | A node attribute in the live markup: read / write with the schema check and a node rebuild / remove |
+| `saveMarkup()` / `saveMarkupFile(path)` | The live window markup as XML (with the edits, insertions and removals) |
 | `model(name)` / `itemOf(node)` | The list model of `items="name"` / the record a node belongs to |
 | `onWebMessage`, `postWebMessage`, `navigate`, `loadHtml` | The embedded `<WebView>` browser |
 | `focus(node)` | Pass keyboard focus |
@@ -575,6 +577,14 @@ gran::ItemRef item = app.itemOf(node);              // item.model == &contacts, 
 Markup fragment during operation — `app.appendMarkup(parent, "<Stack>…</Stack>")`: one root element,
 validation by the same schema, styles `style="…"` and theme values `$name` — from the document. Error — `MarkupException`
 with position inside the fragment; the tree does not change.
+
+**Live document.** The markup is not thrown away after loading: its DOM stays in the window, and the nodes know their elements.
+So an attribute can be changed "in the file" right at run time — `app.setMarkupAttribute(*app.find("sidebar"),
+"width", "320")`: the edit is checked by the schema (an error is `MarkupException`, everything stays as it was), the node is rebuilt,
+and the field texts, check marks, selected tabs and scrolling inside it are kept. `app.saveMarkup()` returns the window markup
+with the edits, `appendMarkup` insertions and `remove` removals — it can be saved and loaded on the next
+launch. Reloading the file (`reload`, `--watch`) became partial too: only the changed branches are rebuilt,
+and the typed text and the focus are not lost. Details are in the [API](api.en.md#live-document).
 
 ## Tabs, radio buttons, switches
 

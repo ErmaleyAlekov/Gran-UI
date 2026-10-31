@@ -77,7 +77,9 @@ namespace gran::i18n
             {Message::MARKUP_BAD_SHORTCUT, "wrong key combination \"{0}\": expected the Mod, Ctrl, Shift, Alt modifiers joined by \"+\" and a key name (S, F5, Enter, Del…)"},
             {Message::APP_UNKNOWN_COMMAND, "the command \"{0}\" is not declared by a <Command> of this window (or by a global command of another window)"},
             {Message::MENU_UNDO, "Undo"},
-            {Message::MENU_REDO, "Redo"}
+            {Message::MENU_REDO, "Redo"},
+            {Message::MARKUP_NOT_LIVE, "element {0} has no markup element: it was created by code, as a list copy or by the engine"},
+            {Message::MARKUP_BAD_ATTRIBUTE, "the attribute \"{0}\" cannot be written: {1}"}
         };
     }
 

@@ -81,3 +81,11 @@ desktop.ini
 /project_context.md
 /ui_framework_concept*.md
 /beresta_bug_*.md
+
+# ---- Настройки ИИ-помощников и расширений редактора (у каждого разработчика свои) ----
+# ---- AI assistant and editor extension settings (each developer has their own) -------
+.aider*
+.clinerules
+.continueignore
+.codex/
+.continue/

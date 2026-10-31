@@ -81,6 +81,7 @@ namespace gran::markup::internal
         std::unique_ptr<ui::Node> node = std::make_unique<ui::Node>();
 
         countNode(element, context);
+        node->domElement = &element;
         elementKind(element.getLocalName(), node->kind);
         node->line = element.getSourceLocation().line;
         node->column = element.getSourceLocation().column;

@@ -1,6 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/markup/live_document.hpp"
 
 #include <utility>
 
@@ -27,11 +28,13 @@ namespace gran
         return added;
     }
 
-    // Корень удалить нельзя: у него нет родителя, который бы им владел / The root cannot be removed: it has no parent that would own it
+    // Корень удалить нельзя: у него нет родителя, который бы им владел; элемент разметки уходит из живого DOM вместе с узлом
+    // The root cannot be removed: it has no parent that would own it; the markup element leaves the live DOM together with the node
     void Application::remove(ui::Node& node)
     {
         if (node.parent == nullptr)
             throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::APP_REMOVE_ROOT));
+        markup::detachMarkup(node);
         _state->lists.removeNode(node);
     }
 
