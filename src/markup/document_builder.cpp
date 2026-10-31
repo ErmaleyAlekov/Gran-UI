@@ -84,11 +84,11 @@ namespace gran::markup::internal
     ** The order: resources first (the theme is needed to substitute $values everywhere), then
     ** the window parameters, then the single root content element and its command references.
     */
-    UiDocument buildDocument(const beresta::Document& dom, const LoadOptions& options)
+    UiDocument buildDocument(std::shared_ptr<beresta::Document> dom, const LoadOptions& options)
     {
         UiDocument document;
         BuildContext context{options, document, {}, 0};
-        const beresta::Element& window = *dom.getRoot();
+        const beresta::Element& window = *dom->getRoot();
         const beresta::Element* child = firstElementChild(window);
 
         if (child != nullptr && child->getLocalName() == "Resources")
@@ -104,6 +104,7 @@ namespace gran::markup::internal
         document.nodeCount = context.nodeCount;
         document.baseDirectory = options.baseDirectory;
         document.tokens = std::move(context.tokens);
+        document.dom = std::move(dom);
         return document;
     }
 }

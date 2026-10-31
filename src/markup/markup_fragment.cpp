@@ -74,9 +74,16 @@ namespace gran::markup::internal
 
 namespace gran::markup
 {
-    // Построение тем же buildNode, что и у основного файла, со стилями и темой документа
-    // Building with the same buildNode as the main file, with the document styles and theme
-    std::unique_ptr<ui::Node> buildFragment(std::string_view text, UiDocument& document)
+    /*
+    ** Построение тем же buildNode, что и у основного файла, со стилями и темой документа; затем
+    ** элемент фрагмента переходит в живой DOM родителя (keepFragment), чтобы узлы не ссылались
+    ** на временный документ, а сохранённая разметка содержала вставку.
+    **
+    ** Building with the same buildNode as the main file, with the document styles and theme; then
+    ** the fragment element moves into the parent live DOM (keepFragment) so the nodes do not refer
+    ** to the temporary document and the saved markup contains the insertion.
+    */
+    std::unique_ptr<ui::Node> buildFragment(std::string_view text, UiDocument& document, const ui::Node* parent)
     {
         beresta::Document dom = internal::parseFragment(internal::wrapFragment(text, document));
         LoadOptions options;
@@ -88,6 +95,7 @@ namespace gran::markup
             root = internal::nextElementSibling(*root);
         std::unique_ptr<ui::Node> node = internal::buildNode(*root, context);
         internal::shiftLines(*node);
+        internal::keepFragment(dom, *root, *node, parent);
         document.nodeCount += context.nodeCount;
         return node;
     }

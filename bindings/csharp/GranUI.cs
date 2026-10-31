@@ -79,6 +79,9 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_undo_push(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? stack, ref UndoStep step);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_undo_state(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? stack, out uint flags);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_undo(IntPtr app, UndoFn? callback, IntPtr user);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, out IntPtr result);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_write(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string? value);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_save(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? window, out IntPtr result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string property, out IntPtr result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_apply(IntPtr app, IntPtr updates, nuint count);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_command(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string? target, [MarshalAs(UnmanagedType.LPUTF8Str)] string? argument);
@@ -159,6 +162,22 @@ public sealed class Application : IDisposable
     public void LoadFile(string path) => Check(Native.gran_app_load(Handle, Arguments.Text(path), 1));
     public string Read(string target, string property) {
         Check(Native.gran_app_read(Handle, Arguments.Text(target), Arguments.Text(property), out var value));
+        return OwnedString(value);
+    }
+    // Атрибут узла в живой разметке; null — атрибута нет / The node attribute in the live markup; null — no attribute
+    public string? MarkupAttribute(string target, string name) {
+        Check(Native.gran_app_markup_read(Handle, Arguments.Text(target), Arguments.Text(name), out var value));
+        return value == IntPtr.Zero ? null : OwnedString(value);
+    }
+    // Записать атрибут в разметку (null — удалить) и перестроить узел / Write the attribute into the markup (null removes it) and rebuild the node
+    public void SetMarkupAttribute(string target, string name, string? value) {
+        if (value != null) Arguments.Text(value);
+        Check(Native.gran_app_markup_write(Handle, Arguments.Text(target), Arguments.Text(name), value));
+    }
+    // Живая разметка окна (null — главного) как XML / The live markup of the window (null — the main one) as XML
+    public string SaveMarkup(string? window=null) {
+        if (window != null) Arguments.Text(window);
+        Check(Native.gran_app_markup_save(Handle, window, out var value));
         return OwnedString(value);
     }
     public void Apply(params (string Target,string Property,string Value)[] updates) {

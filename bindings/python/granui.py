@@ -108,6 +108,8 @@ def _configure(lib):
         "app_on_undo": (C.c_int32, [p, _UndoFn, p]),
         "app_clear_timer": (C.c_int32, [p, C.c_uint64]),
         "app_read": (C.c_int32, [p, s, s, C.POINTER(p)]),
+        "app_markup_read": (C.c_int32, [p, s, s, C.POINTER(p)]), "app_markup_write": (C.c_int32, [p, s, s, s]),
+        "app_markup_save": (C.c_int32, [p, s, C.POINTER(p)]),
         "app_apply": (C.c_int32, [p, C.POINTER(_Update), z]), "app_command": (C.c_int32, [p, s, s, s]),
         "model_count": (C.c_int32, [p, s, C.POINTER(z)]),
         "model_read": (C.c_int32, [p, s, z, s, C.POINTER(p)]),
@@ -178,6 +180,26 @@ class Application:
 
     def command(self, name, target=None, argument=None):
         self._call("app_command", _encode(name), _encode(target), _encode(argument))
+
+    def markup_attribute(self, target, name):
+        """Атрибут узла в живой разметке; None — нет атрибута. / The node attribute in the live markup; None — no attribute."""
+        output = C.c_void_p()
+        self._call("app_markup_read", _encode(target), _encode(name), C.byref(output))
+        if not output.value:
+            return None
+        try:
+            return C.string_at(output).decode("utf-8")
+        finally:
+            self._lib.gran_string_free(output)
+
+    def set_markup_attribute(self, target, name, value):
+        """Записать атрибут в разметку (None — удалить) и перестроить узел; ошибка схемы — RuntimeError.
+        Write the attribute into the markup (None removes it) and rebuild the node; a schema error is RuntimeError."""
+        self._call("app_markup_write", _encode(target), _encode(name), _encode(value))
+
+    def save_markup(self, window=None):
+        """Живая разметка окна (None — главного) как XML. / The live markup of the window (None — the main one) as XML."""
+        return self._string("app_markup_save", _encode(window))
 
     def _protect(self, callback, *args):
         # Исключение не должно пересечь callback ctypes.

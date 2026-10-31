@@ -120,6 +120,20 @@ class TestApplication(unittest.TestCase):
         self.app.set_undo_limit(1, "doc")
         self.app.on_undo_changed(None)
 
+    def test_live_markup(self):
+        # Правка атрибута идёт в живую разметку; ошибка схемы оставляет прежнее значение; сохранённый XML её содержит
+        # An attribute edit goes into the live markup; a schema error keeps the former value; the saved XML holds it
+        self.assertIsNone(self.app.markup_attribute("root", "padding"))
+        self.app.set_markup_attribute("root", "padding", "6")
+        self.assertEqual(self.app.markup_attribute("root", "padding"), "6")
+        with self.assertRaises(RuntimeError):
+            self.app.set_markup_attribute("root", "padding", "wide")
+        self.assertEqual(self.app.markup_attribute("root", "padding"), "6")
+        self.assertIn('padding="6"', self.app.save_markup())
+        self.app.set_markup_attribute("root", "padding", None)
+        self.assertIsNone(self.app.markup_attribute("root", "padding"))
+        self.assertEqual(self.app.read("text", "text"), "Привет 🌲")
+
     @unittest.skipUnless(os.name == "nt", "this case injects Win32 keyboard messages")
     def test_live_test_app(self):
         happened = []

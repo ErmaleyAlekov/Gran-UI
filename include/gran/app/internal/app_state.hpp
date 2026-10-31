@@ -178,6 +178,32 @@ namespace gran
         // Каталог разметки для относительных путей шрифтов и картинок / The markup directory for relative font and image paths
         std::string sourceBase(const std::string& path);
 
+        // ---- reload_patch.cpp ----
+
+        /*
+        ** Частичная замена документа окна документом next той же разметки (live_patch): равные ветви
+        ** остаются, изменённые перестраиваются на месте. false — пролог или каталог различаются (или
+        ** ветвь не строится), окно не тронуто — нужна полная замена.
+        **
+        ** A partial replacement of the window document by the document next of the same markup (live_patch): the equal branches
+        ** stay, the changed ones are rebuilt in place. false — the prologue or the directory differ (or
+        ** a branch does not build), the window is untouched — a full replacement is needed.
+        */
+        bool patchDocument(AppWindow& win, markup::UiDocument& next);
+
+        // ---- node_rebuild.cpp ----
+
+        /*
+        ** Узел node получает содержимое поддерева fresh, оставаясь тем же объектом (родитель, слушатели,
+        ** наведение и фокус сохраняются); прежние потомки снимаются со всех ссылок окна и уничтожаются.
+        ** Состояние потомков (и самого узла при keepOwnState) переходит на новые узлы, фокус — тоже.
+        **
+        ** The node gets the content of the fresh subtree while staying the same object (the parent, the listeners,
+        ** the hover and the focus are kept); the former descendants are dropped from all the window references and destroyed.
+        ** The descendants state (and the node own one with keepOwnState) moves to the new nodes, the focus too.
+        */
+        void rebuildInPlace(AppWindow& win, ui::Node& node, std::unique_ptr<ui::Node> fresh, bool keepOwnState);
+
         // Проверить файлы <Font> до замены дерева: испорченный шрифт оставляет прежний интерфейс
         // Check the <Font> files before replacing the tree: a broken font keeps the former interface
         void validateFonts(const markup::UiDocument& document, const std::string& base);

@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Нативная оболочка редактора; содержимым управляет контроллер.
+     Native editor shell; the controller manages its content. -->
+<Window title="Gran UI Editor" width="1280" height="800" minWidth="800" minHeight="500"
+        titleBar="custom" onClose="closeWindow" background="#181818" color="#d6d6d6" fontFamily="Segoe UI" fontSize="13" accentColor="#78a9ff">
+  <Resources>
+    <Theme>
+      <Token name="shell" value="#181818"/>
+      <Token name="surface" value="#1f1f1f"/>
+      <Token name="raised" value="#262626"/>
+      <Token name="hover" value="#303030"/>
+      <Token name="border" value="#303030"/>
+      <Token name="foreground" value="#d6d6d6"/>
+      <Token name="muted" value="#9b9b9b"/>
+      <Token name="accent" value="#78a9ff"/>
+      <Token name="selection" value="#283c58"/>
+    </Theme>
+    <!-- Переопределяем светлые умолчания, включая всплывающие слои.
+         Override the light defaults, including popup layers. -->
+    <Style name="Button" orientation="horizontal" align="center" justify="center" spacing="8"
+           padding="6 10" borderWidth="0" borderRadius="5" background="transparent"
+           color="$foreground" fontWeight="400" cursor="pointer">
+      <Hover background="$hover"/>
+      <Pressed background="#393939" transform="none"/>
+      <Focused borderWidth="1" borderColor="$accent" boxShadow="none"/>
+      <Disabled opacity="0.45"/>
+    </Style>
+    <Style name="Popup" background="$raised" color="$foreground" padding="5" spacing="1" minWidth="238"
+           borderWidth="1" borderColor="#414141" borderRadius="7" boxShadow="0 8 24 rgba(0,0,0,0.4)" fontSize="13"/>
+    <Style name="MenuItem" padding="7 10" borderRadius="4" cursor="pointer">
+      <Hover background="$selection"/>
+      <Pressed background="#344f73"/>
+      <Focused background="$selection"/>
+      <Disabled opacity="0.45"/>
+    </Style>
+    <Style name="Dialog" background="$raised" color="$foreground" padding="24" spacing="18"
+           minWidth="420" maxWidth="520" borderWidth="1" borderColor="#454545" borderRadius="10"
+           scrim="rgba(0,0,0,0.55)" boxShadow="0 16 48 rgba(0,0,0,0.5)"/>
+    <Style name="Tooltip" background="$raised" color="$foreground" padding="6 9" fontSize="12"
+           borderWidth="1" borderColor="#454545" borderRadius="4"/>
+    <Style name="Input" background="#292929" color="$foreground" padding="6 9" borderWidth="1"
+           borderColor="#454545" borderRadius="4" fontSize="13" cursor="text">
+      <Hover borderColor="#666666"/>
+      <Focused borderColor="$accent" boxShadow="none"/>
+    </Style>
+    <Style name="primary-button" basedOn="Button" background="#3266a8" color="#ffffff" padding="7 14">
+      <Hover background="#3e78bc"/>
+      <Pressed background="#28578e"/>
+    </Style>
+    <Style name="secondary-button" basedOn="Button" background="#363636" padding="7 14"/>
+    <Style name="menu-button" basedOn="Button" height="28" padding="0 9" shrink="0"/>
+    <Style name="tool-button" basedOn="Button" width="28" height="28" padding="6" shrink="0"/>
+    <Style name="caption-button" basedOn="Button" width="44" height="40" padding="14" borderRadius="0" shrink="0"/>
+    <Style name="caption-close" basedOn="caption-button">
+      <Hover background="#c42b36" color="#ffffff"/>
+      <Pressed background="#a8232d"/>
+    </Style>
+    <Style name="activity-button" basedOn="Button" width="40" height="40" padding="10" color="$muted" shrink="0">
+      <Hover color="#ffffff" background="$hover"/>
+    </Style>
+    <Style name="activity-active" basedOn="activity-button" color="$foreground" background="$raised"
+           borderWidth="0 0 0 2" borderColor="$accent"/>
+    <Style name="section-label" fontSize="12" fontWeight="600" color="$foreground"/>
+
+    <!-- Стабильные имена стилей составляют контракт динамического содержимого.
+         Stable style names form the contract for dynamic content. -->
+    <Style name="editor-tab" orientation="horizontal" align="center" height="34" shrink="0"
+           padding="0 5 0 4" spacing="2" background="$shell" color="$muted"
+           borderRadius="6 6 0 0" borderWidth="1 1 0 1" borderColor="transparent"/>
+    <Style name="editor-tab-active" basedOn="editor-tab" background="$surface" color="$foreground" borderColor="$border"/>
+    <Style name="tab-label" basedOn="Button" padding="0 9" height="30" background="transparent" borderRadius="4" fontSize="13" textWrap="nowrap"/>
+    <Style name="tab-close" basedOn="Button" width="24" height="24" padding="0" borderRadius="4" fontSize="16"/>
+    <Style name="code-input" fontFamily="Consolas" fontSize="14" lineHeight="1.5" padding="12"
+           grow="1" minWidth="0" minHeight="0" borderWidth="0" borderRadius="0"
+           background="$surface" color="$foreground" cursor="text" overflow="hidden">
+      <Hover borderWidth="0"/>
+      <Focused borderWidth="0" boxShadow="none"/>
+    </Style>
+    <Style name="explorer-file" basedOn="Button" height="28" padding="3 12" justify="start" textAlign="start"
+           borderRadius="4" fontSize="13" textWrap="nowrap" textOverflow="ellipsis">
+      <Hover background="$hover"/>
+      <Checked background="$selection" color="#ffffff"/>
+    </Style>
+    <Style name="status-item" basedOn="Button" padding="0 8" height="24" fontSize="12" borderRadius="0"/>
+    <Style name="panel-tab" basedOn="Button" height="32" padding="0 10" fontSize="12" color="$muted"/>
+    <Style name="separator" height="1" background="#414141" margin="4 5"/>
+    <!-- Команды связывают меню и горячие клавиши.
+         Commands connect menus and keyboard shortcuts. -->
+    <Command id="cmdNew" text="New Text File" key="Mod+N" action="newFile"/>
+    <Command id="cmdOpen" text="Open File…" key="Mod+O" action="openFile"/>
+    <Command id="cmdFolder" text="Open Folder…" action="openFolder"/>
+    <Command id="cmdSave" text="Save" key="Mod+S" action="saveFile"/>
+    <Command id="cmdSaveAs" text="Save As…" key="Mod+Shift+S" action="saveFileAs"/>
+    <Command id="cmdClose" text="Close Editor" key="Mod+W" action="closeTab"/>
+    <Command id="cmdCloseAll" text="Close All Editors" action="closeAllTabs"/>
+    <Command id="cmdReopen" text="Reopen Closed Editor" key="Mod+Shift+T" action="reopenTab"/>
+    <Command id="cmdNext" text="Next Editor" key="Ctrl+Tab" action="nextTab"/>
+    <Command id="cmdPrevious" text="Previous Editor" key="Ctrl+Shift+Tab" action="previousTab"/>
+    <Command id="cmdQuit" text="Close Window" key="Mod+Shift+W" action="closeWindow"/>
+    <Command id="cmdUndo" text="Undo" key="Mod+Z" action="gran:undo"/>
+    <Command id="cmdRedo" text="Redo" key="Mod+Y Mod+Shift+Z" action="gran:redo"/>
+    <Command id="cmdFind" text="Find…" key="Mod+F" action="findText"/>
+    <Command id="cmdCommands" text="Show Commands" key="Mod+Shift+P F1" action="showCommands"/>
+    <Command id="cmdSidebar" text="Toggle Primary Side Bar" key="Mod+B" action="toggleSidebar"/>
+    <Command id="cmdPanel" text="Toggle Panel" key="Mod+J" action="togglePanel"/>
+
+  </Resources>
+
+  <Grid rows="40,1fr,24" columns="1fr" onDrop="openDroppedFiles">
+    <!-- Кнопки в перетаскиваемом заголовке сохраняют обычное поведение.
+         Buttons inside the draggable title bar retain their normal behavior. -->
+    <Stack gridRow="0" orientation="horizontal" align="center" windowRole="drag" padding="0 0 0 10" spacing="2">
+      <Icon width="22" height="22" margin="0 8 0 0" color="$accent" viewBox="0 0 24 24"
+            data="M4 4h7v3H7v10h4v3H4zM13 4h7v16h-7v-3h4V7h-4zM10 10h4v4h-4z"/>
+      <Button style="menu-button" text="File" popup="fileMenu"/>
+      <Button style="menu-button" text="Edit" popup="editMenu"/>
+      <Button style="menu-button" text="View" popup="viewMenu"/>
+      <Button style="menu-button" text="Go" popup="goMenu"/>
+      <Button style="menu-button" text="Help" popup="helpMenu"/>
+      <Box grow="1" minWidth="8"/>
+      <Button style="Button" onClick="showCommands" accessibleName="Show Commands" tooltip="Show Commands (Ctrl+Shift+P)"
+              width="36%" minWidth="160" maxWidth="480" height="28" background="$raised"
+              borderWidth="1" borderColor="#3b3b3b" padding="0 12" spacing="9">
+        <Icon width="14" height="14" viewBox="0 0 24 24" fillRule="evenodd"
+              data="M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM10 4.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM14.5 15.5 16 14l6 6-1.5 1.5z"/>
+        <Text id="windowTitle" fontSize="12" textWrap="nowrap" textOverflow="ellipsis">Gran UI Editor</Text>
+      </Button>
+      <Box grow="1" minWidth="8"/>
+      <Button style="tool-button" onClick="toggleSidebar" tooltip="Toggle Primary Side Bar (Ctrl+B)" accessibleName="Toggle Primary Side Bar">
+        <Icon width="16" height="16" viewBox="0 0 24 24" fillRule="evenodd" data="M3 4h18v16H3zM4.5 5.5v13h5v-13zM11 5.5v13h8.5v-13z"/>
+      </Button>
+      <Button style="tool-button" onClick="togglePanel" tooltip="Toggle Panel (Ctrl+J)" accessibleName="Toggle Panel">
+        <Icon width="16" height="16" viewBox="0 0 24 24" fillRule="evenodd" data="M3 4h18v16H3zM4.5 5.5v8h15v-8zM4.5 15v3.5h15V15z"/>
+      </Button>
+      <Button style="caption-button" windowRole="minimize" accessibleName="Minimize">
+        <Icon width="12" height="12" viewBox="0 0 12 12" data="M1 6h10v1H1z"/>
+      </Button>
+      <Button style="caption-button" windowRole="maximize" accessibleName="Maximize or Restore">
+        <Icon width="12" height="12" viewBox="0 0 12 12" fillRule="evenodd" data="M1 1h10v10H1zM2 2v8h8V2z"/>
+      </Button>
+      <Button style="caption-close" onClick="closeWindow" accessibleName="Close Window">
+        <Icon width="12" height="12" viewBox="0 0 12 12" data="M1 1 2 0l4 5 4-5 1 1-4 5 4 4-1 1-4-4-4 4-1-1 4-4z"/>
+      </Button>
+    </Stack>
+
+    <Stack gridRow="1" orientation="horizontal" minHeight="0" padding="0 6 0 0" spacing="6">
+      <!-- Монохромные векторы не зависят от emoji-шрифта операционной системы.
+           Monochrome vectors do not depend on the operating system's emoji font. -->
+      <Stack width="48" padding="6 4" spacing="4" shrink="0">
+        <Button id="activityExplorer" style="activity-active" onClick="showExplorer" tooltip="Explorer" accessibleName="Explorer">
+          <Icon width="20" height="20" viewBox="0 0 24 24" fillRule="evenodd"
+                data="M7 3h10l4 4v14H7zM8.5 4.5v15h11V8h-4V4.5zM17 5l1.5 1.5H17zM3 7h2v1.5h-.5v11H5V21H3z"/>
+        </Button>
+        <Button style="activity-button" onClick="showSearch" tooltip="Search" accessibleName="Search">
+          <Icon width="20" height="20" viewBox="0 0 24 24" fillRule="evenodd"
+                data="M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM10 4.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM14.5 15.5 16 14l6 6-1.5 1.5z"/>
+        </Button>
+        <Button style="activity-button" onClick="showSourceControl" tooltip="Source Control" accessibleName="Source Control">
+          <Icon width="20" height="20" viewBox="0 0 24 24" fillRule="evenodd"
+                data="M6 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 3.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM6 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 17.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM18 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM18 3.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM5.25 8h1.5v8h-1.5zM17.25 8h1.5v2c0 3-3 4-6 4h-6v-1.5h6c2 0 4.5-.5 4.5-2.5z"/>
+        </Button>
+        <Button style="activity-button" onClick="showRun" tooltip="Run and Debug" accessibleName="Run and Debug">
+          <Icon width="20" height="20" viewBox="0 0 24 24" fillRule="evenodd" data="M5 3l16 9L5 21zM6.5 5.6v12.8L18 12z"/>
+        </Button>
+        <Button style="activity-button" onClick="showExtensions" tooltip="Extensions" accessibleName="Extensions">
+          <Icon width="20" height="20" viewBox="0 0 24 24" fillRule="evenodd"
+                data="M3 3h8v8H3zM4.5 4.5v5h5v-5zM13 2h8v8h-8zM14.5 3.5v5h5v-5zM3 13h8v8H3zM4.5 14.5v5h5v-5zM13 13h8v8h-8zM14.5 14.5v5h5v-5z"/>
+        </Button>
+        <Box grow="1"/>
+        <Button style="activity-button" onClick="showAccounts" tooltip="Accounts" accessibleName="Accounts">
+          <Icon width="20" height="20" viewBox="0 0 24 24" fillRule="evenodd"
+                data="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17zM12 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 7.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM6.5 18c0-6 11-6 11 0H16c0-4-8-4-8 0z"/>
+        </Button>
+        <Button style="activity-button" onClick="showSettings" tooltip="Settings" accessibleName="Settings">
+          <Icon width="20" height="20" viewBox="0 0 24 24" fillRule="evenodd"
+                data="M10 2h4l.5 3 2 .9 2.6-1.1 2 3.4-2.3 2v3.6l2.3 2-2 3.4-2.6-1.1-2 .9-.5 3h-4l-.5-3-2-.9-2.6 1.1-2-3.4 2.3-2v-3.6l-2.3-2 2-3.4 2.6 1.1 2-.9zM11.3 3.5l-.4 2.6-3.4 1.6-2.1-.9-1 1.6 1.9 1.7v5l-1.9 1.6 1 1.6 2.1-.9 3.4 1.5.4 2.6h1.4l.4-2.6 3.4-1.5 2.1.9 1-1.6-1.9-1.6v-5l1.9-1.7-1-1.6-2.1.9-3.4-1.6-.4-2.6zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 9.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>
+        </Button>
+      </Stack>
+
+      <Stack id="sidebar" width="232" shrink="0" background="$surface" borderRadius="7" borderWidth="1" borderColor="$border" minHeight="0">
+        <Stack orientation="horizontal" align="center" height="42" padding="0 10 0 14" shrink="0">
+          <Text style="section-label" grow="1">Explorer</Text>
+          <Button style="tool-button" onClick="newFile" tooltip="New Text File (Ctrl+N)" accessibleName="New Text File">
+            <Icon width="16" height="16" viewBox="0 0 24 24" data="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z"/>
+          </Button>
+          <Button style="tool-button" popup="explorerMenu" tooltip="Explorer Actions" accessibleName="Explorer Actions">
+            <Icon width="16" height="16" viewBox="0 0 24 24" data="M3 10h3v3H3zM10.5 10h3v3h-3zM18 10h3v3h-3z"/>
+          </Button>
+        </Stack>
+        <Stack orientation="horizontal" align="center" padding="3 12 8" spacing="6">
+          <Icon width="12" height="12" viewBox="0 0 16 16" data="m3 5 5 5 5-5-1-1-4 4-4-4z"/>
+          <Text id="workspaceName" style="section-label" textWrap="nowrap" textOverflow="ellipsis">Open Editors</Text>
+        </Stack>
+        <Scroll grow="1" minHeight="0" margin="0 6">
+          <Stack id="explorerFiles" spacing="1"/>
+        </Scroll>
+        <Button style="Button" onClick="openFolder" text="Open Folder…" margin="10" height="30" background="$raised"/>
+      </Stack>
+
+      <Stack grow="1" minWidth="0" minHeight="0" background="$surface" borderRadius="7" borderWidth="1" borderColor="$border" overflow="hidden">
+        <Stack orientation="horizontal" height="40" shrink="0" background="$shell" padding="6 6 0" spacing="4">
+          <Scroll direction="horizontal" grow="1" minWidth="0">
+            <Stack id="editorTabs" orientation="horizontal" spacing="2"/>
+          </Scroll>
+          <Button style="tool-button" onClick="newFile" tooltip="New Text File (Ctrl+N)" accessibleName="New Text File">
+            <Icon width="16" height="16" viewBox="0 0 24 24" data="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z"/>
+          </Button>
+        </Stack>
+        <Text id="breadcrumb" height="28" padding="5 14" fontSize="12" color="$muted" shrink="0" textWrap="nowrap" textOverflow="ellipsis">Gran UI Editor</Text>
+        <Stack id="editorPages" grow="1" minHeight="0" minWidth="0">
+          <Text id="emptyEditor" grow="1" maxWidth="420" alignSelf="center" padding="104 32" textAlign="center" textWrap="wrap" fontSize="15" lineHeight="1.8" color="$muted">Open a file to start editing. Use Ctrl+N for a new file or Ctrl+O to open one.</Text>
+        </Stack>
+        <!-- Панель сообщает статус; она не имитирует работающий терминал или LSP.
+             The panel reports status; it does not simulate a working terminal or LSP. -->
+        <Stack id="bottomPanel" visible="false" height="190" shrink="0" borderWidth="1 0 0 0" borderColor="$border">
+          <Stack orientation="horizontal" align="center" height="38" padding="0 6" spacing="2">
+            <Button style="panel-tab" onClick="showProblems" text="Problems"/>
+            <Button style="panel-tab" onClick="showOutput" text="Output"/>
+            <Button style="panel-tab" onClick="showTerminal" text="Terminal"/>
+            <Box grow="1"/>
+            <Text id="panelTitle" color="$muted" fontSize="12" margin="0 8"/>
+            <Button style="tool-button" onClick="togglePanel" tooltip="Close Panel" accessibleName="Close Panel" text="×" fontSize="18"/>
+          </Stack>
+          <Stack id="findControls" visible="false" orientation="horizontal" spacing="8" padding="0 16 8" shrink="0">
+            <Input id="findQuery" style="Input" grow="1" placeholder="Find in active file" onSubmit="findNext" accessibleName="Find in active file"/>
+            <Button style="tool-button" onClick="findNext" tooltip="Find Next" accessibleName="Find Next">
+              <Icon width="16" height="16" viewBox="0 0 24 24" data="M11 3h2v13l4-4 1.4 1.4L12 20l-6.4-6.6L7 12l4 4z"/>
+            </Button>
+          </Stack>
+          <Scroll grow="1" minHeight="0">
+            <Text id="panelText" padding="12 16" fontFamily="Consolas" fontSize="13" lineHeight="1.6" textWrap="wrap" color="$muted">Select a view to see its status.</Text>
+          </Scroll>
+        </Stack>
+      </Stack>
+    </Stack>
+
+    <Stack gridRow="2" orientation="horizontal" align="center" spacing="2" padding="0 8" fontSize="12" color="$muted">
+      <Button style="status-item" onClick="showProblems" tooltip="Problems" text="Problems"/>
+      <Text id="statusMessage" grow="1" minWidth="0" textWrap="nowrap" textOverflow="ellipsis">Ready</Text>
+      <Text id="cursorStatus" padding="0 8" shrink="0">Ln 1, Col 1</Text>
+      <Text padding="0 8" shrink="0">UTF-8</Text>
+      <Text id="languageStatus" padding="0 8" shrink="0">Plain Text</Text>
+      <Button style="status-item" onClick="showOutput" tooltip="Show Output" accessibleName="Show Output" padding="0 6">
+        <Icon width="14" height="14" viewBox="0 0 24 24" fillRule="evenodd"
+              data="M12 3a6 6 0 0 0-6 6v6l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM12 4.5a4.5 4.5 0 0 1 4.5 4.5v6.5l.7 1H6.8l.7-1V9A4.5 4.5 0 0 1 12 4.5zM9 20h6v1.5H9z"/>
+      </Button>
+    </Stack>
+
+    <Popup style="Popup" id="fileMenu">
+      <MenuItem style="MenuItem" command="cmdNew"/>
+      <MenuItem style="MenuItem" command="cmdOpen"/>
+      <MenuItem style="MenuItem" command="cmdFolder"/>
+      <Box style="separator"/>
+      <MenuItem style="MenuItem" command="cmdSave"/>
+      <MenuItem style="MenuItem" command="cmdSaveAs"/>
+      <Box style="separator"/>
+      <MenuItem style="MenuItem" command="cmdClose"/>
+      <MenuItem style="MenuItem" command="cmdCloseAll"/>
+      <MenuItem style="MenuItem" command="cmdQuit"/>
+    </Popup>
+    <Popup style="Popup" id="editMenu">
+      <MenuItem style="MenuItem" command="cmdUndo"/>
+      <MenuItem style="MenuItem" command="cmdRedo"/>
+      <Box style="separator"/>
+      <MenuItem style="MenuItem" command="cmdFind"/>
+    </Popup>
+    <Popup style="Popup" id="viewMenu">
+      <MenuItem style="MenuItem" command="cmdCommands"/>
+      <Box style="separator"/>
+      <MenuItem style="MenuItem" text="Explorer" onClick="showExplorer"/>
+      <MenuItem style="MenuItem" text="Search" onClick="showSearch"/>
+      <MenuItem style="MenuItem" text="Source Control" onClick="showSourceControl"/>
+      <MenuItem style="MenuItem" text="Run and Debug" onClick="showRun"/>
+      <MenuItem style="MenuItem" text="Extensions" onClick="showExtensions"/>
+      <Box style="separator"/>
+      <MenuItem style="MenuItem" command="cmdSidebar"/>
+      <MenuItem style="MenuItem" command="cmdPanel"/>
+      <MenuItem style="MenuItem" text="Problems" onClick="showProblems"/>
+      <MenuItem style="MenuItem" text="Output" onClick="showOutput"/>
+      <MenuItem style="MenuItem" text="Terminal" onClick="showTerminal"/>
+    </Popup>
+    <Popup style="Popup" id="goMenu">
+      <MenuItem style="MenuItem" command="cmdNext"/>
+      <MenuItem style="MenuItem" command="cmdPrevious"/>
+      <MenuItem style="MenuItem" command="cmdReopen"/>
+    </Popup>
+    <Popup style="Popup" id="helpMenu">
+      <MenuItem style="MenuItem" command="cmdCommands"/>
+      <MenuItem style="MenuItem" text="Settings" onClick="showSettings"/>
+      <MenuItem style="MenuItem" text="Accounts" onClick="showAccounts"/>
+    </Popup>
+    <Popup style="Popup" id="explorerMenu">
+      <MenuItem style="MenuItem" command="cmdNew"/>
+      <MenuItem style="MenuItem" command="cmdOpen"/>
+      <MenuItem style="MenuItem" command="cmdFolder"/>
+      <MenuItem style="MenuItem" command="cmdCloseAll"/>
+    </Popup>
+    <Dialog style="Dialog" id="savePrompt" closable="false">
+      <Text fontSize="18" fontWeight="600">Save changes?</Text>
+      <Text id="savePromptText" textWrap="wrap" lineHeight="1.5">This file has unsaved changes. Save them before closing?</Text>
+      <Stack orientation="horizontal" justify="end" spacing="8">
+        <Button style="secondary-button" text="Don't Save" onClick="discardClose"/>
+        <Button style="secondary-button" text="Cancel" onClick="cancelClose"/>
+        <Button style="primary-button" text="Save" onClick="confirmSave"/>
+      </Stack>
+    </Dialog>
+  </Grid>
+</Window>

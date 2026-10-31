@@ -1,0 +1,5 @@
+Метка для Makefile и CMakeLists.txt: gran_editor собирается как оконная программа Windows без консоли
+(подсистема WINDOWS: -mwindows в MinGW, WIN32_EXECUTABLE + /ENTRY:mainCRTStartup в MSVC).
+
+A marker for the Makefile and CMakeLists.txt: gran_editor is built as a Windows windowed program without a console
+(the WINDOWS subsystem: -mwindows in MinGW, WIN32_EXECUTABLE + /ENTRY:mainCRTStartup in MSVC).

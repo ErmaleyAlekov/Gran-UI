@@ -114,6 +114,18 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 Команды `<Command action="gran:undo">` / `gran:redo` (`gran:undo:имя` — свой стек) включаются по стеку сами;
 `on_undo_changed` удобен для «*» в заголовке (`not state.clean`).
 
+### Живой документ
+
+Разметка после загрузки остаётся живой (см. [API](api.md#живой-документ)): атрибут узла можно прочитать, записать
+с проверкой схемой и перестройкой узла (состояние полей внутри сохраняется) и сохранить разметку окна в XML.
+Ошибка схемы — исключение языка (`RuntimeError`, `InvalidOperationException`, `IllegalStateException`), разметка прежняя.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `markup_attribute(target, name)` → `str` или `None` | `MarkupAttribute` → `string?` | `markupAttribute` → `String` или `null` | `gran_app_markup_read` (`*result == NULL` — нет) |
+| `set_markup_attribute(target, name, value)` (`None` — удалить) | `SetMarkupAttribute` | `setMarkupAttribute` | `gran_app_markup_write` (`value == NULL` — удалить) |
+| `save_markup(window)` → XML | `SaveMarkup` | `saveMarkup` | `gran_app_markup_save` |
+
 `command` поддерживает `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
 `loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,

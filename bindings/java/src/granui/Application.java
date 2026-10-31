@@ -120,6 +120,27 @@ public final class Application implements AutoCloseable {
     public String read(String target, String property) {
         try (Arena scope=Arena.ofConfined()) { return ownedString("gran_app_read", app, utf8(scope,target), utf8(scope,property)); }
     }
+    // Атрибут узла в живой разметке; null — атрибута нет / The node attribute in the live markup; null — no attribute
+    public String markupAttribute(String target, String name) {
+        ensureOpen();
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(ADDRESS);
+            status("gran_app_markup_read",app,utf8(scope,target),utf8(scope,name),output);
+            MemorySegment value=output.get(ADDRESS,0);
+            if (value.address() == 0) return null;
+            try { return text(value); }
+            finally { invoke("gran_string_free", null, value); }
+        }
+    }
+    // Записать атрибут в разметку (null — удалить) и перестроить узел / Write the attribute into the markup (null removes it) and rebuild the node
+    public void setMarkupAttribute(String target, String name, String value) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_markup_write",app,utf8(scope,target),utf8(scope,name),utf8(scope,value)); }
+    }
+    // Живая разметка окна (null — главного) как XML / The live markup of the window (null — the main one) as XML
+    public String saveMarkup() { return saveMarkup(null); }
+    public String saveMarkup(String window) {
+        try (Arena scope=Arena.ofConfined()) { return ownedString("gran_app_markup_save",app,utf8(scope,window)); }
+    }
     public void apply(Update... updates) {
         try (Arena scope=Arena.ofConfined()) {
             MemorySegment rows = updates.length == 0 ? MemorySegment.NULL : scope.allocate(Math.multiplyExact(24L,updates.length),8);

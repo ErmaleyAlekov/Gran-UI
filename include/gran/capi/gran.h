@@ -197,6 +197,20 @@ GRAN_API gran_status gran_app_undo_push(gran_app* app, const char* stack, const 
 GRAN_API gran_status gran_app_undo_state(gran_app* app, const char* stack, uint32_t* flags);
 GRAN_API gran_status gran_app_on_undo(gran_app* app, gran_undo_fn callback, void* user);
 
+/* Живой документ: разметка остаётся после загрузки. markup_read — атрибут элемента узла target в разметке
+ * (*result == NULL — атрибута нет или узел не из разметки; иначе освободить gran_string_free); markup_write
+ * записывает атрибут (value == NULL — удаляет) и перестраивает узел: потомки строятся заново, их состояние
+ * (текст полей, отметки, вкладки) переходит по id или месту; ошибка схемы — GRAN_ERROR (текст — gran_last_error), разметка прежняя.
+ * markup_save — разметка окна узла window (NULL — главного) как XML с правками, вставками и удалениями.
+ * The live document: the markup stays after loading. markup_read is an attribute of the target node element in the markup
+ * (*result == NULL — no attribute or the node is not from the markup; otherwise free it with gran_string_free); markup_write
+ * writes the attribute (value == NULL removes it) and rebuilds the node: the descendants are built anew, their state
+ * (the field texts, check marks, tabs) moves by id or place; a schema error is GRAN_ERROR (the text is gran_last_error), the markup stays as it was.
+ * markup_save is the markup of the window of the node window (NULL — the main one) as XML with the edits, insertions and removals. */
+GRAN_API gran_status gran_app_markup_read(gran_app* app, const char* target, const char* name, char** result);
+GRAN_API gran_status gran_app_markup_write(gran_app* app, const char* target, const char* name, const char* value);
+GRAN_API gran_status gran_app_markup_save(gran_app* app, const char* window, char** result);
+
 #ifdef __cplusplus
 }
 #endif
