@@ -90,6 +90,7 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, out IntPtr result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_write(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string? value);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_save(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? window, out IntPtr result);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_component_schema(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string namespaceUri, [MarshalAs(UnmanagedType.LPUTF8Str)] string? window, out IntPtr result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string property, out IntPtr result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_apply(IntPtr app, IntPtr updates, nuint count);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_command(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string? target, [MarshalAs(UnmanagedType.LPUTF8Str)] string? argument);
@@ -186,6 +187,12 @@ public sealed class Application : IDisposable
     public string SaveMarkup(string? window=null) {
         if (window != null) Arguments.Text(window);
         Check(Native.gran_app_markup_save(Handle, window, out var value));
+        return OwnedString(value);
+    }
+    // Сгенерированная XSD библиотеки компонентов ("" — такой нет) / The generated XSD of a component library ("" — no such one)
+    public string ComponentSchema(string namespaceUri, string? window=null) {
+        if (window != null) Arguments.Text(window);
+        Check(Native.gran_app_component_schema(Handle, Arguments.Text(namespaceUri), window, out var value));
         return OwnedString(value);
     }
     public void Apply(params (string Target,string Property,string Value)[] updates) {

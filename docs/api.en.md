@@ -133,6 +133,24 @@ The lower level is `gran/markup/live_document.hpp`: `editMarkupAttribute`, `rebu
 `detachMarkup`, `planPatch`. The application changes the window tree nodes (it needs the bindings, the input and the animations), so
 use the `Application` methods from application code.
 
+## Components
+
+Components are declared in `<Library namespace>` library files and included with `<xi:include>` in `<Resources>`
+(the syntax is in the [guide](guide.en.md#components)). For code an instance is an ordinary node: the expansion root
+with the instance id; the body nodes are `find("instance id.id")`.
+
+- `setMarkupAttribute(*app.find("card"), "title", "…")` / `removeMarkupAttribute` on an instance edit a parameter
+  or a host attribute with a check by the schema "gran-ui.xsd + the library schemas"; the expansion is built anew.
+  The body nodes are read-only: `GranException(INVALID_ARGUMENT)` with the MARKUP_COMPONENT_INTERNAL text.
+- `saveMarkup` saves the instances and `<xi:include>`, not the expansion.
+- `componentSchema(namespaceUri, window = nullptr) -> std::string` is the generated XSD of a library
+  (empty — no such library). It is put next to `gran-ui.xsd` for XML editor hints.
+- `Options::watchMarkup` watches the library files too: editing them reloads the window (partially if the prologue
+  and the libraries after the edit match the former ones; otherwise fully, carrying the state over).
+
+The level below is `gran/markup/components.hpp`: `componentSchemas(document)` (all the document schemas: the namespace,
+the file, the text) and `libraryFiles(document)`.
+
 ## Nodes, Actions, and Data
 
 `find(const std::string& id)` returns a non-owning `ui::Node*` or `nullptr`.

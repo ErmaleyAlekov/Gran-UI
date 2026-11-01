@@ -1,4 +1,4 @@
-#include "gran/markup/internal/build_context.hpp"
+#include "gran/markup/internal/components.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 #include "gran/style/value_parsers.hpp"
@@ -11,11 +11,19 @@ namespace gran::markup::internal
 {
     namespace
     {
-        // Общие атрибуты, содержимое и свойства стиля / The common attributes, the content and the style properties
+        /*
+        ** Общие атрибуты, содержимое и свойства стиля. Действие «{$имя}» схема пропускает ради параметров
+        ** компонентов; дошло до построения — значит, его не подставила развёртка (вне тела или нет такого Param).
+        **
+        ** The common attributes, the content and the style properties. The schema lets an action "{$name}" pass for the component
+        ** parameters; reaching the build means no expansion substituted it (outside a body or no such Param).
+        */
         void readNodeAttributes(const beresta::Element& element, ui::Node& node, BuildContext& context)
         {
             for (const beresta::Attribute& attribute : element.getAttributes())
             {
+                if (attribute.name.rfind("on", 0) == 0 && attribute.value.rfind("{", 0) == 0)
+                    throwAttributeError(element, attribute.name, i18n::format(i18n::Message::MARKUP_PARAM_OUTSIDE));
                 if (attribute.name == "id")
                     node.id = attribute.value;
                 else if (attribute.name == "style")
@@ -77,9 +85,13 @@ namespace gran::markup::internal
     ** A node from an element: the attributes, the states, the tag text (for Text, Button and TextArea), then the children
     ** and the list template, the {…} expressions in the texts; for a ComboBox — the list layer, for Tabs — the header strip.
     ** The parser bounds the recursion depth (maxDepth = 256).
+    ** Экземпляр компонента разворачивается в тело (component_expand.cpp).
+    ** A component instance expands into the body (component_expand.cpp).
     */
     std::unique_ptr<ui::Node> buildNode(const beresta::Element& element, BuildContext& context)
     {
+        if (isComponentInstance(element))
+            return expandComponent(element, context);
         std::unique_ptr<ui::Node> node = std::make_unique<ui::Node>();
 
         countNode(element, context);

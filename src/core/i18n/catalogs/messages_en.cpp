@@ -80,7 +80,25 @@ namespace gran::i18n
             {Message::MENU_REDO, "Redo"},
             {Message::MARKUP_NOT_LIVE, "element {0} has no markup element: it was created by code, as a list copy or by the engine"},
             {Message::MARKUP_BAD_ATTRIBUTE, "the attribute \"{0}\" cannot be written: {1}"},
-            {Message::BINDING_BAD_EXPRESSION, "an error in the binding expression {{0}}: {1} (curly brackets as text are written doubled: {{ and }})"}
+            {Message::BINDING_BAD_EXPRESSION, "an error in the binding expression {{0}}: {1} (curly brackets as text are written doubled: {{ and }})"},
+            {Message::MARKUP_PARAM_OUTSIDE, "an expression {…} in an action is allowed only as a component parameter {$name} in a <Component> body that declares such a <Param>"},
+            {Message::MARKUP_UNKNOWN_COMPONENT, "the library \"{1}\" has no component {0}"},
+            {Message::MARKUP_NO_LIBRARY, "the element <{0}> of the namespace \"{1}\": no such library is included (<xi:include href=\"…\"/> in Resources)"},
+            {Message::MARKUP_INCLUDE_PLACE, "<xi:include> is allowed only in <Resources>: this is how component libraries are included"},
+            {Message::MARKUP_BAD_INCLUDE, "<xi:include> includes a whole library file: href is needed, parse is \"xml\" only, without xpointer"},
+            {Message::MARKUP_NOT_LIBRARY, "the file \"{0}\" is not a component library: its root must be <Library namespace=\"…\">, found <{1}>"},
+            {Message::MARKUP_DUPLICATE_LIBRARY, "a library with the namespace \"{0}\" is included twice"},
+            {Message::MARKUP_IN_LIBRARY, "the library \"{0}\": {1}"},
+            {Message::MARKUP_IN_COMPONENT, "line {0}, column {1}: component {2}: {3}"},
+            {Message::MARKUP_COMPONENT_RECURSION, "the component {0} includes itself (in its body or through other components)"},
+            {Message::MARKUP_UNKNOWN_SLOT, "the component {0} has no slot \"{1}\""},
+            {Message::MARKUP_NO_DEFAULT_SLOT, "the component {0} has no unnamed slot <Slot/>: the content without slot=\"…\" has nowhere to go"},
+            {Message::MARKUP_SLOT_OUTSIDE, "<Slot> works only in a <Component> body"},
+            {Message::MARKUP_SLOT_ROOT, "the body root of the component {0} is <Slot>: a UI element is needed"},
+            {Message::MARKUP_PARAM_RESERVED, "the parameter {0} of the component {1}: the name is taken by an instance attribute (id, visible, enabled, slot, style, the size and placement) or by the binding (index, self, parent)"},
+            {Message::MARKUP_UNKNOWN_STYLE, "the style \"{0}\" is declared neither in the component, nor in its library, nor in the window"},
+            {Message::MARKUP_LIBRARY_SCHEMA, "the component schema of the library \"{0}\" was not built: {1}"},
+            {Message::MARKUP_COMPONENT_INTERNAL, "the element {0} is a part of a component expansion: edit the instance attributes or the library file"}
         };
     }
 

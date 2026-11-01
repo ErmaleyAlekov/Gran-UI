@@ -68,6 +68,7 @@ class Program
             // Живая разметка: запись атрибута, удаление, XML с правкой / The live markup: writing an attribute, removing it, XML with the edit
             app.SetMarkupAttribute("root", "padding", "6");
             Assert(app.MarkupAttribute("root", "padding") == "6" && app.SaveMarkup().Contains("padding=\"6\""));
+            Assert(app.ComponentSchema("urn:none") == "");
             app.SetMarkupAttribute("root", "padding", null);
             Assert(app.MarkupAttribute("root", "padding") == null);
 

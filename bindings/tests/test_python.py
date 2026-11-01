@@ -134,6 +134,20 @@ class TestApplication(unittest.TestCase):
         self.assertIsNone(self.app.markup_attribute("root", "padding"))
         self.assertEqual(self.app.read("text", "text"), "Привет 🌲")
 
+    def test_components(self):
+        # Экземпляр компонента из библиотеки samples/components/widgets.xml; правка параметра перестраивает развёртку
+        # A component instance from the samples/components/widgets.xml library; a parameter edit rebuilds the expansion
+        root = Path(__file__).resolve().parents[2]
+        library = (root / "samples" / "components" / "widgets.xml").as_posix()
+        self.app.load_string('<Window xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:w="urn:gran:samples:widgets">'
+                             '<Resources><xi:include href="' + library + '"/></Resources>'
+                             '<w:Badge id="badge" text="Новое"/></Window>')
+        self.assertEqual(self.app.markup_attribute("badge", "text"), "Новое")
+        self.app.set_markup_attribute("badge", "text", "Старое")
+        self.assertIn('<w:Badge id="badge" text="Старое"/>', self.app.save_markup())
+        self.assertIn('name="Badge"', self.app.component_schema("urn:gran:samples:widgets"))
+        self.assertEqual(self.app.component_schema("urn:none"), "")
+
     @unittest.skipUnless(os.name == "nt", "this case injects Win32 keyboard messages")
     def test_live_test_app(self):
         happened = []

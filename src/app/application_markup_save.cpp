@@ -1,6 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/markup/components.hpp"
 #include "gran/markup/live_document.hpp"
 
 #include <filesystem>
@@ -38,5 +39,16 @@ namespace gran
         file.close();
         if (!file)
             throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_WRITE_FAILED, {path}));
+    }
+
+    // Схемы строятся при загрузке документа: здесь только поиск по пространству имён / The schemas are built when the document is loaded: here is only a lookup by the namespace
+    std::string Application::componentSchema(const std::string& namespaceUri, const ui::Node* window) const
+    {
+        for (const markup::ComponentSchema& schema : markup::componentSchemas(markupWindow(*_state, window).document))
+        {
+            if (schema.namespaceUri == namespaceUri)
+                return schema.text;
+        }
+        return std::string();
     }
 }

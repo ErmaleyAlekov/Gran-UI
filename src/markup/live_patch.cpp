@@ -1,4 +1,4 @@
-#include "gran/markup/internal/build_context.hpp"
+#include "gran/markup/internal/components.hpp"
 
 #include "beresta.hpp"
 
@@ -88,8 +88,8 @@ namespace gran::markup
         return kind != ui::ElementKind::TABS && kind != ui::ElementKind::COMBO_BOX && kind != ui::ElementKind::TEXT;
     }
 
-    // Пролог (параметры окна и ресурсы) должен совпасть: от него зависят стили, на которые ссылаются узлы
-    // The prologue (the window parameters and the resources) must match: the styles the nodes refer to depend on it
+    // Пролог (параметры окна, ресурсы и файлы библиотек) должен совпасть: от него зависят стили, на которые ссылаются узлы
+    // The prologue (the window parameters, the resources and the library files) must match: the styles the nodes refer to depend on it
     bool planPatch(UiDocument& current, const UiDocument& next, PatchPlan& plan)
     {
         if (!current.dom || !next.dom || !current.root || !next.root || current.root->domElement == nullptr
@@ -99,7 +99,8 @@ namespace gran::markup
         const beresta::Element& after = *next.dom->getRoot();
         const beresta::Element* oldResources = internal::resourcesOf(before);
         const beresta::Element* newResources = internal::resourcesOf(after);
-        if (!internal::sameAttributes(before, after) || (oldResources == nullptr) != (newResources == nullptr))
+        if (!internal::sameAttributes(before, after) || (oldResources == nullptr) != (newResources == nullptr)
+            || !internal::sameComponents(current, next))
             return false;
         if (oldResources != nullptr && !oldResources->isEqualNode(*newResources))
             return false;

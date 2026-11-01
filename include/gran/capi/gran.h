@@ -211,6 +211,12 @@ GRAN_API gran_status gran_app_markup_read(gran_app* app, const char* target, con
 GRAN_API gran_status gran_app_markup_write(gran_app* app, const char* target, const char* name, const char* value);
 GRAN_API gran_status gran_app_markup_save(gran_app* app, const char* window, char** result);
 
+/* Компоненты: сгенерированная XSD библиотеки namespace_uri, подключённой <xi:include> в окне узла window (NULL — главном);
+ * пустая строка — такой библиотеки нет; освободить gran_string_free. Её сохраняют рядом с разметкой для подсказок редактора XML.
+ * Components: the generated XSD of the namespace_uri library included with <xi:include> in the window of the node window (NULL — the main one);
+ * an empty string — no such library; free it with gran_string_free. It is saved next to the markup for XML editor hints. */
+GRAN_API gran_status gran_app_component_schema(gran_app* app, const char* namespace_uri, const char* window, char** result);
+
 /* Выражения привязки {…}: переменные $имя и преобразователи «{выражение ; имя}». variable_set_text задаёт значение
  * с прежним типом переменной (новая — строка), _number и _boolean задают тип явно; variable_read — значение текстом
  * (*result == NULL — переменной нет; иначе освободить gran_string_free). converter регистрирует преобразователь:

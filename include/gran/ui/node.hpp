@@ -17,6 +17,7 @@
 namespace beresta
 {
     class Element;
+    class Document;
 }
 
 namespace gran::ui
@@ -238,6 +239,16 @@ namespace gran::ui
         ** The pointer is valid while the node is in a window tree: removing and rebuilding the node drop it together with the element.
         */
         const beresta::Element* domElement = nullptr;
+        /*
+        ** Развёртки компонентов, корнем которых стал узел (<c:Card> → тело Card): копии тел с подставленными
+        ** параметрами, на их элементы ссылаются узлы тела. Объявлены до children: дети уничтожаются раньше.
+        ** Несколько — если корень тела сам экземпляр другого компонента.
+        **
+        ** The component expansions whose root the node became (<c:Card> → the Card body): the body copies with the parameters
+        ** substituted, the body nodes refer to their elements. Declared before children: the children are destroyed earlier.
+        ** Several — if the body root is itself an instance of another component.
+        */
+        std::vector<std::shared_ptr<const beresta::Document>> expansions;
         std::vector<std::unique_ptr<Node>> children;
         // Шаблон одной записи списка (<ItemTemplate>) — вне дерева, только образец для копий / The template of one list record (<ItemTemplate>) — outside the tree, only a sample for copies
         std::unique_ptr<Node> itemTemplate;

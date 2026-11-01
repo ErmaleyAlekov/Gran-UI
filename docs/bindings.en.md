@@ -114,6 +114,15 @@ A schema error is a language exception (`RuntimeError`, `InvalidOperationExcepti
 | `set_markup_attribute(target, name, value)` (`None` removes) | `SetMarkupAttribute` | `setMarkupAttribute` | `gran_app_markup_write` (`value == NULL` removes) |
 | `save_markup(window)` → XML | `SaveMarkup` | `saveMarkup` | `gran_app_markup_save` |
 
+### Components
+
+Component instances (see the [guide](guide.en.md#components)) are edited with the same `set_markup_attribute`,
+the body nodes are found by the "instance.id" id. The generated library XSD is for XML editor hints:
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `component_schema(namespace, window=None)` → `str` (`""` — none) | `ComponentSchema(namespaceUri, window)` | `componentSchema(namespaceUri[, window])` | `gran_app_component_schema` |
+
 ### Binding expressions
 
 The `$name` variables and the `{expression ; name}` converters of the markup expressions (see [guide](guide.en.md#binding-expressions)).

@@ -135,6 +135,24 @@ app.saveMarkupFile("layout.xml");                   // разметка с но�
 `detachMarkup`, `planPatch`. Узлы дерева окна меняет приложение (ему нужны привязки, ввод и анимации), поэтому
 из кода приложения пользуйтесь методами `Application`.
 
+## Компоненты
+
+Компоненты объявляются в файлах-библиотеках `<Library namespace>` и подключаются `<xi:include>` в `<Resources>`
+(синтаксис — в [руководстве](guide.md#компоненты)). Для кода экземпляр — обычный узел: корень развёртки с id
+экземпляра; узлы тела — `find("id экземпляра.id")`.
+
+- `setMarkupAttribute(*app.find("card"), "title", "…")` / `removeMarkupAttribute` у экземпляра — правка параметра
+  или атрибута хозяина с проверкой схемой «gran-ui.xsd + схемы библиотек»; развёртка строится заново.
+  Узлы тела только для чтения: `GranException(INVALID_ARGUMENT)` с текстом MARKUP_COMPONENT_INTERNAL.
+- `saveMarkup` сохраняет экземпляры и `<xi:include>`, а не развёртку.
+- `componentSchema(namespaceUri, window = nullptr) -> std::string` — сгенерированная XSD библиотеки
+  (пусто — такой библиотеки нет). Её кладут рядом с `gran-ui.xsd` для подсказок редактора XML.
+- `Options::watchMarkup` следит и за файлами библиотек: их правка перезагружает окно (частично, если пролог
+  и библиотеки после правки совпадают с прежними; иначе — полностью, с переносом состояния).
+
+Уровень ниже — `gran/markup/components.hpp`: `componentSchemas(document)` (все схемы документа: пространство имён,
+файл, текст) и `libraryFiles(document)`.
+
 ## Узлы, действия и данные
 
 `find(const std::string& id)` возвращает невладеющий `ui::Node*` или `nullptr`.

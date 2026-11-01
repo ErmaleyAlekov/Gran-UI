@@ -69,7 +69,7 @@ namespace gran::markup::internal
         }
     }
 
-    // Тема, шрифты, стили, данные, переменные и команды в порядке схемы / The theme, fonts, styles, data, variables and commands in the schema order
+    // Тема, шрифты, стили, данные, переменные и команды в порядке схемы; <xi:include> читает loadComponents / The theme, fonts, styles, data, variables and commands in the schema order; loadComponents reads <xi:include>
     void readResources(const beresta::Element& resources, BuildContext& context)
     {
         std::vector<StyleSource> styles;
@@ -88,7 +88,7 @@ namespace gran::markup::internal
                 readKeyframes(*child, context);
             else if (name == "Command")
                 readCommand(*child, context);
-            else
+            else if (name == "Style")
             {
                 style::StyleRule& rule = context.document.styles.add(*findAttribute(*child, "name"));
                 readDeclarations(*child, rule.block.base, context);

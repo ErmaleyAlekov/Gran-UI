@@ -80,7 +80,25 @@ namespace gran::i18n
             {Message::MENU_REDO, "Повторить"},
             {Message::MARKUP_NOT_LIVE, "у элемента {0} нет элемента разметки: он создан кодом, копией списка или движком"},
             {Message::MARKUP_BAD_ATTRIBUTE, "атрибут \"{0}\" нельзя записать: {1}"},
-            {Message::BINDING_BAD_EXPRESSION, "ошибка в выражении привязки {{0}}: {1} (фигурные скобки как текст пишутся удвоенными: {{ и }})"}
+            {Message::BINDING_BAD_EXPRESSION, "ошибка в выражении привязки {{0}}: {1} (фигурные скобки как текст пишутся удвоенными: {{ и }})"},
+            {Message::MARKUP_PARAM_OUTSIDE, "выражение {…} в действии допустимо только как параметр компонента {$имя} в теле <Component>, где объявлен такой <Param>"},
+            {Message::MARKUP_UNKNOWN_COMPONENT, "в библиотеке «{1}» нет компонента {0}"},
+            {Message::MARKUP_NO_LIBRARY, "элемент <{0}> из пространства имён «{1}»: такой библиотеки нет среди подключённых (<xi:include href=\"…\"/> в Resources)"},
+            {Message::MARKUP_INCLUDE_PLACE, "<xi:include> допустим только в <Resources>: так подключаются библиотеки компонентов"},
+            {Message::MARKUP_BAD_INCLUDE, "<xi:include> подключает файл-библиотеку целиком: нужен href, parse — только \"xml\", без xpointer"},
+            {Message::MARKUP_NOT_LIBRARY, "файл «{0}» — не библиотека компонентов: его корень должен быть <Library namespace=\"…\">, найден <{1}>"},
+            {Message::MARKUP_DUPLICATE_LIBRARY, "библиотека с пространством имён «{0}» подключена дважды"},
+            {Message::MARKUP_IN_LIBRARY, "библиотека «{0}»: {1}"},
+            {Message::MARKUP_IN_COMPONENT, "строка {0}, столбец {1}: компонент {2}: {3}"},
+            {Message::MARKUP_COMPONENT_RECURSION, "компонент {0} включает сам себя (в своём теле или через другие компоненты)"},
+            {Message::MARKUP_UNKNOWN_SLOT, "у компонента {0} нет слота «{1}»"},
+            {Message::MARKUP_NO_DEFAULT_SLOT, "у компонента {0} нет безымянного слота <Slot/>: содержимому без slot=\"…\" некуда встать"},
+            {Message::MARKUP_SLOT_OUTSIDE, "<Slot> работает только в теле компонента <Component>"},
+            {Message::MARKUP_SLOT_ROOT, "корень тела компонента {0} — <Slot>: нужен элемент интерфейса"},
+            {Message::MARKUP_PARAM_RESERVED, "параметр {0} компонента {1}: имя занято атрибутом экземпляра (id, visible, enabled, slot, style, размеры и расположение) или привязкой (index, self, parent)"},
+            {Message::MARKUP_UNKNOWN_STYLE, "стиль «{0}» не объявлен ни в компоненте, ни в его библиотеке, ни в окне"},
+            {Message::MARKUP_LIBRARY_SCHEMA, "схема компонентов библиотеки «{0}» не собралась: {1}"},
+            {Message::MARKUP_COMPONENT_INTERNAL, "элемент {0} — часть развёртки компонента: правьте атрибуты экземпляра или файл библиотеки"}
         };
     }
 

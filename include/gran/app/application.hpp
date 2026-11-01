@@ -330,6 +330,17 @@ namespace gran
         std::string saveMarkup(const ui::Node* window = nullptr) const;
         void saveMarkupFile(const std::string& path, const ui::Node* window = nullptr) const;
 
+        /*
+        ** Сгенерированная XSD библиотеки компонентов namespaceUri в окне узла window (nullptr — главном):
+        ** элемент на компонент, параметры — атрибуты с типами gran-ui.xsd. Пусто — такой библиотеки нет.
+        ** Её сохраняют рядом с разметкой для подсказок в редакторе XML.
+        **
+        ** The generated XSD of the namespaceUri component library in the window of the node window (nullptr — the main one):
+        ** an element per component, the parameters are attributes with the gran-ui.xsd types. Empty — no such library.
+        ** It is saved next to the markup for hints in an XML editor.
+        */
+        std::string componentSchema(const std::string& namespaceUri, const ui::Node* window = nullptr) const;
+
         // Запись списка, из копии шаблона которой узел (ближайший список) — для обработчиков onClick в шаблоне
         // The list record whose template copy holds the node (the nearest list) — for onClick handlers in a template
         ItemRef itemOf(const ui::Node& node) const;

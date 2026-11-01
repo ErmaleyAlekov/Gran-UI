@@ -1,6 +1,10 @@
 #include "gran/markup/internal/build_context.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
 
 #include "beresta.hpp"
+
+#include <string>
 
 namespace gran::markup::internal
 {
@@ -36,5 +40,14 @@ namespace gran::markup::internal
                 return &attribute.value;
         }
         return nullptr;
+    }
+
+    // Позиция — в тексте (как у ошибок атрибутов) и в полях исключения / The position goes into the text (as for attribute errors) and into the exception fields
+    void throwElementError(const beresta::Element& element, const std::string& message)
+    {
+        const beresta::SourceLocation& location = element.getSourceLocation();
+
+        throw MarkupException(ErrorCode::MARKUP, i18n::format(i18n::Message::MARKUP_AT_POSITION,
+            {std::to_string(location.line), std::to_string(location.column), message}), location.line, location.column);
     }
 }

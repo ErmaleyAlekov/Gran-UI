@@ -37,6 +37,14 @@ namespace gran
             Application::State& _state;
             std::string _name;
         };
+
+        // Наблюдаемый файл: путь, время записи и размер при последней проверке / A watched file: the path, the write time and the size at the last check
+        struct FileStamp
+        {
+            std::string path;
+            std::filesystem::file_time_type time{};
+            std::uintmax_t size = 0;
+        };
     }
 
     /*
@@ -96,6 +104,8 @@ namespace gran
         std::string reloadFailure;
         std::filesystem::file_time_type sourceTime{};
         std::uintmax_t sourceSize = 0;
+        // Файлы библиотек компонентов главного окна: их правка тоже перезагружает разметку / The component library files of the main window: editing them reloads the markup too
+        std::vector<app::FileStamp> libraryStamps;
         double nextReloadCheck = 0.0;
         // Идёт run(); идёт замена документа (рисовать нельзя) / run() goes on; a document replacement goes on (no rendering)
         bool running = false;
@@ -104,6 +114,14 @@ namespace gran
 
     namespace app
     {
+        // ---- reload_libraries.cpp ----
+
+        // Изменился ли какой-нибудь файл библиотеки (отметки обновляются у всех) / Whether any library file changed (the stamps of all are updated)
+        bool librariesChanged(Application::State& state);
+
+        // Запомнить файлы библиотек документа и их нынешние отметки / Remember the document library files and their current stamps
+        void rememberLibraries(Application::State& state, const markup::UiDocument& document);
+
         // ---- application_load.cpp ----
 
         /*

@@ -26,6 +26,9 @@ namespace beresta::xsd
 
 namespace gran::markup
 {
+    // Компоненты документа (internal/components.hpp) / The document components (internal/components.hpp)
+    struct ComponentSet;
+
     // Подключаемый шрифт <Font family="…" source="…"/> / A font face <Font family="…" source="…"/>
     struct FontFace
     {
@@ -86,6 +89,8 @@ namespace gran::markup
         ** in reverse order, and the nodes go before the elements they refer to.
         */
         std::shared_ptr<beresta::Document> dom;
+        // Библиотеки <xi:include>, объявления компонентов и схема с ними (nullptr — библиотек нет) / The <xi:include> libraries, the component declarations and the schema with them (nullptr — no libraries)
+        std::shared_ptr<ComponentSet> components;
         std::unique_ptr<ui::Node> root;
         std::size_t nodeCount = 0;
         // Значения темы — для фрагментов, вставляемых во время работы / The theme values — for fragments inserted at run time

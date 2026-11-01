@@ -1,4 +1,4 @@
-#include "gran/markup/internal/build_context.hpp"
+#include "gran/markup/internal/components.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 
@@ -29,31 +29,19 @@ namespace gran::markup::internal
         }
 
         /*
-        ** Проверка всего DOM той же схемой, что и при загрузке: правка одного атрибута может нарушить
-        ** правила уровня документа (уникальность id, ссылки style, xs:assert). Ошибки — как у разбора:
-        ** позиция первой, текст — все сообщения.
+        ** Откат правки: setAttributes только дописывает и заменяет, поэтому сначала снимаются все
+        ** атрибуты — иначе новый атрибут, не прошедший схему, остался бы в DOM, а порядок сбился бы.
         **
-        ** Checking the whole DOM by the same schema as at load time: editing one attribute may break
-        ** document level rules (id uniqueness, style references, xs:assert). The errors are as for parsing:
-        ** the position of the first one, the text is all messages.
+        ** Rolling an edit back: setAttributes only appends and replaces, so all the attributes are taken off first —
+        ** otherwise a new attribute that failed the schema would stay in the DOM, and the order would break.
         */
-        void checkSchema(const beresta::Document& dom)
+        void restoreAttributes(beresta::Element& element, std::vector<beresta::Attribute> previous)
         {
-            std::string text;
-            const beresta::Diagnostic* first = nullptr;
+            std::vector<beresta::Attribute> current = element.getAttributes();
 
-            for (const beresta::Diagnostic& diagnostic : beresta::xsd::SchemaValidator(markupSchema()).validate(dom))
-            {
-                if (diagnostic.severity == beresta::ErrorSeverity::WARNING)
-                    continue;
-                if (first == nullptr)
-                    first = &diagnostic;
-                else
-                    text += '\n';
-                text += diagnostic.message;
-            }
-            if (first != nullptr)
-                throw MarkupException(ErrorCode::MARKUP, text, first->position.line, first->position.column);
+            for (const beresta::Attribute& attribute : current)
+                element.removeAttribute(attribute.name);
+            element.setAttributes(std::move(previous));
         }
     }
 }
@@ -80,19 +68,26 @@ namespace gran::markup
     {
         beresta::Element* element = internal::editableElement(node);
 
-        if (element == nullptr || !document.dom || element->getOwnerDocument() != document.dom.get())
+        if (element != nullptr && document.dom && element->getOwnerDocument() != document.dom.get())
+            throw GranException(ErrorCode::INVALID_ARGUMENT,
+                i18n::format(i18n::Message::MARKUP_COMPONENT_INTERNAL, {ui::elementName(node.kind)}));
+        if (element == nullptr || !document.dom)
             throw GranException(ErrorCode::INVALID_ARGUMENT,
                 i18n::format(i18n::Message::MARKUP_NOT_LIVE, {ui::elementName(node.kind)}));
         std::vector<beresta::Attribute> previous = element->getAttributes();
         internal::writeAttribute(*element, name, value);
         try
         {
-            internal::checkSchema(*document.dom);
+            // Тот же DOM, та же схема, что при загрузке (с библиотеками компонентов): правка одного атрибута
+            // может нарушить правила уровня документа (уникальность id, ссылки style, xs:assert, параметры экземпляра)
+            // The same DOM, the same schema as at load time (with the component libraries): editing one attribute
+            // may break document level rules (id uniqueness, style references, xs:assert, instance parameters)
+            internal::checkSchema(*document.dom, internal::documentSchema(document));
             return rebuildFromElement(document, *element);
         }
         catch (...)
         {
-            element->setAttributes(std::move(previous));
+            internal::restoreAttributes(*element, std::move(previous));
             throw;
         }
     }
