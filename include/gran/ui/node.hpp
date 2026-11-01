@@ -79,6 +79,19 @@ namespace gran::ui
     };
 
     /*
+    ** Атрибут разметки со значением-выражением ({…}): имя атрибута и исходный текст. Узел хранит только
+    ** текст, а компилирует и вычисляет выражение модуль binding (у интерфейса нет зависимости от XPath).
+    **
+    ** A markup attribute with an expression value ({…}): the attribute name and the source text. The node keeps only
+    ** the text, while the binding module compiles and evaluates the expression (the UI has no dependency on XPath).
+    */
+    struct AttributeBinding
+    {
+        std::string attribute;
+        std::string source;
+    };
+
+    /*
     ** Содержимое элемента, не относящееся к стилю: текст, источник картинки,
     ** значения полей ввода и имена действий. Хранится плоско (без иерархии классов
     ** виджетов): у каждого вида свои поля, остальные пусты.
@@ -162,6 +175,9 @@ namespace gran::ui
         // Input, TextArea: the edit history for Ctrl+Z / Ctrl+Y; created on the first edit, reset by a value from code.
         // shared_ptr — for copying the content (the list template copies); a node copy does not share the history (copyTree drops it).
         std::shared_ptr<TextHistory> history;
+        // Атрибуты с выражениями привязки {…} (копии шаблонов получают их вместе с содержимым)
+        // The attributes with {…} binding expressions (the template copies get them together with the content)
+        std::vector<AttributeBinding> bindings;
     };
 
     // Запомненное измерение: доступный размер → результат / A remembered measurement: the available size → the result

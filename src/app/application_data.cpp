@@ -46,4 +46,9 @@ namespace gran
     {
         return _state->lists.itemOf(node);
     }
+
+    void Application::refreshBindings()
+    {
+        _state->lists.updateExpressions();
+    }
 }

@@ -83,7 +83,7 @@ namespace gran::markup::internal
 
     // ---- data_resources.cpp ----
 
-    // <Data name><Item …/>…</Data>: записи модели списка; уникальность имён проверила схема / <Data name><Item …/>…</Data>: the list model records; the schema has checked the name uniqueness
+    // <Data name><Item …/>…</Data>: записи модели списка; уникальность имён проверила схема; <Variable> — переменная привязок / <Data name><Item …/>…</Data>: the list model records; the schema has checked the name uniqueness; <Variable> is a binding variable
     void readDataSet(const beresta::Element& data, BuildContext& context);
 
     // ---- command_resources.cpp ----
@@ -115,6 +115,14 @@ namespace gran::markup::internal
 
     // Дети-элементы узла и шаблон записи списка (<ItemTemplate>) / The element children of a node and the list record template (<ItemTemplate>)
     void buildChildren(const beresta::Element& element, ui::Node& node, BuildContext& context);
+
+    // ---- node_bindings.cpp ----
+
+    // Атрибут-выражение {…} (visible, enabled, checked, value, стиль) — в привязки узла; false — не выражение / An {…} expression attribute (visible, enabled, checked, value, a style) goes into the node bindings; false — not an expression
+    bool readBindingAttribute(const beresta::Element& element, const beresta::Attribute& attribute, ui::Node& node);
+
+    // Текстовые поля с выражениями — в привязки (поле пустеет до первого вычисления) / The text fields with expressions go into the bindings (the field is empty until the first evaluation)
+    void readTextBindings(const beresta::Element& element, ui::Node& node);
 
     // ---- node_content.cpp ----
 

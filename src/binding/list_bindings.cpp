@@ -1,9 +1,10 @@
+#include "gran/binding/internal/expression_binding.hpp"
 #include "gran/binding/internal/list_binding.hpp"
 
 namespace gran::binding
 {
     ListBindings::ListBindings(RemovalListener* listener)
-        : _listener(listener)
+        : _listener(listener), _expressions(std::make_unique<ExpressionBindings>(*this))
     {
     }
 
@@ -16,7 +17,10 @@ namespace gran::binding
         std::unique_ptr<data::ListModel>& slot = _models[name];
 
         if (!slot)
+        {
             slot = std::make_unique<data::ListModel>();
+            _expressions->watchModel(name, *slot);
+        }
         return *slot;
     }
 
@@ -35,6 +39,7 @@ namespace gran::binding
             children.push_back(child.get());
         for (ui::Node* child : children)
             bind(*child);
+        _expressions->bindNode(subtree);
         if (subtree.content.items.empty() || !subtree.itemTemplate)
             return;
         data::ListModel& source = model(subtree.content.items);
@@ -44,6 +49,7 @@ namespace gran::binding
     // Уничтожение привязки отписывает её от модели / Destroying a binding unsubscribes it from the model
     void ListBindings::clear() noexcept
     {
+        _expressions->clear();
         _bindings.clear();
     }
 }

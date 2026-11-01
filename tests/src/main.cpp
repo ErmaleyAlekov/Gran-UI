@@ -12,7 +12,7 @@ namespace
     // All suites in the run order: a new suite only needs to be added here
     const SuiteRegistrar SUITES[] = {
         suites::registerCapiTests,
-        suites::registerI18nTests, suites::registerGeometryTests, suites::registerReloadTests, suites::registerLiveAppTests, suites::registerBuiltinCommandTests, suites::registerShortcutTests, suites::registerCommandTests, suites::registerUndoStackTests, suites::registerTextUndoTests, suites::registerAppUndoTests, suites::registerPixelCompareTests,
+        suites::registerI18nTests, suites::registerGeometryTests, suites::registerReloadTests, suites::registerLiveAppTests, suites::registerExpressionTests, suites::registerBuiltinCommandTests, suites::registerShortcutTests, suites::registerCommandTests, suites::registerUndoStackTests, suites::registerTextUndoTests, suites::registerAppUndoTests, suites::registerPixelCompareTests,
         suites::registerWindowFrameTests, suites::registerPlatformFrameTests, suites::registerStyleNumberTests, suites::registerStyleColorTests,
         suites::registerStylePaintTests, suites::registerStyleMotionTests,
         suites::registerStyleTrackTests, suites::registerMarkupTests,

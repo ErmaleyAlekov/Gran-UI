@@ -211,6 +211,31 @@ GRAN_API gran_status gran_app_markup_read(gran_app* app, const char* target, con
 GRAN_API gran_status gran_app_markup_write(gran_app* app, const char* target, const char* name, const char* value);
 GRAN_API gran_status gran_app_markup_save(gran_app* app, const char* window, char** result);
 
+/* Выражения привязки {…}: переменные $имя и преобразователи «{выражение ; имя}». variable_set_text задаёт значение
+ * с прежним типом переменной (новая — строка), _number и _boolean задают тип явно; variable_read — значение текстом
+ * (*result == NULL — переменной нет; иначе освободить gran_string_free). converter регистрирует преобразователь:
+ * to_view — значение выражения → текст свойства, to_source — обратно для двусторонней привязки (NULL — привязка
+ * односторонняя); обратный вызов отвечает через gran_converted_set (без ответа значение остаётся входным), result
+ * действителен только во время вызова; user должен жить, пока приложение существует. refresh_bindings — пересчитать
+ * выражения сейчас, не дожидаясь кадра.
+ * The {…} binding expressions: the $name variables and the "{expression ; name}" converters. variable_set_text sets a value
+ * keeping the former variable type (a new one is a string), _number and _boolean set the type explicitly; variable_read is the value as text
+ * (*result == NULL — no such variable; otherwise free it with gran_string_free). converter registers a converter:
+ * to_view — the expression value → the property text, to_source — back for a two-way binding (NULL — the binding is
+ * one-way); the callback answers through gran_converted_set (without an answer the value stays the input one), result
+ * is valid only during the call; user must live while the application exists. refresh_bindings recomputes
+ * the expressions now without waiting for a frame. */
+typedef struct gran_converted gran_converted;
+typedef void (*gran_convert_fn)(void* user, const char* value, gran_converted* result);
+GRAN_API void gran_converted_set(gran_converted* result, const char* text);
+GRAN_API gran_status gran_app_variable_set_text(gran_app* app, const char* name, const char* value);
+GRAN_API gran_status gran_app_variable_set_number(gran_app* app, const char* name, double value);
+GRAN_API gran_status gran_app_variable_set_boolean(gran_app* app, const char* name, int32_t value);
+GRAN_API gran_status gran_app_variable_read(gran_app* app, const char* name, char** result);
+GRAN_API gran_status gran_app_converter(gran_app* app, const char* name, gran_convert_fn to_view, gran_convert_fn to_source,
+    void* user);
+GRAN_API gran_status gran_app_refresh_bindings(gran_app* app);
+
 #ifdef __cplusplus
 }
 #endif

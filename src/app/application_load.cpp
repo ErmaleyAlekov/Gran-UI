@@ -40,11 +40,14 @@ namespace gran::app
         for (const markup::FontFace& face : win.document.fonts)
             state.fonts.addFile((std::filesystem::path(base) / face.source).string());
         state.lists.adoptData(win.document.data);
+        state.lists.adoptVariables(win.document.variables);
         applyCommandStates(win);
         if (!win.document.root)
             return;
         bindCommands(win, *win.document.root);
         state.lists.bind(*win.document.root);
+        // Выражения — сразу: код после загрузки уже видит вычисленные тексты и видимость / The expressions at once: the code after loading already sees the computed texts and visibility
+        state.lists.updateExpressions();
         ui::syncComboBoxes(*win.document.root);
     }
 }

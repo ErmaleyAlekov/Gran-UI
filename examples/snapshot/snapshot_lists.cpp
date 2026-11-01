@@ -25,13 +25,17 @@ namespace snapshot
         gran::binding::ListBindings lists;
 
         lists.adoptData(document.data);
+        lists.adoptVariables(document.variables);
         lists.bind(*document.root);
+        lists.updateExpressions();
         gran::ui::syncComboBoxes(*document.root);
         for (int pass = 0; pass < 4; ++pass)
         {
             gran::ui::resolveStyles(*document.root, window, theme.kinds);
             gran::layout::layoutTree(*document.root, size, measurer);
-            if (!lists.updateVirtual())
+            bool windows = lists.updateVirtual();
+            bool expressions = lists.updateExpressions();
+            if (!windows && !expressions)
                 break;
         }
     }

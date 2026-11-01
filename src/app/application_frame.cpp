@@ -81,6 +81,8 @@ namespace gran
             // Текст поля мог смениться из кода (история сбрасывается): включённость gran:undo — до стилей кадра
             // The field text might change from code (the history is reset): the gran:undo enabled state — before the frame styles
             refreshUndoCommands(win.shared, std::string());
+            // Выражения {…}: ввод и код с прошлого кадра могли сменить их зависимости / The {…} expressions: the input and the code since the previous frame might change their dependencies
+            win.shared.lists.updateExpressions();
             ui::resolveStyles(root, win.windowStyle, theme.kinds, &win.animator);
             win.animating = win.animator.tick();
             if ((root.dirty & ui::DIRTY_LAYOUT) != 0)

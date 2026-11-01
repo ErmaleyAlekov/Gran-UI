@@ -20,6 +20,8 @@ namespace gran::markup::internal
                     node.id = attribute.value;
                 else if (attribute.name == "style")
                     node.rule = context.document.styles.find(attribute.value);
+                else if (readBindingAttribute(element, attribute, node))
+                    continue;
                 else if (attribute.name == "visible")
                     node.visible = style::parseBoolean(attribute.value);
                 else if (attribute.name == "enabled")
@@ -69,11 +71,11 @@ namespace gran::markup::internal
 
     /*
     ** Узел из элемента: атрибуты, состояния, текст тега (у Text, Button и TextArea), затем дети
-    ** и шаблон списка; у ComboBox — слой списка, у Tabs — полоса заголовков.
+    ** и шаблон списка, выражения {…} в текстах; у ComboBox — слой списка, у Tabs — полоса заголовков.
     ** Глубину рекурсии ограничивает парсер (maxDepth = 256).
     **
     ** A node from an element: the attributes, the states, the tag text (for Text, Button and TextArea), then the children
-    ** and the list template; for a ComboBox — the list layer, for Tabs — the header strip.
+    ** and the list template, the {…} expressions in the texts; for a ComboBox — the list layer, for Tabs — the header strip.
     ** The parser bounds the recursion depth (maxDepth = 256).
     */
     std::unique_ptr<ui::Node> buildNode(const beresta::Element& element, BuildContext& context)
@@ -91,6 +93,7 @@ namespace gran::markup::internal
             readIconShape(element, *node);
         if (!readTagText(element, *node, context))
             buildChildren(element, *node, context);
+        readTextBindings(element, *node);
         if (node->kind == ui::ElementKind::COMBO_BOX)
             wrapOptions(*node);
         if (node->kind == ui::ElementKind::TABS)

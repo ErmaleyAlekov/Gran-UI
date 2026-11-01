@@ -79,7 +79,8 @@ namespace gran::i18n
             {Message::MENU_UNDO, "Undo"},
             {Message::MENU_REDO, "Redo"},
             {Message::MARKUP_NOT_LIVE, "element {0} has no markup element: it was created by code, as a list copy or by the engine"},
-            {Message::MARKUP_BAD_ATTRIBUTE, "the attribute \"{0}\" cannot be written: {1}"}
+            {Message::MARKUP_BAD_ATTRIBUTE, "the attribute \"{0}\" cannot be written: {1}"},
+            {Message::BINDING_BAD_EXPRESSION, "an error in the binding expression {{0}}: {1} (curly brackets as text are written doubled: {{ and }})"}
         };
     }
 

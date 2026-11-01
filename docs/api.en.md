@@ -149,6 +149,13 @@ do not call the user's `onChange` again.
 - `focus(ui::Node*)`: focus from code, `nullptr` clears; before `run()`, the request is remembered.
 - `model(name)`: reference to `data::ListModel`; unknown name creates an empty model.
 - `itemOf(node)`: `ItemRef` of the nearest list entry; `model == nullptr` if the node is outside the binding.
+- `setVariable(name, std::string)`: the `$name` variable of the `{…}` expressions keeping its type (a new one is a string);
+  `setVariableNumber(name, double)`, `setVariableBoolean(name, bool)` set the type explicitly;
+  `variable(name) -> std::optional<std::string>` — the value as text (a boolean is — `"true"`/`"false"`).
+- `setConverter(name, binding::Converter{toView, toSource})`: converter for `{expression ; name}`;
+  empty `toSource` makes the binding one-way. An exception in the converter leaves the property unchanged.
+- `refreshBindings()`: recompute the expressions now (the engine does this before every frame and after layout).
+  More details — [guide](guide.en.md#binding-expressions).
 - `setValue(node, float)`: Slider/ProgressBar value with boundary constraints.
 - `setChecked(node, bool)`: CheckBox/Switch/RadioButton; selecting a radio button deselects group neighbors.
 - `selectOption(comboBox, value)`: selection by value; unknown value deselects.

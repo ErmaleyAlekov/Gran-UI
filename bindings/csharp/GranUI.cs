@@ -39,6 +39,7 @@ internal static class Native
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void TaskFn(IntPtr user);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate int EventFn(IntPtr user, IntPtr value);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void UndoFn(IntPtr user, IntPtr stack, uint flags);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate void ConvertFn(IntPtr user, IntPtr value, IntPtr result);
     [StructLayout(LayoutKind.Sequential)] internal struct UndoStep {
         internal uint Size; internal TaskFn Undo, Redo, Release; internal IntPtr User;
     }
@@ -79,6 +80,13 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_undo_push(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? stack, ref UndoStep step);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_undo_state(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? stack, out uint flags);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_undo(IntPtr app, UndoFn? callback, IntPtr user);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern void gran_converted_set(IntPtr result, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_variable_set_text(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_variable_set_number(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, double value);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_variable_set_boolean(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int value);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_variable_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, out IntPtr result);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_converter(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ConvertFn? toView, ConvertFn? toSource, IntPtr user);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_refresh_bindings(IntPtr app);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, out IntPtr result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_write(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string? value);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_markup_save(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? window, out IntPtr result);
@@ -273,6 +281,28 @@ public sealed class Application : IDisposable
         Check(Native.gran_app_on_undo(Handle, native, IntPtr.Zero));
         undoHandler = native;
     }
+    // Переменные $имя выражений {…}: текст сохраняет тип переменной, число и bool задают его / The $name variables of the {…} expressions: a text keeps the variable type, a number and a bool set it
+    public void SetVariable(string name, string value) => Check(Native.gran_app_variable_set_text(Handle, Arguments.Text(name), Arguments.Text(value)));
+    public void SetVariable(string name, double value) => Check(Native.gran_app_variable_set_number(Handle, Arguments.Text(name), value));
+    public void SetVariable(string name, bool value) => Check(Native.gran_app_variable_set_boolean(Handle, Arguments.Text(name), value ? 1 : 0));
+    // Значение переменной текстом; null — переменной нет / The variable value as text; null — no such variable
+    public string? Variable(string name) {
+        Check(Native.gran_app_variable_read(Handle, Arguments.Text(name), out var value));
+        return value == IntPtr.Zero ? null : OwnedString(value);
+    }
+    // Преобразователь «{выражение ; name}»; toSource == null — привязка односторонняя / The "{expression ; name}" converter; toSource == null — the binding is one-way
+    public void SetConverter(string name, Func<string, string>? toView, Func<string, string>? toSource=null) {
+        Native.ConvertFn? view = Adapt(toView), source = Adapt(toSource);
+        Check(Native.gran_app_converter(Handle, Arguments.Text(name), view, source, IntPtr.Zero));
+        if (view != null) callbacks.Add(view);
+        if (source != null) callbacks.Add(source);
+    }
+    Native.ConvertFn? Adapt(Func<string, string>? function) {
+        if (function == null) return null;
+        return (_, value, result) => Protect(() => Native.gran_converted_set(result, function(String(value))));
+    }
+    // Пересчитать выражения сейчас, не дожидаясь кадра / Recompute the expressions now without waiting for a frame
+    public void RefreshBindings() => Check(Native.gran_app_refresh_bindings(Handle));
     long AddTask(Action callback, bool repeat) {
         ArgumentNullException.ThrowIfNull(callback);
         long key = Interlocked.Increment(ref nextTask);

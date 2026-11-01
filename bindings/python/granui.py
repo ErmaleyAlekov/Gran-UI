@@ -68,6 +68,7 @@ class _UndoStep(C.Structure):
     _fields_ = [("size", C.c_uint32), ("undo", _Task), ("redo", _Task), ("release", _Task), ("user", C.c_void_p)]
 
 _UndoFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_uint32)
+_ConvertFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_void_p)
 
 class UndoState(tuple):
     """Состояние стека отмены: можно ли отменить и повторить, «чистое» ли оно (документ сохранён).
@@ -110,6 +111,10 @@ def _configure(lib):
         "app_read": (C.c_int32, [p, s, s, C.POINTER(p)]),
         "app_markup_read": (C.c_int32, [p, s, s, C.POINTER(p)]), "app_markup_write": (C.c_int32, [p, s, s, s]),
         "app_markup_save": (C.c_int32, [p, s, C.POINTER(p)]),
+        "converted_set": (None, [p, s]),
+        "app_variable_set_text": (C.c_int32, [p, s, s]), "app_variable_set_number": (C.c_int32, [p, s, C.c_double]),
+        "app_variable_set_boolean": (C.c_int32, [p, s, C.c_int32]), "app_variable_read": (C.c_int32, [p, s, C.POINTER(p)]),
+        "app_converter": (C.c_int32, [p, s, _ConvertFn, _ConvertFn, p]), "app_refresh_bindings": (C.c_int32, [p]),
         "app_apply": (C.c_int32, [p, C.POINTER(_Update), z]), "app_command": (C.c_int32, [p, s, s, s]),
         "model_count": (C.c_int32, [p, s, C.POINTER(z)]),
         "model_read": (C.c_int32, [p, s, z, s, C.POINTER(p)]),
@@ -144,6 +149,7 @@ class Application:
         self._redo_entry = _Task(lambda user: self._run_undo(user, 1))
         self._release_entry = _Task(lambda user: self._undo_steps.pop(user or 0, None))
         self._undo_handler = None
+        self._converters = {}
         options = _Options(C.sizeof(_Options), backend, 0, warp, 0, 0, exit_after)
         self._check(self._lib.gran_app_create(C.byref(options), C.byref(self._app)))
 
@@ -329,6 +335,46 @@ class Application:
         wrapped = _UndoFn(invoke)
         self._call("app_on_undo", wrapped, None)
         self._undo_handler = wrapped
+
+    def set_variable(self, name, value):
+        """Переменная $name выражений {…}: bool — логическая, int/float — число, иначе текст с прежним типом.
+        The $name variable of the {…} expressions: bool is boolean, int/float is a number, otherwise a text keeping the type."""
+        if isinstance(value, bool):
+            self._call("app_variable_set_boolean", _encode(name), int(value))
+        elif isinstance(value, (int, float)):
+            self._call("app_variable_set_number", _encode(name), float(value))
+        else:
+            self._call("app_variable_set_text", _encode(name), _encode(value))
+
+    def variable(self, name):
+        """Значение переменной текстом; None — переменной нет. / The variable value as text; None — no such variable."""
+        output = C.c_void_p()
+        self._call("app_variable_read", _encode(name), C.byref(output))
+        if not output.value:
+            return None
+        try:
+            return C.string_at(output).decode("utf-8")
+        finally:
+            self._lib.gran_string_free(output)
+
+    def set_converter(self, name, to_view=None, to_source=None):
+        """Преобразователь «{выражение ; name}»: to_view(str) -> str, to_source(str) -> str (None — односторонний).
+        The "{expression ; name}" converter: to_view(str) -> str, to_source(str) -> str (None — one-way)."""
+        def adapt(function):
+            if function is None:
+                return _ConvertFn()
+            def invoke(user, value, result):
+                def answer():
+                    self._lib.gran_converted_set(result, _encode(function((value or b"").decode("utf-8"))))
+                self._protect(answer)
+            return _ConvertFn(invoke)
+        pair = (adapt(to_view), adapt(to_source))
+        self._call("app_converter", _encode(name), pair[0], pair[1], None)
+        self._converters[name] = pair
+
+    def refresh_bindings(self):
+        """Пересчитать выражения сейчас, не дожидаясь кадра. / Recompute the expressions now without waiting for a frame."""
+        self._call("app_refresh_bindings")
 
     def _add_task(self, callback, repeat):
         if not callable(callback):

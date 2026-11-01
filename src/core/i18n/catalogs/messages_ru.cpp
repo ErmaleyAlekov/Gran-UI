@@ -79,7 +79,8 @@ namespace gran::i18n
             {Message::MENU_UNDO, "Отменить"},
             {Message::MENU_REDO, "Повторить"},
             {Message::MARKUP_NOT_LIVE, "у элемента {0} нет элемента разметки: он создан кодом, копией списка или движком"},
-            {Message::MARKUP_BAD_ATTRIBUTE, "атрибут \"{0}\" нельзя записать: {1}"}
+            {Message::MARKUP_BAD_ATTRIBUTE, "атрибут \"{0}\" нельзя записать: {1}"},
+            {Message::BINDING_BAD_EXPRESSION, "ошибка в выражении привязки {{0}}: {1} (фигурные скобки как текст пишутся удвоенными: {{ и }})"}
         };
     }
 

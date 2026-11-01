@@ -1,7 +1,9 @@
 #ifndef GRAN_BINDING_LIST_BINDINGS_HPP
 #define GRAN_BINDING_LIST_BINDINGS_HPP
 
+#include "gran/binding/expression_text.hpp"
 #include "gran/data/list_model.hpp"
+#include "gran/data/variable.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "gran/ui/node.hpp"
 
@@ -10,11 +12,13 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace gran::binding
 {
     class ListBinding;
+    class ExpressionBindings;
 
     // Запись списка, к которой относится узел; model == nullptr — узел не из списка
     // The list record a node belongs to; model == nullptr — the node is not from a list
@@ -65,10 +69,10 @@ namespace gran::binding
         // Модель по имени; нет — создаётся пустая / A model by name; none — an empty one is created
         data::ListModel& model(const std::string& name);
 
-        // Привязки для всех контейнеров items="…" в поддереве (после загрузки или вставки) / Bindings for all items="…" containers in the subtree (after loading or inserting)
+        // Привязки для всех контейнеров items="…" и атрибутов {…} в поддереве (после загрузки или вставки) / Bindings for all items="…" containers and {…} attributes in the subtree (after loading or inserting)
         void bind(ui::Node& subtree);
 
-        // Снять все привязки (модели остаются) — перед заменой документа / Drop all bindings (the models stay) — before replacing the document
+        // Снять все привязки (модели и переменные остаются) — перед заменой документа / Drop all bindings (the models and the variables stay) — before replacing the document
         void clear() noexcept;
 
         // ---- list_bindings_tree.cpp ----
@@ -104,9 +108,41 @@ namespace gran::binding
         */
         bool updateVirtual();
 
+        /*
+        ** Пересчитать выражения {…}, чьи зависимости изменились (переменные, модели, свойства узлов,
+        ** размеры после компоновки), и записать значения полей, изменённых пользователем, в источники
+        ** двусторонних привязок. Вызывается перед стилями кадра и после компоновки. true — дерево
+        ** изменилось: нужны проход стилей и компоновка ещё раз.
+        **
+        ** Recompute the {…} expressions whose dependencies changed (variables, models, node properties,
+        ** sizes after a layout), and write the values of the controls changed by the user into the sources
+        ** of the two-way bindings. It is called before the frame styles and after a layout. true — the tree
+        ** changed: a style pass and a layout are needed once more.
+        */
+        bool updateExpressions();
+
+        // ---- list_bindings_variables.cpp ----
+
+        // Задать переменную привязки $имя (тип — из variable) / Set the $name binding variable (the type is from variable)
+        void setVariable(const data::Variable& variable);
+
+        // Задать переменную текстом, сохранив её тип (новая — строка) / Set a variable by text keeping its type (a new one is a string)
+        void setVariableText(const std::string& name, const std::string& text);
+
+        // Переменная по имени; nullptr — нет такой / A variable by name; nullptr — none
+        const data::Variable* variable(std::string_view name) const noexcept;
+
+        // Преобразователь значений для выражений «{выражение ; имя}» / A value converter for the "{expression ; name}" expressions
+        void setConverter(const std::string& name, Converter converter);
+
+        // Переменные <Variable> разметки задают значения (как <Data> — содержимое моделей) / The markup <Variable> variables set the values (as <Data> sets the model contents)
+        void adoptVariables(std::vector<data::Variable>& variables);
+
     private:
         RemovalListener* _listener;
         std::map<std::string, std::unique_ptr<data::ListModel>, std::less<>> _models;
+        // После моделей: зеркало выражений отписывается от них раньше, чем они уходят / After the models: the expression mirror unsubscribes from them before they go
+        std::unique_ptr<ExpressionBindings> _expressions;
         std::vector<std::unique_ptr<ListBinding>> _bindings;
     };
 }

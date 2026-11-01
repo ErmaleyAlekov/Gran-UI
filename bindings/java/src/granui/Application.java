@@ -75,6 +75,7 @@ public final class Application implements AutoCloseable {
                     if (args[i] instanceof MemorySegment) layouts[i] = ADDRESS;
                     else if (args[i] instanceof Integer) layouts[i] = JAVA_INT;
                     else if (args[i] instanceof Long) layouts[i] = JAVA_LONG;
+                    else if (args[i] instanceof Double) layouts[i] = JAVA_DOUBLE;
                     else throw new IllegalArgumentException("unsupported ABI argument");
                 }
                 FunctionDescriptor descriptor = result == null ? FunctionDescriptor.ofVoid(layouts) : FunctionDescriptor.of(result, layouts);
@@ -343,6 +344,52 @@ public final class Application implements AutoCloseable {
         }
         status("gran_app_on_undo",app,function,MemorySegment.NULL);
     }
+    // Переменные $имя выражений {…}: текст сохраняет тип переменной, число и boolean задают его / The $name variables of the {…} expressions: a text keeps the variable type, a number and a boolean set it
+    public void setVariable(String name, String value) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_variable_set_text",app,utf8(scope,name),utf8(scope,value)); }
+    }
+    public void setVariable(String name, double value) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_variable_set_number",app,utf8(scope,name),value); }
+    }
+    public void setVariable(String name, boolean value) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_variable_set_boolean",app,utf8(scope,name),value ? 1 : 0); }
+    }
+    // Значение переменной текстом; null — переменной нет / The variable value as text; null — no such variable
+    public String variable(String name) {
+        ensureOpen();
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(ADDRESS);
+            status("gran_app_variable_read",app,utf8(scope,name),output);
+            MemorySegment value=output.get(ADDRESS,0);
+            if (value.address() == 0) return null;
+            try { return text(value); }
+            finally { invoke("gran_string_free", null, value); }
+        }
+    }
+    private final class ConvertCallback {
+        private final java.util.function.UnaryOperator<String> function;
+        ConvertCallback(java.util.function.UnaryOperator<String> function) { this.function=function; }
+        void convert(MemorySegment user, MemorySegment value, MemorySegment result) {
+            protect(() -> {
+                try (Arena scope=Arena.ofConfined()) { invoke("gran_converted_set",null,result,utf8(scope,function.apply(text(value)))); }
+            });
+        }
+    }
+    private MemorySegment converterEntry(java.util.function.UnaryOperator<String> function) {
+        if (function == null) return MemorySegment.NULL;
+        ConvertCallback callback=new ConvertCallback(function);
+        callbacks.add(callback);
+        return entry("convert",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,ADDRESS,ADDRESS),callback);
+    }
+    // Преобразователь «{выражение ; name}»; toSource == null — привязка односторонняя / The "{expression ; name}" converter; toSource == null — the binding is one-way
+    public void setConverter(String name, java.util.function.UnaryOperator<String> toView, java.util.function.UnaryOperator<String> toSource) {
+        try (Arena scope=Arena.ofConfined()) {
+            status("gran_app_converter",app,utf8(scope,name),converterEntry(toView),converterEntry(toSource),MemorySegment.NULL);
+        }
+    }
+    // Пересчитать выражения сейчас, не дожидаясь кадра / Recompute the expressions now without waiting for a frame
+    public void refreshBindings() { status("gran_app_refresh_bindings",app); }
     private long addTask(Runnable callback, boolean repeat) {
         long key=nextTask.incrementAndGet();
         tasks.put(key,new Pending(Objects.requireNonNull(callback),repeat)); return key;

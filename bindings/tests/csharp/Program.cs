@@ -71,6 +71,14 @@ class Program
             app.SetMarkupAttribute("root", "padding", null);
             Assert(app.MarkupAttribute("root", "padding") == null);
 
+            // Переменные и преобразователь выражений {…} / The variables and the converter of the {…} expressions
+            app.SetConverter("twice", value => value + value);
+            app.SetVariable("count", 21.0);
+            app.SetVariable("flag", true);
+            app.SetVariable("flag", "false");
+            app.RefreshBindings();
+            Assert(app.Variable("count") == "21" && app.Variable("flag") == "false" && app.Variable("missing") == null);
+
             var model = new Dictionary<string, string>
             {
                 { "key1", "value1" },

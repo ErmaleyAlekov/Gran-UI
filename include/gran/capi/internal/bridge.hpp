@@ -72,7 +72,24 @@ namespace gran::capi
         void* user;
         void operator()(const std::string& name, const undo::UndoStack& stack) const;
     };
+
+    // ---- variables_api.cpp ----
+
+    // Преобразователь значений из обратного вызова языка (одна сторона: toView или toSource) / A value converter from a language callback (one side: toView or toSource)
+    struct ConvertCallback
+    {
+        gran_convert_fn callback;
+        void* user;
+        std::string operator()(const std::string& value) const;
+    };
 }
+
+// Результат обратного вызова преобразователя: сначала — входное значение (вызов без gran_converted_set его не меняет)
+// The result of a converter callback: at first the input value (a call without gran_converted_set does not change it)
+struct gran_converted
+{
+    std::string text;
+};
 
 // Единый барьер: исключения C++ никогда не пересекают ABI.
 // A shared barrier: C++ exceptions never cross the ABI.
