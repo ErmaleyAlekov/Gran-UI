@@ -3,12 +3,12 @@
 namespace gran::input
 {
     // Бит состояния одному узлу; изменение требует пересчёта стиля / A state bit to one node; a change requires a style recompute
-    void setNodeState(ui::Node& node, std::uint8_t bit, bool on)
+    void setNodeState(ui::Node& node, std::uint16_t bit, bool on)
     {
-        std::uint8_t mask = static_cast<std::uint8_t>(node.stateMask & ~bit);
+        std::uint16_t mask = static_cast<std::uint16_t>(node.stateMask & ~bit);
 
         if (on)
-            mask = static_cast<std::uint8_t>(mask | bit);
+            mask = static_cast<std::uint16_t>(mask | bit);
         if (mask == node.stateMask)
             return;
         node.stateMask = mask;
@@ -16,7 +16,7 @@ namespace gran::input
     }
 
     // От узла до корня / From the node up to the root
-    void setChainState(ui::Node* node, std::uint8_t bit, bool on)
+    void setChainState(ui::Node* node, std::uint16_t bit, bool on)
     {
         for (ui::Node* current = node; current != nullptr; current = current->parent)
             setNodeState(*current, bit, on);

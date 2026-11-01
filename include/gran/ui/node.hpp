@@ -116,6 +116,8 @@ namespace gran::ui
         std::string onSubmit;
         // Имя модели списка (items="…"): дети строятся из шаблона по записям модели / The list model name (items="…"): children are built from the template by the model records
         std::string items;
+        // Модель выделения списка (selection="…"): копии отмеченных записей получают состояние Selected / The list selection model (selection="…"): the copies of the marked records get the Selected state
+        std::string selection;
         // Действие на строку из страницы <WebView> (Application::onWebMessage) / The action for a string from a <WebView> page (Application::onWebMessage)
         std::string onMessage;
         // Фигура <Icon data="…"> (из разметки; иконка из файла source — у рендерера) / The <Icon data="…"> shape (from the markup; an icon from the source file is the renderer's)
@@ -224,7 +226,7 @@ namespace gran::ui
         bool visible = true;
         bool enabled = true;
         bool styled = false;
-        std::uint8_t stateMask = 0;
+        std::uint16_t stateMask = 0;
         std::uint8_t dirty = DIRTY_STYLE | DIRTY_LAYOUT | DIRTY_PAINT;
         std::size_t line = 0;
         std::size_t column = 0;

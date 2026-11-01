@@ -25,21 +25,12 @@ namespace gran::binding
     ** unfit for XML is rejected by Beresta with an exception — then the model is simply not visible
     ** to the expressions (the items="…" lists work with it as before).
     */
-    void DataMirror::watch(const std::string& name, data::ListModel& model)
+    void DataMirror::watch(const std::string& name, data::ListSource& model)
     {
-        std::unique_ptr<beresta::Element> created;
+        beresta::Element* element = createElement(name);
 
-        try
-        {
-            created = std::make_unique<beresta::Element>(name);
-        }
-        catch (const beresta::DomException&)
-        {
-            return;
-        }
-        beresta::Element* element = created.get();
-        _document->getRoot()->appendChild(std::move(created));
-        _entries.push_back(std::make_unique<MirrorEntry>(name, model, *element));
+        if (element != nullptr)
+            _entries.push_back(std::make_unique<MirrorEntry>(name, model, *element));
     }
 
     const beresta::Element& DataMirror::root() const

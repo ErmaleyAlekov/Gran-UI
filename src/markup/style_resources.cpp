@@ -82,7 +82,8 @@ namespace gran::markup::internal
                 readTheme(*child, context);
             else if (name == "Font")
                 readFont(*child, context);
-            else if (name == "Data" || name == "Variable")
+            else if (name == "Data" || name == "Variable" || name == "Tree" || name == "TreeList" || name == "SortFilter"
+                || name == "Selection")
                 readDataSet(*child, context);
             else if (name == "Keyframes")
                 readKeyframes(*child, context);

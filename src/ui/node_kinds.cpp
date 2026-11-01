@@ -37,15 +37,15 @@ namespace gran::ui
     // The DISABLED state changes the look (the Disabled style), so the node is restyled and repainted
     void setEnabled(Node& node, bool enabled)
     {
-        std::uint8_t bit = style::stateBit(style::State::DISABLED);
+        std::uint16_t bit = style::stateBit(style::State::DISABLED);
 
         if (node.enabled == enabled)
             return;
         node.enabled = enabled;
         if (enabled)
-            node.stateMask = static_cast<std::uint8_t>(node.stateMask & ~bit);
+            node.stateMask = static_cast<std::uint16_t>(node.stateMask & ~bit);
         else
-            node.stateMask = static_cast<std::uint8_t>(node.stateMask | bit);
+            node.stateMask = static_cast<std::uint16_t>(node.stateMask | bit);
         markDirty(node, DIRTY_STYLE | DIRTY_PAINT);
     }
 }

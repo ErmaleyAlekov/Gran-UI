@@ -8,7 +8,7 @@ namespace gran
         // The code names in the order of the ErrorCode enumeration
         const char* const ERROR_CODE_NAMES[ERROR_CODE_COUNT] = {
             "MARKUP", "STYLE_VALUE", "RESOURCE", "FONT", "IMAGE", "GPU",
-            "DEVICE_LOST", "PLATFORM", "IO", "INVALID_ARGUMENT", "LIMIT_EXCEEDED"
+            "DEVICE_LOST", "PLATFORM", "IO", "INVALID_ARGUMENT", "LIMIT_EXCEEDED", "DATA"
         };
     }
 

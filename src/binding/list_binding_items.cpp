@@ -18,6 +18,7 @@ namespace gran::binding
         BoundItem item{copy.get(), collectFields(*copy)};
 
         applyFields(item.fields, _model.at(record));
+        markSelection(item, record);
         std::size_t position = childPosition(local);
         _items.insert(_items.begin() + static_cast<std::ptrdiff_t>(local), std::move(item));
         ui::Node& added = ui::insertChild(_container, position, std::move(copy));
@@ -51,5 +52,32 @@ namespace gran::binding
         _lead = &ui::appendChild(_container, std::move(lead));
         _trail = &ui::appendChild(_container, std::move(trail));
         ui::markDirty(_container, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+    }
+
+    /*
+    ** Копия local встаёт сразу за копией local − 1, первая — на место прежней первой; пока копий
+    ** нет — перед хвостовой распоркой виртуального списка или после всех детей контейнера.
+    **
+    ** The copy local goes right after the copy local − 1, the first one — in place of the former first one; while there are
+    ** no copies — before the trailing spacer of a virtual list or after all container children.
+    */
+    std::size_t ListBinding::childPosition(std::size_t local) const noexcept
+    {
+        const ui::Node* neighbour = _trail;
+        std::size_t shift = 0;
+
+        if (local > 0)
+        {
+            neighbour = _items[local - 1].root;
+            shift = 1;
+        }
+        else if (!_items.empty())
+            neighbour = _items.front().root;
+        for (std::size_t position = 0; neighbour != nullptr && position < _container.children.size(); ++position)
+        {
+            if (_container.children[position].get() == neighbour)
+                return position + shift;
+        }
+        return _container.children.size();
     }
 }

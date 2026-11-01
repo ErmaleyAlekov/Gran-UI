@@ -39,6 +39,24 @@ class Program
 
             Assert(app.Read("text", "text") == "Привет 🌲");
 
+            // Модели 1.7: дерево, плоское представление, прокси с сортировкой, выделение
+            // Models 1.7: a tree, a flat view, a sorted proxy, a selection
+            ulong top = app.TreeInsert("org", 0, new Dictionary<string,string> { ["name"] = "Б" });
+            app.TreeInsert("org", top, new Dictionary<string,string> { ["name"] = "Б1" });
+            app.TreeInsert("org", 0, new Dictionary<string,string> { ["name"] = "А" });
+            app.CreateTreeList("orgRows", "org", "name", null, 1);
+            Assert(app.ModelCount("orgRows") == 3 && app.ModelRead("orgRows", 0, "name") == "А" && app.TreeRowOf("orgRows", 2).Depth == 1);
+            foreach (var number in new[] { "2", "10", "1" })
+                app.ModelInsert("nums", new Dictionary<string,string> { ["n"] = number });
+            app.CreateProxy("sorted", "nums", "n:number desc");
+            Assert(app.ModelRead("sorted", 0, "n") == "10" && app.SourceIndex("sorted", 0) == 1);
+            app.CreateSelection("pick", "sorted");
+            string picked = "";
+            app.OnSelectionChanged("pick", name => picked = name);
+            app.SelectionChange("pick", GranUI.SelectionCommand.Range, 0, 1);
+            var chosen = app.Selection("pick");
+            Assert(picked == "pick" && chosen.Current == null && chosen.Selected.Length == 2);
+
             // Своё событие всплывает от go к root; отменённое — Dispatch возвращает false
             // A custom event bubbles from go to root; a cancelled one — Dispatch returns false
             var seen = new List<string>();

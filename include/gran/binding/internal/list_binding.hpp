@@ -2,6 +2,7 @@
 #define GRAN_BINDING_INTERNAL_LIST_BINDING_HPP
 
 #include "gran/binding/list_bindings.hpp"
+#include "gran/data/selection_model.hpp"
 
 #include <cstddef>
 #include <string>
@@ -46,14 +47,22 @@ namespace gran::binding
     ** has copies, the other records are replaced by two spacers (Box) sized "the record count × the average
     ** record size". After every layout updateWindow fits the window to the visible area,
     ** so a list of 100,000 records costs as much as a list of a few dozen.
+    **
+    ** С моделью выделения (selection="…") копии отмеченных записей получают состояние стиля Selected;
+    ** перестановка записей (сортировка прокси) переставляет готовые копии, а не строит их заново.
+    ** Виртуальный список, дошедший до конца записей, просит у источника следующую порцию (fetchMore).
+    **
+    ** With a selection model (selection="…") the copies of the marked records get the Selected style state;
+    ** a permutation of the records (a proxy sort) rearranges the ready copies instead of building them anew.
+    ** A virtual list that reached the end of the records asks the source for the next portion (fetchMore).
     */
-    class ListBinding final : public data::ListObserver
+    class ListBinding final : public data::ListObserver, public data::SelectionObserver
     {
     public:
         // ---- list_binding.cpp ----
 
-        // Подписка и копии для уже имеющихся записей / The subscription and copies for the records already present
-        ListBinding(ListBindings& owner, ui::Node& container, data::ListModel& model);
+        // Подписка и копии для уже имеющихся записей; selection может быть nullptr / The subscription and copies for the records already present; selection may be nullptr
+        ListBinding(ListBindings& owner, ui::Node& container, data::ListSource& model, data::SelectionModel* selection);
         ~ListBinding() override;
         ListBinding(const ListBinding&) = delete;
         ListBinding& operator=(const ListBinding&) = delete;
@@ -61,6 +70,12 @@ namespace gran::binding
         void inserted(std::size_t index, std::size_t count) override;
         void removed(std::size_t index, std::size_t count) override;
         void changed(std::size_t index) override;
+
+        // ---- list_binding_order.cpp ----
+
+        void moved(std::size_t from, std::size_t count, std::size_t to) override;
+        void reordered(const std::vector<std::size_t>& oldToNew) override;
+        void selectionChanged() override;
 
         // ---- list_binding_window.cpp ----
 
@@ -74,16 +89,35 @@ namespace gran::binding
         const ui::Node& container() const noexcept;
 
         // Модель привязки / The binding model
-        data::ListModel& model() const noexcept;
+        data::ListSource& model() const noexcept;
+
+        // Модель выделения (nullptr — нет) / The selection model (nullptr — none)
+        data::SelectionModel* selection() const noexcept;
 
         // Номер записи, чья копия — узел item (прямой ребёнок контейнера); size_t(-1) — не копия / The record index whose copy is the item node (a direct container child); size_t(-1) — not a copy
         std::size_t indexOf(const ui::Node& item) const noexcept;
 
+        // Копия записи index (nullptr — запись вне окна виртуального списка) / The copy of the record index (nullptr — the record is outside the virtual list window)
+        ui::Node* itemAt(std::size_t index) const noexcept;
+
+        // ---- list_binding_reveal.cpp ----
+
+        // Прокрутить ближайший Scroll так, чтобы запись index была видна (по вертикали) / Scroll the nearest Scroll so that the record index is visible (vertically)
+        void reveal(std::size_t index);
+
     private:
-        // Место в детях контейнера для копии с номером local в окне / The place among the container children for the copy with the window index local
-        std::size_t childPosition(std::size_t local) const noexcept;
+        // ---- list_binding_order.cpp ----
+
+        // Переставить копии обычного списка по перестановке записей / Rearrange the copies of an ordinary list by the record permutation
+        void permute(const std::vector<std::size_t>& oldToNew);
+
+        // Состояние Selected копии по модели выделения / The Selected state of a copy by the selection model
+        void markSelection(const BoundItem& item, std::size_t record);
 
         // ---- list_binding_items.cpp ----
+
+        // Место в детях контейнера для копии с номером local в окне / The place among the container children for the copy with the window index local
+        std::size_t childPosition(std::size_t local) const noexcept;
 
         // Копия записи record (record — внутри окна или сразу за ним) / A copy of the record (record is inside the window or right after it)
         void materialize(std::size_t record);
@@ -99,12 +133,16 @@ namespace gran::binding
         // Размеры распорок по числу записей вне окна; true — размер изменился / The spacer sizes by the record count outside the window; true — a size changed
         bool applySpacers();
 
+        // Следующая порция источника, когда окно дошло до конца; true — записи добавились / The next source portion when the window reached the end; true — records were added
+        bool fetchMore();
+
         // Окно стало [first, last): лишние копии уходят, недостающие создаются / The window became [first, last): extra copies go, missing ones are created
         bool reshapeWindow(std::size_t first, std::size_t last);
 
         ListBindings& _owner;
         ui::Node& _container;
-        data::ListModel& _model;
+        data::ListSource& _model;
+        data::SelectionModel* _selection;
         // Копии окна записей [_first, _first + _items.size()); у обычного списка окно — все записи
         // The copies of the record window [_first, _first + _items.size()); for an ordinary list the window is all records
         std::vector<BoundItem> _items;
@@ -114,6 +152,8 @@ namespace gran::binding
         std::size_t _capacity = 32;
         // Средний размер записи по главной оси вместе с промежутком (0 — ещё не измерен) / The average record size along the main axis with the gap (0 — not measured yet)
         float _extent = 0.0f;
+        // Источник отказал при подгрузке — больше не просить / The source failed while fetching — do not ask any more
+        bool _fetchFailed = false;
         ui::Node* _lead = nullptr;
         ui::Node* _trail = nullptr;
     };

@@ -116,6 +116,9 @@ See [Linux build and validation](docs/building.en.md#linux).
 - **Components:** `<Component name="Card">` in a library file with its own namespace, included with
   `<xi:include>`; parameter attributes `{$title}` with types and defaults, named and unnamed slots,
   own styles, local ids; the instance XSD is generated and checks them like all the markup (`samples/components.xml`).
+- **Models:** tables (`<Data>` with columns), trees (`<Tree>`, `<TreeList>` with expansion and lazy nodes), sort and
+  filter proxies with an XPath filter (`<SortFilter>`), a selection model (Ctrl/Shift, keys, the `Selected` state),
+  JSON (an own parser) and XML (Beresta SAX, a select path) sources, lazy loading by portions (`samples/models.xml`).
 - **XSD 1.1 schema validates markup during parsing:** value types (colors, lengths, Grid tracks),
   `xs:assert` assertions (`minWidth ≤ maxWidth`, Grid row number less than the number of tracks, button has text),
   unique `id` and references only to declared styles (`xs:key`/`xs:keyref`).

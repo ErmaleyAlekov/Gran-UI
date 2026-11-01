@@ -71,7 +71,8 @@ namespace gran::binding
                 return;
             if (source[0] == '@')
                 binding.source = SourceKind::FIELD;
-            else if (source[0] == '$' && name.find('.') == std::string_view::npos && name != "index")
+            else if (source[0] == '$' && name.find('.') == std::string_view::npos && name != "index"
+                && !rowVariable(name))
                 binding.source = SourceKind::VARIABLE;
             binding.sourceName = std::string(name);
         }

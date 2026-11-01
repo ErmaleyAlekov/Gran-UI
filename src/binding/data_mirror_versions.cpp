@@ -4,11 +4,11 @@
 
 namespace gran::binding
 {
-    const beresta::Element* DataMirror::record(const data::ListModel& model, std::size_t index) const
+    const beresta::Element* DataMirror::record(const data::ListSource& model, std::size_t index) const
     {
-        for (const std::unique_ptr<MirrorEntry>& entry : _entries)
+        for (const std::unique_ptr<MirrorSlot>& entry : _entries)
         {
-            if (&entry->model != &model)
+            if (entry->list() != &model)
                 continue;
             if (index >= entry->element.getChildCount())
                 return nullptr;
@@ -20,7 +20,7 @@ namespace gran::binding
     // Моделей единицы — линейный поиск дешевле словаря / The models are few — a linear search is cheaper than a map
     std::uint64_t DataMirror::version(std::string_view name) const noexcept
     {
-        for (const std::unique_ptr<MirrorEntry>& entry : _entries)
+        for (const std::unique_ptr<MirrorSlot>& entry : _entries)
         {
             if (entry->name == name)
                 return entry->version;
@@ -28,13 +28,23 @@ namespace gran::binding
         return 0;
     }
 
-    std::uint64_t DataMirror::version(const data::ListModel& model) const noexcept
+    std::uint64_t DataMirror::version(const data::ListSource& model) const noexcept
     {
-        for (const std::unique_ptr<MirrorEntry>& entry : _entries)
+        for (const std::unique_ptr<MirrorSlot>& entry : _entries)
         {
-            if (&entry->model == &model)
+            if (entry->list() == &model)
                 return entry->version;
         }
         return 0;
+    }
+
+    const data::ListSource* MirrorSlot::list() const noexcept
+    {
+        return nullptr;
+    }
+
+    const data::ListSource* MirrorEntry::list() const noexcept
+    {
+        return &model;
     }
 }

@@ -242,6 +242,130 @@ GRAN_API gran_status gran_app_converter(gran_app* app, const char* name, gran_co
     void* user);
 GRAN_API gran_status gran_app_refresh_bindings(gran_app* app);
 
+/* Модели 1.7. Имена моделей общие с разметкой (<Data>, <Tree>, <SortFilter>, <TreeList>, <Selection>).
+ * gran_model_count/read/set выше работают с любым списком (хранилище, прокси, плоское дерево; запись через
+ * представление уходит в источник), insert/remove/clear/move/columns — только с хранилищем.
+ * columns — описание столбцов таблицы (type — GRAN_COLUMN_*). Ленивая подгрузка из кода: on_fetch(model, fn) —
+ * fn(user, model) вызывается, когда виртуальному списку нужна следующая порция (или по gran_model_fetch_more);
+ * fn вставляет записи gran_model_insert и вызывает gran_model_set_more(app, model, 0), когда записей больше нет;
+ * NULL снимает подгрузчик. load — список из файла JSON/XML (gran_source: fields — пары имя поля/путь, fetch > 0 —
+ * лениво порциями), содержимое модели заменяется; ошибка файла — GRAN_ERROR с местом в gran_last_error.
+ * Models 1.7. The model names are shared with the markup (<Data>, <Tree>, <SortFilter>, <TreeList>, <Selection>).
+ * gran_model_count/read/set above work with any list (a storage, a proxy, a flat tree; a write through
+ * a view goes into the source), insert/remove/clear/move/columns — with a storage only.
+ * columns is the table column description (type is GRAN_COLUMN_*). Lazy loading from code: on_fetch(model, fn) —
+ * fn(user, model) is called when a virtual list needs the next portion (or by gran_model_fetch_more);
+ * fn inserts records with gran_model_insert and calls gran_model_set_more(app, model, 0) when there are no more records;
+ * NULL drops the fetcher. load is a list from a JSON/XML file (gran_source: fields are field name/path pairs, fetch > 0 —
+ * lazily by portions), the model contents are replaced; a file error is GRAN_ERROR with the place in gran_last_error. */
+enum { GRAN_COLUMN_TEXT = 0, GRAN_COLUMN_NUMBER = 1, GRAN_COLUMN_DATE = 2, GRAN_COLUMN_BOOLEAN = 3 };
+typedef struct gran_column {
+    const char* name;
+    const char* title;
+    int32_t type;
+} gran_column;
+enum { GRAN_SOURCE_AUTO = 0, GRAN_SOURCE_JSON = 1, GRAN_SOURCE_XML = 2 };
+typedef struct gran_source {
+    uint32_t size;
+    int32_t format;
+    const char* path;
+    const char* select;
+    const char* children;
+    size_t fetch;
+    const gran_field* fields;
+    size_t field_count;
+} gran_source;
+typedef void (*gran_fetch_fn)(void* user, const char* model);
+GRAN_API gran_status gran_model_move(gran_app* app, const char* model, size_t from, size_t count, size_t to);
+GRAN_API gran_status gran_model_columns(gran_app* app, const char* model, const gran_column* columns, size_t count);
+GRAN_API gran_status gran_model_load(gran_app* app, const char* model, const gran_source* source);
+GRAN_API gran_status gran_model_on_fetch(gran_app* app, const char* model, gran_fetch_fn callback, void* user);
+GRAN_API gran_status gran_model_set_more(gran_app* app, const char* model, int32_t more);
+GRAN_API gran_status gran_model_fetch_more(gran_app* app, const char* model);
+
+/* Деревья: узлы — стабильные номера uint64 (0 — невидимый корень). insert — ребёнок parent на место record->index
+ * (SIZE_MAX — в конец), *result — номер нового узла; remove(0) удаляет все узлы; move — к parent на место row (в новом
+ * порядке); set меняет поля узла (record->index не используется); read — поле узла (освободить gran_string_free);
+ * children — число детей, child — ребёнок по номеру, parent — родитель (у верхнего уровня — 0). set_lazy — «дети есть,
+ * но не загружены»: при первом раскрытии вызывается fn(user, tree, node) из on_fetch, он вставляет детей. load — дерево
+ * из файла (children — имя элемента XML или члена JSON с детьми).
+ * Trees: the nodes are stable uint64 numbers (0 is the invisible root). insert is a child of parent at record->index
+ * (SIZE_MAX — at the end), *result is the new node number; remove(0) removes all nodes; move is to parent at row (in the new
+ * order); set changes the node fields (record->index is not used); read is a node field (free it with gran_string_free);
+ * children is the child count, child is a child by row, parent is the parent (0 for the top level). set_lazy is "there are children,
+ * but they are not loaded": on the first expansion fn(user, tree, node) from on_fetch is called, it inserts the children. load is a tree
+ * from a file (children is the XML element or JSON member name with the children). */
+typedef void (*gran_tree_fetch_fn)(void* user, const char* tree, uint64_t node);
+GRAN_API gran_status gran_tree_insert(gran_app* app, const char* tree, uint64_t parent, const gran_record* record,
+    uint64_t* result);
+GRAN_API gran_status gran_tree_remove(gran_app* app, const char* tree, uint64_t node);
+GRAN_API gran_status gran_tree_move(gran_app* app, const char* tree, uint64_t node, uint64_t parent, size_t row);
+GRAN_API gran_status gran_tree_set(gran_app* app, const char* tree, uint64_t node, const gran_record* record);
+GRAN_API gran_status gran_tree_read(gran_app* app, const char* tree, uint64_t node, const char* field, char** result);
+GRAN_API gran_status gran_tree_children(gran_app* app, const char* tree, uint64_t node, size_t* result);
+GRAN_API gran_status gran_tree_child(gran_app* app, const char* tree, uint64_t node, size_t row, uint64_t* result);
+GRAN_API gran_status gran_tree_parent(gran_app* app, const char* tree, uint64_t node, uint64_t* result);
+GRAN_API gran_status gran_tree_set_lazy(gran_app* app, const char* tree, uint64_t node, int32_t lazy);
+GRAN_API gran_status gran_tree_on_fetch(gran_app* app, const char* tree, gran_tree_fetch_fn callback, void* user);
+GRAN_API gran_status gran_tree_load(gran_app* app, const char* tree, const gran_source* source);
+
+/* Представления. view_create создаёт прокси (GRAN_VIEW_SORT_FILTER над списком source), плоское дерево
+ * (GRAN_VIEW_TREE_LIST над деревом source, expanded уровней раскрыто) или выделение (GRAN_VIEW_SELECTION над списком
+ * source, mode — GRAN_SELECT_*); sort и filter могут быть NULL. view_sort — ключи «поле[:text|number|natural] [asc|desc]»
+ * через запятую; view_filter — XPath 1.0 по записи с $переменными (NULL или "" — снять); source_index — номер записи
+ * источника для строки прокси; tree_row — узел и признаки строки плоского дерева; tree_expand — action 1 раскрыть,
+ * 0 свернуть, -1 переключить.
+ * Views. view_create creates a proxy (GRAN_VIEW_SORT_FILTER over the source list), a flat tree
+ * (GRAN_VIEW_TREE_LIST over the source tree, expanded levels are expanded) or a selection (GRAN_VIEW_SELECTION over the source
+ * list, mode is GRAN_SELECT_*); sort and filter may be NULL. view_sort is the comma separated "field[:text|number|natural] [asc|desc]"
+ * keys; view_filter is XPath 1.0 over the record with $variables (NULL or "" — drop); source_index is the source record index
+ * for a proxy row; tree_row is the node and the flags of a flat tree row; tree_expand — action 1 expand,
+ * 0 collapse, -1 toggle. */
+enum { GRAN_VIEW_SORT_FILTER = 1, GRAN_VIEW_TREE_LIST = 2, GRAN_VIEW_SELECTION = 3 };
+enum { GRAN_SELECT_NONE = 0, GRAN_SELECT_SINGLE = 1, GRAN_SELECT_MULTI = 2, GRAN_SELECT_EXTENDED = 3 };
+typedef struct gran_view {
+    uint32_t size;
+    int32_t kind;
+    const char* name;
+    const char* source;
+    const char* sort;
+    const char* filter;
+    int32_t mode;
+    size_t expanded;
+} gran_view;
+typedef struct gran_tree_row {
+    uint64_t node;
+    size_t depth;
+    int32_t expanded;
+    int32_t has_children;
+} gran_tree_row;
+GRAN_API gran_status gran_view_create(gran_app* app, const gran_view* view);
+GRAN_API gran_status gran_view_sort(gran_app* app, const char* view, const char* keys);
+GRAN_API gran_status gran_view_filter(gran_app* app, const char* view, const char* expression);
+GRAN_API gran_status gran_view_source_index(gran_app* app, const char* view, size_t row, size_t* result);
+GRAN_API gran_status gran_tree_row_read(gran_app* app, const char* view, size_t row, gran_tree_row* result);
+GRAN_API gran_status gran_tree_expand(gran_app* app, const char* view, size_t row, int32_t action);
+
+/* Выделение: change — GRAN_SELECTION_* с записью index (RANGE — от index до last включительно; CURRENT — сделать
+ * текущей, SIZE_MAX — снять; CLICK — как щелчок: last — модификаторы 1 Shift, 2 Ctrl). read — текущая запись
+ * (*current == SIZE_MAX — нет) и отмеченные: indices — массив на *count мест (может быть NULL), *count на выходе —
+ * число отмеченных. on_change — fn(user, selection) при любом изменении (NULL снимает).
+ * Selection: change is GRAN_SELECTION_* with the record index (RANGE — from index to last inclusive; CURRENT — make it
+ * current, SIZE_MAX — drop; CLICK — as a click: last is the modifiers 1 Shift, 2 Ctrl). read is the current record
+ * (*current == SIZE_MAX — none) and the marked ones: indices is an array of *count places (may be NULL), *count on output is
+ * the marked count. on_change is fn(user, selection) on any change (NULL drops it). */
+enum {
+    GRAN_SELECTION_SELECT = 1, GRAN_SELECTION_DESELECT = 2, GRAN_SELECTION_TOGGLE = 3, GRAN_SELECTION_RANGE = 4,
+    GRAN_SELECTION_CLEAR = 5, GRAN_SELECTION_ALL = 6, GRAN_SELECTION_CURRENT = 7, GRAN_SELECTION_CLICK = 8
+};
+typedef void (*gran_selection_fn)(void* user, const char* selection);
+GRAN_API gran_status gran_selection_change(gran_app* app, const char* selection, int32_t command, size_t index,
+    size_t last);
+GRAN_API gran_status gran_selection_read(gran_app* app, const char* selection, size_t* current, size_t* indices,
+    size_t* count);
+GRAN_API gran_status gran_selection_on_change(gran_app* app, const char* selection, gran_selection_fn callback,
+    void* user);
+
 #ifdef __cplusplus
 }
 #endif

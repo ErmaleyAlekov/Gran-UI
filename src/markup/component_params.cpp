@@ -23,12 +23,14 @@ namespace gran::markup::internal
             "gridColumnSpan", "left", "top", "right", "bottom", "zIndex"};
 
         // Имена, которые тоже нельзя дать параметру: слот экземпляра, его стиль и имена привязок / The names a parameter cannot take either: the instance slot, its style and the binding names
-        const char* const RESERVED_NAMES[] = {"slot", "style", "index", "self", "parent"};
+        const char* const RESERVED_NAMES[] = {"slot", "style", "index", "self", "parent", "selected", "current", "depth",
+            "expanded", "hasChildren"};
 
         // Тип по имени из схемы (ParamKind; без атрибута — string) / A type by the schema name (ParamKind; without the attribute — string)
         ParamType parseType(const std::string* name) noexcept
         {
-            static const char* const NAMES[] = {"string", "number", "boolean", "color", "paint", "length", "size", "action"};
+            static const char* const NAMES[] = {"string", "number", "boolean", "color", "paint", "length", "size", "action",
+                "model"};
 
             for (std::size_t index = 0; name != nullptr && index < sizeof(NAMES) / sizeof(NAMES[0]); ++index)
             {

@@ -53,9 +53,9 @@ namespace gran::ui
     void applyInitialStates(Node& node) noexcept
     {
         if (!node.enabled)
-            node.stateMask = static_cast<std::uint8_t>(node.stateMask | style::stateBit(style::State::DISABLED));
+            node.stateMask = static_cast<std::uint16_t>(node.stateMask | style::stateBit(style::State::DISABLED));
         if (node.content.checked)
-            node.stateMask = static_cast<std::uint8_t>(node.stateMask | style::stateBit(style::State::CHECKED));
+            node.stateMask = static_cast<std::uint16_t>(node.stateMask | style::stateBit(style::State::CHECKED));
         for (const std::unique_ptr<Node>& child : node.children)
             applyInitialStates(*child);
     }

@@ -129,7 +129,7 @@ internal sealed class Arguments : IDisposable
 
 // Владелец приложения; Dispose вызывается в потоке UI после Run.
 // Application owner; Dispose runs on the UI thread after Run.
-public sealed class Application : IDisposable
+public sealed partial class Application : IDisposable
 {
     IntPtr app;
     readonly ConcurrentBag<Delegate> callbacks = new();

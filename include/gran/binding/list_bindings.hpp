@@ -3,6 +3,10 @@
 
 #include "gran/binding/expression_text.hpp"
 #include "gran/data/list_model.hpp"
+#include "gran/data/selection_model.hpp"
+#include "gran/data/sort_filter_proxy.hpp"
+#include "gran/data/tree_list.hpp"
+#include "gran/data/tree_model.hpp"
 #include "gran/data/variable.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "gran/ui/node.hpp"
@@ -20,13 +24,22 @@ namespace gran::binding
     class ListBinding;
     class ExpressionBindings;
 
-    // Запись списка, к которой относится узел; model == nullptr — узел не из списка
-    // The list record a node belongs to; model == nullptr — the node is not from a list
+    /*
+    ** Запись списка, к которой относится узел; model == nullptr — узел не из списка. model — источник
+    ** списка (хранилище, прокси или плоское дерево), selection — его модель выделения (может не быть).
+    **
+    ** The list record a node belongs to; model == nullptr — the node is not from a list. model is the list
+    ** source (a storage, a proxy or a flat tree), selection is its selection model (may be absent).
+    */
     struct ItemRef
     {
-        data::ListModel* model = nullptr;
+        data::ListSource* model = nullptr;
         std::size_t index = 0;
+        data::SelectionModel* selection = nullptr;
     };
+
+    // Клавиша навигации по списку с выделением (без зависимости от платформы) / A navigation key for a list with a selection (without a platform dependency)
+    enum class ListKey : std::uint8_t { UP, DOWN, HOME, END, PAGE_UP, PAGE_DOWN, LEFT, RIGHT, SPACE, SELECT_ALL };
 
     /*
     ** Слушатель удаления узлов: тот, кто хранит невладеющие ссылки на узлы (ввод, анимации,
@@ -66,9 +79,6 @@ namespace gran::binding
         ListBindings(const ListBindings&) = delete;
         ListBindings& operator=(const ListBindings&) = delete;
 
-        // Модель по имени; нет — создаётся пустая / A model by name; none — an empty one is created
-        data::ListModel& model(const std::string& name);
-
         // Привязки для всех контейнеров items="…" и атрибутов {…} в поддереве (после загрузки или вставки) / Bindings for all items="…" containers and {…} attributes in the subtree (after loading or inserting)
         void bind(ui::Node& subtree);
 
@@ -79,9 +89,6 @@ namespace gran::binding
 
         // Снять привязки контейнеров, лежащих в поддереве / Drop the bindings of the containers lying in the subtree
         void forget(const ui::Node& subtree);
-
-        // Данные <Data> разметки заменяют содержимое моделей / The markup <Data> data replaces the model contents
-        void adoptData(std::vector<markup::DataSet>& sets);
 
         /*
         ** Удалить узел с поддеревом: привязки внутри снимаются, слушатель получает nodeRemoving,
@@ -121,6 +128,71 @@ namespace gran::binding
         */
         bool updateExpressions();
 
+        // ---- list_bindings_models.cpp ----
+
+        // Хранилище списка по имени; нет — создаётся пустое; имя другого вида — GranException / A list storage by name; none — an empty one is created; a name of another kind — GranException
+        data::ListModel& model(const std::string& name);
+
+        // Дерево по имени; нет — создаётся пустое / A tree by name; none — an empty one is created
+        data::TreeModel& tree(const std::string& name);
+
+        // Любой список по имени: хранилище, прокси или плоское дерево (nullptr — нет) / Any list by name: a storage, a proxy or a flat tree (nullptr — none)
+        data::ListSource* list(std::string_view name) const noexcept;
+
+        // Модель выделения по имени (nullptr — нет) / A selection model by name (nullptr — none)
+        data::SelectionModel* selection(std::string_view name) const noexcept;
+
+        // Имя списка (пусто — список без имени) / The list name (empty — a list without a name)
+        std::string nameOf(const data::ListSource& source) const;
+
+        // ---- list_bindings_views.cpp ----
+
+        // Прокси сортировки и фильтра над списком source / A sort and filter proxy over the source list
+        data::SortFilterProxy& createProxy(const std::string& name, const std::string& source);
+
+        // Плоское представление дерева tree / A flat view of the tree
+        data::TreeList& createTreeList(const std::string& name, const std::string& tree);
+
+        // Модель выделения над списком source / A selection model over the source list
+        data::SelectionModel& createSelection(const std::string& name, const std::string& source,
+            data::SelectionMode mode);
+
+        // ---- list_bindings_lookup.cpp ----
+
+        // Фильтр прокси или плоского дерева выражением XPath (пусто — без фильтра) / A filter of a proxy or a flat tree by an XPath expression (empty — no filter)
+        void setFilterExpression(const std::string& view, const std::string& expression);
+
+        // Прокси и плоское дерево по имени (nullptr — нет такого или другой вид) / A proxy and a flat tree by name (nullptr — none or another kind)
+        data::SortFilterProxy* proxy(std::string_view name) const noexcept;
+        data::TreeList* treeList(std::string_view name) const noexcept;
+
+        // ---- list_bindings_select.cpp ----
+
+        /*
+        ** Нажатие в контейнере с выделением: запись под узлом hit становится текущей, отметки — по правилам
+        ** режима (Ctrl, Shift). false — контейнер без выделения или нажатие мимо записей.
+        **
+        ** A press in a container with a selection: the record under the hit node becomes current, the marks follow the
+        ** mode rules (Ctrl, Shift). false — a container without a selection or a press outside the records.
+        */
+        bool pressItem(const ui::Node& container, const ui::Node& hit, bool control, bool shift);
+
+        /*
+        ** Клавиша у контейнера с выделением: стрелки, Home/End, PageUp/PageDown двигают текущую запись (Shift —
+        ** диапазон, Ctrl — без смены отметок), пробел отмечает, Ctrl+A — все; у плоского дерева стрелки
+        ** влево/вправо сворачивают и раскрывают. Текущая запись прокручивается в видимую область.
+        **
+        ** A key at a container with a selection: the arrows, Home/End, PageUp/PageDown move the current record (Shift —
+        ** a range, Ctrl — without changing the marks), space marks, Ctrl+A — all; for a flat tree the left/right
+        ** arrows collapse and expand. The current record is scrolled into the visible area.
+        */
+        bool keyItem(const ui::Node& container, ListKey key, bool control, bool shift);
+
+        // ---- list_bindings_adopt.cpp ----
+
+        // Данные Resources: хранилища и деревья заменяют содержимое, представления создаются или перенастраиваются / The Resources data: the storages and the trees replace the contents, the views are created or reconfigured
+        void adoptData(std::vector<markup::DataSet>& sets);
+
         // ---- list_bindings_variables.cpp ----
 
         // Задать переменную привязки $имя (тип — из variable) / Set the $name binding variable (the type is from variable)
@@ -139,9 +211,42 @@ namespace gran::binding
         void adoptVariables(std::vector<data::Variable>& variables);
 
     private:
+        // Представление по имени: прокси или плоское дерево / A view by name: a proxy or a flat tree
+        struct View
+        {
+            std::string name;
+            std::unique_ptr<data::ListSource> source;
+        };
+
+        // ---- list_bindings_lookup.cpp ----
+
+        // Привязка контейнера (nullptr — контейнер не привязан) / The container binding (nullptr — the container is not bound)
+        ListBinding* bindingOf(const ui::Node& container) const noexcept;
+
+        // ---- list_bindings_views.cpp ----
+
+        // Имя свободно или занято моделью вида kind; иначе — GranException(INVALID_ARGUMENT) / The name is free or taken by a model of kind; otherwise — GranException(INVALID_ARGUMENT)
+        void checkName(const std::string& name, const char* kind) const;
+
+        // ---- list_bindings_adopt.cpp ----
+
+        // Представление из разметки: создать или перенастроить существующее / A view from the markup: create or reconfigure an existing one
+        void adoptView(const markup::DataSet& set);
+
+        /*
+        ** Порядок полей — порядок зависимостей: представления опираются на хранилища, выделения — на
+        ** представления, зеркало выражений и привязки — на всех. Деструктор снимает их в обратном порядке
+        ** явно: представления уничтожаются от последнего к первому (прокси над прокси).
+        **
+        ** The field order is the dependency order: the views rest on the storages, the selections — on
+        ** the views, the expression mirror and the bindings — on all of them. The destructor drops them in the reverse order
+        ** explicitly: the views are destroyed from the last to the first (a proxy over a proxy).
+        */
         RemovalListener* _listener;
         std::map<std::string, std::unique_ptr<data::ListModel>, std::less<>> _models;
-        // После моделей: зеркало выражений отписывается от них раньше, чем они уходят / After the models: the expression mirror unsubscribes from them before they go
+        std::map<std::string, std::unique_ptr<data::TreeModel>, std::less<>> _trees;
+        std::vector<View> _views;
+        std::map<std::string, std::unique_ptr<data::SelectionModel>, std::less<>> _selections;
         std::unique_ptr<ExpressionBindings> _expressions;
         std::vector<std::unique_ptr<ListBinding>> _bindings;
     };

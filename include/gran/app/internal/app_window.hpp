@@ -76,6 +76,12 @@ namespace gran::app
         // The focused field or its history changed: the gran:undo / gran:redo commands of the main stack are recomputed
         void editingChanged() override;
 
+        // ---- app_list_input.cpp ----
+
+        // Щелчок и клавиши у списка с выделением — модели выделения его привязки / A click and keys at a list with a selection — to its binding selection model
+        void listPress(ui::Node& container, ui::Node& hit, std::uint8_t modifiers) override;
+        bool listKey(ui::Node& container, platform::Key key, std::uint8_t modifiers) override;
+
         // Общее состояние приложения / The shared application state
         Application::State& shared;
         markup::UiDocument document;

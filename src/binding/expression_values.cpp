@@ -78,4 +78,27 @@ namespace gran::binding
             return XPathValue::fromNumber(beresta::xpath::stringToNumber(variable->value));
         return XPathValue::fromString(variable->value);
     }
+
+    /*
+    ** Имя модели выделения важнее id узла: $orderSel.current — номер текущей записи (-1 — нет),
+    ** $orderSel.count — число отмеченных. Иначе — свойство узла, как раньше.
+    **
+    ** A selection model name wins over a node id: $orderSel.current is the current record index (-1 — none),
+    ** $orderSel.count is the marked count. Otherwise — a node property, as before.
+    */
+    beresta::xpath::XPathValue watchValue(EvaluationScope& scope, const ExpressionBinding& binding, const PropertyWatch& watch)
+    {
+        using beresta::xpath::XPathValue;
+        const data::SelectionModel* selection = scope.owner.selection(watch.base);
+
+        if (selection == nullptr)
+            return propertyValue(propertyNode(scope, binding, watch.base), watch.property);
+        if (watch.property == "count")
+            return XPathValue::fromNumber(static_cast<double>(selection->count()));
+        if (watch.property != "current")
+            return XPathValue::fromString(std::string());
+        if (selection->current() == data::NO_ROW)
+            return XPathValue::fromNumber(-1.0);
+        return XPathValue::fromNumber(static_cast<double>(selection->current()));
+    }
 }

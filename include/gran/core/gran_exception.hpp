@@ -77,6 +77,31 @@ namespace gran
     private:
         long long _nativeCode;
     };
+
+    /*
+    ** Ошибка источника данных (data_exception.cpp): файл JSON или XML, строка и столбец (с 1; 0 —
+    ** позиция неизвестна). Текст уже содержит место; поля нужны коду, который показывает ошибку сам.
+    **
+    ** A data source error (data_exception.cpp): the JSON or XML file, the line and the column (from 1; 0 —
+    ** the position is unknown). The text contains the place already; the fields are for code that shows the error itself.
+    */
+    class DataException : public GranException
+    {
+    public:
+        DataException(std::string message, std::string source, std::size_t line, std::size_t column);
+
+        // Файл источника / The source file
+        const std::string& getSource() const noexcept;
+
+        // Строка и столбец в файле / The line and the column in the file
+        std::size_t getLine() const noexcept;
+        std::size_t getColumn() const noexcept;
+
+    private:
+        std::string _source;
+        std::size_t _line;
+        std::size_t _column;
+    };
 }
 
 #endif

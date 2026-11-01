@@ -95,10 +95,28 @@ namespace gran::i18n
             {Message::MARKUP_NO_DEFAULT_SLOT, "the component {0} has no unnamed slot <Slot/>: the content without slot=\"…\" has nowhere to go"},
             {Message::MARKUP_SLOT_OUTSIDE, "<Slot> works only in a <Component> body"},
             {Message::MARKUP_SLOT_ROOT, "the body root of the component {0} is <Slot>: a UI element is needed"},
-            {Message::MARKUP_PARAM_RESERVED, "the parameter {0} of the component {1}: the name is taken by an instance attribute (id, visible, enabled, slot, style, the size and placement) or by the binding (index, self, parent)"},
+            {Message::MARKUP_PARAM_RESERVED, "the parameter {0} of the component {1}: the name is taken by an instance attribute (id, visible, enabled, slot, style, the size and placement) or by the binding (index, self, parent, selected, current, depth, expanded, hasChildren)"},
             {Message::MARKUP_UNKNOWN_STYLE, "the style \"{0}\" is declared neither in the component, nor in its library, nor in the window"},
             {Message::MARKUP_LIBRARY_SCHEMA, "the component schema of the library \"{0}\" was not built: {1}"},
-            {Message::MARKUP_COMPONENT_INTERNAL, "the element {0} is a part of a component expansion: edit the instance attributes or the library file"}
+            {Message::MARKUP_COMPONENT_INTERNAL, "the element {0} is a part of a component expansion: edit the instance attributes or the library file"},
+            {Message::DATA_NO_TREE_NODE, "tree node {0} is not found"},
+            {Message::DATA_TREE_CYCLE, "node {0} cannot be moved into its own subtree, and the root cannot be moved"},
+            {Message::DATA_BAD_SORT, "invalid sort key \"{0}\": expected comma separated \"field[:text|number|natural] [asc|desc]\""},
+            {Message::DATA_SOURCE_ERROR, "{0}, line {1}, column {2}: {3}"},
+            {Message::DATA_JSON_UNEXPECTED, "unexpected character \"{0}\""},
+            {Message::DATA_JSON_END, "the JSON file ended unexpectedly"},
+            {Message::DATA_JSON_ESCAPE, "invalid escape sequence in a string"},
+            {Message::DATA_JSON_NUMBER, "invalid number"},
+            {Message::DATA_JSON_DEPTH, "JSON nesting is deeper than {0} levels"},
+            {Message::DATA_SELECT_MISSING, "the select path \"{0}\" is not found"},
+            {Message::DATA_SELECT_NOT_ARRAY, "an array was expected at the select path \"{0}\""},
+            {Message::DATA_BAD_SELECT, "invalid select path \"{0}\": for XML — / and // steps with names or *, for JSON — dot separated names"},
+            {Message::DATA_BAD_FIELD_PATH, "invalid field path \"{0}\": {1}"},
+            {Message::DATA_XML_ERROR, "XML error: {0}"},
+            {Message::DATA_UNKNOWN_MODEL, "model \"{0}\" is not found"},
+            {Message::DATA_MODEL_KIND, "the name \"{0}\" is already taken by a model of another kind ({1})"},
+            {Message::DATA_SOURCE_CYCLE, "model \"{0}\" depends on itself through source, tree or model"},
+            {Message::DATA_SELECTION_MISMATCH, "selection \"{0}\" is not found or does not belong to the list \"{1}\" the container shows"}
         };
     }
 

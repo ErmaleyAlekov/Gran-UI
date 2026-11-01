@@ -21,7 +21,11 @@ namespace gran::binding
             ItemRef item = scope.owner.itemOf(*binding.node);
 
             binding.item = item.model;
+            binding.selection = item.selection;
+            if (item.selection != nullptr)
+                binding.selectionSeen = item.selection->version();
             context.variables.insert_or_assign("index", XPathValue::fromNumber(static_cast<double>(item.index)));
+            rowVariables(item, context);
             if (item.model == nullptr)
                 return scope.mirror.root();
             binding.itemSeen = scope.mirror.version(*item.model);
@@ -36,7 +40,7 @@ namespace gran::binding
         {
             for (PropertyWatch& watch : binding.properties)
             {
-                XPathValue value = propertyValue(propertyNode(scope, binding, watch.base), watch.property);
+                XPathValue value = watchValue(scope, binding, watch);
                 watch.seen = value.toString();
                 context.variables.insert_or_assign(watch.variable, std::move(value));
             }
@@ -70,7 +74,7 @@ namespace gran::binding
     {
         for (const PropertyWatch& watch : binding.properties)
         {
-            if (propertyValue(propertyNode(scope, binding, watch.base), watch.property).toString() != watch.seen)
+            if (watchValue(scope, binding, watch).toString() != watch.seen)
                 return true;
         }
         for (const VersionWatch& watch : binding.variables)
@@ -83,6 +87,8 @@ namespace gran::binding
             if (scope.mirror.version(watch.name) != watch.seen)
                 return true;
         }
+        if (binding.selection != nullptr && binding.selection->version() != binding.selectionSeen)
+            return true;
         return binding.item != nullptr && scope.mirror.version(*binding.item) != binding.itemSeen;
     }
 

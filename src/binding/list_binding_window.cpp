@@ -87,6 +87,8 @@ namespace gran::binding
         std::size_t last = std::max(first, std::min(count, static_cast<std::size_t>(std::max(0.0, to))));
         _capacity = std::max(INITIAL_WINDOW, last - first);
         bool changed = reshapeWindow(first, last);
+        if (last >= count)
+            changed = fetchMore() || changed;
         return applySpacers() || changed;
     }
 

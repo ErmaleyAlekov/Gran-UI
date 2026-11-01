@@ -43,6 +43,28 @@ class TestApplication(unittest.TestCase):
         count = self.app.model_count("test_model")
         self.assertEqual(count, 0)
 
+    def test_models(self):
+        # Дерево, плоское представление, прокси с сортировкой, выделение / A tree, a flat view, a sorted proxy, a selection
+        top = self.app.tree_insert("org", 0, {"name": "Б"})
+        self.app.tree_insert("org", top, {"name": "Б1"})
+        self.app.tree_insert("org", 0, {"name": "А"})
+        self.assertEqual(len(self.app.tree_children("org")), 2)
+        self.app.create_tree_list("orgRows", "org", sort="name", expanded=1)
+        self.assertEqual(self.app.model_count("orgRows"), 3)
+        self.assertEqual(self.app.model_read("orgRows", 0, "name"), "А")
+        self.assertEqual(self.app.tree_row("orgRows", 2)["depth"], 1)
+        for value in ("2", "10", "1"):
+            self.app.model_insert("nums", {"n": value})
+        self.app.create_proxy("sorted", "nums", sort="n:number desc")
+        self.assertEqual(self.app.model_read("sorted", 0, "n"), "10")
+        self.assertEqual(self.app.source_index("sorted", 0), 1)
+        self.app.create_selection("pick", "sorted")
+        seen = []
+        self.app.on_selection_changed("pick", seen.append)
+        self.app.selection_change("pick", "range", 0, 1)
+        self.assertEqual(self.app.selection("pick"), (None, [0, 1]))
+        self.assertEqual(seen, ["pick"])
+
     def test_events_listen_dispatch(self):
         # Своё событие: всплытие от go к root, слушатель кода и обработчик разметки on="ping:named"
         # A custom event: bubbling from go to root, a code listener and the on="ping:named" markup handler

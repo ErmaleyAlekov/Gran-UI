@@ -167,8 +167,31 @@ app.saveMarkupFile("layout.xml");                   // разметка с но�
 - `remove(node)`: удаляет поддерево (и его элемент из живого DOM), снимает ссылки ввода, анимаций и доступности.
   Корень удалять нельзя.
 - `focus(ui::Node*)`: фокус из кода, `nullptr` снимает; до `run()` запрос запоминается.
-- `model(name)`: ссылка на `data::ListModel`; неизвестное имя создаёт пустую модель.
-- `itemOf(node)`: `ItemRef` записи ближайшего списка; `model == nullptr`, если узел вне привязки.
+- `model(name)`: ссылка на `data::ListModel` (хранилище: `insert`, `insertAll`, `append`, `remove(index[, count])`,
+  `set`, `setRecord`, `move(from, count, to)`, `clear`, `setColumns`, `setFetcher`, `fetchMore`); неизвестное имя
+  создаёт пустую модель.
+- `list(name)`: любой список — хранилище, прокси или плоское дерево (`data::ListSource`: `size`, `at`, `set`, `columns`,
+  `canFetchMore`, `fetchMore`, подписка `ListObserver` — `inserted`, `removed`, `changed`, `changedRange`, `moved`,
+  `reordered`); нет — создаётся пустое хранилище.
+- `tree(name)`: `data::TreeModel` (узлы — стабильные `NodeId`: `root`, `childCount`, `child`, `parent`, `row`, `record`,
+  `insert`, `append`, `remove`, `move`, `set`, `clearChildren`, `appendItems` (пакетом), `setLazy` + `setFetcher(TreeFetcher)`, подписка
+  `TreeObserver`); перенос узла в своё поддерево — `GranException` (`DATA_TREE_CYCLE`).
+- `createProxy(name, source)` → `data::SortFilterProxy` (`setSort(parseSortKeys("…"))`, `setFilter(RecordFilter)`,
+  `invalidateFilter`, `sourceIndex`, `proxyIndex`); `createTreeList(name, tree)` → `data::TreeList` (`expand`,
+  `collapse`, `toggle`, `expandToDepth`, `depth`, `expanded`, `hasChildren`, `node`, `rowOf`, `setSort`,
+  `setFilter(NodeFilter)`); `createSelection(name, source, mode)` → `data::SelectionModel` (`select`, `deselect`,
+  `toggle`, `selectRange`, `selectAll`, `clear`, `setCurrent`, `activate(index, ctrl, shift)` — как щелчок,
+  `current`, `anchor`, `isSelected`, `selected`, `count`, `version`, подписка `SelectionObserver`).
+  `proxy(name)`, `treeList(name)`, `selection(name)` — существующие (нет — `GranException`, `DATA_UNKNOWN_MODEL`).
+  Имя, занятое моделью другого вида, — `DATA_MODEL_KIND`.
+- `setFilterExpression(view, xpath)`: фильтр прокси или плоского дерева выражением с `$переменными` (пусто — снять);
+  смена переменной пересчитывает фильтр перед следующим кадром.
+- `loadData(name, data::SourceSpec)` / `loadTree(name, spec)`: список или дерево из файла JSON/XML (`path`, `format`,
+  `select`, `fields`, `children`, `fetch`); ошибка — `DataException` (файл, строка, столбец) или `GranException(IO)`.
+  Без приложения — `data::openListSource`, `data::loadList`, `data::readTreeSource`, `data::JsonReader`
+  (`gran/data/data_source.hpp`, `gran/data/json_reader.hpp`).
+- `itemOf(node)`: `ItemRef` записи ближайшего списка (`model` — `data::ListSource*`, `index`, `selection`);
+  `model == nullptr`, если узел вне привязки.
 - `setVariable(name, std::string)`: переменная `$name` выражений `{…}` с прежним типом (новая — строка);
   `setVariableNumber(name, double)`, `setVariableBoolean(name, bool)` задают тип явно;
   `variable(name) -> std::optional<std::string>` — значение текстом (логическое — `"true"`/`"false"`).

@@ -49,6 +49,8 @@ namespace gran::input
         changePressed(state, control);
         if (!keep)
             changeFocus(state, control);
+        if (control != nullptr && hit != nullptr && !control->content.selection.empty())
+            state.actions->listPress(*control, *hit, event.modifiers);
         armDrag(state, draggable, event.position);
         if (control != nullptr && control->kind == ui::ElementKind::SLIDER)
         {

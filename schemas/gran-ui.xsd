@@ -183,7 +183,7 @@
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
-          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit|setVariable|toggleVariable)(:.*)?"/>
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit|setVariable|toggleVariable|expand|collapse|toggle)(:.*)?"/>
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
@@ -543,6 +543,8 @@
       <xs:element name="Hover" type="StateType" minOccurs="0"/>
       <xs:element name="Pressed" type="StateType" minOccurs="0"/>
       <xs:element name="Focused" type="StateType" minOccurs="0"/>
+      <!-- Копия записи отмечена моделью выделения списка (selection="…") / The record copy is marked by the list selection model (selection="…") -->
+      <xs:element name="Selected" type="StateType" minOccurs="0"/>
       <xs:element name="Disabled" type="StateType" minOccurs="0"/>
       <xs:element name="Checked" type="StateType" minOccurs="0"/>
       <!-- Окно развёрнуто (для кнопок заголовка) / The window is maximized (for the title bar buttons) -->
@@ -659,12 +661,16 @@
           <xs:group ref="UiElement" minOccurs="0" maxOccurs="unbounded"/>
           <xs:element name="ItemTemplate" type="ItemTemplateType" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="items" type="xs:NCName"/>
+        <xs:attribute name="items" type="ModelName"/>
+        <!-- Модель выделения того же списка: щелчок и клавиши выделяют записи, копии получают состояние Selected -->
+        <!-- A selection model of the same list: a click and keys select records, the copies get the Selected state -->
+        <xs:attribute name="selection" type="ModelName"/>
         <!-- Виртуальный список: копии только у видимых записей (нужен items, записи примерно одной высоты) -->
         <!-- A virtual list: copies only for the visible records (needs items, records of about the same height) -->
         <xs:attribute name="virtual" type="xs:boolean"/>
         <xs:assert test="exists(@items) = exists(ItemTemplate)"/>
         <xs:assert test="not(@virtual = 'true' or @virtual = '1') or exists(@items)"/>
+        <xs:assert test="not(@selection) or exists(@items)"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -812,7 +818,7 @@
         <!-- enabled кнопки с командой задаёт команда / The enabled of a button with a command is set by the command -->
         <xs:assert test="not(@command and @enabled)"/>
         <xs:assert test="@text or @command or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
-                         or self::Focused or self::Disabled or self::Checked or self::Maximized
+                         or self::Focused or self::Selected or self::Disabled or self::Checked or self::Maximized
                          or self::DropTarget or self::Dragging)]"/>
       </xs:extension>
     </xs:complexContent>
@@ -938,7 +944,7 @@
         <xs:attribute name="value" type="xs:string"/>
         <xs:attribute name="placeholder" type="xs:string"/>
         <xs:attribute name="onChange" type="Action"/>
-        <xs:attribute name="items" type="xs:NCName"/>
+        <xs:attribute name="items" type="ModelName"/>
         <xs:assert test="exists(@items) = exists(ItemTemplate)"/>
         <xs:assert test="not(MenuItem/Popup)"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
@@ -1131,17 +1137,154 @@
     <xs:attribute name="type" type="VariableKind" default="string"/>
     <xs:attribute name="value" type="xs:string"/>
     <!-- Зарезервированные имена: $index — номер записи, $узел.свойство — с точкой / Reserved names: $index is the record number, $node.property has a dot -->
-    <xs:assert test="@name != 'index' and not(contains(@name, '.'))"/>
+    <xs:assert test="not(@name = 'index' or @name = 'selected' or @name = 'current' or @name = 'depth'
+                     or @name = 'expanded' or @name = 'hasChildren')
+                     and not(contains(@name, '.'))"/>
     <xs:assert test="not(@type = 'boolean') or not(@value) or @value = 'true' or @value = 'false'"/>
     <xs:assert test="not(@type = 'number') or not(@value) or string(number(@value)) != 'NaN'"/>
   </xs:complexType>
 
-  <!-- Начальные данные модели списка name / The initial data of the list model name -->
+  <!-- Тип столбца таблицы / A table column type -->
+  <xs:simpleType name="DataColumnKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="number"/>
+      <xs:enumeration value="date"/>
+      <xs:enumeration value="boolean"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Столбец таблицы: поле записи, заголовок, тип / A table column: the record field, the title, the type -->
+  <xs:complexType name="DataColumnType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="title" type="xs:string"/>
+    <xs:attribute name="type" type="DataColumnKind" default="text"/>
+  </xs:complexType>
+
+  <!--
+    Поле записи из файла: XML — XPath 1.0 относительно элемента записи (@price, title), JSON — имена через точку.
+    A record field from a file: XML — XPath 1.0 relative to the record element (@price, title), JSON — dot separated names.
+  -->
+  <xs:complexType name="DataFieldType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- Формат файла источника (без него — по расширению) / The source file format (without it — by the extension) -->
+  <xs:simpleType name="DataFormat">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="json"/>
+      <xs:enumeration value="xml"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--
+    Файл источника: путь от файла разметки, select — путь к записям (XML: шаги / и // с именами и *;
+    JSON: имена через точку), format — формат файла.
+    The source file: a path from the markup file, select is the path to the records (XML: / and // steps with names and *;
+    JSON: dot separated names), format is the file format.
+  -->
+  <xs:attributeGroup name="DataSourceAttributes">
+    <xs:attribute name="source" type="xs:string"/>
+    <xs:attribute name="select" type="xs:string"/>
+    <xs:attribute name="format" type="DataFormat"/>
+  </xs:attributeGroup>
+
+  <!-- Ключи сортировки: «поле[:text|number|natural] [asc|desc]» через запятую / Sort keys: comma separated "field[:text|number|natural] [asc|desc]" -->
+  <xs:simpleType name="SortKeys">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\s*[^,:\s]+(:(text|number|natural))?(\s+(asc|desc))?\s*(,\s*[^,:\s]+(:(text|number|natural))?(\s+(asc|desc))?\s*)*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--
+    Модель списка name (таблица — со столбцами Column): записи Item или файл source с полями Field;
+    fetch — размер порции ленивой подгрузки (0 или нет — всё сразу).
+    The list model name (a table — with Column columns): Item records or a source file with Field fields;
+    fetch is the lazy loading portion size (0 or absent — everything at once).
+  -->
   <xs:complexType name="DataType">
     <xs:sequence>
+      <xs:element name="Column" type="DataColumnType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Field" type="DataFieldType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Item" type="DataItemType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
     <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attributeGroup ref="DataSourceAttributes"/>
+    <xs:attribute name="fetch" type="xs:nonNegativeInteger"/>
+    <xs:assert test="not(@source and Item)"/>
+    <xs:assert test="@source or not(Field or @select or @fetch or @format)"/>
+  </xs:complexType>
+
+  <!-- Узел дерева: поля — атрибуты, дети — вложенные Item / A tree node: the fields are the attributes, the children are nested Items -->
+  <xs:complexType name="TreeItemType">
+    <xs:sequence>
+      <xs:element name="Item" type="TreeItemType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:anyAttribute processContents="skip"/>
+  </xs:complexType>
+
+  <!--
+    Модель дерева name: вложенные Item или файл source; children — имя элемента (XML) или члена (JSON) с детьми узла.
+    The tree model name: nested Items or a source file; children is the element (XML) or member (JSON) name with the node children.
+  -->
+  <xs:complexType name="TreeType">
+    <xs:sequence>
+      <xs:element name="Field" type="DataFieldType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Item" type="TreeItemType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attributeGroup ref="DataSourceAttributes"/>
+    <xs:attribute name="children" type="xs:string"/>
+    <xs:assert test="not(@source and Item)"/>
+    <xs:assert test="@source or not(Field or @select or @format or @children)"/>
+  </xs:complexType>
+
+  <!--
+    Плоское представление дерева tree для списков: раскрытые узлы подряд ($depth, $expanded, $hasChildren);
+    expanded — сколько уровней раскрыть сразу, sort — порядок братьев, filter — XPath (предки подходящих видны).
+    A flat view of the tree for lists: the expanded nodes in a row ($depth, $expanded, $hasChildren);
+    expanded is how many levels to expand at once, sort is the sibling order, filter is XPath (the ancestors of matches are visible).
+  -->
+  <xs:complexType name="TreeListType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="tree" type="xs:NCName" use="required"/>
+    <xs:attribute name="expanded" type="xs:nonNegativeInteger" default="0"/>
+    <xs:attribute name="sort" type="SortKeys"/>
+    <xs:attribute name="filter" type="xs:string"/>
+  </xs:complexType>
+
+  <!--
+    Прокси сортировки и фильтра над списком source (объявленным раньше или созданным кодом);
+    filter — XPath 1.0 по записи (@поле) с переменными $имя, пересчитывается при их смене.
+    A sort and filter proxy over the source list (declared earlier or created by code);
+    filter is XPath 1.0 over the record (@field) with $name variables, recomputed when they change.
+  -->
+  <xs:complexType name="SortFilterType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="source" type="xs:NCName" use="required"/>
+    <xs:attribute name="sort" type="SortKeys"/>
+    <xs:attribute name="filter" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Режим выделения / The selection mode -->
+  <xs:simpleType name="SelectionKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="single"/>
+      <xs:enumeration value="multi"/>
+      <xs:enumeration value="extended"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--
+    Модель выделения списка model: в выражениях $имя.current, $имя.count и имя/Item — копии отмеченных записей.
+    The selection model of the model list: in expressions $name.current, $name.count and name/Item — copies of the marked records.
+  -->
+  <xs:complexType name="SelectionType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="model" type="xs:NCName" use="required"/>
+    <xs:attribute name="mode" type="SelectionKind" default="extended"/>
   </xs:complexType>
 
   <!--
@@ -1201,7 +1344,14 @@
       <!-- Кадры — до стилей: имена в animation проверяются при чтении стиля / Keyframes go before styles: the animation names are checked when a style is read -->
       <xs:element name="Keyframes" type="KeyframesType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element name="Data" type="DataType" minOccurs="0" maxOccurs="unbounded"/>
+      <!-- Модели и представления в порядке объявления: основа — раньше представления / Models and views in the declaration order: the base goes before the view -->
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Data" type="DataType"/>
+        <xs:element name="Tree" type="TreeType"/>
+        <xs:element name="TreeList" type="TreeListType"/>
+        <xs:element name="SortFilter" type="SortFilterType"/>
+        <xs:element name="Selection" type="SelectionType"/>
+      </xs:choice>
       <xs:element name="Variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Command" type="CommandType" minOccurs="0" maxOccurs="unbounded"/>
       <!-- Библиотеки компонентов: <xi:include href="файл.xml"/>, корень файла — <Library> / Component libraries: <xi:include href="file.xml"/>, the file root is <Library> -->
@@ -1235,7 +1385,14 @@
       <xs:enumeration value="length"/>
       <xs:enumeration value="size"/>
       <xs:enumeration value="action"/>
+      <!-- Имя модели для items, selection, source (имя или {$параметр}) / A model name for items, selection, source (a name or {$parameter}) -->
+      <xs:enumeration value="model"/>
     </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Имя модели или выражение, передающее параметр дальше / A model name or an expression passing a parameter further -->
+  <xs:simpleType name="ModelName">
+    <xs:union memberTypes="xs:NCName Binding"/>
   </xs:simpleType>
 
   <!-- Допустимые значения строкового параметра / The allowed values of a string parameter -->
@@ -1373,9 +1530,9 @@
       <xs:selector xpath="Resources/Keyframes"/>
       <xs:field xpath="@name"/>
     </xs:unique>
-    <!-- Имена наборов данных уникальны / Data set names are unique -->
+    <!-- Имена моделей всех видов уникальны / The model names of all kinds are unique -->
     <xs:unique name="uniqueData">
-      <xs:selector xpath="Resources/Data"/>
+      <xs:selector xpath="Resources/Data | Resources/Tree | Resources/TreeList | Resources/SortFilter | Resources/Selection"/>
       <xs:field xpath="@name"/>
     </xs:unique>
     <!-- Имена переменных уникальны / Variable names are unique -->

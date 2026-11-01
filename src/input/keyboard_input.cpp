@@ -67,6 +67,8 @@ namespace gran::input
                 return state.selection != nullptr && navigateText(state, *state.selection, event);
             if (ui::isTextField(*focus))
                 return editText(state, *focus, event);
+            if (!focus->content.selection.empty() && state.actions->listKey(*focus, event.key, event.modifiers))
+                return true;
             if (stepChoice(state, *focus, event.key))
                 return true;
             if (focus->kind == ui::ElementKind::SLIDER && arrowDirection(event.key) != 0)

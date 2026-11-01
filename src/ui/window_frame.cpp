@@ -16,7 +16,7 @@ namespace gran::ui
     // Propagate the bit to children: an icon inside a button can also change its appearance.
     void setWindowMaximized(Node& node, bool maximized)
     {
-        std::uint8_t bit = style::stateBit(style::State::MAXIMIZED);
+        std::uint16_t bit = style::stateBit(style::State::MAXIMIZED);
 
         if (((node.stateMask & bit) != 0) == maximized && (node.dirty & (DIRTY_STYLE | DIRTY_DESCENDANT)) == 0)
             return;

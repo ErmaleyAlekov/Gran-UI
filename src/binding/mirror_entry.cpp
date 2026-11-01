@@ -7,8 +7,8 @@
 namespace gran::binding
 {
     // Уже имеющиеся записи отражаются сразу, затем — подписка / The records already present are mirrored at once, then the subscription
-    MirrorEntry::MirrorEntry(std::string modelName, data::ListModel& source, beresta::Element& target)
-        : name(std::move(modelName)), model(source), element(target)
+    MirrorEntry::MirrorEntry(std::string modelName, data::ListSource& source, beresta::Element& target)
+        : MirrorSlot(std::move(modelName), target), model(source)
     {
         for (std::size_t index = 0; index < model.size(); ++index)
             element.appendChild(mirrorItem(model.at(index)));

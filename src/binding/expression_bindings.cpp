@@ -9,8 +9,16 @@ namespace gran::binding
     {
     }
 
-    // Привязки уходят раньше зеркала, элементы которого они читали (обратный порядок полей) / The bindings go before the mirror whose elements they read (the reverse field order)
-    ExpressionBindings::~ExpressionBindings() = default;
+    // Привязки уходят раньше зеркала, элементы которого они читали (обратный порядок полей); живые фильтры отвязываются / The bindings go before the mirror whose elements they read (the reverse field order); the live filters are detached
+    ExpressionBindings::~ExpressionBindings()
+    {
+        for (const std::weak_ptr<ExpressionFilter>& weak : _filters)
+        {
+            std::shared_ptr<ExpressionFilter> filter = weak.lock();
+            if (filter != nullptr)
+                filter->detach();
+        }
+    }
 
     // Вычисление откладывается до update: копия шаблона ещё не знает своей записи, пока привязка списка строится / The evaluation is put off until update: a template copy does not know its record yet while the list binding is being built
     void ExpressionBindings::bindNode(ui::Node& node)

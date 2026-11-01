@@ -61,4 +61,28 @@ namespace gran::binding
         bool changed = setMainSize(*_lead, leadSize, horizontal);
         return setMainSize(*_trail, trailSize, horizontal) || changed;
     }
+
+    /*
+    ** Ошибка источника (испорченный файл) не должна ронять кадр: привязка перестаёт просить порции,
+    ** а записи, загруженные до ошибки, остаются.
+    **
+    ** A source error (a damaged file) must not break the frame: the binding stops asking for portions,
+    ** and the records loaded before the error stay.
+    */
+    bool ListBinding::fetchMore()
+    {
+        std::size_t before = _model.size();
+
+        if (_fetchFailed || !_model.canFetchMore())
+            return false;
+        try
+        {
+            _model.fetchMore();
+        }
+        catch (const std::exception&)
+        {
+            _fetchFailed = true;
+        }
+        return _model.size() != before;
+    }
 }
