@@ -96,6 +96,20 @@ namespace gran::input
         ** their enabled state (gran:undo works with the field too). By default — nothing.
         */
         virtual void editingChanged();
+
+        // ---- action_sink_lists.cpp ----
+
+        /*
+        ** Нажатие в контейнере списка с моделью выделения (selection="…"): hit — узел под мышью,
+        ** modifiers — platform::Modifier. По умолчанию — ничего.
+        **
+        ** A press in a list container with a selection model (selection="…"): hit is the node under the mouse,
+        ** modifiers are platform::Modifier. By default — nothing.
+        */
+        virtual void listPress(ui::Node& container, ui::Node& hit, std::uint8_t modifiers);
+
+        // Клавиша у такого контейнера в фокусе; true — обработана (стрелки, Home/End, пробел, Ctrl+A) / A key at such a focused container; true — handled (the arrows, Home/End, space, Ctrl+A)
+        virtual bool listKey(ui::Node& container, platform::Key key, std::uint8_t modifiers);
     };
 
     /*
@@ -414,10 +428,10 @@ namespace gran::input
     // ---- node_states.cpp ----
 
     // Бит состояния одному узлу (изменение — пересчёт стиля) / A state bit to one node (a change — a style recompute)
-    void setNodeState(ui::Node& node, std::uint8_t bit, bool on);
+    void setNodeState(ui::Node& node, std::uint16_t bit, bool on);
 
     // Бит состояния узлу и всем предкам (hover и pressed в CSS действуют на цепочку) / A state bit to the node and all ancestors
-    void setChainState(ui::Node* node, std::uint8_t bit, bool on);
+    void setChainState(ui::Node* node, std::uint16_t bit, bool on);
 
     // Смена узла под мышью, нажатого, в фокусе / Changing the hovered, pressed, focused node
     void changeHover(RouterState& state, ui::Node* node);

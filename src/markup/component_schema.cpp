@@ -36,7 +36,8 @@ namespace gran::markup::internal
         */
         const char* typeName(ParamType type) noexcept
         {
-            static const char* const NAMES[] = {"xs:string", "Number", "BindableBoolean", "Color", "Paint", "Length", "Size", "Action"};
+            static const char* const NAMES[] = {"xs:string", "Number", "BindableBoolean", "Color", "Paint", "Length", "Size", "Action",
+                "ModelName"};
 
             return NAMES[static_cast<int>(type)];
         }

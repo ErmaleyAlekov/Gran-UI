@@ -23,15 +23,15 @@ namespace gran::ui
     // Бит CHECKED включает стиль Checked темы / The CHECKED bit turns on the theme Checked style
     void setChecked(Node& node, bool checked)
     {
-        std::uint8_t bit = style::stateBit(style::State::CHECKED);
+        std::uint16_t bit = style::stateBit(style::State::CHECKED);
 
         if (node.content.checked == checked)
             return;
         node.content.checked = checked;
         if (checked)
-            node.stateMask = static_cast<std::uint8_t>(node.stateMask | bit);
+            node.stateMask = static_cast<std::uint16_t>(node.stateMask | bit);
         else
-            node.stateMask = static_cast<std::uint8_t>(node.stateMask & ~bit);
+            node.stateMask = static_cast<std::uint16_t>(node.stateMask & ~bit);
         markDirty(node, DIRTY_STYLE | DIRTY_PAINT);
     }
 

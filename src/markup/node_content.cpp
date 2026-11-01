@@ -11,7 +11,7 @@ namespace gran::markup::internal
         const struct { const char* name; std::string C::* member; } STRINGS[] = {
             {"text", &C::text}, {"placeholder", &C::placeholder}, {"source", &C::source},
             {"tooltip", &C::tooltip}, {"onClick", &C::onClick}, {"onChange", &C::onChange},
-            {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"onMessage", &C::onMessage},
+            {"onSubmit", &C::onSubmit}, {"items", &C::items}, {"selection", &C::selection}, {"onMessage", &C::onMessage},
             {"popup", &C::popup}, {"group", &C::group}, {"accessibleName", &C::accessibleName},
             {"labeledBy", &C::labeledBy}, {"dragFormat", &C::dragFormat}, {"dragData", &C::dragData},
             {"acceptDrop", &C::acceptDrop},

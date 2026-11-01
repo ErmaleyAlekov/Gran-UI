@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Модели (пункт 1.7): таблица заказов из JSON (свой разборщик, ленивая подгрузка порциями по 20 записей
+  в виртуальном списке), прокси сортировки и фильтра (сумма по убыванию, поиск по клиенту и городу через
+  $query), модель выделения (Ctrl/Shift, стрелки, итог по выделенным через orderSel/Item), дерево отделов
+  из XML (SAX «Берёсты», путь /org/dept) в плоском представлении TreeList с раскрытием и отступом по $depth.
+  Запуск: gran_snapshot samples/models.xml models.png или gran_gallery samples/models.xml
+
+  Models (item 1.7): an orders table from JSON (an own parser, lazy loading by portions of 20 records
+  in a virtual list), a sort and filter proxy (the sum descending, a search by the client and the city through
+  $query), a selection model (Ctrl/Shift, arrows, a total of the selected ones through orderSel/Item), a department tree
+  from XML (Beresta SAX, the /org/dept path) in a flat TreeList view with expansion and an indent by $depth.
+  Run: gran_snapshot samples/models.xml models.png or gran_gallery samples/models.xml
+-->
+<Window title="Gran UI — модели" width="920" height="560" background="#f5f6f8">
+  <Resources>
+    <Style name="muted" color="#667085" fontSize="13"/>
+    <Style name="panel" padding="12" spacing="8" borderRadius="10" background="#ffffff"/>
+    <Style name="row" orientation="horizontal" align="center" spacing="12" padding="6 10" borderRadius="6">
+      <Hover background="#eef2f6"/>
+      <Selected background="#dbe4ff"/>
+    </Style>
+    <Style name="head" orientation="horizontal" spacing="12" padding="0 10" color="#667085" fontSize="12"/>
+    <Data name="orders" source="data/orders.json" select="orders" fetch="20">
+      <Column name="number" title="№" type="number"/>
+      <Column name="client" title="Клиент"/>
+      <Column name="city" title="Город"/>
+      <Column name="sum" title="Сумма" type="number"/>
+      <Column name="status" title="Состояние"/>
+      <Field name="number" path="number"/>
+      <Field name="client" path="client.name"/>
+      <Field name="city" path="client.city"/>
+      <Field name="sum" path="sum"/>
+      <Field name="status" path="status"/>
+    </Data>
+    <SortFilter name="visibleOrders" source="orders" sort="sum:number desc, number:number"
+                filter="contains(@client, $query) or contains(@city, $query)"/>
+    <Selection name="orderSel" model="visibleOrders" mode="extended"/>
+    <Tree name="org" source="data/departments.xml" select="/org/dept" children="dept"/>
+    <TreeList name="orgRows" tree="org" expanded="1" sort="name"/>
+    <Selection name="deptSel" model="orgRows" mode="single"/>
+    <Variable name="query"/>
+  </Resources>
+  <Stack orientation="horizontal" padding="16" spacing="16">
+    <Stack style="panel" width="260">
+      <Text fontSize="18" fontWeight="700">Отделы</Text>
+      <Stack items="orgRows" selection="deptSel" spacing="1">
+        <ItemTemplate>
+          <Stack style="row" spacing="6">
+            <Box width="{$depth * 16}" height="1"/>
+            <Text width="14" onClick="gran:toggle">{substring(' +−', 1 + number($hasChildren) + number($expanded), 1)}</Text>
+            <Text grow="1">{name}</Text>
+            <Text style="muted">{staff}</Text>
+          </Stack>
+        </ItemTemplate>
+      </Stack>
+      <Text style="muted">Всего сотрудников: {sum(org/Item/@staff)}</Text>
+    </Stack>
+    <Stack style="panel" grow="1">
+      <Stack orientation="horizontal" spacing="12" align="center">
+        <Text fontSize="18" fontWeight="700" grow="1">Заказы</Text>
+        <Input width="220" placeholder="Клиент или город" value="{$query}"/>
+      </Stack>
+      <Stack style="head">
+        <Text width="48">№</Text>
+        <Text grow="1">Клиент</Text>
+        <Text width="110">Город</Text>
+        <Text width="80">Сумма</Text>
+        <Text width="80">Состояние</Text>
+      </Stack>
+      <Scroll grow="1">
+        <Stack items="visibleOrders" selection="orderSel" virtual="true" spacing="2">
+          <ItemTemplate>
+            <Stack style="row">
+              <Text width="48" style="muted">{number}</Text>
+              <Text grow="1">{client}</Text>
+              <Text width="110" style="muted">{city}</Text>
+              <Text width="80">{sum}</Text>
+              <Text width="80" color="{substring('#067647#b54708', 1 + 7 * (@status != 'оплачен'), 7)}">{status}</Text>
+            </Stack>
+          </ItemTemplate>
+        </Stack>
+      </Scroll>
+      <Text style="muted">Показано {count(visibleOrders/Item)} из {count(orders/Item)} загруженных, выбрано {$orderSel.count} на сумму {sum(orderSel/Item/@sum)}</Text>
+    </Stack>
+  </Stack>
+</Window>

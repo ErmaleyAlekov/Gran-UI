@@ -465,6 +465,183 @@ public final class Application implements AutoCloseable {
     public void modelClear(String model) {
         try (Arena scope=Arena.ofConfined()) { status("gran_model_clear",app,utf8(scope,model)); }
     }
+    // ---- Модели 1.7: таблицы, ленивая подгрузка, деревья, представления, выделение ----
+    // ---- Models 1.7: tables, lazy loading, trees, views, selection ----
+    // Строка плоского дерева: узел, глубина и признаки / A flat tree row: the node, the depth and the flags
+    public record TreeRow(long node, long depth, boolean expanded, boolean hasChildren) {}
+    // Текущая запись (-1 — нет) и отмеченные по возрастанию / The current record (-1 — none) and the marked ones ascending
+    public record SelectionState(long current, long[] selected) {}
+    // Обработчик с именем модели / A handler with the model name
+    private final class NameCallback {
+        private final Consumer<String> function;
+        NameCallback(Consumer<String> function) { this.function=function; }
+        void call(MemorySegment user, MemorySegment name) { protect(() -> function.accept(text(name))); }
+    }
+    // Подгрузчик детей ленивого узла: имя дерева и номер узла / A lazy node children fetcher: the tree name and the node number
+    public interface TreeFetcher { void fetch(String tree, long node); }
+    private final class TreeCallback {
+        private final TreeFetcher function;
+        TreeCallback(TreeFetcher function) { this.function=function; }
+        void call(MemorySegment user, MemorySegment name, long node) { protect(() -> function.fetch(text(name),node)); }
+    }
+    private MemorySegment nameEntry(Consumer<String> function) {
+        if (function == null) return MemorySegment.NULL;
+        NameCallback callback=new NameCallback(function);
+        callbacks.add(callback);
+        return entry("call",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,ADDRESS),callback);
+    }
+    // gran_record (index, fields, count) в памяти scope / gran_record (index, fields, count) in the scope memory
+    private static MemorySegment recordOf(Arena scope, long index, Map<String,String> fields) {
+        MemorySegment rows=fields.isEmpty() ? MemorySegment.NULL : scope.allocate(Math.multiplyExact(16L,fields.size()),8);
+        long offset=0;
+        for (var field:fields.entrySet()) {
+            rows.set(ADDRESS,offset,utf8(scope,field.getKey())); rows.set(ADDRESS,offset+8,utf8(scope,field.getValue())); offset+=16;
+        }
+        MemorySegment record=scope.allocate(24,8);
+        record.set(JAVA_LONG,0,index); record.set(ADDRESS,8,rows); record.set(JAVA_LONG,16,(long)fields.size());
+        return record;
+    }
+    // gran_source: path, select, children, fetch и поля (поле → путь) / gran_source: path, select, children, fetch and the fields (a field → a path)
+    private static MemorySegment sourceOf(Arena scope, String path, String select, String children, long fetch, Map<String,String> fields) {
+        MemorySegment record=recordOf(scope,0,fields), source=scope.allocate(56,8);
+        source.set(JAVA_INT,0,56); source.set(JAVA_INT,4,0); source.set(ADDRESS,8,utf8(scope,path));
+        source.set(ADDRESS,16,utf8(scope,select)); source.set(ADDRESS,24,utf8(scope,children)); source.set(JAVA_LONG,32,fetch);
+        source.set(ADDRESS,40,record.get(ADDRESS,8)); source.set(JAVA_LONG,48,(long)fields.size());
+        return source;
+    }
+    public void modelMove(String model, long from, long count, long to) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_model_move",app,utf8(scope,model),from,count,to); }
+    }
+    // Столбцы: имя, заголовок, тип 0 text, 1 number, 2 date, 3 boolean / The columns: the name, the title, the type 0 text, 1 number, 2 date, 3 boolean
+    public void modelColumns(String model, List<String[]> columns, int[] types) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment rows=columns.isEmpty() ? MemorySegment.NULL : scope.allocate(Math.multiplyExact(24L,columns.size()),8);
+            for (int index=0; index<columns.size(); ++index) {
+                rows.set(ADDRESS,24L*index,utf8(scope,columns.get(index)[0])); rows.set(ADDRESS,24L*index+8,utf8(scope,columns.get(index)[1]));
+                rows.set(JAVA_INT,24L*index+16,types[index]);
+            }
+            status("gran_model_columns",app,utf8(scope,model),rows,(long)columns.size());
+        }
+    }
+    public void loadData(String model, String path, String select, long fetch, Map<String,String> fields) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_model_load",app,utf8(scope,model),sourceOf(scope,path,select,"",fetch,fields)); }
+    }
+    public void loadTree(String tree, String path, String select, String children, Map<String,String> fields) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_tree_load",app,utf8(scope,tree),sourceOf(scope,path,select,children,0,fields)); }
+    }
+    // callback(модель) вставляет следующую порцию; конец — setMore(model, false); null снимает / callback(model) inserts the next portion; the end — setMore(model, false); null drops it
+    public void onFetch(String model, Consumer<String> callback) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_model_on_fetch",app,utf8(scope,model),nameEntry(callback),MemorySegment.NULL); }
+    }
+    public void setMore(String model, boolean more) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_model_set_more",app,utf8(scope,model),more ? 1 : 0); }
+    }
+    public void fetchMore(String model) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_model_fetch_more",app,utf8(scope,model)); }
+    }
+    // Узлы дерева — стабильные номера, 0 — верхний уровень / The tree nodes are stable numbers, 0 is the top level
+    public long treeInsert(String tree, long parent, Map<String,String> fields) { return treeInsert(tree,parent,-1L,fields); }
+    public long treeInsert(String tree, long parent, long index, Map<String,String> fields) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_LONG);
+            status("gran_tree_insert",app,utf8(scope,tree),parent,recordOf(scope,index,fields),output); return output.get(JAVA_LONG,0);
+        }
+    }
+    public void treeRemove(String tree, long node) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_tree_remove",app,utf8(scope,tree),node); }
+    }
+    public void treeMove(String tree, long node, long parent, long row) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_tree_move",app,utf8(scope,tree),node,parent,row); }
+    }
+    public void treeSet(String tree, long node, Map<String,String> fields) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_tree_set",app,utf8(scope,tree),node,recordOf(scope,0,fields)); }
+    }
+    public String treeRead(String tree, long node, String field) {
+        try (Arena scope=Arena.ofConfined()) { return ownedString("gran_tree_read",app,utf8(scope,tree),node,utf8(scope,field)); }
+    }
+    public long[] treeChildren(String tree, long node) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_LONG);
+            status("gran_tree_children",app,utf8(scope,tree),node,output);
+            long[] result=new long[(int)output.get(JAVA_LONG,0)];
+            for (int row=0; row<result.length; ++row) {
+                status("gran_tree_child",app,utf8(scope,tree),node,(long)row,output); result[row]=output.get(JAVA_LONG,0);
+            }
+            return result;
+        }
+    }
+    public long treeParent(String tree, long node) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_LONG);
+            status("gran_tree_parent",app,utf8(scope,tree),node,output); return output.get(JAVA_LONG,0);
+        }
+    }
+    public void treeSetLazy(String tree, long node, boolean lazy) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_tree_set_lazy",app,utf8(scope,tree),node,lazy ? 1 : 0); }
+    }
+    public void onTreeFetch(String tree, TreeFetcher callback) {
+        TreeCallback holder=new TreeCallback(Objects.requireNonNull(callback));
+        callbacks.add(holder);
+        MemorySegment stub=entry("call",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class,long.class),
+            FunctionDescriptor.ofVoid(ADDRESS,ADDRESS,JAVA_LONG),holder);
+        try (Arena scope=Arena.ofConfined()) { status("gran_tree_on_fetch",app,utf8(scope,tree),stub,MemorySegment.NULL); }
+    }
+    // gran_view: 1 прокси, 2 плоское дерево, 3 выделение (mode 0..3) / gran_view: 1 a proxy, 2 a flat tree, 3 a selection (mode 0..3)
+    private void view(int kind, String name, String source, String sort, String filter, int mode, long expanded) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment view=scope.allocate(56,8);
+            view.set(JAVA_INT,0,56); view.set(JAVA_INT,4,kind); view.set(ADDRESS,8,utf8(scope,name)); view.set(ADDRESS,16,utf8(scope,source));
+            view.set(ADDRESS,24,utf8(scope,sort)); view.set(ADDRESS,32,utf8(scope,filter)); view.set(JAVA_INT,40,mode); view.set(JAVA_LONG,48,expanded);
+            status("gran_view_create",app,view);
+        }
+    }
+    public void createProxy(String name, String source, String sort, String filter) { view(1,name,source,sort,filter,3,0); }
+    public void createTreeList(String name, String tree, String sort, String filter, long expanded) { view(2,name,tree,sort,filter,3,expanded); }
+    // mode: 0 none, 1 single, 2 multi, 3 extended
+    public void createSelection(String name, String source, int mode) { view(3,name,source,null,null,mode,0); }
+    public void setSort(String view, String keys) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_view_sort",app,utf8(scope,view),utf8(scope,keys)); }
+    }
+    public void setFilter(String view, String expression) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_view_filter",app,utf8(scope,view),utf8(scope,expression)); }
+    }
+    public long sourceIndex(String view, long row) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(JAVA_LONG);
+            status("gran_view_source_index",app,utf8(scope,view),row,output); return output.get(JAVA_LONG,0);
+        }
+    }
+    public TreeRow treeRow(String view, long row) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(24,8);
+            status("gran_tree_row_read",app,utf8(scope,view),row,output);
+            return new TreeRow(output.get(JAVA_LONG,0),output.get(JAVA_LONG,8),output.get(JAVA_INT,16) != 0,output.get(JAVA_INT,20) != 0);
+        }
+    }
+    // action: 1 раскрыть, 0 свернуть, -1 переключить / action: 1 expand, 0 collapse, -1 toggle
+    public void treeExpand(String view, long row, int action) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_tree_expand",app,utf8(scope,view),row,action); }
+    }
+    // command: 1 select, 2 deselect, 3 toggle, 4 range, 5 clear, 6 all, 7 current, 8 click (last — 1 Shift, 2 Ctrl)
+    public void selectionChange(String selection, int command, long index, long last) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_selection_change",app,utf8(scope,selection),command,index,last); }
+    }
+    public SelectionState selection(String selection) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment current=scope.allocate(JAVA_LONG), count=scope.allocate(JAVA_LONG);
+            count.set(JAVA_LONG,0,0L);
+            status("gran_selection_read",app,utf8(scope,selection),current,MemorySegment.NULL,count);
+            long[] result=new long[(int)count.get(JAVA_LONG,0)];
+            MemorySegment indices=scope.allocate(JAVA_LONG,Math.max(1,result.length));
+            status("gran_selection_read",app,utf8(scope,selection),current,indices,count);
+            for (int index=0; index<result.length; ++index) result[index]=indices.getAtIndex(JAVA_LONG,index);
+            return new SelectionState(current.get(JAVA_LONG,0),result);
+        }
+    }
+    public void onSelectionChanged(String selection, Consumer<String> callback) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_selection_on_change",app,utf8(scope,selection),nameEntry(callback),MemorySegment.NULL); }
+    }
     public int run() {
         try (Arena scope=Arena.ofConfined()) {
             MemorySegment output=scope.allocate(JAVA_INT);

@@ -18,7 +18,7 @@ namespace
         suites::registerStyleTrackTests, suites::registerMarkupTests,
         suites::registerLayoutStackTests, suites::registerLayoutGridTests, suites::registerUtf8PngTests, suites::registerJpegTests, suites::registerVectorShapeTests,
         suites::registerMappedFileTests, suites::registerTextSelectionTests, suites::registerAccessibilityTests, suites::registerAccessActionTests,
-        suites::registerPasswordMaskTests, suites::registerTextAreaTests, suites::registerRichTextTests, suites::registerPopupTests, suites::registerDialogTests, suites::registerWidgetTests, suites::registerEventRoutingTests, suites::registerEventInputTests, suites::registerDataListTests, suites::registerListBindingTests, suites::registerWebViewTests, suites::registerIncrementalLayoutTests, suites::registerTimerQueueTests, suites::registerKeyframeTests, suites::registerKeyframeAnimatorTests, suites::registerChatJsonTests, suites::registerChatStreamTests, suites::registerChatMarkdownTests
+        suites::registerPasswordMaskTests, suites::registerTextAreaTests, suites::registerRichTextTests, suites::registerPopupTests, suites::registerDialogTests, suites::registerWidgetTests, suites::registerEventRoutingTests, suites::registerEventInputTests, suites::registerDataListTests, suites::registerModelSignalTests, suites::registerSelectionModelTests, suites::registerSortFilterTests, suites::registerDataSourceTests, suites::registerModelMarkupTests, suites::registerListBindingTests, suites::registerWebViewTests, suites::registerIncrementalLayoutTests, suites::registerTimerQueueTests, suites::registerKeyframeTests, suites::registerKeyframeAnimatorTests, suites::registerChatJsonTests, suites::registerChatStreamTests, suites::registerChatMarkdownTests
     };
 }
 

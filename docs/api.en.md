@@ -165,8 +165,31 @@ do not call the user's `onChange` again.
 - `remove(node)`: removes the subtree (and its element from the live DOM), removes input, animation, and accessibility references.
   The root cannot be deleted.
 - `focus(ui::Node*)`: focus from code, `nullptr` clears; before `run()`, the request is remembered.
-- `model(name)`: reference to `data::ListModel`; unknown name creates an empty model.
-- `itemOf(node)`: `ItemRef` of the nearest list entry; `model == nullptr` if the node is outside the binding.
+- `model(name)`: reference to `data::ListModel` (a storage: `insert`, `insertAll`, `append`, `remove(index[, count])`,
+  `set`, `setRecord`, `move(from, count, to)`, `clear`, `setColumns`, `setFetcher`, `fetchMore`); unknown name
+  creates an empty model.
+- `list(name)`: any list — storage, proxy, or flat tree (`data::ListSource`: `size`, `at`, `set`, `columns`,
+  `canFetchMore`, `fetchMore`, subscription `ListObserver` — `inserted`, `removed`, `changed`, `changedRange`, `moved`,
+  `reordered`); none — creates an empty storage.
+- `tree(name)`: `data::TreeModel` (nodes — stable `NodeId`: `root`, `childCount`, `child`, `parent`, `row`, `record`,
+  `insert`, `append`, `remove`, `move`, `set`, `clearChildren`, `appendItems` (a batch), `setLazy` + `setFetcher(TreeFetcher)`, subscription
+  `TreeObserver`); moving a node into its own subtree — `GranException` (`DATA_TREE_CYCLE`).
+- `createProxy(name, source)` → `data::SortFilterProxy` (`setSort(parseSortKeys("…"))`, `setFilter(RecordFilter)`,
+  `invalidateFilter`, `sourceIndex`, `proxyIndex`); `createTreeList(name, tree)` → `data::TreeList` (`expand`,
+  `collapse`, `toggle`, `expandToDepth`, `depth`, `expanded`, `hasChildren`, `node`, `rowOf`, `setSort`,
+  `setFilter(NodeFilter)`); `createSelection(name, source, mode)` → `data::SelectionModel` (`select`, `deselect`,
+  `toggle`, `selectRange`, `selectAll`, `clear`, `setCurrent`, `activate(index, ctrl, shift)` — like a click,
+  `current`, `anchor`, `isSelected`, `selected`, `count`, `version`, subscription `SelectionObserver`).
+  `proxy(name)`, `treeList(name)`, `selection(name)` — existing (none — `GranException`, `DATA_UNKNOWN_MODEL`).
+  Name occupied by a model of another kind — `DATA_MODEL_KIND`.
+- `setFilterExpression(view, xpath)`: proxy or flat tree filter by expression with `$variables` (empty — remove);
+  changing a variable recalculates the filter before the next frame.
+- `loadData(name, data::SourceSpec)` / `loadTree(name, spec)`: list or tree from a JSON/XML file (`path`, `format`,
+  `select`, `fields`, `children`, `fetch`); error — `DataException` (file, line, column) or `GranException(IO)`.
+  Without an application — `data::openListSource`, `data::loadList`, `data::readTreeSource`, `data::JsonReader`
+  (`gran/data/data_source.hpp`, `gran/data/json_reader.hpp`).
+- `itemOf(node)`: `ItemRef` of the closest list record (`model` — `data::ListSource*`, `index`, `selection`);
+  `model == nullptr` if the node is outside the binding.
 - `setVariable(name, std::string)`: the `$name` variable of the `{…}` expressions keeping its type (a new one is a string);
   `setVariableNumber(name, double)`, `setVariableBoolean(name, bool)` set the type explicitly;
   `variable(name) -> std::optional<std::string>` — the value as text (a boolean is — `"true"`/`"false"`).

@@ -39,6 +39,11 @@ namespace suites
     void registerEventRoutingTests(test::TestRunner& runner);
     void registerEventInputTests(test::TestRunner& runner);
     void registerDataListTests(test::TestRunner& runner);
+    void registerModelSignalTests(test::TestRunner& runner);
+    void registerSelectionModelTests(test::TestRunner& runner);
+    void registerSortFilterTests(test::TestRunner& runner);
+    void registerDataSourceTests(test::TestRunner& runner);
+    void registerModelMarkupTests(test::TestRunner& runner);
     void registerListBindingTests(test::TestRunner& runner);
     void registerWebViewTests(test::TestRunner& runner);
     void registerIncrementalLayoutTests(test::TestRunner& runner);

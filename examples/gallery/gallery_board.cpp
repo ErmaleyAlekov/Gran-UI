@@ -15,17 +15,19 @@ namespace gallery
         void moveRecord(gran::Application& application, const gran::ui::Node& card, gran::data::ListModel& target)
         {
             gran::ItemRef item = application.itemOf(card);
+            // Колонки доски — хранилища ListModel (не прокси): запись можно удалить / The board columns are ListModel storages (not proxies): a record can be removed
+            gran::data::ListModel* source = dynamic_cast<gran::data::ListModel*>(item.model);
 
-            if (item.model == nullptr || item.model == &target)
+            if (source == nullptr || source == &target)
                 return;
-            gran::data::Record record = item.model->at(item.index);
-            item.model->remove(item.index);
+            gran::data::Record record = source->at(item.index);
+            source->remove(item.index);
             target.append(record);
             setText(application, "status", "Перенесено: " + record["title"]);
         }
 
         // Другая колонка доски для модели model / The other board column for the model
-        gran::data::ListModel& otherColumn(gran::Application& application, const gran::data::ListModel* model)
+        gran::data::ListModel& otherColumn(gran::Application& application, const gran::data::ListSource* model)
         {
             if (model == &application.model("todo"))
                 return application.model("done");

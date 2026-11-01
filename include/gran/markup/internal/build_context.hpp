@@ -90,6 +90,25 @@ namespace gran::markup::internal
     // <Data name><Item …/>…</Data>: записи модели списка; уникальность имён проверила схема; <Variable> — переменная привязок / <Data name><Item …/>…</Data>: the list model records; the schema has checked the name uniqueness; <Variable> is a binding variable
     void readDataSet(const beresta::Element& data, BuildContext& context);
 
+    // ---- data_sources.cpp ----
+
+    // <Data>: столбцы, записи <Item> или файл source (первая порция; остальное — подгрузчик) / <Data>: the columns, the <Item> records or the source file (the first portion; the rest is the fetcher)
+    void readListData(const beresta::Element& element, BuildContext& context, DataSet& set);
+
+    // <Tree>: вложенные <Item> или файл source / <Tree>: nested <Item>s or the source file
+    void readTreeData(const beresta::Element& element, BuildContext& context, DataSet& set);
+
+    // ---- data_items.cpp ----
+
+    // Запись из атрибутов <Item> / A record from the <Item> attributes
+    data::Record readRecord(const beresta::Element& item);
+
+    // Узлы дерева из дочерних <Item> (рекурсивно) / The tree nodes from the child <Item>s (recursively)
+    std::vector<data::TreeItem> readNodes(const beresta::Element& parent);
+
+    // Столбцы таблицы из дочерних <Column name title type> / The table columns from the child <Column name title type>
+    data::ColumnSet readColumns(const beresta::Element& parent);
+
     // ---- command_resources.cpp ----
 
     // <Command id text action key scope within enabled>; неверное сочетание — MarkupException с позицией

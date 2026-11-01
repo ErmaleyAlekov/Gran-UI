@@ -4,7 +4,7 @@ namespace gran::input
 {
     namespace
     {
-        // Элемент управления: встроенный вид или любой узел с onClick / A control: a built-in kind or any node with onClick
+        // Элемент управления: встроенный вид, любой узел с onClick или список с выделением / A control: a built-in kind, any node with onClick or a list with a selection
         bool isControl(const ui::Node& node) noexcept
         {
             ui::ElementKind kind = node.kind;
@@ -13,7 +13,7 @@ namespace gran::input
                 || kind == ui::ElementKind::RADIO_BUTTON || kind == ui::ElementKind::TAB_HEADER
                 || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
                 || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX
-                || !node.content.onClick.empty() || ui::isWindowButton(node);
+                || !node.content.onClick.empty() || ui::isWindowButton(node) || !node.content.selection.empty();
         }
     }
 

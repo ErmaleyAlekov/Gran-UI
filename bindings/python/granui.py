@@ -28,6 +28,29 @@ class _Event(C.Structure):
 
 _Action = C.CFUNCTYPE(None, C.c_void_p, C.POINTER(_Event))
 
+# Модели 1.7: столбцы, источник из файла, представление, строка плоского дерева / Models 1.7: columns, a file source, a view, a flat tree row
+class _Column(C.Structure):
+    _fields_ = [("name", C.c_char_p), ("title", C.c_char_p), ("type", C.c_int32)]
+
+class _Source(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("format", C.c_int32), ("path", C.c_char_p), ("select", C.c_char_p),
+                ("children", C.c_char_p), ("fetch", C.c_size_t), ("fields", C.POINTER(_Field)), ("field_count", C.c_size_t)]
+
+class _View(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("kind", C.c_int32), ("name", C.c_char_p), ("source", C.c_char_p),
+                ("sort", C.c_char_p), ("filter", C.c_char_p), ("mode", C.c_int32), ("expanded", C.c_size_t)]
+
+class _TreeRow(C.Structure):
+    _fields_ = [("node", C.c_uint64), ("depth", C.c_size_t), ("expanded", C.c_int32), ("has_children", C.c_int32)]
+
+_FetchFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p)
+_TreeFetchFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_uint64)
+_SelectionFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p)
+_COLUMNS = {"text": 0, "number": 1, "date": 2, "boolean": 3}
+_FORMATS = {"auto": 0, "json": 1, "xml": 2}
+_MODES = {"none": 0, "single": 1, "multi": 2, "extended": 3}
+_SELECTION = {"select": 1, "deselect": 2, "toggle": 3, "range": 4, "clear": 5, "all": 6, "current": 7, "click": 8}
+
 class _InputEvent(C.Structure):
     _fields_ = [("size", C.c_uint32), ("phase", C.c_int32)] + [(name, C.c_char_p) for name in (
                 "type", "target", "current", "related", "key", "detail", "drag_format", "drag_data", "model",
@@ -122,6 +145,24 @@ def _configure(lib):
         "model_insert": (C.c_int32, [p, s, C.POINTER(_Record)]),
         "model_set": (C.c_int32, [p, s, C.POINTER(_Record)]),
         "model_remove": (C.c_int32, [p, s, z]), "model_clear": (C.c_int32, [p, s]),
+        "model_move": (C.c_int32, [p, s, z, z, z]), "model_columns": (C.c_int32, [p, s, C.POINTER(_Column), z]),
+        "model_load": (C.c_int32, [p, s, C.POINTER(_Source)]), "model_on_fetch": (C.c_int32, [p, s, _FetchFn, p]),
+        "model_set_more": (C.c_int32, [p, s, C.c_int32]), "model_fetch_more": (C.c_int32, [p, s]),
+        "tree_insert": (C.c_int32, [p, s, C.c_uint64, C.POINTER(_Record), C.POINTER(C.c_uint64)]),
+        "tree_remove": (C.c_int32, [p, s, C.c_uint64]), "tree_move": (C.c_int32, [p, s, C.c_uint64, C.c_uint64, z]),
+        "tree_set": (C.c_int32, [p, s, C.c_uint64, C.POINTER(_Record)]),
+        "tree_read": (C.c_int32, [p, s, C.c_uint64, s, C.POINTER(p)]),
+        "tree_children": (C.c_int32, [p, s, C.c_uint64, C.POINTER(z)]),
+        "tree_child": (C.c_int32, [p, s, C.c_uint64, z, C.POINTER(C.c_uint64)]),
+        "tree_parent": (C.c_int32, [p, s, C.c_uint64, C.POINTER(C.c_uint64)]),
+        "tree_set_lazy": (C.c_int32, [p, s, C.c_uint64, C.c_int32]), "tree_on_fetch": (C.c_int32, [p, s, _TreeFetchFn, p]),
+        "tree_load": (C.c_int32, [p, s, C.POINTER(_Source)]),
+        "view_create": (C.c_int32, [p, C.POINTER(_View)]), "view_sort": (C.c_int32, [p, s, s]),
+        "view_filter": (C.c_int32, [p, s, s]), "view_source_index": (C.c_int32, [p, s, z, C.POINTER(z)]),
+        "tree_row_read": (C.c_int32, [p, s, z, C.POINTER(_TreeRow)]), "tree_expand": (C.c_int32, [p, s, z, C.c_int32]),
+        "selection_change": (C.c_int32, [p, s, C.c_int32, z, z]),
+        "selection_read": (C.c_int32, [p, s, C.POINTER(z), C.POINTER(z), C.POINTER(z)]),
+        "selection_on_change": (C.c_int32, [p, s, _SelectionFn, p]),
     }
     for name, (result, args) in declarations.items():
         function = getattr(lib, "gran_" + name)
@@ -464,6 +505,154 @@ class Application:
 
     def model_clear(self, model):
         self._call("model_clear", _encode(model))
+
+    # ---- Модели 1.7 / Models 1.7 ----
+
+    def model_move(self, model, start, count, to):
+        """Переставить записи [start, start + count) так, чтобы они начинались с to. / Move the records so that they start at to."""
+        self._call("model_move", _encode(model), start, count, to)
+
+    def model_columns(self, model, columns):
+        """Столбцы таблицы: [(имя, заголовок, "text"|"number"|"date"|"boolean")]. / The table columns."""
+        rows = [_Column(_encode(name), _encode(title), _COLUMNS[kind]) for name, title, kind in columns]
+        self._call("model_columns", _encode(model), (_Column * len(rows))(*rows), len(rows))
+
+    def _source(self, path, select, children, fetch, fields, format):
+        pairs = [(_encode(name), _encode(value)) for name, value in (fields or {}).items()]
+        data = (_Field * len(pairs))(*(_Field(*row) for row in pairs))
+        source = _Source(C.sizeof(_Source), _FORMATS[format], _encode(path), _encode(select), _encode(children),
+                         fetch, data, len(pairs))
+        return source, data
+
+    def load_data(self, model, path, select="", fetch=0, fields=None, format="auto"):
+        """Список из файла JSON/XML; fields — {поле: путь}; fetch > 0 — лениво. / A list from a JSON/XML file; fetch > 0 — lazily."""
+        source, keep = self._source(path, select, "", fetch, fields, format)
+        self._call("model_load", _encode(model), C.byref(source))
+
+    def load_tree(self, tree, path, select="", children="", fields=None, format="auto"):
+        """Дерево из файла: children — имя элемента XML или члена JSON с детьми. / A tree from a file."""
+        source, keep = self._source(path, select, children, 0, fields, format)
+        self._call("tree_load", _encode(tree), C.byref(source))
+
+    def on_fetch(self, model, callback):
+        """callback(model) вставляет следующую порцию; конец — set_more(model, False). None снимает. / callback inserts the next portion."""
+        if callback is None:
+            self._call("model_on_fetch", _encode(model), C.cast(None, _FetchFn), None)
+            return
+        native = _FetchFn(lambda user, name: self._protect(callback, name.decode("utf-8")))
+        self._callbacks.append(native)
+        self._call("model_on_fetch", _encode(model), native, None)
+
+    def set_more(self, model, more):
+        self._call("model_set_more", _encode(model), int(bool(more)))
+
+    def fetch_more(self, model):
+        self._call("model_fetch_more", _encode(model))
+
+    def tree_insert(self, tree, parent, fields, index=SIZE_MAX):
+        """Новый узел ребёнком parent (0 — верхний уровень); результат — номер узла. / A new node as a child of parent; the result is the node number."""
+        values = [(_encode(key), _encode(value)) for key, value in fields.items()]
+        data = (_Field * len(values))(*(_Field(*row) for row in values))
+        record, result = _Record(index, data, len(data)), C.c_uint64()
+        self._call("tree_insert", _encode(tree), parent, C.byref(record), C.byref(result))
+        return result.value
+
+    def tree_remove(self, tree, node):
+        self._call("tree_remove", _encode(tree), node)
+
+    def tree_move(self, tree, node, parent, row):
+        self._call("tree_move", _encode(tree), node, parent, row)
+
+    def tree_set(self, tree, node, fields):
+        values = [(_encode(key), _encode(value)) for key, value in fields.items()]
+        data = (_Field * len(values))(*(_Field(*row) for row in values))
+        self._call("tree_set", _encode(tree), node, C.byref(_Record(0, data, len(data))))
+
+    def tree_read(self, tree, node, field):
+        return self._string("tree_read", _encode(tree), node, _encode(field))
+
+    def tree_children(self, tree, node=0):
+        """Номера детей узла (0 — верхний уровень). / The child numbers of the node (0 — the top level)."""
+        count, child = C.c_size_t(), C.c_uint64()
+        self._call("tree_children", _encode(tree), node, C.byref(count))
+        result = []
+        for row in range(count.value):
+            self._call("tree_child", _encode(tree), node, row, C.byref(child))
+            result.append(child.value)
+        return result
+
+    def tree_parent(self, tree, node):
+        result = C.c_uint64()
+        self._call("tree_parent", _encode(tree), node, C.byref(result))
+        return result.value
+
+    def tree_set_lazy(self, tree, node, lazy=True):
+        self._call("tree_set_lazy", _encode(tree), node, int(bool(lazy)))
+
+    def on_tree_fetch(self, tree, callback):
+        """callback(tree, node) вставляет детей ленивого узла при первом раскрытии. / callback inserts the lazy node children."""
+        native = _TreeFetchFn(lambda user, name, node: self._protect(callback, name.decode("utf-8"), node))
+        self._callbacks.append(native)
+        self._call("tree_on_fetch", _encode(tree), native, None)
+
+    def _view(self, kind, name, source, sort=None, filter=None, mode="extended", expanded=0):
+        view = _View(C.sizeof(_View), kind, _encode(name), _encode(source), _encode(sort), _encode(filter),
+                     _MODES[mode], expanded)
+        self._call("view_create", C.byref(view))
+
+    def create_proxy(self, name, source, sort=None, filter=None):
+        """Прокси сортировки и фильтра над списком source. / A sort and filter proxy over the source list."""
+        self._view(1, name, source, sort, filter)
+
+    def create_tree_list(self, name, tree, sort=None, filter=None, expanded=0):
+        """Плоское представление дерева для списков. / A flat tree view for lists."""
+        self._view(2, name, tree, sort, filter, expanded=expanded)
+
+    def create_selection(self, name, source, mode="extended"):
+        """Модель выделения: "none" | "single" | "multi" | "extended". / A selection model."""
+        self._view(3, name, source, mode=mode)
+
+    def set_sort(self, view, keys):
+        self._call("view_sort", _encode(view), _encode(keys))
+
+    def set_filter(self, view, expression):
+        self._call("view_filter", _encode(view), _encode(expression))
+
+    def source_index(self, view, row):
+        result = C.c_size_t()
+        self._call("view_source_index", _encode(view), row, C.byref(result))
+        return result.value
+
+    def tree_row(self, view, row):
+        """Узел и признаки строки плоского дерева. / The node and the flags of a flat tree row."""
+        result = _TreeRow()
+        self._call("tree_row_read", _encode(view), row, C.byref(result))
+        return {"node": result.node, "depth": result.depth, "expanded": bool(result.expanded),
+                "has_children": bool(result.has_children)}
+
+    def tree_expand(self, view, row, action="toggle"):
+        self._call("tree_expand", _encode(view), row, {"expand": 1, "collapse": 0, "toggle": -1}[action])
+
+    def selection_change(self, selection, command, index=0, last=0):
+        """command: select, deselect, toggle, range, clear, all, current, click (last — 1 Shift, 2 Ctrl). / The selection command."""
+        self._call("selection_change", _encode(selection), _SELECTION[command], index, last)
+
+    def selection(self, selection):
+        """(текущая или None, [отмеченные]). / (the current one or None, [the marked ones])."""
+        current, count = C.c_size_t(), C.c_size_t(0)
+        self._call("selection_read", _encode(selection), C.byref(current), None, C.byref(count))
+        marked = (C.c_size_t * max(count.value, 1))()
+        self._call("selection_read", _encode(selection), C.byref(current), marked, C.byref(count))
+        return (None if current.value == SIZE_MAX else current.value), list(marked[:count.value])
+
+    def on_selection_changed(self, selection, callback):
+        """callback(имя) при любом изменении выделения; None снимает. / callback(name) on any selection change."""
+        if callback is None:
+            self._call("selection_on_change", _encode(selection), C.cast(None, _SelectionFn), None)
+            return
+        native = _SelectionFn(lambda user, name: self._protect(callback, name.decode("utf-8")))
+        self._callbacks.append(native)
+        self._call("selection_on_change", _encode(selection), native, None)
 
     def run(self):
         result = C.c_int32()

@@ -14,22 +14,22 @@ namespace gran::style
     ** Состояния элемента. Порядок — приоритет: более позднее состояние перекрывает
     ** более раннее (нажатие важнее наведения, отключение важнее всего, кроме отметки;
     ** MAXIMIZED — окно развёрнуто, для кнопок заголовка; DROP_TARGET — над зоной onDrop
-    ** несут файлы или узел, который зона примет; DRAGGING — узел сейчас перетаскивают (источник)).
-    ** Состояний восемь — ровно по биту маски std::uint8_t.
+    ** несут файлы или узел, который зона примет; DRAGGING — узел сейчас перетаскивают (источник);
+    ** SELECTED — копия записи отмечена моделью выделения списка). Маска — std::uint16_t, бит на состояние.
     **
     ** The element states. The order is the priority: a later state overrides
     ** an earlier one (pressing beats hovering, disabling beats everything except checking;
     ** MAXIMIZED — the window is maximized, for the title bar buttons; DROP_TARGET — files
-    ** or a node the zone accepts are carried over an onDrop zone; DRAGGING — the node is being dragged now (the source)).
-    ** There are eight states — exactly a bit each in a std::uint8_t mask.
+    ** or a node the zone accepts are carried over an onDrop zone; DRAGGING — the node is being dragged now (the source);
+    ** SELECTED — the record copy is marked by the list selection model). The mask is std::uint16_t, a bit per state.
     */
-    enum class State : std::uint8_t { HOVER, PRESSED, FOCUSED, DISABLED, CHECKED, MAXIMIZED, DROP_TARGET, DRAGGING };
+    enum class State : std::uint8_t { HOVER, PRESSED, FOCUSED, SELECTED, DISABLED, CHECKED, MAXIMIZED, DROP_TARGET, DRAGGING };
 
     // Число состояний / The state count
-    constexpr std::size_t STATE_COUNT = 8;
+    constexpr std::size_t STATE_COUNT = 9;
 
     // Бит состояния в маске (cascade.cpp) / The state bit in a mask (cascade.cpp)
-    std::uint8_t stateBit(State state) noexcept;
+    std::uint16_t stateBit(State state) noexcept;
 
     // Объявления одного источника: основные и по состояниям / The declarations of one source: base and per state
     struct DeclarationBlock
@@ -112,7 +112,7 @@ namespace gran::style
         const StyleRule* defaults = nullptr;
         const StyleRule* rule = nullptr;
         const DeclarationBlock* inlineBlock = nullptr;
-        std::uint8_t stateMask = 0;
+        std::uint16_t stateMask = 0;
     };
 
     // ---- cascade.cpp ----

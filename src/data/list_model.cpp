@@ -1,5 +1,7 @@
 #include "gran/data/internal/list_notify.hpp"
+#include "gran/data/list_model.hpp"
 
+#include <iterator>
 #include <utility>
 
 namespace gran::data
@@ -21,18 +23,21 @@ namespace gran::data
     {
         internal::checkIndex(index, _records.size() + 1);
         _records.insert(_records.begin() + static_cast<std::ptrdiff_t>(index), std::move(record));
-        internal::deliver(*this, _observers, {internal::ListEventKind::INSERTED, index, 1});
+        notifyInserted(index, 1);
+    }
+
+    void ListModel::insertAll(std::size_t index, std::vector<Record> records)
+    {
+        std::size_t count = records.size();
+
+        internal::checkIndex(index, _records.size() + 1);
+        _records.insert(_records.begin() + static_cast<std::ptrdiff_t>(index),
+            std::make_move_iterator(records.begin()), std::make_move_iterator(records.end()));
+        notifyInserted(index, count);
     }
 
     void ListModel::append(Record record)
     {
         insert(_records.size(), std::move(record));
-    }
-
-    void ListModel::remove(std::size_t index)
-    {
-        internal::checkIndex(index, _records.size());
-        _records.erase(_records.begin() + static_cast<std::ptrdiff_t>(index));
-        internal::deliver(*this, _observers, {internal::ListEventKind::REMOVED, index, 1});
     }
 }

@@ -33,19 +33,19 @@ namespace gran
             */
             bool markDropTarget(AppWindow& win, ui::Node* node)
             {
-                std::uint8_t bit = style::stateBit(style::State::DROP_TARGET);
+                std::uint16_t bit = style::stateBit(style::State::DROP_TARGET);
 
                 if (win.dropNode == node)
                     return false;
                 if (win.dropNode != nullptr)
                 {
-                    win.dropNode->stateMask = static_cast<std::uint8_t>(win.dropNode->stateMask & ~bit);
+                    win.dropNode->stateMask = static_cast<std::uint16_t>(win.dropNode->stateMask & ~bit);
                     ui::markDirty(*win.dropNode, ui::DIRTY_STYLE | ui::DIRTY_PAINT);
                 }
                 win.dropNode = node;
                 if (node != nullptr)
                 {
-                    node->stateMask = static_cast<std::uint8_t>(node->stateMask | bit);
+                    node->stateMask = static_cast<std::uint16_t>(node->stateMask | bit);
                     ui::markDirty(*node, ui::DIRTY_STYLE | ui::DIRTY_PAINT);
                 }
                 return true;

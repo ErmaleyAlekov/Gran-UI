@@ -1,6 +1,8 @@
 import granui.Application;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.lang.foreign.*;
 import static java.lang.foreign.ValueLayout.*;
 
@@ -41,6 +43,23 @@ public class Smoke {
 
             // Check if the application is still open
             localStaticCheck(app.read("text","text").equals("Привет 🌲"));
+
+            // Модели 1.7: дерево, плоское представление, прокси с сортировкой, выделение
+            // Models 1.7: a tree, a flat view, a sorted proxy, a selection
+            long top=app.treeInsert("org",0,Map.of("name","Б"));
+            app.treeInsert("org",top,Map.of("name","Б1"));
+            app.treeInsert("org",0,Map.of("name","А"));
+            app.createTreeList("orgRows","org","name",null,1);
+            localStaticCheck(app.modelCount("orgRows") == 3 && app.modelRead("orgRows",0,"name").equals("А") && app.treeRow("orgRows",2).depth() == 1);
+            for (String number:new String[]{"2","10","1"}) app.modelInsert("nums",Map.of("n",number));
+            app.createProxy("sorted","nums","n:number desc",null);
+            localStaticCheck(app.modelRead("sorted",0,"n").equals("10") && app.sourceIndex("sorted",0) == 1);
+            app.createSelection("pick","sorted",3);
+            List<String> picked=new ArrayList<>();
+            app.onSelectionChanged("pick",picked::add);
+            app.selectionChange("pick",4,0,1);
+            Application.SelectionState chosen=app.selection("pick");
+            localStaticCheck(picked.equals(List.of("pick")) && chosen.current() == -1 && chosen.selected().length == 2);
 
             // Своё событие всплывает от go к root; отменённое — dispatch возвращает false
             // A custom event bubbles from go to root; a cancelled one — dispatch returns false

@@ -11,5 +11,8 @@ namespace gran::app
     std::string readProperty(const ui::Node& node, const std::string& property);
     void executeCommand(Application& app, const std::string& command, const std::string& target, const std::string& argument);
     bool executeBuiltin(Application::State& state, const std::string& action, ui::Node& node);
+
+    // gran:expand, gran:collapse, gran:toggle у строки плоского дерева (app_list_input.cpp); true — выполнено / gran:expand, gran:collapse, gran:toggle at a flat tree row (app_list_input.cpp); true — done
+    bool treeRowBuiltin(Application::State& state, const std::string& command, ui::Node& node);
 }
 #endif

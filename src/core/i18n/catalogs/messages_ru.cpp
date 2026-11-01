@@ -95,10 +95,28 @@ namespace gran::i18n
             {Message::MARKUP_NO_DEFAULT_SLOT, "у компонента {0} нет безымянного слота <Slot/>: содержимому без slot=\"…\" некуда встать"},
             {Message::MARKUP_SLOT_OUTSIDE, "<Slot> работает только в теле компонента <Component>"},
             {Message::MARKUP_SLOT_ROOT, "корень тела компонента {0} — <Slot>: нужен элемент интерфейса"},
-            {Message::MARKUP_PARAM_RESERVED, "параметр {0} компонента {1}: имя занято атрибутом экземпляра (id, visible, enabled, slot, style, размеры и расположение) или привязкой (index, self, parent)"},
+            {Message::MARKUP_PARAM_RESERVED, "параметр {0} компонента {1}: имя занято атрибутом экземпляра (id, visible, enabled, slot, style, размеры и расположение) или привязкой (index, self, parent, selected, current, depth, expanded, hasChildren)"},
             {Message::MARKUP_UNKNOWN_STYLE, "стиль «{0}» не объявлен ни в компоненте, ни в его библиотеке, ни в окне"},
             {Message::MARKUP_LIBRARY_SCHEMA, "схема компонентов библиотеки «{0}» не собралась: {1}"},
-            {Message::MARKUP_COMPONENT_INTERNAL, "элемент {0} — часть развёртки компонента: правьте атрибуты экземпляра или файл библиотеки"}
+            {Message::MARKUP_COMPONENT_INTERNAL, "элемент {0} — часть развёртки компонента: правьте атрибуты экземпляра или файл библиотеки"},
+            {Message::DATA_NO_TREE_NODE, "узел дерева {0} не найден"},
+            {Message::DATA_TREE_CYCLE, "узел {0} нельзя перенести в его собственное поддерево или перенести корень"},
+            {Message::DATA_BAD_SORT, "неверный ключ сортировки \"{0}\": ожидалось «поле[:text|number|natural] [asc|desc]» через запятую"},
+            {Message::DATA_SOURCE_ERROR, "{0}, строка {1}, столбец {2}: {3}"},
+            {Message::DATA_JSON_UNEXPECTED, "неожиданный символ «{0}»"},
+            {Message::DATA_JSON_END, "файл JSON оборвался"},
+            {Message::DATA_JSON_ESCAPE, "неверная escape-последовательность в строке"},
+            {Message::DATA_JSON_NUMBER, "неверное число"},
+            {Message::DATA_JSON_DEPTH, "вложенность JSON глубже {0} уровней"},
+            {Message::DATA_SELECT_MISSING, "путь select «{0}» не найден"},
+            {Message::DATA_SELECT_NOT_ARRAY, "по пути select «{0}» ожидался массив"},
+            {Message::DATA_BAD_SELECT, "неверный путь select «{0}»: для XML — шаги / и // с именами или *, для JSON — имена через точку"},
+            {Message::DATA_BAD_FIELD_PATH, "неверный путь поля «{0}»: {1}"},
+            {Message::DATA_XML_ERROR, "ошибка XML: {0}"},
+            {Message::DATA_UNKNOWN_MODEL, "модель «{0}» не найдена"},
+            {Message::DATA_MODEL_KIND, "имя «{0}» уже занято моделью другого вида ({1})"},
+            {Message::DATA_SOURCE_CYCLE, "модель «{0}» опирается сама на себя через source, tree или model"},
+            {Message::DATA_SELECTION_MISMATCH, "выделение «{0}» не найдено или относится не к списку «{1}», который показывает контейнер"}
         };
     }
 

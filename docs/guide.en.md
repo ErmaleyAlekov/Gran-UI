@@ -19,15 +19,16 @@
 11. [Commands and shortcuts](#commands-and-shortcuts)
 12. [Undo and redo](#undo-and-redo)
 13. [Lists from data](#lists-from-data)
-14. [Binding expressions](#binding-expressions)
-15. [Components](#components)
-16. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-17. [Pop-up Layers](#popup-layers)
-18. [Embedded browser: WebView](#embedded-browser-webview)
-19. [Accessibility](#accessibility)
-20. [Platform: windows, files, icons](#platform-windows-files-icons)
-21. [Errors and Message Language](#errors-and-message-language)
-22. [Custom window title bar](#custom-window-title-bar)
+14. [Models: tables, trees, sorting, selection](#models-tables-trees-sorting-selection)
+15. [Binding expressions](#binding-expressions)
+16. [Components](#components)
+17. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+18. [Pop-up Layers](#popup-layers)
+19. [Embedded browser: WebView](#embedded-browser-webview)
+20. [Accessibility](#accessibility)
+21. [Platform: windows, files, icons](#platform-windows-files-icons)
+22. [Errors and Message Language](#errors-and-message-language)
+23. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -588,6 +589,71 @@ with the edits, `appendMarkup` insertions and `remove` removals — it can be sa
 launch. Reloading the file (`reload`, `--watch`) became partial too: only the changed branches are rebuilt,
 and the typed text and the focus are not lost. Details are in the [API](api.en.md#live-document).
 
+## Models: tables, trees, sorting, selection
+
+A list from `<Data>` is just one type of model. In addition, in `<Resources>` (after styles, before `<Variable>`), tables, trees, and views on top of them are declared; all of them live in the core, are visible to expressions `{…}` and code by name. All model names are in one namespace: `orders` cannot be both a list and a tree at the same time.
+
+```xml
+<Data name="orders" source="data/orders.json" select="orders" fetch="20">  <!-- JSON: custom parser, portions of 20 -->
+  <Column name="sum" title="Sum" type="number"/>                           <!-- table: column descriptions -->
+  <Field name="client" path="client.name"/>                                  <!-- field from nested object -->
+  <Field name="sum" path="sum"/>
+</Data>
+<SortFilter name="visible" source="orders" sort="sum:number desc, client"
+            filter="contains(@client, $query)"/>                             <!-- proxy: order and filter -->
+<Selection name="sel" model="visible" mode="extended"/>                      <!-- row selection of proxy -->
+<Tree name="org" source="data/org.xml" select="/org/dept" children="dept"/>  <!-- XML streamed (SAX) -->
+<TreeList name="orgRows" tree="org" expanded="1" sort="name"/>               <!-- tree as rows for lists -->
+<Variable name="query"/>
+...
+<Scroll grow="1">
+  <Stack items="visible" selection="sel" virtual="true">
+    <ItemTemplate>
+      <Stack style="row"><Text>{client}</Text><Text>{sum}</Text></Stack>
+    </ItemTemplate>
+  </Stack>
+</Scroll>
+<Text>Selected {$sel.count} for a total of {sum(sel/Item/@sum)}</Text>
+```
+
+- **`<Data>`** — list; with `<Column name title type>` it is a table (type `text|number|date|boolean` — hint for future DataGrid, records are still rows). Records are `<Item>` or file `source` (path from the markup file).
+- **XML source** is parsed by Beresta SAX without a DOM of the whole file: `select` — steps `/name`, `//name` and `*` (without `/` at the beginning — like `//`), the found element is built into a small DOM of the record, and paths `<Field path>` — already full XPath 1.0 relative to it (`@price`, `title`, `sum(line/@qty)`). Without `<Field>` fields — record attributes and simple child elements. **JSON** — custom parser (RFC 8259, `\uXXXX`, surrogate pairs): `select` — dot separated names to the array of records, nested objects are expanded into fields `client.name`, arrays inside the record are skipped. A file error is a markup loading error with the place in the file (`DataException`: file, line, column).
+- **Lazy loading** — `fetch="N"`: immediately N records, subsequent portions — when the virtual list window reaches the end (or `model.fetchMore()` from the code). JSON continues to read the file from the stopping point; XML is parsed in a worker thread, which waits for the next request after each portion — no more than a portion in memory, and the result does not depend on the scheduler. From the code — own `data::ListFetcher` (`model.setFetcher`).
+- **`<SortFilter source sort filter>`** — proxy over any list (and over another proxy): keys «field[:text|number|natural] [asc|desc]» comma separated (text — case-insensitive, `natural` — «file2» before «file10»), filter — XPath expression by record with variables `$name`; changing a variable recalculates the filter itself. The proxy handles source edits point by point: a new record is inserted in its place, a field edit rearranges the row (its copy in the list moves, not rebuilt). A write through the proxy (two-way binding in the template) goes to the source.
+- **`<Tree>`** — tree: nested `<Item>` or file (`children` — name of the XML element or JSON member with children).
+  **`<TreeList tree expanded sort filter>`** shows expanded nodes in a row — this is a regular list for `items="…"`.
+  In the template — `$depth`, `$expanded`, `$hasChildren`; `onClick="gran:toggle"` (`gran:expand`, `gran:collapse`)
+  on an element of the row expands it. Sorting — among siblings; filter leaves matching nodes and all their ancestors
+  (ancestors are expanded when the filter changes).
+- **`<Selection model mode>`** — selection (`none|single|multi|extended`). Container with `selection="…"` accepts focus:
+  click selects (Ctrl — add, Shift — range), arrows, Home/End, PageUp/PageDown move the current record
+  (Shift — range, Ctrl — without changing marks), space marks, Ctrl+A — all; for a flat tree, arrows
+  right/left expand and collapse. The copy of a marked record gets the style state `<Selected>`;
+  in the template — `$selected` and `$current`; in expressions — `$sel.current` (number, -1 — none), `$sel.count` and element
+  `sel/Item` with copies of selected records. Marks follow records when inserting, deleting, and sorting.
+- Expressions see a tree as nested `Item`s (`count(org//Item)` — all nodes), proxy and `TreeList` — as lists.
+
+From code:
+
+```cpp
+gran::data::TreeModel& org = app.tree("org");
+gran::data::NodeId sales = org.append(org.root(), {{"name", "Sales"}});  // node number is stable
+org.setLazy(sales, true);                         // children will load on first expansion (setFetcher)
+app.createProxy("cheap", "orders").setSort(gran::data::parseSortKeys("sum:number"));
+app.setFilterExpression("cheap", "number(@sum) < 1000");
+gran::data::SelectionModel& sel = app.createSelection("pick", "cheap");
+sel.activate(0, false, false);                    // like a click
+gran::data::SourceSpec spec;                      // file loading from code
+spec.path = "export.xml"; spec.select = "/rows/row"; spec.fetch = 500;
+app.loadData("rows", spec);
+```
+
+`ItemRef` (`app.itemOf(node)`) now points to `data::ListSource` — the common interface of a storage, a proxy and a
+flat tree, plus the list selection model. Code that removed a record through `item.model->remove(…)` casts the
+pointer to `data::ListModel*` (`dynamic_cast`) or works with `app.model(name)`. Example — `samples/models.xml`.
+
+![Models: a tree from XML, a table from JSON with sorting and selection](images/models.png)
+
 ## Binding expressions
 
 The value of an attribute in curly braces is an XPath 1.0 expression: the engine evaluates it itself and recalculates it when what it depends on changes. The interface in the example `samples/bindings.xml` — search with a count — works without a single line of application code:
@@ -702,7 +768,8 @@ Components are declared in a library file, the window includes it with `<xi:incl
 ```
 
 - **Parameters** `<Param name type required default values>` — instance attributes. Types: `string` (by default),
-  `number`, `boolean`, `color`, `paint`, `length`, `size`, `action`; `values="small large"` — enumeration for a string.
+  `number`, `boolean`, `color`, `paint`, `length`, `size`, `action`, `model` (a model name for `items` and
+  `selection` in the body: `items="{$rows}"`); `values="small large"` — enumeration for a string.
   `required="true"` — the instance must set the parameter, `default` — value if not set.
 - **Parameter in the body — `{$name}`.** The entire attribute `{$title}` gets the instance value as is: a literal, a theme `$token`
   or its own expression `{…}`. Inside the expression `$title` becomes an XPath value (string in quotes,

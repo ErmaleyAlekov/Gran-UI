@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Структура предприятия для примера models.xml: отделы вложены друг в друга / The company structure for the models.xml sample: departments are nested -->
+<org name="Пример">
+  <dept name="Бухгалтерия" staff="6">
+    <dept name="Расчёт зарплаты" staff="2"/>
+    <dept name="Налоговый учёт" staff="3"/>
+  </dept>
+  <dept name="Производство" staff="48">
+    <dept name="Цех сборки" staff="30">
+      <dept name="Участок 1" staff="14"/>
+      <dept name="Участок 2" staff="16"/>
+    </dept>
+    <dept name="Отдел качества" staff="7"/>
+  </dept>
+  <dept name="Администрация" staff="9">
+    <dept name="Канцелярия" staff="4"/>
+  </dept>
+  <dept name="Склад" staff="11"/>
+</org>

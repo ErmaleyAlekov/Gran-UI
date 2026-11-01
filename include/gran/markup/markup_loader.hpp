@@ -1,7 +1,9 @@
 #ifndef GRAN_MARKUP_MARKUP_LOADER_HPP
 #define GRAN_MARKUP_MARKUP_LOADER_HPP
 
+#include "gran/data/data_source.hpp"
 #include "gran/data/list_model.hpp"
+#include "gran/data/selection_model.hpp"
 #include "gran/data/variable.hpp"
 #include "gran/ui/command.hpp"
 #include "gran/ui/node.hpp"
@@ -41,11 +43,34 @@ namespace gran::markup
     // Значения темы: имя → текст / Theme values: a name → a text
     using TokenMap = std::map<std::string, std::string, std::less<>>;
 
-    // Данные списка из разметки <Data name="…"><Item поле="…"/></Data> / List data from the markup <Data name="…"><Item field="…"/></Data>
+    // Вид модели из Resources / The model kind from Resources
+    enum class DataKind : std::uint8_t { LIST, TREE, TREE_LIST, SORT_FILTER, SELECTION };
+
+    /*
+    ** Модель из разметки: <Data> (список или таблица: столбцы, записи или файл source), <Tree> (узлы
+    ** или файл), <TreeList>, <SortFilter> и <Selection> (представления поверх модели source по имени).
+    ** Файлы читаются при загрузке разметки — их ошибки видны сразу; у ленивого списка первая порция
+    ** уже в records, остальное отдаст fetcher.
+    **
+    ** A model from the markup: <Data> (a list or a table: columns, records or a source file), <Tree> (nodes
+    ** or a file), <TreeList>, <SortFilter> and <Selection> (views over the source model by name).
+    ** The files are read when the markup loads — their errors are visible at once; a lazy list has the first portion
+    ** in records already, the rest is given by fetcher.
+    */
     struct DataSet
     {
+        DataKind kind = DataKind::LIST;
         std::string name;
         std::vector<data::Record> records;
+        data::ColumnSet columns;
+        std::shared_ptr<data::ListFetcher> fetcher;
+        std::vector<data::TreeItem> nodes;
+        // Модель-основа представления (source, tree, model) / The base model of a view (source, tree, model)
+        std::string source;
+        std::string sort;
+        std::string filter;
+        std::size_t expanded = 0;
+        data::SelectionMode mode = data::SelectionMode::EXTENDED;
     };
 
     // Параметры окна из <Window> / The window parameters from <Window>

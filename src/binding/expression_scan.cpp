@@ -30,10 +30,12 @@ namespace gran::binding
         }
 
         /*
-        ** $index — номер записи; $узел.свойство — свойство узла (точка — последняя: у id может быть своя);
+        ** $index — номер записи, $selected и прочие переменные строки — от списка (их зависимость — модель
+        ** и выделение записи); $узел.свойство — свойство узла (точка — последняя: у id может быть своя);
         ** остальное — переменная приложения. Повтор той же переменной добавляет лишь безвредную повторную проверку.
         **
-        ** $index is the record number; $node.property is a node property (the dot is the last one: an id may have its own);
+        ** $index is the record number, $selected and the other row variables come from the list (their dependency is the record
+        ** model and selection); $node.property is a node property (the dot is the last one: an id may have its own);
         ** the rest is an application variable. A repeat of the same variable only adds a harmless duplicate check.
         */
         void addVariable(ExpressionBinding& binding, std::string_view name)
@@ -44,6 +46,8 @@ namespace gran::binding
                 return;
             if (name == "index")
                 binding.usesIndex = true;
+            else if (rowVariable(name))
+                return;
             else if (dot != std::string_view::npos && dot > 0 && dot + 1 < name.size())
                 binding.properties.push_back(PropertyWatch{std::string(name), std::string(name.substr(0, dot)),
                     std::string(name.substr(dot + 1)), std::string()});

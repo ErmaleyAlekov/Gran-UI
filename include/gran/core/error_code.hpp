@@ -29,13 +29,15 @@ namespace gran
         PLATFORM,          // Ошибка оконной системы ОС / An OS windowing system error
         IO,                // Ошибка чтения или записи файла / A file read or write error
         INVALID_ARGUMENT,  // Недопустимый аргумент вызова API / An invalid API call argument
-        LIMIT_EXCEEDED     // Превышен защитный предел (размер, глубина, число элементов)
+        LIMIT_EXCEEDED,    // Превышен защитный предел (размер, глубина, число элементов)
                            // A protective limit is exceeded (size, depth, element count)
+        DATA               // Источник данных (JSON, XML) повреждён или запрос к нему неверен
+                           // A data source (JSON, XML) is damaged or the query to it is wrong
     };
 
     // Количество кодов ошибок (размер таблицы имён)
     // The number of error codes (the size of the name table)
-    constexpr int ERROR_CODE_COUNT = 11;
+    constexpr int ERROR_CODE_COUNT = 12;
 
     // Имя кода ("MARKUP", "GPU"...) — одинаково на всех языках
     // The code name ("MARKUP", "GPU"...) — the same in all languages

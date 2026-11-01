@@ -19,7 +19,7 @@ namespace beresta::xsd
 namespace gran::markup
 {
     // Тип параметра <Param type> / The <Param type> parameter type
-    enum class ParamType : std::uint8_t { STRING, NUMBER, BOOLEAN, COLOR, PAINT, LENGTH, SIZE, ACTION };
+    enum class ParamType : std::uint8_t { STRING, NUMBER, BOOLEAN, COLOR, PAINT, LENGTH, SIZE, ACTION, MODEL };
 
     // Параметр компонента / A component parameter
     struct ComponentParam

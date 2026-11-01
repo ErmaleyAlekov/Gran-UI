@@ -278,6 +278,51 @@ namespace gran
         */
         data::ListModel& model(const std::string& name);
 
+        // ---- application_models.cpp: деревья, представления, выделение / trees, views, selection ----
+
+        // Дерево по имени (<Tree name> в разметке); нет — создаётся пустое / A tree by name (<Tree name> in the markup); none — an empty one is created
+        data::TreeModel& tree(const std::string& name);
+
+        // Любой список по имени: хранилище, прокси или плоское дерево; нет — создаётся пустое хранилище (как model) / Any list by name: a storage, a proxy or a flat tree; none — an empty storage is created (as model)
+        data::ListSource& list(const std::string& name);
+
+        /*
+        ** Прокси сортировки и фильтра над списком source (как <SortFilter>), плоское представление дерева
+        ** (как <TreeList>) и модель выделения списка (как <Selection>). Имя занято — GranException.
+        ** Представления живут до уничтожения приложения и видны выражениям под своими именами.
+        **
+        ** A sort and filter proxy over the source list (as <SortFilter>), a flat tree view
+        ** (as <TreeList>) and a list selection model (as <Selection>). A taken name is GranException.
+        ** The views live until the application is destroyed and are visible to expressions under their names.
+        */
+        data::SortFilterProxy& createProxy(const std::string& name, const std::string& source);
+        data::TreeList& createTreeList(const std::string& name, const std::string& tree);
+
+        // ---- application_views.cpp ----
+
+        data::SelectionModel& createSelection(const std::string& name, const std::string& source,
+            data::SelectionMode mode = data::SelectionMode::EXTENDED);
+
+        // Представления и выделение по имени; нет такого — GranException(INVALID_ARGUMENT) / The views and the selection by name; none — GranException(INVALID_ARGUMENT)
+        data::SortFilterProxy& proxy(const std::string& name);
+        data::TreeList& treeList(const std::string& name);
+        data::SelectionModel& selection(const std::string& name);
+
+        // ---- application_sources.cpp ----
+
+        // Фильтр прокси или плоского дерева выражением XPath с $переменными (пусто — снять) / A proxy or flat tree filter by an XPath expression with $variables (empty — drop)
+        void setFilterExpression(const std::string& view, const std::string& expression);
+
+        /*
+        ** Загрузить список из файла JSON или XML (spec.fetch > 0 — лениво, порциями); дерево — целиком.
+        ** Содержимое модели заменяется; ошибка файла — DataException (позиция) или GranException(IO).
+        **
+        ** Load a list from a JSON or XML file (spec.fetch > 0 — lazily, by portions); a tree — whole.
+        ** The model contents are replaced; a file error is DataException (a position) or GranException(IO).
+        */
+        void loadData(const std::string& name, const data::SourceSpec& spec);
+        void loadTree(const std::string& name, const data::SourceSpec& spec);
+
         /*
         ** Вставить фрагмент разметки последним ребёнком parent: один корневой элемент, проверка той же
         ** схемой, стили и тема — документа (ошибка — MarkupException с позицией во фрагменте).

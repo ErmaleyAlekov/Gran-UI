@@ -76,6 +76,8 @@ namespace gran::app
                 return;
             if (call.target.empty() && fieldHistory(windowOf(state, node), call.command))
                 return;
+            if (call.target.empty() && treeRowBuiltin(state, call.command, node))
+                return;
             if (call.target.empty() && call.command == "capturePointer")
                 state.owner->capturePointer(node);
             else if (call.target.empty() && call.command == "releasePointer")

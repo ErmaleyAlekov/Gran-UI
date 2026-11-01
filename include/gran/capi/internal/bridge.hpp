@@ -4,16 +4,68 @@
 #include "gran/app/commands.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include <map>
+#include <memory>
 #include <thread>
 
-// Дескриптор владеет приложением; поток проверяется до обращения к дереву.
-// The handle owns the application; its thread is checked before accessing the tree.
+namespace gran::capi
+{
+    /*
+    ** Подгрузчик списка из обратного вызова языка: next() зовёт fn(user, model), а тот вставляет записи
+    ** сам через gran_model_insert; конец записей язык сообщает gran_model_set_more(…, 0).
+    **
+    ** A list fetcher from a language callback: next() calls fn(user, model), and it inserts the records
+    ** itself through gran_model_insert; the language reports the end of the records with gran_model_set_more(…, 0).
+    */
+    class ListCallbackFetcher final : public data::ListFetcher
+    {
+    public:
+        // ---- capi_fetchers.cpp ----
+        ListCallbackFetcher(gran_fetch_fn callback, void* user, std::string model);
+        bool hasMore() const override;
+        std::vector<data::Record> next() override;
+
+        bool more = true;
+
+    private:
+        gran_fetch_fn _callback;
+        void* _user;
+        std::string _model;
+    };
+
+    // Подгрузчик детей ленивых узлов дерева из обратного вызова языка / A lazy tree node children fetcher from a language callback
+    struct TreeCallbackFetcher final : data::TreeFetcher
+    {
+        gran_tree_fetch_fn callback;
+        void* user;
+        std::string tree;
+        TreeCallbackFetcher(gran_tree_fetch_fn function, void* data, std::string name);
+        void fetchChildren(data::TreeModel& model, data::NodeId node) override;
+    };
+
+    // Наблюдатель выделения, сообщающий языку его имя / A selection observer telling the language its name
+    struct SelectionCallback final : data::SelectionObserver
+    {
+        gran_selection_fn callback;
+        void* user;
+        std::string name;
+        data::SelectionModel* model;
+        void selectionChanged() override;
+    };
+}
+
+// Дескриптор владеет приложением; поток проверяется до обращения к дереву. Подгрузчики и наблюдатели выделения
+// объявлены после приложения: уничтожаются раньше и успевают отписаться от его моделей.
+// The handle owns the application; its thread is checked before accessing the tree. The fetchers and the selection observers
+// are declared after the application: they are destroyed earlier and manage to unsubscribe from its models.
 struct gran_app
 {
     explicit gran_app(gran::AppOptions options);
     gran::Application application;
     std::thread::id thread;
     bool running = false;
+    std::map<std::string, std::shared_ptr<gran::capi::ListCallbackFetcher>> fetchers;
+    std::map<std::string, std::unique_ptr<gran::capi::SelectionCallback>> selectionCallbacks;
 };
 
 namespace gran::capi
@@ -56,6 +108,17 @@ namespace gran::capi
         void operator()() const;
     };
     data::Record record(const gran_record* value);
+
+    // ---- models_api.cpp ----
+
+    // Описание источника из gran_source (размер структуры и поля проверяются) / A source description from gran_source (the structure size and the fields are checked)
+    data::SourceSpec sourceSpec(const gran_source* source);
+
+    // ---- tree_nodes.cpp ----
+
+    // Номер ABI → узел ядра (0 — корень) и обратно (корень — 0) / An ABI number → a core node (0 — the root) and back (the root — 0)
+    data::NodeId treeNode(const data::TreeModel& tree, uint64_t node);
+    uint64_t abiNode(const data::TreeModel& tree, data::NodeId node) noexcept;
 
     // ---- undo_step.cpp, undo_api.cpp ----
 

@@ -137,12 +137,40 @@ is handled as in any handler: the application closes and the error is thrown fro
 | `set_converter(name, to_view, to_source=None)` | `SetConverter(name, toView, toSource)` | `setConverter(name, toView, toSource)` | `gran_app_converter` + `gran_converted_set` |
 | `refresh_bindings()` | `RefreshBindings()` | `refreshBindings()` | `gran_app_refresh_bindings` |
 
+### Models: trees, views, selection
+
+Tables, trees, sorting and filtering proxies, selection, and JSON/XML sources (see [guide](guide.en.md#models-tables-trees-sorting-selection)).
+The names are shared with the markup. `model_count`/`model_read`/`model_set` work with any list (a proxy writes into the source).
+Tree nodes have stable numbers, 0 is the top level. The `on_fetch` fetcher inserts records with `model_insert` and reports the end with `set_more(model, False)`. Handlers live until `close`.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `model_move(model, start, count, to)` | `ModelMove` | `modelMove` | `gran_model_move` |
+| `model_columns(model, [(name, title, "number")])` | `ModelColumns(model, Column[])` | `modelColumns(model, columns, types)` | `gran_model_columns` (`GRAN_COLUMN_*`) |
+| `load_data(model, path, select, fetch, fields)` | `LoadData` | `loadData` | `gran_model_load` (`gran_source`) |
+| `on_fetch(model, f(model))` / `set_more` / `fetch_more` | `OnFetch` / `SetMore` / `FetchMore` | `onFetch` / `setMore` / `fetchMore` | `gran_model_on_fetch` / `_set_more` / `_fetch_more` |
+| `tree_insert(tree, parent, fields, index)` → number | `TreeInsert` → `ulong` | `treeInsert` → `long` | `gran_tree_insert` |
+| `tree_remove` / `tree_move` / `tree_set` / `tree_read` | `TreeRemove` / `TreeMove` / `TreeSet` / `TreeRead` | `treeRemove` / `treeMove` / `treeSet` / `treeRead` | `gran_tree_remove/_move/_set/_read` |
+| `tree_children(tree, node)` → list of numbers, `tree_parent` | `TreeChildren`, `TreeParent` | `treeChildren`, `treeParent` | `gran_tree_children` + `gran_tree_child`, `gran_tree_parent` |
+| `tree_set_lazy(tree, node)`, `on_tree_fetch(tree, f(tree, node))` | `TreeSetLazy`, `OnTreeFetch` | `treeSetLazy`, `onTreeFetch` | `gran_tree_set_lazy`, `gran_tree_on_fetch` |
+| `load_tree(tree, path, select, children)` | `LoadTree` | `loadTree` | `gran_tree_load` |
+| `create_proxy(name, source, sort, filter)` | `CreateProxy` | `createProxy` | `gran_view_create` (`GRAN_VIEW_SORT_FILTER`) |
+| `create_tree_list(name, tree, sort, filter, expanded)` | `CreateTreeList` | `createTreeList` | `gran_view_create` (`GRAN_VIEW_TREE_LIST`) |
+| `create_selection(name, source, mode)` | `CreateSelection(name, source, SelectionMode)` | `createSelection(name, source, mode)` | `gran_view_create` (`GRAN_VIEW_SELECTION`) |
+| `set_sort(view, keys)` / `set_filter(view, xpath)` | `SetSort` / `SetFilter` | `setSort` / `setFilter` | `gran_view_sort` / `gran_view_filter` |
+| `source_index(view, row)` | `SourceIndex` | `sourceIndex` | `gran_view_source_index` |
+| `tree_row(view, row)` → `{node, depth, expanded, has_children}`, `tree_expand(view, row, "toggle")` | `TreeRowOf` → `TreeRow`, `TreeExpand` | `treeRow` → `TreeRow`, `treeExpand` | `gran_tree_row_read`, `gran_tree_expand` |
+| `selection_change(name, "range", index, last)` | `SelectionChange(name, SelectionCommand, index, last)` | `selectionChange(name, command, index, last)` | `gran_selection_change` (`GRAN_SELECTION_*`) |
+| `selection(name)` → `(current or None, [numbers])` | `Selection` → `(Current, Selected)` | `selection` → `SelectionState` | `gran_selection_read` |
+| `on_selection_changed(name, f(name))` | `OnSelectionChanged` | `onSelectionChanged` | `gran_selection_on_change` |
+
 `command` supports `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
 `loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,
 `disableCommand` (for these three the target is a `<Command>` id, not a node one), `undo`, `redo`, `clearUndo`,
 `setUndoClean`, `setUndoLimit` (the target is an undo stack name), `setVariable` (the target is a variable name, the argument
-is the value), `toggleVariable` (flips a boolean variable). The window commands of `command` belong to the main window.
+is the value), `toggleVariable` (flips a boolean variable). The markup also has `gran:expand`, `gran:collapse`, `gran:toggle`
+(a flat tree row, at an element inside the template copy). The window commands of `command` belong to the main window.
 For `showPopup`, the argument is the id of the anchor;
 for `appendMarkup`, it is an XML fragment that the core checks against the common XSD.
 

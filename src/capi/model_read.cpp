@@ -7,7 +7,7 @@ gran_status gran_model_count(gran_app* app, const char* model, size_t* result)
     GRAN_CAPI_TRY
     gran::capi::checkApp(app);
     gran::capi::require(model != nullptr && result != nullptr);
-    *result = app->application.model(model).size();
+    *result = app->application.list(model).size();
     GRAN_CAPI_END
 }
 
@@ -19,7 +19,7 @@ gran_status gran_model_read(gran_app* app, const char* model, size_t index, cons
     GRAN_CAPI_TRY
     gran::capi::checkApp(app);
     gran::capi::require(model != nullptr && field != nullptr && result != nullptr);
-    const gran::data::Record& row = app->application.model(model).at(index);
+    const gran::data::Record& row = app->application.list(model).at(index);
     auto found = row.find(field);
     std::string value;
     if (found != row.end()) value = found->second;

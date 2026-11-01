@@ -58,13 +58,13 @@ namespace gran::app
         {
             ui::Node* parent = node.parent;
             std::vector<ui::EventListener> listeners = std::move(node.listeners);
-            std::uint8_t markupStates = static_cast<std::uint8_t>(style::stateBit(style::State::DISABLED) | style::stateBit(style::State::CHECKED));
-            std::uint8_t kept = static_cast<std::uint8_t>(node.stateMask & ~markupStates);
+            std::uint16_t markupStates = static_cast<std::uint16_t>(style::stateBit(style::State::DISABLED) | style::stateBit(style::State::CHECKED));
+            std::uint16_t kept = static_cast<std::uint16_t>(node.stateMask & ~markupStates);
 
             node = std::move(fresh);
             node.parent = parent;
             node.listeners = std::move(listeners);
-            node.stateMask = static_cast<std::uint8_t>(node.stateMask | kept);
+            node.stateMask = static_cast<std::uint16_t>(node.stateMask | kept);
             for (const std::unique_ptr<ui::Node>& child : node.children)
                 child->parent = &node;
         }

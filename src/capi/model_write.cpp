@@ -38,7 +38,7 @@ gran_status gran_model_set(gran_app* app, const char* model, const gran_record* 
     gran::capi::checkApp(app);
     gran::capi::require(model != nullptr);
     gran::data::Record fields = gran::capi::record(record);
-    gran::data::ListModel& list = app->application.model(model);
+    gran::data::ListSource& list = app->application.list(model);
     list.at(record->index);
     for (const auto& field : fields)
         list.set(record->index, field.first, field.second);

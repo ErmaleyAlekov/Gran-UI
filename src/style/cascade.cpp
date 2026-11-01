@@ -33,9 +33,9 @@ namespace gran::style
     }
 
     // Бит состояния / The state bit
-    std::uint8_t stateBit(State state) noexcept
+    std::uint16_t stateBit(State state) noexcept
     {
-        return static_cast<std::uint8_t>(1u << static_cast<unsigned>(state));
+        return static_cast<std::uint16_t>(1u << static_cast<unsigned>(state));
     }
 
     // Порядок каскада описан в style_sheet.hpp / The cascade order is described in style_sheet.hpp

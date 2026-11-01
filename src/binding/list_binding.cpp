@@ -9,19 +9,24 @@ namespace gran::binding
     ** An ordinary list builds the copies of all records at once (the model may have been filled before
     ** the markup was loaded); a virtual one — the spacers and the initial portion, the rest — after the first layout.
     */
-    ListBinding::ListBinding(ListBindings& owner, ui::Node& container, data::ListModel& model)
-        : _owner(owner), _container(container), _model(model)
+    ListBinding::ListBinding(ListBindings& owner, ui::Node& container, data::ListSource& model,
+        data::SelectionModel* selection)
+        : _owner(owner), _container(container), _model(model), _selection(selection)
     {
         _virtual = container.content.virtualize;
         if (_virtual)
             createSpacers();
         _model.subscribe(this);
+        if (_selection != nullptr)
+            _selection->subscribe(this);
         inserted(0, _model.size());
     }
 
     // Узлы не трогаются: их удаляет владелец дерева / The nodes are not touched: the tree owner removes them
     ListBinding::~ListBinding()
     {
+        if (_selection != nullptr)
+            _selection->unsubscribe(this);
         _model.unsubscribe(this);
     }
 

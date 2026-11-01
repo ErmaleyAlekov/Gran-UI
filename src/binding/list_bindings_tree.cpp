@@ -32,19 +32,6 @@ namespace gran::binding
         }
     }
 
-    // Привязок к этим моделям в момент загрузки ещё нет — уведомлять некого / There are no bindings to these models at load time yet — nobody to notify
-    void ListBindings::adoptData(std::vector<markup::DataSet>& sets)
-    {
-        for (markup::DataSet& set : sets)
-        {
-            data::ListModel& target = model(set.name);
-            target.clear();
-            for (data::Record& record : set.records)
-                target.append(std::move(record));
-        }
-        sets.clear();
-    }
-
     // Сначала снимаются все невладеющие ссылки, затем узел уничтожается / All non-owning references are dropped first, then the node is destroyed
     void ListBindings::removeNode(ui::Node& node)
     {
@@ -79,7 +66,7 @@ namespace gran::binding
                     continue;
                 std::size_t index = binding->indexOf(*current);
                 if (index != static_cast<std::size_t>(-1))
-                    return ItemRef{&binding->model(), index};
+                    return ItemRef{&binding->model(), index, binding->selection()};
             }
         }
         return ItemRef{};

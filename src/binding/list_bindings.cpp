@@ -1,5 +1,7 @@
 #include "gran/binding/internal/expression_binding.hpp"
 #include "gran/binding/internal/list_binding.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
 
 namespace gran::binding
 {
@@ -8,32 +10,29 @@ namespace gran::binding
     {
     }
 
-    // Привязки уничтожаются раньше моделей (порядок полей) / The bindings are destroyed before the models (the field order)
-    ListBindings::~ListBindings() = default;
-
-    // Модель живёт в куче: ссылки на неё стабильны при росте словаря / The model lives on the heap: references to it are stable when the map grows
-    data::ListModel& ListBindings::model(const std::string& name)
+    // Привязки и зеркало отписываются первыми, представления уходят от последнего к первому / The bindings and the mirror unsubscribe first, the views go from the last to the first
+    ListBindings::~ListBindings()
     {
-        std::unique_ptr<data::ListModel>& slot = _models[name];
-
-        if (!slot)
-        {
-            slot = std::make_unique<data::ListModel>();
-            _expressions->watchModel(name, *slot);
-        }
-        return *slot;
+        _bindings.clear();
+        _expressions.reset();
+        _selections.clear();
+        while (!_views.empty())
+            _views.pop_back();
     }
 
     /*
     ** Сначала собственные дети, потом сам узел: привязка сразу вставляет копии записей
     ** и привязывает их вложенные списки сама — обход копий второй раз дал бы двойные привязки.
+    ** Выделение должно относиться к тому же списку, что и items: иначе номера записей разошлись бы.
     **
     ** The own children first, then the node itself: the binding inserts the record copies at once
     ** and binds their nested lists itself — walking the copies a second time would give double bindings.
+    ** The selection must belong to the same list as items: otherwise the record indices would diverge.
     */
     void ListBindings::bind(ui::Node& subtree)
     {
         std::vector<ui::Node*> children;
+        data::SelectionModel* chosen = nullptr;
 
         for (const std::unique_ptr<ui::Node>& child : subtree.children)
             children.push_back(child.get());
@@ -42,8 +41,15 @@ namespace gran::binding
         _expressions->bindNode(subtree);
         if (subtree.content.items.empty() || !subtree.itemTemplate)
             return;
-        data::ListModel& source = model(subtree.content.items);
-        _bindings.push_back(std::make_unique<ListBinding>(*this, subtree, source));
+        data::ListSource* source = list(subtree.content.items);
+        if (source == nullptr)
+            source = &model(subtree.content.items);
+        if (!subtree.content.selection.empty())
+            chosen = selection(subtree.content.selection);
+        if (!subtree.content.selection.empty() && (chosen == nullptr || &chosen->source() != source))
+            throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::DATA_SELECTION_MISMATCH,
+                {subtree.content.selection, subtree.content.items}));
+        _bindings.push_back(std::make_unique<ListBinding>(*this, subtree, *source, chosen));
     }
 
     // Уничтожение привязки отписывает её от модели / Destroying a binding unsubscribes it from the model
