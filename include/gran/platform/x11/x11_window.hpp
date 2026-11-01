@@ -65,6 +65,9 @@ namespace gran::platform::x11
         void sendState(long state);
         bool frameMouse(const XButtonEvent& event);
         void moveResize(const XButtonEvent& event, long direction);
+        long frameEdge(int x, int y) const;
+        void trackFrameCursor(const XMotionEvent& event);
+        void applyCursor();
         Atom atom(const char* name) const;
         void push(EventKind kind);
         static Key key(KeySym symbol);
@@ -86,6 +89,13 @@ namespace gran::platform::x11
         bool _custom = false;
         bool _resizable = true;
         bool _clipboardReady = false;
+        // Курсор интерфейса, край своей рамки под указателем (направление _NET_WM_MOVERESIZE, -1 — нет)
+        // и форма из cursorfont, уже заданная окну: курсор пересоздаётся только при смене формы.
+        // The interface cursor, the custom frame edge under the pointer (a _NET_WM_MOVERESIZE direction, -1 — none)
+        // and the cursorfont shape already set on the window: the cursor is recreated only when the shape changes.
+        CursorShape _shape = CursorShape::ARROW;
+        long _edge = -1;
+        unsigned _fontShape = 0;
         Time _lastClick = 0;
         unsigned _lastButton = 0;
         int _lastX = 0;

@@ -57,9 +57,11 @@ namespace gran::platform::win32
         // ---- win32_system.cpp ----
         float scale() const override;
         void show() override;
-        void setCursor(CursorShape shape) override;
         std::string clipboardText() override;
         void setClipboardText(const std::string& text) override;
+
+        // ---- win32_cursor.cpp ----
+        void setCursor(CursorShape shape) override;
 
         // ---- win32_commands.cpp ----
         void minimize() override;
@@ -102,6 +104,11 @@ namespace gran::platform::win32
         bool trackingNonClient = false;
         char16_t highSurrogate = 0;
         CursorShape cursor = CursorShape::ARROW;
+        // Код зоны из последнего WM_SETCURSOR: курсор интерфейса ставится только над HTCLIENT,
+        // иначе кадр перебивал бы курсор растягивания у края окна.
+        // The area code of the last WM_SETCURSOR: the interface cursor is set only over HTCLIENT,
+        // otherwise a frame would override the resize cursor at the window edge.
+        WORD cursorArea = HTCLIENT;
         std::function<void()> liveResize;
         WindowDesc desc;
         // Обработчик читает дерево только в UI-потоке, не хранит указатели на узлы.
@@ -132,6 +139,12 @@ namespace gran::platform::win32
     void configureFrame(Win32Window& window) noexcept;
     void fitClientRect(const Win32Window& window, RECT& frame) noexcept;
     void setInitialSize(Win32Window& window, DWORD style) noexcept;
+
+    // ---- win32_cursor.cpp ----
+
+    // WM_SETCURSOR: запоминает зону; true — курсор интерфейса поставлен (зона клиента своего окна).
+    // WM_SETCURSOR: remembers the area; true — the interface cursor is set (the client area of the own window).
+    bool handleSetCursor(Win32Window& window, WPARAM wParam, LPARAM lParam) noexcept;
 
     // ---- win32_keyboard.cpp ----
 

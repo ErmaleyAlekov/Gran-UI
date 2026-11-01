@@ -17,15 +17,6 @@ namespace gran::platform::win32
         UpdateWindow(window);
     }
 
-    // Курсор применяется сразу и запоминается для WM_SETCURSOR / The cursor is applied at once and remembered for WM_SETCURSOR
-    void Win32Window::setCursor(CursorShape shape)
-    {
-        static const LPCWSTR CURSORS[] = {IDC_ARROW, IDC_HAND, IDC_IBEAM, IDC_SIZEALL, IDC_NO, IDC_HAND, IDC_SIZEWE, IDC_SIZENS};
-
-        cursor = shape;
-        SetCursor(LoadCursorW(nullptr, CURSORS[static_cast<std::size_t>(shape)]));
-    }
-
     // Текст буфера обмена (CF_UNICODETEXT) или пустая строка / The clipboard text (CF_UNICODETEXT) or an empty string
     std::string Win32Window::clipboardText()
     {

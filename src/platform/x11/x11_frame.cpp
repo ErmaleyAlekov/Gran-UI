@@ -48,17 +48,8 @@ namespace gran::platform::x11
     bool X11Window::frameMouse(const XButtonEvent& event)
     {
         if (!_custom || event.button != 1) return false;
-        int edge = static_cast<int>(6 * _scale);
-        bool left = event.x < edge; bool right = event.x >= _pixels.width - edge;
-        bool top = event.y < edge; bool bottom = event.y >= _pixels.height - edge;
-        if (_resizable && !isMaximized() && (left || right || top || bottom))
-        {
-            long direction = 0;
-            if (top) { if (right) direction = 2; else if (!left) direction = 1; }
-            else if (bottom) { direction = 6; if (right) direction = 4; else if (!left) direction = 5; }
-            else { direction = 7; if (right) direction = 3; }
-            moveResize(event, direction); return true;
-        }
+        long direction = frameEdge(event.x, event.y);
+        if (direction >= 0) { moveResize(event, direction); return true; }
         if (!_frameHit || _frameHit({event.x / _scale, event.y / _scale}) != WindowRole::DRAG) return false;
         if (_lastButton == 1 && event.time - _lastClick < 400 && std::abs(event.x - _lastX) < 5 && std::abs(event.y - _lastY) < 5)
         { if (isMaximized()) restore(); else maximize(); _lastClick = 0; }
