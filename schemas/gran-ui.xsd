@@ -40,6 +40,28 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!--
+    Выражение привязки {XPath 1.0}: значение вычисляется во время работы и пересчитывается при смене
+    зависимостей (переменных $имя, свойств $id.свойство, моделей). Синтаксис проверяет загрузчик.
+    A binding expression {XPath 1.0}: the value is computed at run time and recomputed when the dependencies
+    change ($name variables, $id.property properties, models). The loader checks the syntax.
+  -->
+  <xs:simpleType name="Binding">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\{.*\}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Логическое значение или выражение / A boolean or an expression -->
+  <xs:simpleType name="BindableBoolean">
+    <xs:union memberTypes="xs:boolean Binding"/>
+  </xs:simpleType>
+
+  <!-- Число или выражение / A number or an expression -->
+  <xs:simpleType name="BindableDecimal">
+    <xs:union memberTypes="xs:decimal Binding"/>
+  </xs:simpleType>
+
   <!-- Неотрицательное число (размеры, отступы между детьми) / A non-negative number (sizes, gaps) -->
   <xs:simpleType name="NonNegativeNumber">
     <xs:restriction base="xs:decimal">
@@ -49,12 +71,12 @@
 
   <!-- Размер в пикселях или ссылка темы / A size in pixels or a theme reference -->
   <xs:simpleType name="Size">
-    <xs:union memberTypes="NonNegativeNumber TokenRef"/>
+    <xs:union memberTypes="NonNegativeNumber TokenRef Binding"/>
   </xs:simpleType>
 
   <!-- Число со знаком или ссылка темы / A signed number or a theme reference -->
   <xs:simpleType name="Number">
-    <xs:union memberTypes="xs:decimal TokenRef"/>
+    <xs:union memberTypes="xs:decimal TokenRef Binding"/>
   </xs:simpleType>
 
   <!-- Непрозрачность 0..1 / An opacity 0..1 -->
@@ -66,13 +88,13 @@
   </xs:simpleType>
 
   <xs:simpleType name="Opacity">
-    <xs:union memberTypes="UnitInterval TokenRef"/>
+    <xs:union memberTypes="UnitInterval TokenRef Binding"/>
   </xs:simpleType>
 
   <!-- Длина: auto, пиксели, проценты / A length: auto, pixels, percent -->
   <xs:simpleType name="Length">
     <xs:restriction base="xs:string">
-      <xs:pattern value="auto|([0-9]+(\.[0-9]*)?|\.[0-9]+)(px|%)?|$[a-zA-Z_][a-zA-Z0-9_\-]*"/>
+      <xs:pattern value="auto|([0-9]+(\.[0-9]*)?|\.[0-9]+)(px|%)?|$[a-zA-Z_][a-zA-Z0-9_\-]*|\{.*\}"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -93,14 +115,14 @@
   <!-- Цвет: #hex, rgb()/rgba()/hsl()/hsla(), имя CSS, ссылка темы / A color: #hex, rgb()/rgba()/hsl()/hsla(), a CSS name, a theme reference -->
   <xs:simpleType name="Color">
     <xs:restriction base="xs:string">
-      <xs:pattern value="#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgba?|hsla?)\([^()]+\)|[a-zA-Z]+|$[a-zA-Z_][a-zA-Z0-9_\-]*"/>
+      <xs:pattern value="#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgba?|hsla?)\([^()]+\)|[a-zA-Z]+|$[a-zA-Z_][a-zA-Z0-9_\-]*|\{.*\}"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Заливка: none, цвет или градиент CSS / A fill: none, a color or a CSS gradient -->
   <xs:simpleType name="Paint">
     <xs:restriction base="xs:string">
-      <xs:pattern value="#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgba?|hsla?)\([^()]+\)|[a-zA-Z]+|$[a-zA-Z_][a-zA-Z0-9_\-]*|(linear|radial|conic)-gradient\(.+\)"/>
+      <xs:pattern value="#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(rgba?|hsla?)\([^()]+\)|[a-zA-Z]+|$[a-zA-Z_][a-zA-Z0-9_\-]*|(linear|radial|conic)-gradient\(.+\)|\{.*\}"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -144,7 +166,7 @@
   <!-- Преобразования: none или функции подряд / Transforms: none or functions in a row -->
   <xs:simpleType name="Transform">
     <xs:restriction base="xs:string">
-      <xs:pattern value="none|( *[a-zA-Z]+\([^()]*\) *)+"/>
+      <xs:pattern value="none|( *[a-zA-Z]+\([^()]*\) *)+|\{.*\}"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -161,7 +183,7 @@
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
-          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit)(:.*)?"/>
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit|setVariable|toggleVariable)(:.*)?"/>
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
@@ -497,6 +519,8 @@
     <xs:attributeGroup ref="VisualAttributes"/>
     <xs:attributeGroup ref="TextAttributes"/>
     <xs:attribute name="animation" type="Animations"/>
+    <!-- Выражения {…} — только у элементов интерфейса: стиль и кадр общие для многих узлов / {…} expressions are only for UI elements: a style and a frame are shared by many nodes -->
+    <xs:assert test="every $a in @* satisfies not(starts-with($a, '{'))"/>
   </xs:complexType>
 
   <xs:group name="States">
@@ -554,8 +578,8 @@
     <xs:group ref="States"/>
     <xs:attribute name="id" type="xs:NCName"/>
     <xs:attribute name="style" type="xs:NCName"/>
-    <xs:attribute name="visible" type="xs:boolean"/>
-    <xs:attribute name="enabled" type="xs:boolean"/>
+    <xs:attribute name="visible" type="BindableBoolean"/>
+    <xs:attribute name="enabled" type="BindableBoolean"/>
     <xs:attribute name="windowRole" type="WindowRole"/>
     <xs:attribute name="tooltip" type="xs:string"/>
     <!-- Имя для дикторов (как aria-label) и id элемента-подписи (как aria-labelledby) -->
@@ -573,8 +597,10 @@
     <!-- Минимум не больше максимума (ссылки темы проверяются после подстановки) -->
     <!-- The minimum is not above the maximum (theme references are checked after substitution) -->
     <xs:assert test="not(@minWidth and @maxWidth) or starts-with(@minWidth, '$') or starts-with(@maxWidth, '$')
+                     or starts-with(@minWidth, '{') or starts-with(@maxWidth, '{')
                      or number(@minWidth) &lt;= number(@maxWidth)"/>
     <xs:assert test="not(@minHeight and @maxHeight) or starts-with(@minHeight, '$') or starts-with(@maxHeight, '$')
+                     or starts-with(@minHeight, '{') or starts-with(@maxHeight, '{')
                      or number(@minHeight) &lt;= number(@maxHeight)"/>
     <!-- Канвас задаёт либо left, либо right (иначе ширина неоднозначна вместе с width) -->
     <!-- A canvas child sets left or right, not both together with width (the width would be ambiguous) -->
@@ -920,7 +946,7 @@
   <xs:complexType name="CheckBoxType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">
-        <xs:attribute name="checked" type="xs:boolean"/>
+        <xs:attribute name="checked" type="BindableBoolean"/>
         <xs:attribute name="text" type="xs:string"/>
         <xs:attribute name="onChange" type="Action"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
@@ -939,7 +965,7 @@
   <xs:complexType name="RadioButtonType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">
-        <xs:attribute name="checked" type="xs:boolean"/>
+        <xs:attribute name="checked" type="BindableBoolean"/>
         <xs:attribute name="text" type="xs:string"/>
         <xs:attribute name="value" type="xs:string"/>
         <xs:attribute name="group" type="xs:NCName"/>
@@ -955,9 +981,9 @@
       <xs:extension base="ElementBase">
         <xs:attribute name="min" type="xs:decimal" default="0"/>
         <xs:attribute name="max" type="xs:decimal" default="100"/>
-        <xs:attribute name="value" type="xs:decimal"/>
+        <xs:attribute name="value" type="BindableDecimal"/>
         <xs:assert test="(if (@min) then @min else 0) lt (if (@max) then @max else 100)"/>
-        <xs:assert test="not(@value) or (@value ge (if (@min) then @min else 0) and @value le (if (@max) then @max else 100))"/>
+        <xs:assert test="not(@value) or starts-with(@value, '{') or (@value ge (if (@min) then @min else 0) and @value le (if (@max) then @max else 100))"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>
@@ -1010,11 +1036,11 @@
       <xs:extension base="ElementBase">
         <xs:attribute name="min" type="xs:decimal" default="0"/>
         <xs:attribute name="max" type="xs:decimal" default="100"/>
-        <xs:attribute name="value" type="xs:decimal"/>
+        <xs:attribute name="value" type="BindableDecimal"/>
         <xs:attribute name="step" type="xs:decimal"/>
         <xs:attribute name="onChange" type="Action"/>
         <xs:assert test="(if (@min) then @min else 0) lt (if (@max) then @max else 100)"/>
-        <xs:assert test="not(@value) or (@value ge (if (@min) then @min else 0) and @value le (if (@max) then @max else 100))"/>
+        <xs:assert test="not(@value) or starts-with(@value, '{') or (@value ge (if (@min) then @min else 0) and @value le (if (@max) then @max else 100))"/>
         <xs:assert test="not(@step) or (@step gt 0 and @step le (if (@max) then @max else 100) - (if (@min) then @min else 0))"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
@@ -1050,11 +1076,38 @@
     <xs:attribute name="basedOn" type="xs:NCName"/>
     <xs:attributeGroup ref="StyleAttributes"/>
     <xs:assert test="not(@basedOn = @name)"/>
+    <!-- Выражения {…} — только у элементов интерфейса: стиль и кадр общие для многих узлов / {…} expressions are only for UI elements: a style and a frame are shared by many nodes -->
+    <xs:assert test="every $a in @* satisfies not(starts-with($a, '{'))"/>
   </xs:complexType>
 
   <!-- Запись данных: любые атрибуты — поля записи / A data record: any attributes are the record fields -->
   <xs:complexType name="DataItemType">
     <xs:anyAttribute processContents="skip"/>
+  </xs:complexType>
+
+  <!-- Тип переменной привязки / The binding variable type -->
+  <xs:simpleType name="VariableKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="string"/>
+      <xs:enumeration value="number"/>
+      <xs:enumeration value="boolean"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--
+    Переменная привязки: $name в выражениях {…}; значение меняют код, встроенные команды
+    gran:setVariable:имя:значение и gran:toggleVariable:имя, двусторонние привязки полей.
+    A binding variable: $name in the {…} expressions; the value is changed by code, the built-in commands
+    gran:setVariable:name:value and gran:toggleVariable:name, the two-way bindings of controls.
+  -->
+  <xs:complexType name="VariableType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="type" type="VariableKind" default="string"/>
+    <xs:attribute name="value" type="xs:string"/>
+    <!-- Зарезервированные имена: $index — номер записи, $узел.свойство — с точкой / Reserved names: $index is the record number, $node.property has a dot -->
+    <xs:assert test="@name != 'index' and not(contains(@name, '.'))"/>
+    <xs:assert test="not(@type = 'boolean') or not(@value) or @value = 'true' or @value = 'false'"/>
+    <xs:assert test="not(@type = 'number') or not(@value) or string(number(@value)) != 'NaN'"/>
   </xs:complexType>
 
   <!-- Начальные данные модели списка name / The initial data of the list model name -->
@@ -1103,6 +1156,8 @@
     <xs:attribute name="boxShadow" type="Shadows"/>
     <xs:attribute name="borderRadius" type="Radii"/>
     <xs:attribute name="accentColor" type="Color"/>
+    <!-- Выражения {…} — только у элементов интерфейса: стиль и кадр общие для многих узлов / {…} expressions are only for UI elements: a style and a frame are shared by many nodes -->
+    <xs:assert test="every $a in @* satisfies not(starts-with($a, '{'))"/>
   </xs:complexType>
 
   <!-- Набор ключевых кадров для свойства animation / A keyframe set for the animation property -->
@@ -1121,6 +1176,7 @@
       <xs:element name="Keyframes" type="KeyframesType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Data" type="DataType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Command" type="CommandType" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
@@ -1144,6 +1200,8 @@
     <xs:attribute name="titleBar" type="TitleBar" default="system"/>
     <xs:attribute name="background" type="Paint"/>
     <xs:attributeGroup ref="TextAttributes"/>
+    <!-- Окно — не узел интерфейса: выражений у его атрибутов нет / The window is not a UI node: its attributes have no expressions -->
+    <xs:assert test="not(starts-with(@background, '{') or starts-with(@color, '{') or starts-with(@fontSize, '{'))"/>
     <xs:assert test="not(@minWidth) or @minWidth le @width"/>
     <xs:assert test="not(@minHeight) or @minHeight le @height"/>
   </xs:complexType>
@@ -1177,6 +1235,11 @@
     <!-- Имена наборов данных уникальны / Data set names are unique -->
     <xs:unique name="uniqueData">
       <xs:selector xpath="Resources/Data"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <!-- Имена переменных уникальны / Variable names are unique -->
+    <xs:unique name="uniqueVariable">
+      <xs:selector xpath="Resources/Variable"/>
       <xs:field xpath="@name"/>
     </xs:unique>
     <!-- Стили объявлены один раз; style и basedOn ссылаются только на объявленные -->

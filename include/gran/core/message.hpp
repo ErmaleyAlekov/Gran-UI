@@ -97,6 +97,7 @@ namespace gran::i18n
         MENU_REDO,
         MARKUP_NOT_LIVE,
         MARKUP_BAD_ATTRIBUTE,
+        BINDING_BAD_EXPRESSION,
         COUNT
     };
 }

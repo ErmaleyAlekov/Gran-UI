@@ -114,11 +114,26 @@ A schema error is a language exception (`RuntimeError`, `InvalidOperationExcepti
 | `set_markup_attribute(target, name, value)` (`None` removes) | `SetMarkupAttribute` | `setMarkupAttribute` | `gran_app_markup_write` (`value == NULL` removes) |
 | `save_markup(window)` → XML | `SaveMarkup` | `saveMarkup` | `gran_app_markup_save` |
 
+### Binding expressions
+
+The `$name` variables and the `{expression ; name}` converters of the markup expressions (see [guide](guide.en.md#binding-expressions)).
+A bool / number / string value chooses the variable type; a string keeps the former type (a new variable is a string).
+A converter is a "string → string" function; without `to_source` the binding is one-way. An exception in the converter
+is handled as in any handler: the application closes and the error is thrown from `run`.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `set_variable(name, value)` (`bool`, `int`/`float`, `str`) | `SetVariable(name, bool/double/string)` | `setVariable(name, boolean/double/String)` | `gran_app_variable_set_boolean/_number/_text` |
+| `variable(name)` → `str` or `None` | `Variable` → `string?` | `variable` → `String` or `null` | `gran_app_variable_read` (`*result == NULL` — none) |
+| `set_converter(name, to_view, to_source=None)` | `SetConverter(name, toView, toSource)` | `setConverter(name, toView, toSource)` | `gran_app_converter` + `gran_converted_set` |
+| `refresh_bindings()` | `RefreshBindings()` | `refreshBindings()` | `gran_app_refresh_bindings` |
+
 `command` supports `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
 `loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,
 `disableCommand` (for these three the target is a `<Command>` id, not a node one), `undo`, `redo`, `clearUndo`,
-`setUndoClean`, `setUndoLimit` (the target is an undo stack name). The window commands of `command` belong to the main window.
+`setUndoClean`, `setUndoLimit` (the target is an undo stack name), `setVariable` (the target is a variable name, the argument
+is the value), `toggleVariable` (flips a boolean variable). The window commands of `command` belong to the main window.
 For `showPopup`, the argument is the id of the anchor;
 for `appendMarkup`, it is an XML fragment that the core checks against the common XSD.
 

@@ -151,6 +151,13 @@ app.saveMarkupFile("layout.xml");                   // разметка с но�
 - `focus(ui::Node*)`: фокус из кода, `nullptr` снимает; до `run()` запрос запоминается.
 - `model(name)`: ссылка на `data::ListModel`; неизвестное имя создаёт пустую модель.
 - `itemOf(node)`: `ItemRef` записи ближайшего списка; `model == nullptr`, если узел вне привязки.
+- `setVariable(name, std::string)`: переменная `$name` выражений `{…}` с прежним типом (новая — строка);
+  `setVariableNumber(name, double)`, `setVariableBoolean(name, bool)` задают тип явно;
+  `variable(name) -> std::optional<std::string>` — значение текстом (логическое — `"true"`/`"false"`).
+- `setConverter(name, binding::Converter{toView, toSource})`: преобразователь для `{выражение ; name}`;
+  пустой `toSource` делает привязку односторонней. Исключение из преобразователя оставляет свойство прежним.
+- `refreshBindings()`: пересчитать выражения сейчас (движок и так делает это перед каждым кадром и после компоновки).
+  Подробнее — [руководство](guide.md#выражения-привязки).
 - `setValue(node, float)`: значение Slider/ProgressBar с ограничением границами.
 - `setChecked(node, bool)`: CheckBox/Switch/RadioButton; выбор радиокнопки снимает соседей группы.
 - `selectOption(comboBox, value)`: выбор по значению; неизвестное значение снимает выбор.

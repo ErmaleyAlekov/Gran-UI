@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Выражения привязки {XPath 1.0}: поиск по списку без строчки кода приложения. Поле поиска двусторонне
+  связано с переменной $query, записи фильтруются выражением visible, счётчик и подписи считаются XPath,
+  флажок в записи пишет поле done своей записи, ползунок — ширину панели, кнопка переключает $details.
+  Запуск: gran_snapshot samples/bindings.xml bindings.png или gran_gallery samples/bindings.xml
+
+  Binding expressions {XPath 1.0}: a list search without a single line of application code. The search field is bound
+  two-way to the $query variable, the records are filtered by the visible expression, the counter and the labels are computed
+  by XPath, the checkbox in a record writes the done field of its record, the slider sets the panel width, the button toggles $details.
+  Run: gran_snapshot samples/bindings.xml bindings.png or gran_gallery samples/bindings.xml
+-->
+<Window title="Gran UI — выражения привязки" width="640" height="460" background="#f5f6f8">
+  <Resources>
+    <Style name="row" orientation="horizontal" align="center" spacing="10" padding="8 12" borderRadius="8"/>
+    <Style name="muted" color="#667085" fontSize="13"/>
+    <Data name="tasks">
+      <Item title="Разобрать почту" owner="Анна" done="true"/>
+      <Item title="Собрать выпуск для Astra" owner="Борис" done="false"/>
+      <Item title="Проверить печать" owner="Вера" done="false"/>
+      <Item title="Обновить документацию" owner="Анна" done="true"/>
+      <Item title="Починить сборку на РЕД ОС" owner="Глеб" done="false"/>
+    </Data>
+    <Variable name="query"/>
+    <Variable name="details" type="boolean" value="true"/>
+    <Variable name="panel" type="number" value="220"/>
+  </Resources>
+  <Stack id="page" orientation="horizontal" padding="20" spacing="16">
+    <Stack id="main" spacing="10" grow="1">
+      <Text fontSize="20" fontWeight="700">Задачи</Text>
+      <Input id="search" placeholder="Поиск по названию" value="{$query}"/>
+      <Text style="muted">Найдено {count(tasks/Item[contains(@title, $query)])} из {count(tasks/Item)}, готово {count(tasks/Item[@done = 'true'])}</Text>
+      <Stack items="tasks" spacing="4">
+        <ItemTemplate>
+          <Stack style="row" visible="{contains(@title, $query)}"
+                 background="{substring('#ffffff#eef2f6', 1 + 7 * ($index mod 2), 7)}">
+            <CheckBox checked="{done}"/>
+            <Text grow="1" opacity="{substring('1.00.5', 1 + 3 * (@done = 'true'), 3)}">{title}</Text>
+            <Text style="muted">{owner}</Text>
+          </Stack>
+        </ItemTemplate>
+      </Stack>
+      <Text style="muted" visible="{not(tasks/Item[contains(@title, $query)])}">Ничего не найдено</Text>
+    </Stack>
+    <Stack id="side" spacing="10" width="{$panel}" padding="12" borderRadius="10" background="#ffffff">
+      <Button onClick="gran:toggleVariable:details">Подробности</Button>
+      <Stack spacing="6" visible="{$details}">
+        <Text style="muted">Ширина панели: {$side.width} px</Text>
+        <Slider min="160" max="300" value="{$panel}"/>
+        <Box height="6" borderRadius="3" background="#3538cd" width="{$side.width * count(tasks/Item[@done = 'true']) div count(tasks/Item) - 24}"/>
+        <Text style="muted">{round(100 * count(tasks/Item[@done = 'true']) div count(tasks/Item))}% готово</Text>
+      </Stack>
+    </Stack>
+  </Stack>
+</Window>

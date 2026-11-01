@@ -1,3 +1,4 @@
+#include "gran/binding/internal/expression_binding.hpp"
 #include "gran/binding/internal/list_binding.hpp"
 
 #include <utility>
@@ -21,6 +22,7 @@ namespace gran::binding
     // Уничтожение привязки отписывает её от модели / Destroying a binding unsubscribes it from the model
     void ListBindings::forget(const ui::Node& subtree)
     {
+        _expressions->forget(subtree);
         for (std::size_t index = 0; index < _bindings.size();)
         {
             if (contains(subtree, &_bindings[index]->container()))

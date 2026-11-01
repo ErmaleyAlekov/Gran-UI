@@ -334,6 +334,15 @@ namespace gran
         // The list record whose template copy holds the node (the nearest list) — for onClick handlers in a template
         ItemRef itemOf(const ui::Node& node) const;
 
+        /*
+        ** Пересчитать выражения {…} сейчас, не дожидаясь кадра (движок и так делает это перед каждым кадром):
+        ** нужно коду, который сразу после правки моделей и переменных читает вычисленные значения узлов.
+        **
+        ** Recompute the {…} expressions now without waiting for a frame (the engine does it before every frame anyway):
+        ** it is needed by code that reads the computed node values right after editing the models and variables.
+        */
+        void refreshBindings();
+
         // ---- application_web.cpp: встроенный браузер <WebView> (только поток интерфейса) ----
         // ---- application_web.cpp: the embedded <WebView> browser (the UI thread only) ----
 
@@ -441,6 +450,36 @@ namespace gran
 
         // Включена ли команда (первая найденная по окнам); неизвестная — false / Whether the command is enabled (the first one found in the windows); an unknown one — false
         bool commandEnabled(const std::string& id) const;
+
+        // ---- application_variables.cpp: переменные и преобразователи выражений {…} (только поток интерфейса) ----
+        // ---- application_variables.cpp: the variables and converters of the {…} expressions (the UI thread only) ----
+
+        /*
+        ** Задать переменную $name для выражений привязки. Тип прежний (объявленный в <Variable> или
+        ** заданный раньше): "false" у логической переменной остаётся логическим; новая переменная — строка.
+        ** Зависящие выражения пересчитываются перед следующим кадром.
+        **
+        ** Set the $name variable for the binding expressions. The type stays (declared in <Variable> or
+        ** set before): "false" for a boolean variable stays boolean; a new variable is a string.
+        ** The depending expressions are recomputed before the next frame.
+        */
+        void setVariable(const std::string& name, const std::string& value);
+
+        // Переменная-число и логическая переменная (тип задаётся явно) / A number variable and a boolean variable (the type is set explicitly)
+        void setVariableNumber(const std::string& name, double value);
+        void setVariableBoolean(const std::string& name, bool value);
+
+        // Значение переменной текстом (логическое — "true"/"false"); нет такой — пусто / The variable value as text (a boolean is "true"/"false"); none — empty
+        std::optional<std::string> variable(const std::string& name) const;
+
+        /*
+        ** Преобразователь для выражений «{выражение ; name}»: toView — значение → текст свойства,
+        ** toSource — обратно (для двусторонней привязки; без него привязка односторонняя).
+        **
+        ** A converter for the "{expression ; name}" expressions: toView — the value → the property text,
+        ** toSource — back (for a two-way binding; without it the binding is one-way).
+        */
+        void setConverter(const std::string& name, binding::Converter converter);
 
         // ---- application_undo.cpp: стеки отмены (только поток интерфейса) ----
         // ---- application_undo.cpp: the undo stacks (the UI thread only) ----

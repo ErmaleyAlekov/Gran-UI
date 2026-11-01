@@ -38,8 +38,8 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `markup/` | loading through Beresta, built-in schema `gran-ui.xsd`, building `ui::Node`, the live DOM (`live_document.hpp`) |
 | `style/` | value parsing (color, length, margins, radii, shadows, gradients, transitions), cascade, theme |
 | `ui/` | UI node, element types, states, traversal |
-| `data/` | the `ListModel` list model (string records, observers), `{field}` substitution |
-| `binding/` | binding `items="…"` containers to models: `<ItemTemplate>` copies, point edits by notifications |
+| `data/` | the `ListModel` list model (string records, observers), `{field}` substitution, the `Variable` binding variables |
+| `binding/` | binding `items="…"` containers to models: `<ItemTemplate>` copies, point edits by notifications; `{XPath}` expressions (`ExpressionBindings`): the model mirror in XML, dependencies, recomputing what changed, two-way writes, converters |
 | `layout/` | Stack, Grid, Canvas, text measurement, scrolling |
 | `text/` | TrueType/TTC parsing, glyph rasterization (exact coverage area), atlas, kerning, line breaks |
 | `image/` | inflate (zlib), PNG and JPEG (baseline and progressive) — custom implementations; the format is by the signature (`decodeImage`) |
@@ -109,6 +109,21 @@ The engine draws the interface itself and does not use a browser for this. `<Web
     All the branches are built first, then applied. A different prologue is a full replacement carrying the state over.
   - Saving: `serializeMarkup` is the Beresta serializer with indentation (the parser does not keep whitespace indentation,
     mixed content is written inline, comments are kept).
+- **Binding expressions** (`binding/expression_*`, the Observer pattern + pull-based recomputation). The node builder
+  only recognizes `{…}` and checks the syntax by compiling XPath (error — with position); the node stores the original text
+  (`ui::AttributeBinding`), while the compilation and evaluation are in the `binding/` module: `ui/` has no dependency on XPath.
+  - Data for XPath — `DataMirror`: Beresta document `<data><model><Item field="…"/>…</model></data>`; mirror entry
+    (`MirrorEntry`) — model observer, editing changes one `Item` element and the model version number.
+  - The dependencies are collected by an own expression scanner: `$name` (variable), `$node.property` (`self`, `parent`, id in the binding window),
+    `$index`, step names of the path (possible models), the model of its own record (at evaluation). Before the frame
+    (`renderFrame`) and after layout (`layoutFrame`, up to 3 passes together with virtual list windows)
+    `ExpressionBindings::update` first transfers user edits to the sources of two-way bindings
+    (variable or record field), then compares the dependencies of each binding with the remembered ones — property strings
+    and version numbers of variables and models, without calculating XPath — and evaluates only the changed ones anew; writing
+    into the node happens only on a new result. It is not necessary to embed notifications into each node change path (input, code,
+    layout), and frames are drawn only on events anyway.
+  - Owner — `ListBindings` (as list bindings): template copies receive expressions through the same `bind`,
+    node deletion removes them through `forget`; `gran_snapshot` evaluates the expressions without a window.
 
 ## 4. Rendering
 

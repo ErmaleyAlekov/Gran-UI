@@ -74,6 +74,14 @@ public class Smoke {
             app.setMarkupAttribute("root","padding",null);
             localStaticCheck(app.markupAttribute("root","padding")==null);
 
+            // Переменные и преобразователь выражений {…} / The variables and the converter of the {…} expressions
+            app.setConverter("twice",text -> text + text,null);
+            app.setVariable("count",21.0);
+            app.setVariable("flag",true);
+            app.setVariable("flag","false");
+            app.refreshBindings();
+            localStaticCheck("21".equals(app.variable("count")) && "false".equals(app.variable("flag")) && app.variable("missing")==null);
+
             // Apply updates to the UI
             app.apply(new Application.Update("text", "text", "Hello World 🌍"));
 

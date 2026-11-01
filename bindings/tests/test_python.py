@@ -213,6 +213,21 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(calls.count(1), 1000)
         self.assertEqual(self.app.pending_tasks(), 0)
 
+    def test_binding_expressions(self):
+        self.app.load_string('<Window><Resources><Variable name="flag" type="boolean" value="true"/></Resources>'
+                             '<Stack><Input id="q" value="{$query}"/><Text id="t">{$size ; kb}</Text>'
+                             '<Box id="b" visible="{$flag}"/></Stack></Window>')
+        self.app.set_converter("kb", lambda value: value + " КБ")
+        self.app.set_variable("size", 12)
+        self.app.set_variable("flag", "false")
+        self.app.apply([("q", "text", "поиск")])
+        self.app.refresh_bindings()
+        self.assertEqual(self.app.read("t", "text"), "12 КБ")
+        self.assertEqual(self.app.read("b", "visible"), "false")
+        self.assertEqual(self.app.variable("flag"), "false")
+        self.assertEqual(self.app.variable("query"), "поиск")
+        self.assertIsNone(self.app.variable("missing"))
+
     def test_use_after_close(self):
         self.app.close()
         with self.assertRaises(RuntimeError):

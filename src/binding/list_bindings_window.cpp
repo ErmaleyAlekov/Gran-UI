@@ -1,3 +1,4 @@
+#include "gran/binding/internal/expression_binding.hpp"
 #include "gran/binding/internal/list_binding.hpp"
 
 namespace gran::binding
@@ -16,5 +17,10 @@ namespace gran::binding
         for (std::size_t index = 0; index < _bindings.size(); ++index)
             changed = _bindings[index]->updateWindow() || changed;
         return changed;
+    }
+
+    bool ListBindings::updateExpressions()
+    {
+        return _expressions->update();
     }
 }

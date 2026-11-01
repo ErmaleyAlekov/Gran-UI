@@ -34,8 +34,8 @@ namespace gran::app
         return limit;
     }
 
-    // Команды <Command> и стеки отмены адресуются своими именами, а не id узлов (пустое имя стека — основной).
-    // The <Command> commands and the undo stacks are addressed by their own names, not node ids (an empty stack name is the main one).
+    // Команды <Command>, стеки отмены и переменные адресуются своими именами, а не id узлов (пустое имя стека — основной).
+    // The <Command> commands, the undo stacks and the variables are addressed by their own names, not node ids (an empty stack name is the main one).
     static bool namedCommand(Application& app, const std::string& command, const std::string& target, const std::string& argument)
     {
         if (command == "runCommand") app.runCommand(target);
@@ -45,6 +45,8 @@ namespace gran::app
         else if (command == "clearUndo") app.undoStack(target).clear();
         else if (command == "setUndoClean") app.undoStack(target).setClean();
         else if (command == "setUndoLimit") app.undoStack(target).setLimit(limitValue(argument));
+        else if (command == "setVariable") app.setVariable(target, argument);
+        else if (command == "toggleVariable") app.setVariableBoolean(target, app.variable(target).value_or("") != "true");
         else return false;
         return true;
     }

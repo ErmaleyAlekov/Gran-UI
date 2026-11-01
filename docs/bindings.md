@@ -126,11 +126,26 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 | `set_markup_attribute(target, name, value)` (`None` — удалить) | `SetMarkupAttribute` | `setMarkupAttribute` | `gran_app_markup_write` (`value == NULL` — удалить) |
 | `save_markup(window)` → XML | `SaveMarkup` | `saveMarkup` | `gran_app_markup_save` |
 
+### Выражения привязки
+
+Переменные `$имя` и преобразователи `{выражение ; имя}` выражений разметки (см. [руководство](guide.md#выражения-привязки)).
+Значение bool / число / строка выбирает тип переменной; строка сохраняет прежний тип (новая переменная — строка).
+Преобразователь — функция «строка → строка»; без `to_source` привязка односторонняя. Исключение в преобразователе
+обрабатывается как в любом обработчике: приложение закрывается, ошибка выбрасывается из `run`.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `set_variable(name, value)` (`bool`, `int`/`float`, `str`) | `SetVariable(name, bool/double/string)` | `setVariable(name, boolean/double/String)` | `gran_app_variable_set_boolean/_number/_text` |
+| `variable(name)` → `str` или `None` | `Variable` → `string?` | `variable` → `String` или `null` | `gran_app_variable_read` (`*result == NULL` — нет) |
+| `set_converter(name, to_view, to_source=None)` | `SetConverter(name, toView, toSource)` | `setConverter(name, toView, toSource)` | `gran_app_converter` + `gran_converted_set` |
+| `refresh_bindings()` | `RefreshBindings()` | `refreshBindings()` | `gran_app_refresh_bindings` |
+
 `command` поддерживает `close`, `minimize`, `maximize`, `restore`, `reload`,
 `focus`, `remove`, `showDialog`, `hideDialog`, `showPopup`, `hidePopup`, `navigate`,
 `loadHtml`, `postMessage`, `appendMarkup`, `capturePointer`, `releasePointer`, `runCommand`, `enableCommand`,
 `disableCommand` (для этих трёх цель — id команды `<Command>`, а не узла), `undo`, `redo`, `clearUndo`,
-`setUndoClean`, `setUndoLimit` (цель — имя стека отмены). Команды окна из `command` относятся к главному окну.
+`setUndoClean`, `setUndoLimit` (цель — имя стека отмены), `setVariable` (цель — имя переменной, аргумент — значение),
+`toggleVariable` (переключает логическую переменную). Команды окна из `command` относятся к главному окну.
 Для `showPopup` аргумент — id якоря;
 для `appendMarkup` — XML-фрагмент, который ядро проверяет общей XSD.
 

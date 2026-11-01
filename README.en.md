@@ -110,6 +110,9 @@ See [Linux build and validation](docs/building.en.md#linux).
 - **Lists from data:** `items="model"` + `<ItemTemplate>` with `{field}` placeholders; the data comes from `<Data>`
   or from a model filled in code, and a model edit changes only the affected records. Markup fragments at run time
   (`appendMarkup`) are checked by the same schema.
+- **XPath 1.0 binding expressions:** `visible="{count(files/Item) > 0}"`, `width="{$side.width div 2}"`,
+  `<Text>Found {count(…)}</Text>`; `<Variable>` variables, node properties `$id.text`, two-way binding of controls
+  to variables and record fields, converters; only what changed is recomputed (`samples/bindings.xml`).
 - **XSD 1.1 schema validates markup during parsing:** value types (colors, lengths, Grid tracks),
   `xs:assert` assertions (`minWidth ≤ maxWidth`, Grid row number less than the number of tracks, button has text),
   unique `id` and references only to declared styles (`xs:key`/`xs:keyref`).

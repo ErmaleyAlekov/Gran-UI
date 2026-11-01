@@ -19,13 +19,14 @@
 11. [Commands and shortcuts](#commands-and-shortcuts)
 12. [Undo and redo](#undo-and-redo)
 13. [Lists from data](#lists-from-data)
-14. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-15. [Pop-up Layers](#popup-layers)
-16. [Embedded browser: WebView](#embedded-browser-webview)
-17. [Accessibility](#accessibility)
-18. [Platform: windows, files, icons](#platform-windows-files-icons)
-19. [Errors and Message Language](#errors-and-message-language)
-20. [Custom window title bar](#custom-window-title-bar)
+14. [Binding expressions](#binding-expressions)
+15. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+16. [Pop-up Layers](#popup-layers)
+17. [Embedded browser: WebView](#embedded-browser-webview)
+18. [Accessibility](#accessibility)
+19. [Platform: windows, files, icons](#platform-windows-files-icons)
+20. [Errors and Message Language](#errors-and-message-language)
+21. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -585,6 +586,68 @@ and the field texts, check marks, selected tabs and scrolling inside it are kept
 with the edits, `appendMarkup` insertions and `remove` removals — it can be saved and loaded on the next
 launch. Reloading the file (`reload`, `--watch`) became partial too: only the changed branches are rebuilt,
 and the typed text and the focus are not lost. Details are in the [API](api.en.md#live-document).
+
+## Binding expressions
+
+The value of an attribute in curly braces is an XPath 1.0 expression: the engine evaluates it itself and recalculates it when what it depends on changes. The interface in the example `samples/bindings.xml` — search with a count — works without a single line of application code:
+
+```xml
+<Resources>
+  <Data name="tasks">
+    <Item title="Check email" done="true"/>
+    <Item title="Check print" done="false"/>
+  </Data>
+  <Variable name="query"/>                                  <!-- variable $query, string -->
+  <Variable name="details" type="boolean" value="true"/>
+  <Variable name="panel" type="number" value="220"/>
+</Resources>
+...
+<Input placeholder="Search" value="{$query}"/>               <!-- two-way: input writes to $query -->
+<Text>Found {count(tasks/Item[contains(@title, $query)])} of {count(tasks/Item)}</Text>
+<Stack items="tasks">
+  <ItemTemplate>
+    <Stack visible="{contains(@title, $query)}"
+           background="{substring('#ffffff#eef2f6', 1 + 7 * ($index mod 2), 7)}">
+      <CheckBox checked="{done}"/>                          <!-- two-way: writes the done field of the record -->
+      <Text>{title}</Text>
+    </Stack>
+  </ItemTemplate>
+</Stack>
+<Button onClick="gran:toggleVariable:details">Details</Button>
+<Stack id="side" width="{$panel}" visible="{$details}">
+  <Slider min="160" max="300" value="{$panel}"/>
+  <Text>Width: {$side.width} px</Text>
+</Stack>
+```
+
+What the expression sees:
+
+| Notation | Value |
+|---|---|
+| `$name` | application variable: `<Variable name type value>` in `<Resources>` (`type` — `string`, `number`, `boolean`) or `app.setVariable` |
+| `$id.property`, `$self.…`, `$parent.…` | node property: `width`, `height` (after layout, logical pixels), `text`, `checked`, `value` (number for Slider/ProgressBar, selection for ComboBox/Tabs), `visible`, `enabled` |
+| `model/Item` | list model records as XML: `count(files/Item)`, `files/Item[@done = 'true']` |
+| `@field`, `{field}` | own record field in list template; `{title}` is the same as `{@title}` |
+| `$index` | record number in the list (starting from 0; outside the list — 0) |
+
+- **Where.** Entirely in `visible`, `enabled`, `checked`, `value`, and any style property (`width`, `opacity`, `background`, `color`…); mixed with text — in `text`, `placeholder`, `tooltip`, `source`, `accessibleName`, `dragData`, and tag text. In `<Style>`, states, keyframes, and `<Window>` attributes, there are no expressions (they are checked by the schema): the style is common for many nodes, but the expression belongs to one.
+- **The language is the Beresta XPath 1.0**: division — `div`, remainder — `mod`, comparison — `=`, `!=`, `<` (in XML — `&lt;`), strings — `contains`, `concat`, `substring`, `string-length`, numbers — `round`, `floor`, `sum`. Spaces are needed around the minus sign: `$a.width - 10` (without a space `width-10` is part of the name). A syntax error is a `MarkupException` at load time with the line and column of the element.
+- **Boolean attributes.** Text `"false"`, `"0"`, and empty — false; the record field is taken by text (`checked="{done}"` when `done="false"` — not checked), and a set of elements — by presence (`visible="{tasks/Item}"` — are there any records). Inside the expression, fields are strings: `@done = 'true'`. The `type="boolean"` variable inside the expression is a real boolean value: `not($details)`.
+- **Two-way binding.** If the expression is simply `$name` or a record field, and the user changes the attribute (`value` for Input/TextArea/Slider/ComboBox/Tabs, `checked` for CheckBox/Switch/RadioButton), the user's edit is written back: to the variable or to the model record field. Everything else that depends on the same source is recalculated in the same frame.
+- **Only what changed is recomputed.** Expression dependencies are collected at load; before the frame, the engine compares them with the previous ones (strings and version numbers, without evaluating XPath) and recalculates only those expressions where something has changed, and touches the node only if the result has changed. Expressions from sizes (`$side.width`) are recalculated after layout in the same frame; an expression of its own size may not converge — the number of passes is limited.
+- **Converters.** `{expression ; name}` passes the value through an application function:
+
+  ```cpp
+  app.setConverter("bytes", {formatBytes, parseBytes});   // toView, toSource (empty — only one way)
+  ```
+
+  ```xml
+  <Text>Size: {$size ; bytes}</Text>
+  ```
+
+- **Variables from code and markup.** `app.setVariable("query", "abc")` keeps the variable type (a new one is a string), `setVariableNumber` and `setVariableBoolean` set the type explicitly, `app.variable(name)` reads the value as text. Built-in commands `gran:setVariable:name:value` and `gran:toggleVariable:name` change the variable without code (button, menu item, `<Command action>`). Reloading the markup returns values from `<Variable>`, as `<Data>` returns records.
+- Expressions are recalculated before each frame; code that needs the values right after editing models and variables calls `app.refreshBindings()`.
+- Curly braces as text are written doubled: `{{` and `}}`.
 
 ## Tabs, radio buttons, switches
 
