@@ -142,6 +142,11 @@ public final class Application implements AutoCloseable {
     public String saveMarkup(String window) {
         try (Arena scope=Arena.ofConfined()) { return ownedString("gran_app_markup_save",app,utf8(scope,window)); }
     }
+    // Сгенерированная XSD библиотеки компонентов ("" — такой нет) / The generated XSD of a component library ("" — no such one)
+    public String componentSchema(String namespaceUri) { return componentSchema(namespaceUri, null); }
+    public String componentSchema(String namespaceUri, String window) {
+        try (Arena scope=Arena.ofConfined()) { return ownedString("gran_app_component_schema",app,utf8(scope,namespaceUri),utf8(scope,window)); }
+    }
     public void apply(Update... updates) {
         try (Arena scope=Arena.ofConfined()) {
             MemorySegment rows = updates.length == 0 ? MemorySegment.NULL : scope.allocate(Math.multiplyExact(24L,updates.length),8);

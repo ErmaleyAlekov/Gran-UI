@@ -38,6 +38,9 @@ namespace gran::binding
 
     // ---- expression_text.cpp ----
 
+    // Закрывающая «}» выражения, начатого перед start (строки XPath пропускаются); npos — не закрыто / The closing "}" of the expression started before start (the XPath strings are skipped); npos — not closed
+    std::size_t findExpressionClose(std::string_view value, std::size_t start) noexcept;
+
     // Имя поля записи (NCName без $, @, скобок и пробелов): {name} — поле, а не выражение XPath / A record field name (an NCName without $, @, brackets and spaces): {name} is a field, not an XPath expression
     bool isFieldName(std::string_view text) noexcept;
 

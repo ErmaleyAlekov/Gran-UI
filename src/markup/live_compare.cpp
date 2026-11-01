@@ -28,26 +28,24 @@ namespace gran::markup::internal
         std::vector<const beresta::Element*> otherChildren(const beresta::Element& element)
         {
             std::vector<const beresta::Element*> result;
-            ui::ElementKind kind = ui::ElementKind::BOX;
 
             for (const beresta::Element* child = firstElementChild(element); child != nullptr; child = nextElementSibling(*child))
             {
-                if (!elementKind(child->getLocalName(), kind))
+                if (!isUiElement(*child))
                     result.push_back(child);
             }
             return result;
         }
     }
 
-    // Те же правила, что у buildChildren: элемент интерфейса — имя из списка видов / The same rules as in buildChildren: a UI element is a name from the kind list
+    // Те же правила, что у buildChildren: элемент интерфейса — имя из списка видов или экземпляр компонента / The same rules as in buildChildren: a UI element is a name from the kind list or a component instance
     std::vector<const beresta::Element*> uiElementChildren(const beresta::Element& element)
     {
         std::vector<const beresta::Element*> result;
-        ui::ElementKind kind = ui::ElementKind::BOX;
 
         for (const beresta::Element* child = firstElementChild(element); child != nullptr; child = nextElementSibling(*child))
         {
-            if (elementKind(child->getLocalName(), kind))
+            if (isUiElement(*child))
                 result.push_back(child);
         }
         return result;

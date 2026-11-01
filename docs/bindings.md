@@ -126,6 +126,15 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 | `set_markup_attribute(target, name, value)` (`None` — удалить) | `SetMarkupAttribute` | `setMarkupAttribute` | `gran_app_markup_write` (`value == NULL` — удалить) |
 | `save_markup(window)` → XML | `SaveMarkup` | `saveMarkup` | `gran_app_markup_save` |
 
+### Компоненты
+
+Экземпляры компонентов (см. [руководство](guide.md#компоненты)) правятся теми же `set_markup_attribute`,
+узлы тела ищутся по id «экземпляр.id». Сгенерированная XSD библиотеки — для подсказок редактора XML:
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `component_schema(namespace, window=None)` → `str` (`""` — нет) | `ComponentSchema(namespaceUri, window)` | `componentSchema(namespaceUri[, window])` | `gran_app_component_schema` |
+
 ### Выражения привязки
 
 Переменные `$имя` и преобразователи `{выражение ; имя}` выражений разметки (см. [руководство](guide.md#выражения-привязки)).

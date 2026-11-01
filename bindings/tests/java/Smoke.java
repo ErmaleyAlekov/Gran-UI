@@ -71,6 +71,7 @@ public class Smoke {
             // Живая разметка: запись атрибута, удаление, XML с правкой / The live markup: writing an attribute, removing it, XML with the edit
             app.setMarkupAttribute("root","padding","6");
             localStaticCheck("6".equals(app.markupAttribute("root","padding")) && app.saveMarkup().contains("padding=\"6\""));
+            localStaticCheck(app.componentSchema("urn:none").isEmpty());
             app.setMarkupAttribute("root","padding",null);
             localStaticCheck(app.markupAttribute("root","padding")==null);
 

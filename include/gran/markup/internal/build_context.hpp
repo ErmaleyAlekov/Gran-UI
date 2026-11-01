@@ -25,6 +25,8 @@ namespace gran::generated
 
 namespace gran::markup::internal
 {
+    struct ComponentScope;
+
     // Состояние построения одного документа / The build state of one document
     struct BuildContext
     {
@@ -32,6 +34,8 @@ namespace gran::markup::internal
         UiDocument& document;
         TokenMap tokens;
         std::size_t nodeCount = 0;
+        // Развёртка компонента, тело которой строится сейчас (nullptr — разметка окна) / The component expansion whose body is being built now (nullptr — the window markup)
+        const ComponentScope* scope = nullptr;
     };
 
     // ---- markup_parse.cpp ----
@@ -103,6 +107,9 @@ namespace gran::markup::internal
     // Значение атрибута или пустая строка / The attribute value or an empty string
     const std::string* findAttribute(const beresta::Element& element, std::string_view name) noexcept;
 
+    // Ошибка элемента → MarkupException с его позицией / An element error → MarkupException with its position
+    [[noreturn]] void throwElementError(const beresta::Element& element, const std::string& message);
+
     // ---- node_builder.cpp ----
 
     // Узел UI и его поддерево / A UI node and its subtree
@@ -112,6 +119,15 @@ namespace gran::markup::internal
 
     // Вид элемента по имени тега; false — это не элемент интерфейса (а состояние или шаблон) / The element kind by the tag name; false — it is not a UI element (but a state or a template)
     bool elementKind(std::string_view name, ui::ElementKind& kind) noexcept;
+
+    // Элемент строит узел: элемент интерфейса без пространства имён или экземпляр компонента / The element builds a node: a UI element without a namespace or a component instance
+    bool isUiElement(const beresta::Element& element);
+
+    // Экземпляр компонента — элемент с пространством имён (<c:Card>) / A component instance is an element with a namespace (<c:Card>)
+    bool isComponentInstance(const beresta::Element& element);
+
+    // <Slot> тела компонента (без пространства имён) / A component body <Slot> (without a namespace)
+    bool isSlotElement(const beresta::Element& element);
 
     // Дети-элементы узла и шаблон записи списка (<ItemTemplate>) / The element children of a node and the list record template (<ItemTemplate>)
     void buildChildren(const beresta::Element& element, ui::Node& node, BuildContext& context);

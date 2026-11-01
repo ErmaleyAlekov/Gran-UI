@@ -101,14 +101,14 @@
   <!-- Отступы: 1–4 числа через пробелы или запятые / Insets: 1–4 numbers separated by spaces or commas -->
   <xs:simpleType name="Insets">
     <xs:restriction base="xs:string">
-      <xs:pattern value="(-?([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)([ ,]+(-?([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)){0,3}"/>
+      <xs:pattern value="(-?([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)([ ,]+(-?([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)){0,3}|\{.*\}"/>
     </xs:restriction>
   </xs:simpleType>
 
   <!-- Радиусы углов: 1–4 неотрицательных числа / Corner radii: 1–4 non-negative numbers -->
   <xs:simpleType name="Radii">
     <xs:restriction base="xs:string">
-      <xs:pattern value="(([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)([ ,]+(([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)){0,3}"/>
+      <xs:pattern value="(([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)([ ,]+(([0-9]+(\.[0-9]*)?|\.[0-9]+)|$[a-zA-Z_][a-zA-Z0-9_\-]*)){0,3}|\{.*\}"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -177,9 +177,9 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <!-- Имя действия приложения или встроенная команда gran:команда:id.
-       An application action name or a built-in gran:command:id command. -->
-  <xs:simpleType name="Action">
+  <!-- Имя действия приложения или встроенная команда gran:команда:id (у команд и окна).
+       An application action name or a built-in gran:command:id command (for commands and the window). -->
+  <xs:simpleType name="PlainAction">
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
@@ -187,6 +187,21 @@
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
+  </xs:simpleType>
+
+  <!--
+    Ссылка на параметр компонента {$имя}: подставляется при развёртывании <Component>; вне тела компонента — ошибка загрузчика.
+    A component parameter reference {$name}: substituted when a <Component> is expanded; outside a component body it is a loader error.
+  -->
+  <xs:simpleType name="ParamRef">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="\{$[a-zA-Z_][a-zA-Z0-9_\-]*\}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Действие элемента: ещё и параметр компонента (onClick="{$onOpen}") / An element action: also a component parameter (onClick="{$onOpen}") -->
+  <xs:simpleType name="Action">
+    <xs:union memberTypes="PlainAction ParamRef"/>
   </xs:simpleType>
 
   <!-- Сочетание клавиш: модификаторы Mod (= Ctrl), Ctrl, Shift, Alt через «+» и клавиша (S, F5, Enter, Del…);
@@ -565,6 +580,15 @@
       <xs:element name="Switch" type="CheckBoxType"/>
       <xs:element name="ProgressBar" type="ProgressBarType"/>
       <xs:element name="Tabs" type="TabsType"/>
+      <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
+      <xs:element name="Slot" type="SlotType"/>
+      <!--
+        Экземпляр компонента из библиотеки (<c:Card xmlns:c="urn:…">): его проверяет схема, которую
+        загрузчик генерирует по <Library>; здесь — только «элемент другого пространства имён».
+        A library component instance (<c:Card xmlns:c="urn:…">): the schema the loader generates
+        from the <Library> checks it; here it is only "an element of another namespace".
+      -->
+      <xs:any namespace="##other" processContents="lax"/>
     </xs:choice>
   </xs:group>
 
@@ -586,6 +610,8 @@
     <!-- The name for screen readers (as aria-label) and the id of the label element (as aria-labelledby) -->
     <xs:attribute name="accessibleName" type="xs:string"/>
     <xs:attribute name="labeledBy" type="xs:NCName"/>
+    <!-- Именованный слот компонента, куда идёт этот ребёнок экземпляра / The named component slot this instance child goes to -->
+    <xs:attribute name="slot" type="xs:NCName"/>
     <xs:attribute name="onClick" type="Action"/>
     <xs:attributeGroup ref="EventAttributes"/>
     <xs:attribute name="overflow" type="Overflow"/>
@@ -1131,7 +1157,7 @@
   <xs:complexType name="CommandType">
     <xs:attribute name="id" type="xs:NCName" use="required"/>
     <xs:attribute name="text" type="xs:string"/>
-    <xs:attribute name="action" type="Action"/>
+    <xs:attribute name="action" type="PlainAction"/>
     <xs:attribute name="key" type="ShortcutList"/>
     <xs:attribute name="scope" type="CommandScope" default="window"/>
     <xs:attribute name="within" type="xs:NCName"/>
@@ -1178,8 +1204,123 @@
       <xs:element name="Data" type="DataType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Command" type="CommandType" minOccurs="0" maxOccurs="unbounded"/>
+      <!-- Библиотеки компонентов: <xi:include href="файл.xml"/>, корень файла — <Library> / Component libraries: <xi:include href="file.xml"/>, the file root is <Library> -->
+      <xs:any namespace="http://www.w3.org/2001/XInclude" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
+
+  <!-- ================= Компоненты / Components ================= -->
+
+  <!--
+    Слот: сюда встают дети экземпляра — со slot="имя" в именованный, остальные в безымянный.
+    Свои дети слота — запасное содержимое, если экземпляр в слот ничего не дал.
+    A slot: the instance children go here — the ones with slot="name" into the named one, the rest into the unnamed one.
+    The slot own children are the fallback content if the instance gave the slot nothing.
+  -->
+  <xs:complexType name="SlotType">
+    <xs:sequence>
+      <xs:group ref="UiElement" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:NCName"/>
+  </xs:complexType>
+
+  <!-- Тип параметра компонента (тип атрибута экземпляра в сгенерированной схеме) / A component parameter type (the instance attribute type in the generated schema) -->
+  <xs:simpleType name="ParamKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="string"/>
+      <xs:enumeration value="number"/>
+      <xs:enumeration value="boolean"/>
+      <xs:enumeration value="color"/>
+      <xs:enumeration value="paint"/>
+      <xs:enumeration value="length"/>
+      <xs:enumeration value="size"/>
+      <xs:enumeration value="action"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Допустимые значения строкового параметра / The allowed values of a string parameter -->
+  <xs:simpleType name="ParamValues">
+    <xs:list itemType="xs:NMTOKEN"/>
+  </xs:simpleType>
+
+  <!--
+    Параметр: атрибут экземпляра, в теле — {$имя}. required — экземпляр обязан его задать; default — значение,
+    если не задал; values — перечисление (только у string).
+    A parameter: an instance attribute, {$name} in the body. required — the instance must set it; default — the value
+    if it did not; values — an enumeration (string only).
+  -->
+  <xs:complexType name="ParamType">
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="type" type="ParamKind" default="string"/>
+    <xs:attribute name="required" type="xs:boolean"/>
+    <xs:attribute name="default" type="xs:string"/>
+    <xs:attribute name="values" type="ParamValues"/>
+    <xs:assert test="not((@required = 'true' or @required = '1') and exists(@default))"/>
+    <xs:assert test="not(@values) or not(@type) or @type = 'string'"/>
+    <xs:assert test="not(@type = 'boolean') or not(@default) or @default = 'true' or @default = 'false'"/>
+  </xs:complexType>
+
+  <!--
+    Компонент: параметры, стили (видны только внутри него) и тело — ровно один элемент интерфейса.
+    id в теле локальны: настоящий id узла — «id экземпляра.id».
+    A component: the parameters, the styles (visible only inside it) and the body — exactly one UI element.
+    The ids in the body are local: the real node id is "instance id.id".
+  -->
+  <xs:complexType name="ComponentType">
+    <xs:sequence>
+      <xs:element name="Param" type="ParamType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:group ref="UiElement"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+  </xs:complexType>
+
+  <!--
+    Библиотека компонентов — отдельный файл; окно подключает её <xi:include> в Resources, экземпляры пишутся
+    в пространстве имён namespace. Стили библиотеки видны всем её компонентам.
+    A component library is a separate file; a window includes it with <xi:include> in Resources, the instances are written
+    in the namespace. The library styles are visible to all its components.
+  -->
+  <xs:complexType name="LibraryType">
+    <xs:sequence>
+      <xs:element name="Style" type="StyleType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Component" type="ComponentType" minOccurs="0" maxOccurs="unbounded">
+        <xs:unique name="uniqueParam">
+          <xs:selector xpath="Param"/>
+          <xs:field xpath="@name"/>
+        </xs:unique>
+        <xs:unique name="uniqueComponentStyle">
+          <xs:selector xpath="Style"/>
+          <xs:field xpath="@name"/>
+        </xs:unique>
+        <xs:unique name="uniqueSlot">
+          <xs:selector xpath=".//Slot"/>
+          <xs:field xpath="@name"/>
+        </xs:unique>
+        <!-- id уникальны в теле компонента / ids are unique in a component body -->
+        <xs:unique name="uniqueLocalId">
+          <xs:selector xpath=".//*"/>
+          <xs:field xpath="@id"/>
+        </xs:unique>
+        <xs:keyref name="localLabelRef" refer="uniqueLocalId">
+          <xs:selector xpath=".//*"/>
+          <xs:field xpath="@labeledBy"/>
+        </xs:keyref>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="namespace" type="xs:anyURI" use="required"/>
+  </xs:complexType>
+
+  <xs:element name="Library" type="LibraryType">
+    <xs:unique name="uniqueComponent">
+      <xs:selector xpath="Component"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <xs:unique name="uniqueLibraryStyle">
+      <xs:selector xpath="Style"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+  </xs:element>
 
   <!-- ================= Окно / Window ================= -->
 
@@ -1196,7 +1337,7 @@
     <xs:attribute name="resizable" type="xs:boolean"/>
     <!-- Действие при попытке закрыть окно (крестик, Alt+F4); задано — окно закрывает обработчик (closeWindow) -->
     <!-- The action on an attempt to close the window (the cross, Alt+F4); when set, the handler closes the window (closeWindow) -->
-    <xs:attribute name="onClose" type="Action"/>
+    <xs:attribute name="onClose" type="PlainAction"/>
     <xs:attribute name="titleBar" type="TitleBar" default="system"/>
     <xs:attribute name="background" type="Paint"/>
     <xs:attributeGroup ref="TextAttributes"/>

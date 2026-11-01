@@ -43,3 +43,17 @@ gran_status gran_app_markup_save(gran_app* app, const char* window, char** resul
     *result = gran::capi::copyString(app->application.saveMarkup(node));
     GRAN_CAPI_END
 }
+
+// Нет библиотеки — пустая строка, как у Application::componentSchema / No library is an empty string, as for Application::componentSchema
+gran_status gran_app_component_schema(gran_app* app, const char* namespace_uri, const char* window, char** result)
+{
+    if (result != nullptr) *result = nullptr;
+    GRAN_CAPI_TRY
+    gran::capi::checkApp(app);
+    gran::capi::require(namespace_uri != nullptr && result != nullptr);
+    const gran::ui::Node* node = nullptr;
+    if (window != nullptr)
+        node = &gran::app::requireNode(app->application, window);
+    *result = gran::capi::copyString(app->application.componentSchema(namespace_uri, node));
+    GRAN_CAPI_END
+}

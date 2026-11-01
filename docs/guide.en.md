@@ -20,13 +20,14 @@
 12. [Undo and redo](#undo-and-redo)
 13. [Lists from data](#lists-from-data)
 14. [Binding expressions](#binding-expressions)
-15. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-16. [Pop-up Layers](#popup-layers)
-17. [Embedded browser: WebView](#embedded-browser-webview)
-18. [Accessibility](#accessibility)
-19. [Platform: windows, files, icons](#platform-windows-files-icons)
-20. [Errors and Message Language](#errors-and-message-language)
-21. [Custom window title bar](#custom-window-title-bar)
+15. [Components](#components)
+16. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+17. [Pop-up Layers](#popup-layers)
+18. [Embedded browser: WebView](#embedded-browser-webview)
+19. [Accessibility](#accessibility)
+20. [Platform: windows, files, icons](#platform-windows-files-icons)
+21. [Errors and Message Language](#errors-and-message-language)
+22. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -648,6 +649,96 @@ What the expression sees:
 - **Variables from code and markup.** `app.setVariable("query", "abc")` keeps the variable type (a new one is a string), `setVariableNumber` and `setVariableBoolean` set the type explicitly, `app.variable(name)` reads the value as text. Built-in commands `gran:setVariable:name:value` and `gran:toggleVariable:name` change the variable without code (button, menu item, `<Command action>`). Reloading the markup returns values from `<Variable>`, as `<Data>` returns records.
 - Expressions are recalculated before each frame; code that needs the values right after editing models and variables calls `app.refreshBindings()`.
 - Curly braces as text are written doubled: `{{` and `}}`.
+
+## Components
+
+A component is your own markup element made of other elements: `<w:Card title="Search">` instead of ten lines of Stack and Text.
+Components are declared in a library file, the window includes it with `<xi:include>` and writes the instances in the library namespace. Example — `samples/components.xml` and the library `samples/components/widgets.xml`:
+
+![Components: cards with slots, a field, metrics](images/components.png)
+
+```xml
+<!-- samples/components/widgets.xml -->
+<Library namespace="urn:gran:samples:widgets" xmlns:w="urn:gran:samples:widgets">
+  <Style name="Title" fontSize="16" fontWeight="700"/>       <!-- library style: visible to its components -->
+  <Component name="Card">
+    <Param name="title" required="true"/>                    <!-- type="string" by default -->
+    <Param name="subtitle"/>
+    <Param name="accent" type="color" default="$accent"/>
+    <Param name="compact" type="boolean" default="false"/>
+    <Style name="Frame" orientation="horizontal" borderRadius="12" background="#ffffff"/>  <!-- only for Card -->
+    <Stack id="frame" style="Frame">                         <!-- body: exactly one root element -->
+      <Box width="4" background="{$accent}"/>
+      <Stack padding="14 16" spacing="8" grow="1">
+        <Stack orientation="horizontal" spacing="8">
+          <Text id="heading" style="Title" grow="1">{$title}</Text>
+          <Slot name="actions"/>                             <!-- named slot -->
+        </Stack>
+        <Text visible="{not($compact)}">{$subtitle}</Text>
+        <Slot>                                               <!-- unnamed slot -->
+          <Text>Empty for now</Text>                         <!-- fallback content -->
+        </Slot>
+      </Stack>
+    </Stack>
+  </Component>
+</Library>
+```
+
+```xml
+<!-- samples/components.xml -->
+<Window xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:w="urn:gran:samples:widgets">
+  <Resources>
+    <Variable name="query"/>
+    <xi:include href="components/widgets.xml"/>              <!-- at the end of Resources, path is from the markup file -->
+  </Resources>
+  <Stack>
+    <w:Card id="search" title="Search" subtitle="Field writes to $query" grow="1">
+      <Button slot="actions" text="Reset" onClick="gran:setVariable:query:"/>
+      <w:Field label="Task name" text="{$query}"/>     <!-- into unnamed slot -->
+    </w:Card>
+    <w:Card title="No content" accent="#d92d20"/>      <!-- shows "Empty for now" -->
+  </Stack>
+</Window>
+```
+
+- **Parameters** `<Param name type required default values>` — instance attributes. Types: `string` (by default),
+  `number`, `boolean`, `color`, `paint`, `length`, `size`, `action`; `values="small large"` — enumeration for a string.
+  `required="true"` — the instance must set the parameter, `default` — value if not set.
+- **Parameter in the body — `{$name}`.** The entire attribute `{$title}` gets the instance value as is: a literal, a theme `$token`
+  or its own expression `{…}`. Inside the expression `$title` becomes an XPath value (string in quotes,
+  number, `true()`/`false()` or an instance expression in brackets), the same in tag texts: `<Text>Hello, {$title}</Text>`.
+  Therefore, the instance expression remains a live binding: `title="{$name}"` recalculates when `$name` changes,
+  and `value="{$text}"` in the body together with `text="{$query}"` in the instance — a two-way field binding to `$query`.
+  An unset parameter without `default`: an attribute of the form `{$name}` disappears completely (style applies), in text —
+  an empty string, in an expression — `''`, `0` or `false()`. The parameter hides a window variable with the same name.
+- **Where the parameter works:** in attributes accepting expressions (style properties, `visible`, `enabled`, `checked`,
+  `value`, texts), in insets and radii (`padding="{$pad}"`) and in actions (`onClick="{$onOpen}"`, type `action`).
+  In `style` and enumerations (`orientation`, `align`) there are no parameters — the schema will not pass them.
+- **Instance attributes.** Besides parameters — `id`, `visible`, `enabled`, `slot` and layout (`width`, `height`,
+  `margin`, `padding`, `grow`, `shrink`, `alignSelf`, `gridRow`…, `left`…, `zIndex`). The instance has no own node:
+  the root of the body gets these attributes on top of its own and becomes the instance node.
+- **Slots.** `<Slot/>` — unnamed, `<Slot name="x"/>` — named; slot children are fallback content.
+  Instance children with `slot="x"` go into slot `x`, others — into unnamed. Slot content belongs to whoever wrote the instance:
+  its expressions and `id` — from the window (or from the body of an outer component — this is how a slot is forwarded further:
+  `<w:Card><Slot/></w:Card>` in another component's body).
+- **Styles.** `style="X"` in the body is searched for in the component, then in the library, then in the window; similarly `basedOn`. The window does not see library styles.
+- **`id` in the body is local.** The real node `id` — "instance id.id": `search.heading`, `$search.heading.text`,
+  `app.find("search.heading")`. References inside the body (`$heading.text`, `labeledBy`, `popup`) are rewritten automatically,
+  a RadioButton group — each instance's own. The root of the body `id` — the instance `id`. An instance without `id` has a prefix —
+  "Component-line-column" (`Card-12-5.heading`).
+- **Nested components.** The body can contain instances (of the same and other connected libraries), the root of the body — too. A component including itself — an error.
+- **Schema validation.** For each library, the loader generates XSD (`targetNamespace` — library namespace):
+  an element per component, the parameters — attributes with types `gran-ui.xsd`, `required` — `use="required"`, content —
+  interface elements, if there are slots in the body. The window and libraries are validated by the schema "gran-ui.xsd + the generated ones"
+  at load and with each live edit: missing required parameter, extra attribute, `compact="maybe"` on a boolean one — schema errors with path and line. Errors visible to the builder (no slot, no component,
+  Slot outside component, recursion, occupied parameter name) — from the messages catalog, with the instance position and line inside the body. Schema text — `app.componentSchema("urn:…")`: save it next to `gran-ui.xsd`, and the XML editor will suggest instance parameters.
+- **Live document.** In DOM, instances and `<xi:include>` remain: `saveMarkup` saves them, not the expansion.
+  `app.setMarkupAttribute(*app.find("search"), "title", "Find")` reconstructs the expansion with schema validation;
+  children in slots are real markup elements and are edited as usual; body nodes are read-only (edit the instance or library file). With `--watch` (`watchMarkup`) editing the library file also reloads the window.
+- **XInclude** here is a way to include a library entirely: `<xi:include href="…"/>` only in `<Resources>`, root
+  of the file — `<Library>`, without `xpointer` and `parse="text"`. Inclusion is done by Gran, not the parser, so `<xi:include>` remains in the DOM.
+  One library — one namespace; declaring components directly in the window is not allowed.
+- **Accessibility.** Expanded nodes are ordinary nodes: a screen reader sees Stack, Text, Button body elements and names from `labeledBy`.
 
 ## Tabs, radio buttons, switches
 

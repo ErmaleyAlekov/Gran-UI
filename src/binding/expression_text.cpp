@@ -2,34 +2,31 @@
 
 namespace gran::binding
 {
-    namespace
+    /*
+    ** Закрывающая «}» выражения, начатого перед start. Строковые литералы XPath ('…' и "…")
+    ** пропускаются целиком: «}» внутри строки выражение не закрывает. npos — не закрыто.
+    **
+    ** The closing "}" of the expression started before start. The XPath string literals ('…' and "…")
+    ** are skipped whole: a "}" inside a string does not close the expression. npos — not closed.
+    */
+    std::size_t findExpressionClose(std::string_view value, std::size_t start) noexcept
     {
-        /*
-        ** Закрывающая «}» выражения, начатого перед start. Строковые литералы XPath ('…' и "…")
-        ** пропускаются целиком: «}» внутри строки выражение не закрывает. npos — не закрыто.
-        **
-        ** The closing "}" of the expression started before start. The XPath string literals ('…' and "…")
-        ** are skipped whole: a "}" inside a string does not close the expression. npos — not closed.
-        */
-        std::size_t findClose(std::string_view value, std::size_t start) noexcept
-        {
-            std::size_t position = start;
+        std::size_t position = start;
 
-            while (position < value.size())
+        while (position < value.size())
+        {
+            char symbol = value[position];
+            if (symbol == '}')
+                return position;
+            if (symbol == '\'' || symbol == '"')
             {
-                char symbol = value[position];
-                if (symbol == '}')
+                position = value.find(symbol, position + 1);
+                if (position == std::string_view::npos)
                     return position;
-                if (symbol == '\'' || symbol == '"')
-                {
-                    position = value.find(symbol, position + 1);
-                    if (position == std::string_view::npos)
-                        return position;
-                }
-                ++position;
             }
-            return std::string_view::npos;
+            ++position;
         }
+        return std::string_view::npos;
     }
 
     // Байты ≥ 0x80 — части букв UTF-8 (как NameChar у XML) / Bytes ≥ 0x80 are parts of UTF-8 letters (as an XML NameChar)
@@ -53,7 +50,7 @@ namespace gran::binding
     {
         if (value.size() < 2 || value.front() != '{' || value[1] == '{')
             return false;
-        return findClose(value, 1) == value.size() - 1;
+        return findExpressionClose(value, 1) == value.size() - 1;
     }
 
     bool hasExpressions(std::string_view value) noexcept
@@ -85,7 +82,7 @@ namespace gran::binding
             char symbol = value[position];
             std::size_t close = std::string_view::npos;
             if (symbol == '{' && position + 1 < value.size() && value[position + 1] != '{')
-                close = findClose(value, position + 1);
+                close = findExpressionClose(value, position + 1);
             if (close != std::string_view::npos)
             {
                 parts.push_back(TextPart{std::string(value.substr(position + 1, close - position - 1)), true});

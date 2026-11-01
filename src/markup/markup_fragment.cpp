@@ -1,4 +1,4 @@
-#include "gran/markup/internal/build_context.hpp"
+#include "gran/markup/internal/components.hpp"
 #include "gran/core/gran_exception.hpp"
 
 #include "beresta.hpp"
@@ -46,12 +46,16 @@ namespace gran::markup::internal
             return 1;
         }
 
-        // Разбор обёртки; позиция ошибки пересчитывается к фрагменту / Parsing the wrapper; the error position is converted to the fragment
-        beresta::Document parseFragment(const std::string& wrapped)
+        // Разбор обёртки (экземпляры компонентов — схемой документа); позиция ошибки пересчитывается к фрагменту
+        // Parsing the wrapper (the component instances — by the document schema); the error position is converted to the fragment
+        beresta::Document parseFragment(const std::string& wrapped, const UiDocument& document)
         {
             try
             {
-                return parseMarkupText(wrapped);
+                beresta::Document dom = parseMarkupText(wrapped);
+                if (document.components)
+                    checkSchema(dom, documentSchema(document));
+                return dom;
             }
             catch (const MarkupException& error)
             {
@@ -85,7 +89,7 @@ namespace gran::markup
     */
     std::unique_ptr<ui::Node> buildFragment(std::string_view text, UiDocument& document, const ui::Node* parent)
     {
-        beresta::Document dom = internal::parseFragment(internal::wrapFragment(text, document));
+        beresta::Document dom = internal::parseFragment(internal::wrapFragment(text, document), document);
         LoadOptions options;
         options.baseDirectory = document.baseDirectory;
         internal::BuildContext context{options, document, document.tokens, 0};

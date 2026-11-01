@@ -111,6 +111,7 @@ def _configure(lib):
         "app_read": (C.c_int32, [p, s, s, C.POINTER(p)]),
         "app_markup_read": (C.c_int32, [p, s, s, C.POINTER(p)]), "app_markup_write": (C.c_int32, [p, s, s, s]),
         "app_markup_save": (C.c_int32, [p, s, C.POINTER(p)]),
+        "app_component_schema": (C.c_int32, [p, s, s, C.POINTER(p)]),
         "converted_set": (None, [p, s]),
         "app_variable_set_text": (C.c_int32, [p, s, s]), "app_variable_set_number": (C.c_int32, [p, s, C.c_double]),
         "app_variable_set_boolean": (C.c_int32, [p, s, C.c_int32]), "app_variable_read": (C.c_int32, [p, s, C.POINTER(p)]),
@@ -206,6 +207,10 @@ class Application:
     def save_markup(self, window=None):
         """Живая разметка окна (None — главного) как XML. / The live markup of the window (None — the main one) as XML."""
         return self._string("app_markup_save", _encode(window))
+
+    def component_schema(self, namespace, window=None):
+        """Сгенерированная XSD библиотеки компонентов; "" — такой нет. / The generated XSD of a component library; "" — no such one."""
+        return self._string("app_component_schema", _encode(namespace), _encode(window))
 
     def _protect(self, callback, *args):
         # Исключение не должно пересечь callback ctypes.

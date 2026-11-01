@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Компоненты: библиотека samples/components/widgets.xml подключается <xi:include>, экземпляры пишутся в её
+  пространстве имён. Параметры — атрибуты экземпляра, содержимое — по слотам (slot="actions" и безымянный),
+  выражения экземпляра ({$query}, {count(…)}) остаются живыми привязками, у каждого экземпляра свои id.
+  Запуск: gran_snapshot samples/components.xml components.png или gran_gallery samples/components.xml
+
+  Components: the samples/components/widgets.xml library is included with <xi:include>, the instances are written in its
+  namespace. The parameters are instance attributes, the content goes by slots (slot="actions" and the unnamed one),
+  the instance expressions ({$query}, {count(…)}) stay live bindings, every instance has its own ids.
+  Run: gran_snapshot samples/components.xml components.png or gran_gallery samples/components.xml
+-->
+<Window title="Gran UI — компоненты" width="680" height="520" background="#f5f6f8"
+        xmlns:xi="http://www.w3.org/2001/XInclude" xmlns:w="urn:gran:samples:widgets">
+  <Resources>
+    <Theme>
+      <Token name="accent" value="#3538cd"/>
+    </Theme>
+    <Data name="tasks">
+      <Item title="Разобрать почту" done="true"/>
+      <Item title="Собрать выпуск для Astra" done="false"/>
+      <Item title="Проверить печать" done="false"/>
+    </Data>
+    <Variable name="query" value="печать"/>
+    <xi:include href="components/widgets.xml"/>
+  </Resources>
+  <Stack padding="20" spacing="14">
+    <Stack orientation="horizontal" spacing="12">
+      <w:Metric value="{count(tasks/Item)}" caption="задач всего"/>
+      <w:Metric value="{count(tasks/Item[@done = 'true'])}" caption="готово"/>
+      <w:Metric value="{count(tasks/Item[contains(@title, $query)])}" caption="найдено" size="small"/>
+    </Stack>
+    <w:Card id="search" title="Поиск" subtitle="Поле пишет в переменную $query окна" badge="живое">
+      <Button slot="actions" text="Сбросить" onClick="gran:setVariable:query:"/>
+      <w:Field label="Название задачи" text="{$query}" hint="Например, печать"/>
+      <Text color="#667085">Найдено: {count(tasks/Item[contains(@title, $query)])}</Text>
+    </w:Card>
+    <Stack orientation="horizontal" spacing="14">
+      <w:Card title="Без содержимого" subtitle="Показано запасное содержимое слота" accent="#d92d20" grow="1"/>
+      <w:Card title="Компактная" subtitle="Подпись скрыта" compact="true" grow="1">
+        <Text>Свой текст в безымянном слоте</Text>
+      </w:Card>
+    </Stack>
+  </Stack>
+</Window>

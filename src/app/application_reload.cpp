@@ -46,6 +46,7 @@ namespace gran::app
     void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path)
     {
         validateFonts(document, sourceBase(path));
+        rememberLibraries(state, document);
         state.reloadFailure.clear();
         if (state.windows.empty())
         {

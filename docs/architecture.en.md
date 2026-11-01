@@ -125,6 +125,34 @@ The engine draws the interface itself and does not use a browser for this. `<Web
   - Owner — `ListBindings` (as list bindings): template copies receive expressions through the same `bind`,
     node deletion removes them through `forget`; `gran_snapshot` evaluates the expressions without a window.
 
+- **Components** (`markup/component_*`). A library is a separate `<Library namespace>` file with `<Style>` and
+  `<Component name>` (`<Param>`, own `<Style>`, the body is one element, `<Slot>`); a window includes it with `<xi:include>`
+  at the end of `<Resources>`. Inclusion is done by the loader (`loadComponents`), not by the parser `processXInclude`: the `<xi:include>` itself
+  stays in the window DOM, and saving does not paste the library in. The built-in schema knows `<Library>` as the second
+  global element (a library file is checked by the same schema), `<Slot>` and `xs:any ##other` (lax) in the UI
+  element group — a `<w:Card>` instance passes it as "an element of another namespace".
+  - Schema: for each library an XSD is generated (`component_schema.cpp`, `targetNamespace` = namespace, `xs:import`
+    without a location, the `gran-ui.xsd` types and groups), `Schema::fromDocuments` builds it together with the embedded one; it checks
+    the window and all libraries (instances in bodies) at load time, in `appendMarkup` fragments and on every
+    live edit (`documentSchema`). The schema lives in `UiDocument::components` (`ComponentSet`: the libraries with their DOM,
+    the `ComponentSpec` declarations, the common schema).
+  - Expansion (Prototype pattern): an instance → a body copy in its own Beresta document (`makeShadow`) with substitutions
+    (`Substitution`): a whole `{$parameter}` is the instance value as is, inside an expression — an XPath value
+    (a string, a number, `true()`, the instance expression in brackets, a mixed text through `concat`), local ids →
+    "prefix.id" (and in `$id.property`, `labeledBy`, `popup`), `style` → the name in the document style set (own styles
+    are registered as `_N.Component.Style`, library styles — `_N-Style`), the host attributes go over the root.
+    The copy is built by the usual `buildNode`, so bindings, events, commands, lists and accessibility work
+    without special cases. The expansion root refers to the instance element (`domElement`) and owns the copy
+    (`ui::Node::expansions` — declared before `children`, so the children are destroyed before the copy).
+  - Slots: `BuildContext::scope` — the expansion chain (`ComponentScope`: component, instance, outer expansion).
+    The slot content is built in the `outer` scope — where the instance is written: its elements are real elements
+    of the window DOM (editing them works as usual), a nested `<Slot>` forwards a slot of the outer component. Recursion
+    (the component is already in the chain) is caught by `expandComponent`.
+  - Live document: editing an instance attribute is an ordinary node rebuild; body elements live in the copy, so
+    `editMarkupAttribute` rejects them (the element owner is not the window DOM). Partial reload requires equal
+    libraries (`sameComponents`); the instance is compared as any element: an equal subtree keeps the expansion,
+    otherwise the instance is rebuilt. `Application` watches library files together with the main one (`reload_libraries.cpp`).
+
 ## 4. Rendering
 
 D3D11 is an additional FL11_0/SM5 backend using the same scene structures and HLSL (DXBC through fxc).
