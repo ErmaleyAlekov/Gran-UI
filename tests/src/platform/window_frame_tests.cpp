@@ -169,6 +169,31 @@ void testDPI() {
     TEST_ASSERT(window->pixelSize().height == 450);
 }
 
+// Курсор интерфейса не перебивает курсор растягивания у края окна (раньше кадр мигал стрелкой).
+// The interface cursor does not override the resize cursor at the window edge (a frame used to flicker an arrow).
+void testCursorAtEdge() {
+    gran::platform::WindowDesc desc;
+    desc.width = 400.0f;
+    desc.height = 300.0f;
+    desc.titleBar = gran::platform::TitleBar::CUSTOM;
+
+    auto window = gran::platform::createWindow(desc);
+    HWND hwnd = static_cast<HWND>(window->nativeHandle());
+    HCURSOR sizeWE = LoadCursorW(nullptr, IDC_SIZEWE);
+    HCURSOR hand = LoadCursorW(nullptr, IDC_HAND);
+    HCURSOR beam = LoadCursorW(nullptr, IDC_IBEAM);
+
+    SendMessage(hwnd, WM_SETCURSOR, reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTLEFT, WM_MOUSEMOVE));
+    TEST_ASSERT(GetCursor() == sizeWE);
+    window->setCursor(gran::platform::CursorShape::HAND);
+    TEST_ASSERT(GetCursor() == sizeWE);
+
+    SendMessage(hwnd, WM_SETCURSOR, reinterpret_cast<WPARAM>(hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+    TEST_ASSERT(GetCursor() == hand);
+    window->setCursor(gran::platform::CursorShape::TEXT);
+    TEST_ASSERT(GetCursor() == beam);
+}
+
 } // namespace
 
 #endif // _WIN32
@@ -184,6 +209,7 @@ void registerPlatformFrameTests(test::TestRunner& runner) {
     runner.add("WindowFrameTests_CreateWindowWidth400Height300_CUSTOM", testCustom);
     runner.add("WindowFrameTests_CustomWindowNonResizable", testFixed);
     runner.add("WindowFrameTests_DPI", testDPI);
+    runner.add("WindowFrameTests_CursorAtEdge", testCursorAtEdge);
 #endif // _WIN32
 }
 

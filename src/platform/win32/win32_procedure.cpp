@@ -103,11 +103,8 @@ namespace gran::platform::win32
             sizing = message == WM_ENTERSIZEMOVE;
         else if (message == WM_ERASEBKGND)
             return 1;
-        else if (message == WM_SETCURSOR && LOWORD(lParam) == HTCLIENT)
-        {
-            setCursor(cursor);
+        else if (message == WM_SETCURSOR && handleSetCursor(*this, wParam, lParam))
             return TRUE;
-        }
         else if (message == WM_PAINT)
         {
             ValidateRect(window, nullptr);

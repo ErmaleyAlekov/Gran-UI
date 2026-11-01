@@ -11,7 +11,7 @@ namespace gran::platform::x11
         event.kind = EventKind::MOUSE_MOVE;
         event.position = {native.xmotion.x / _scale, native.xmotion.y / _scale};
         event.modifiers = modifiers(native.xmotion.state);
-        if (native.type == MotionNotify) { _events.push_back(event); return; }
+        if (native.type == MotionNotify) { trackFrameCursor(native.xmotion); _events.push_back(event); return; }
         unsigned button = native.xbutton.button;
         if (button > 7) return;
         if (button >= 4 && button <= 7)

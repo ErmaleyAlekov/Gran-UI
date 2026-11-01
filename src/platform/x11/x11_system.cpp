@@ -1,5 +1,4 @@
 #include "gran/platform/x11/x11_window.hpp"
-#include <X11/cursorfont.h>
 
 namespace gran::platform::x11
 {
@@ -15,18 +14,5 @@ namespace gran::platform::x11
     {
         XMapWindow(_native.display, _native.window);
         XFlush(_native.display);
-    }
-
-    // Стандартные курсоры предоставляет сервер, дополнительной библиотеки курсоров нет.
-    // The server supplies standard cursors, without an additional cursor library.
-    void X11Window::setCursor(CursorShape shape)
-    {
-        static const unsigned shapes[] = {XC_left_ptr, XC_hand2, XC_xterm, XC_fleur, XC_X_cursor, XC_hand1, XC_sb_h_double_arrow, XC_sb_v_double_arrow};
-        unsigned index = static_cast<unsigned>(shape);
-        if (index >= sizeof(shapes) / sizeof(shapes[0])) index = 0;
-        ::Cursor cursor = XCreateFontCursor(_native.display, shapes[index]);
-        XDefineCursor(_native.display, _native.window, cursor);
-        if (_native.cursor != 0) XFreeCursor(_native.display, _native.cursor);
-        _native.cursor = cursor;
     }
 }
