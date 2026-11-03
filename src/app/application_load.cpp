@@ -1,10 +1,22 @@
 #include "gran/app/internal/app_state.hpp"
 
+#include <algorithm>
+#include <iterator>
+
 #include <filesystem>
 #include <utility>
 
 namespace gran::app
 {
+    // Переменная с persist="true" (функтор вместо лямбды) / A variable with persist="true" (a functor instead of a lambda)
+    struct IsPersisted
+    {
+        bool operator()(const data::Variable& variable) const
+        {
+            return variable.persist;
+        }
+    };
+
     /*
     ** Новый документ заменяет прежний документ окна только после успешной загрузки; привязки
     ** прежнего снимаются до замены (они ссылаются на его узлы), привязки других окон остаются.
@@ -40,6 +52,9 @@ namespace gran::app
         for (const markup::FontFace& face : win.document.fonts)
             state.fonts.addFile((std::filesystem::path(base) / face.source).string());
         state.lists.adoptData(win.document.data);
+        win.persistedVariables.clear();
+        std::copy_if(win.document.variables.begin(), win.document.variables.end(),
+            std::back_inserter(win.persistedVariables), IsPersisted{});
         state.lists.adoptVariables(win.document.variables);
         applyCommandStates(win);
         if (!win.document.root)

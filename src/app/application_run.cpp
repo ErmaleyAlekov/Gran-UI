@@ -151,6 +151,7 @@ namespace gran
             if (!renderWindows(state, shared))
                 state.windows.front()->window->waitEvents(sleepTime(state, app::now()));
         }
+        app::saveSettings(state);
         return 0;
     }
 }

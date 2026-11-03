@@ -110,10 +110,29 @@ add_executable(gran_embed "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed/embed_main.cp
 gran_apply_compile_options(gran_embed)
 gran_apply_link_options(gran_embed)
 
+# ---- gran_rcc: ресурсы программы внутри exe (нужна библиотека — цель объявлена после неё) ----------
+# ---- gran_rcc: the program resources inside the exe (needs the library — the target is declared after it) ----------
+# gran_add_resources(цель манифест): манифест → <сборка>/gen/<цель>/resources.cpp (с файлом зависимостей) → в цель
+# gran_add_resources(target manifest): the manifest → <build>/gen/<target>/resources.cpp (with a dependency file) → into the target
+function(gran_add_resources target manifest)
+    set(generated "${CMAKE_BINARY_DIR}/gen/${target}/resources.cpp")
+    add_custom_command(
+        OUTPUT "${generated}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/gen/${target}"
+        COMMAND gran_rcc "${manifest}" "${generated}" --depfile "${generated}.d"
+        DEPENDS "${manifest}" gran_rcc
+        DEPFILE "${generated}.d"
+        COMMENT "gran_rcc ${target}"
+        VERBATIM)
+    target_sources(${target} PRIVATE "${generated}")
+endfunction()
+
 # ---- Встроенные схема разметки и тема по умолчанию ------------------------------
 # ---- The embedded markup schema and the default theme ------------------------------
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-ui.xsd" markup/gran_ui_schema.cpp GRAN_UI_SCHEMA)
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/default_theme.xml" markup/default_theme.cpp DEFAULT_THEME)
+gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-resources.xsd" res/gran_resources_schema.cpp GRAN_RESOURCES_SCHEMA)
+gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-settings.xsd" settings/gran_settings_schema.cpp GRAN_SETTINGS_SCHEMA)
 
 # ---- Библиотека движка ----------------------------------------------------------
 # ---- The engine library ----------------------------------------------------------
@@ -121,6 +140,11 @@ gran_collect_sources(GRAN_SOURCES)
 add_library(gran STATIC ${GRAN_SOURCES} ${GRAN_GENERATED_SOURCES})
 target_include_directories(gran PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(gran PUBLIC beresta_static ${GRAN_SYSTEM_LIBS})
+# Инструмент ресурсов использует библиотеку (схема и разбор манифеста) / The resource tool uses the library (the schema and the manifest parsing)
+add_executable(gran_rcc "${CMAKE_CURRENT_SOURCE_DIR}/tools/rcc/rcc_main.cpp")
+target_link_libraries(gran_rcc PRIVATE gran)
+gran_apply_compile_options(gran_rcc)
+gran_apply_link_options(gran_rcc)
 # std::filesystem в libstdc++ до GCC 9 — отдельная libstdc++fs (Astra Linux SE 1.7)
 # std::filesystem in libstdc++ before GCC 9 is a separate libstdc++fs (Astra Linux SE 1.7)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
@@ -186,6 +210,10 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
         # The example headers are included from its root; its own system libraries come from system_libs.txt
         target_include_directories(gran_${example} PRIVATE "${example_dir}")
         target_link_libraries(gran_${example} PRIVATE gran)
+        # Встроенные ресурсы примера (resources.xml → gran_rcc) / The example embedded resources (resources.xml → gran_rcc)
+        if(EXISTS "${example_dir}/resources.xml")
+            gran_add_resources(gran_${example} "${example_dir}/resources.xml")
+        endif()
         if(EXISTS "${example_dir}/system_libs.txt")
             file(STRINGS "${example_dir}/system_libs.txt" example_libs)
             target_link_libraries(gran_${example} PRIVATE ${example_libs})
@@ -209,6 +237,16 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
         gran_apply_link_options(gran_${example})
     endif()
 endforeach()
+
+# Проверка отчёта о сбое (как make test-crash): программа падает сама и проверяет отчёты.
+# The crash report check (as make test-crash): the program crashes itself and checks the reports.
+if(GRAN_BUILD_TESTS)
+    add_executable(gran_crash_probe "${CMAKE_CURRENT_SOURCE_DIR}/tests/crash/crash_probe.cpp")
+    target_link_libraries(gran_crash_probe PRIVATE gran)
+    gran_apply_compile_options(gran_crash_probe)
+    gran_apply_link_options(gran_crash_probe)
+    add_test(NAME gran_crash_reports COMMAND gran_crash_probe --check "${CMAKE_BINARY_DIR}/crash-check")
+endif()
 
 # Отдельный набор GPU-тестов, включаемый явно. / A separate GPU suite enabled explicitly.
 if(WIN32 AND GRAN_BUILD_RENDER_TESTS)

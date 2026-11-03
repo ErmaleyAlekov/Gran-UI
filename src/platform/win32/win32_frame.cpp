@@ -56,8 +56,12 @@ namespace gran::platform::win32
         RECT frame{0, 0, static_cast<LONG>(std::lround(self.desc.width * self.currentScale)),
             static_cast<LONG>(std::lround(self.desc.height * self.currentScale))};
 
+        // Расширенный стиль (инструментальное окно, рамка диалога) меняет толщину заголовка и рамки
+        // The extended style (a tool window, a dialog frame) changes the title bar and frame thickness
+        DWORD extended = static_cast<DWORD>(GetWindowLongW(self.window, GWL_EXSTYLE));
+
         if (self.desc.titleBar == TitleBar::SYSTEM)
-            AdjustWindowRectExForDpi(&frame, style, FALSE, 0, GetDpiForWindow(self.window));
+            AdjustWindowRectExForDpi(&frame, style, FALSE, extended, GetDpiForWindow(self.window));
         SetWindowPos(self.window, nullptr, 0, 0, frame.right - frame.left, frame.bottom - frame.top,
             SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
         configureFrame(self);

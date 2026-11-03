@@ -1,7 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/core/i18n.hpp"
 
-#include <iostream>
+#include "gran/log/log.hpp"
 
 namespace gran::app
 {
@@ -76,7 +76,7 @@ namespace gran::app
 
         if (found == nullptr)
         {
-            std::cerr << i18n::format(i18n::Message::APP_UNKNOWN_COMMAND, {id}) << '\n';
+            log::write(log::Level::WARNING, "command", i18n::format(i18n::Message::APP_UNKNOWN_COMMAND, {id}));
             return;
         }
         if (found->enabled)

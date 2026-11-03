@@ -268,6 +268,100 @@ app.saveMarkupFile("layout.xml");                   // разметка с но�
 `showDialog(dialog)` и `hideDialog(dialog)` управляют модальным слоем внутри окна.
 Эти методы предназначены для работающего `run()`; диалог возвращает фокус после закрытия.
 
+## Окна и программа
+
+### Окна-владельцы и модальные окна
+
+`openWindow(const std::string& path, const WindowOptions& options = {})` и `openWindowString(std::string_view,
+const WindowOptions&)` открывают ещё одно окно и возвращают корень его содержимого. Поля `WindowOptions`:
+
+- `ui::Node* owner = nullptr` — любой узел окна-владельца. Узел вне открытых окон — `GranException(MARKUP)`
+  (`APP_OWNER_NOT_WINDOW`), окно не создаётся. Подчинённое окно стоит в списке окон после владельца, закрывается
+  раньше него и вместе с ним.
+- `bool modal = false` — пока окно открыто, владелец и его владельцы не получают ввода (Win32 `EnableWindow`,
+  на X11 — отбрасывание событий движком). Без владельца флаг сбрасывается.
+- `WindowCloseHandler onClosed` — `std::function<void(const std::string& result)>`, вызывается в потоке UI после
+  уничтожения окна.
+
+`closeWindow(ui::Node&, const std::string& result)` помечает окно узла к закрытию (после прохода событий) с
+результатом для `onClosed`; `closeWindow(ui::Node&)` — то же с пустым результатом. Закрытие вместе с владельцем
+и крестик дают `""`; закрытие главного окна завершает `run()` без вызова `onClosed` остальных окон.
+Встроенное действие `gran:close:результат` равносильно `closeWindow(узел, "результат")`.
+
+Платформа: `platform::WindowDesc::owner` (`platform::Window*`), `modal`, `kind` (`WindowKind::NORMAL|DIALOG|TOOL`),
+`position` (`WindowPosition::DEFAULT|CENTER|CENTER_OWNER`; перечисления — в `gran/platform/window_frame.hpp`);
+`Window::setEnabled(bool)` и `Window::activate()` (по умолчанию ничего не делают). Разметка:
+`markup::WindowSpec::kind` и `position` из атрибутов `<Window kind position>`.
+
+### Пул фоновых задач
+
+`TaskId runTask(BackgroundWork work, TaskDone done = {}, TaskProgress progress = {})` (`gran/app/background_task.hpp`):
+`BackgroundWork` — `std::function<void(TaskContext&)>` в потоке пула, `TaskDone` — `void(TaskOutcome&)` и
+`TaskProgress` — `void(const TaskProgressInfo&)` в потоке UI. `cancelTask(TaskId)` ставит флаг отмены (`false` —
+итог уже доставлен или номер неизвестен), `activeTasks() const` — задачи в очереди, в работе и с недоставленным итогом.
+`AppOptions::taskThreads` (0 — ядра − 1, от 1 до 8); потоки создаются при первой задаче.
+
+`TaskContext` (только внутри работы): `id()`, `cancelled()`, `progress(double fraction, const std::string& text = {})`
+(сливается до последнего значения), `setResult(std::any)`, `fail(const std::string&)` — сбой без исключения.
+`TaskOutcome`: `id`, `status` (`TaskStatus::DONE|CANCELLED|FAILED`), `error`, `result` (`std::any`, пуст при
+отмене и сбое). Исключение работы — `FAILED` с `what()`; неизвестное исключение — текст `TASK_UNKNOWN_ERROR`.
+Отменённая в очереди задача не начинается. Деструктор приложения отменяет задачи и ждёт потоки пула (`app::TaskPool`,
+последнее поле `Application::State`); итоги, не доставленные к этому времени, уничтожаются без вызова `done`.
+
+### Журнал и отчёт о сбое
+
+`AppOptions::appName` (пусто — журнала нет), `logDirectory`, `crashReports = true`; конструктор `Application` открывает
+журнал, пишет запуск и ставит обработчик сбоя. `const std::string& previousCrash() const` — отчёт прошлого запуска
+(`.txt`; файл `.seen` в каталоге отчётов помнит показанный).
+
+Модуль `gran/log/log.hpp` (журнал процесса, паттерн Singleton): `Level::SEVERE|WARNING|INFO|VERBOSE`; `LogOptions`
+(`appName`, `directory`, `maxBytes = 1 МБ`, `files = 5`, `level = INFO`); `bool open(const LogOptions&)` (повторно с тем же
+путём — ничего), `close()`, `filePath()`, `directory()` (UTF-8); `write(Level, std::string_view category, std::string_view text)
+noexcept` — из любого потока, файл сбрасывается после каждой строки, `SEVERE`/`WARNING` дублируются в stderr;
+`copyRecent(char*, std::size_t) noexcept` — хвост кольца последних записей (16 КБ, без выделений и замков — для обработчика
+сбоя); `defaultDirectory(appName)`, `systemDescription()`.
+
+`gran/log/crash_report.hpp`: `CrashOptions{appName, directory}`, `bool installCrashHandler(const CrashOptions&)` (повторно —
+ничего), `crashDirectory(const CrashOptions&)`, `previousCrash(const std::string& directory)`. Имена файлов —
+`<программа>-<время>-<процесс>.txt|.dmp|.stack`. Windows: фильтр SEH передаёт указатели потоку-помощнику (создан
+заранее, у упавшего потока может не быть стека), `MiniDumpWriteDump` (dbghelp загружается при установке;
+`MiniDumpWithIndirectlyReferencedMemory | ScanMemory | ThreadInfo | UnloadedModules`), стек — `RtlVirtualUnwind`;
+`std::terminate`, `abort`, неверный параметр CRT — свои коды `0xE0000001…3`. Linux: `sigaction` с `SA_ONSTACK | SA_RESETHAND`
+на `sigaltstack` 64 КБ, только async-signal-safe вызовы, затем сигнал повторяется. Рендер: `rhi::RenderBackend::adapterInfo()`
+→ `AdapterInfo{api, name, driver, software}` для журнала.
+
+### Ресурсы внутри программы
+
+`gran/res/resources.hpp`: `Entry{path, data, size}`, `Bundle{name, entries, count}`, `ResourceView{data, size}`;
+`mount(const Bundle&)` (байты не копируются; позже подключённый пакет перекрывает одинаковые пути), `mountBlob(const void*,
+std::size_t)` (блок «GRANRES1» копируется; испорченный — `GranException(RESOURCE)`, `RES_BAD_BLOB`), `unmountAll()`,
+`isResourcePath(std::string_view)`, `find(std::string_view, ResourceView&)`, `normalize(std::string_view)` (обе косые,
+`.` и `..`; выход за корень — пусто), `readFile(const std::filesystem::path&, std::vector<std::uint8_t>&)` и
+`openStream(const std::filesystem::path&)` — ресурс или файл диска. `MappedFile::open("res:/…")` отдаёт байты пакета без
+отображения. Формат блока: `"GRANRES1"`, `u32` число записей, для каждой `u32` длина пути, путь, `u64` длина, данные (LE).
+
+`gran/res/manifest.hpp` (им пользуется `gran_rcc`): `readManifest(path)` → `Manifest{name, location, files}` (схема
+`gran-resources.xsd`; нет файла — `RES_MISSING_FILE`, повтор пути — `RES_DUPLICATE_ALIAS`), `matchPattern`, `expandFolder`,
+`sortFiles`, `generateSource`, `generateBlob`, `generateDepfile`. Сгенерированный `.cpp` объявляет
+`const gran::res::Bundle& granResources_<имя>()`.
+
+### Настройки программы
+
+`settings::Settings& Application::settings()`; `AppOptions::settingsFile` (пусто — `settings::defaultPath(appName)`).
+`gran/settings/settings.hpp`: `ValueType::STRING|NUMBER|BOOLEAN|LIST`, `Value{type, text, items}`;
+`Settings::load(path)` (нет файла — пусто и `true`; испорченный — в `.bad`, `SETTINGS_DAMAGED` в журнал, `false`),
+`save()` (временный `.tmp` и переименование), `path()`, `modified()`; `getString/getNumber/getBool(name, fallback)`,
+`getList`, `find(name)` → `const Value*`; `setString/setNumber/setBool/setList`, `remove`; раскладка —
+`windowPlacement/setWindowPlacement(layout, WindowPlacement)`, `attribute/setAttribute({layout, id, name}, value)`,
+`variable/setVariable(name, Value)` (меняют `modified` только при другом значении).
+
+Движок: `restorePlacement` — сразу после создания окна ОС, до бэкенда (цепочка обмена сразу нужного размера);
+`restoreState` (атрибуты `persist` через `setMarkupAttribute`, переменные `persist` своим типом) — до первого кадра;
+`saveState` — перед закрытием окна и для всех окон в конце `run()`, затем `save()`, если есть изменения.
+Платформа: `platform::WindowPlacement{x, y, width, height, maximized}`, `Window::placement()` / `setPlacement()` —
+Win32 `Get/SetWindowPlacement` (`rcNormalPosition`, развёрнутость при `show`), X11 — клиентская область относительно
+корня и `StaticGravity`. Разметка: `WindowSpec::layout`, `data::Variable::persist`, атрибут `persist` (тип `PersistList`).
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` задаёт обработчик `void(ui::Node&, const std::string&)`.

@@ -47,6 +47,9 @@ namespace gran::rhi::dx12
         void readPixels(std::vector<std::uint8_t>& rgba, std::uint32_t& width, std::uint32_t& height) override;
         std::vector<std::string> takeDiagnostics() override;
 
+        // ---- dx12_adapter.cpp ----
+        AdapterInfo adapterInfo() const override;
+
         // ---- dx12_frame.cpp ----
         FrameStatus render(const FrameData& frame) override;
 

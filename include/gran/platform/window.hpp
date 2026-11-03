@@ -92,7 +92,33 @@ namespace gran::platform
     // Курсор мыши (порядок — как style::Cursor) / The mouse cursor (the order is as style::Cursor)
     enum class CursorShape : std::uint8_t { ARROW, HAND, TEXT, MOVE, NOT_ALLOWED, GRAB, RESIZE_EW, RESIZE_NS };
 
-    // Параметры окна (логические пиксели) / The window parameters (logical pixels)
+    class Window;
+
+    /*
+    ** Место окна в координатах ОС для настроек: Windows — обычная (не развёрнутая) рамка в пикселях устройства
+    ** (rcNormalPosition), X11 — клиентская область относительно корня. Значения переносимы только в той же ОС.
+    **
+    ** The window place in OS coordinates for the settings: Windows — the normal (not maximized) frame in device pixels
+    ** (rcNormalPosition), X11 — the client area relative to the root. The values are portable only within the same OS.
+    */
+    struct WindowPlacement
+    {
+        int x = 0;
+        int y = 0;
+        int width = 0;
+        int height = 0;
+        bool maximized = false;
+    };
+
+    /*
+    ** Параметры окна (логические пиксели). owner — окно-владелец (невладеющая ссылка; живёт дольше
+    ** подчинённого): подчинённое держится над ним и сворачивается вместе с ним. modal — подсказка ОС,
+    ** что окно модальное (X11 _NET_WM_STATE_MODAL); сам ввод владельцу блокирует приложение (setEnabled).
+    **
+    ** The window parameters (logical pixels). owner is the owner window (a non-owning reference; it outlives
+    ** the owned one): the owned window stays above it and minimizes together with it. modal is an OS hint
+    ** that the window is modal (X11 _NET_WM_STATE_MODAL); the application blocks the owner input itself (setEnabled).
+    */
     struct WindowDesc
     {
         std::string title;
@@ -103,6 +129,10 @@ namespace gran::platform
         bool resizable = true;
         bool darkTitleBar = false;
         TitleBar titleBar = TitleBar::SYSTEM;
+        WindowKind kind = WindowKind::NORMAL;
+        WindowPosition position = WindowPosition::DEFAULT;
+        Window* owner = nullptr;
+        bool modal = false;
     };
 
     /*
@@ -151,6 +181,31 @@ namespace gran::platform
         virtual void restore();
         virtual void close();
         virtual bool isMaximized() const;
+
+        /*
+        ** Окно-владелец модального окна выключается (Win32 EnableWindow): щелчок по нему ОС
+        ** переводит на модальное. X11 такого не умеет — ввод отбрасывает приложение; по умолчанию ничего.
+        **
+        ** The owner window of a modal window is disabled (Win32 EnableWindow): the OS moves a click on it
+        ** to the modal one. X11 cannot do that — the application drops the input; by default nothing.
+        */
+        virtual void setEnabled(bool enabled);
+
+        // Поднять окно и отдать ему фокус (развернув из свёрнутого); по умолчанию ничего
+        // Raise the window and give it the focus (restoring it from minimized); by default nothing
+        virtual void activate();
+
+        // Текущее место окна; false — ОС не умеет (по умолчанию) / The current window place; false — the OS cannot (by default)
+        virtual bool placement(WindowPlacement& placement) const;
+
+        /*
+        ** Вернуть сохранённое место до показа окна; место вне всех мониторов не применяется (монитор отключили).
+        ** Развёрнутость вступает в силу при show(). По умолчанию ничего.
+        **
+        ** Restore a saved place before showing the window; a place outside all the monitors is not applied (the monitor was unplugged).
+        ** The maximization takes effect on show(). By default nothing.
+        */
+        virtual void setPlacement(const WindowPlacement& placement);
 
         // Чтение роли под мышью в потоке UI; пустой обработчик отключает связь с деревом.
         // Read the role under the pointer on the UI thread; an empty handler disconnects the tree.

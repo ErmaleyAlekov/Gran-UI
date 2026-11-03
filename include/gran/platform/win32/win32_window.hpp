@@ -70,6 +70,14 @@ namespace gran::platform::win32
         void close() override;
         bool isMaximized() const override;
 
+        // ---- win32_owner.cpp ----
+        void setEnabled(bool enabled) override;
+        void activate() override;
+
+        // ---- win32_placement.cpp ----
+        bool placement(WindowPlacement& placement) const override;
+        void setPlacement(const WindowPlacement& placement) override;
+
         // ---- win32_frame.cpp ----
         void setFrameHitTest(std::function<WindowRole(Vec2)> callback) override;
 
@@ -111,6 +119,8 @@ namespace gran::platform::win32
         WORD cursorArea = HTCLIENT;
         std::function<void()> liveResize;
         WindowDesc desc;
+        // Показать развёрнутым (место из настроек, setPlacement) / Show maximized (the place from the settings, setPlacement)
+        bool startMaximized = false;
         // Обработчик читает дерево только в UI-потоке, не хранит указатели на узлы.
         // The callback reads the tree only on the UI thread and keeps no node pointers.
         std::function<WindowRole(Vec2)> frameHitTest;
@@ -139,6 +149,21 @@ namespace gran::platform::win32
     void configureFrame(Win32Window& window) noexcept;
     void fitClientRect(const Win32Window& window, RECT& frame) noexcept;
     void setInitialSize(Win32Window& window, DWORD style) noexcept;
+
+    // ---- win32_owner.cpp ----
+
+    // Стиль окна по виду: обычное (WS_OVERLAPPEDWINDOW), диалог и инструментальное — без свёртки и развёртки
+    // The window style by the kind: a normal one (WS_OVERLAPPEDWINDOW), a dialog and a tool one — without minimize and maximize
+    DWORD windowStyle(const WindowDesc& desc) noexcept;
+
+    // Расширенный стиль: рамка диалога без значка, узкий заголовок инструментального окна
+    // The extended style: a dialog frame without an icon, the narrow title bar of a tool window
+    DWORD windowExStyle(const WindowDesc& desc) noexcept;
+
+    // ---- win32_placement.cpp ----
+
+    // Поставить скрытое окно по desc.position: по центру владельца или монитора / Place the hidden window by desc.position: at the owner or monitor center
+    void placeWindow(Win32Window& window, HWND owner) noexcept;
 
     // ---- win32_cursor.cpp ----
 

@@ -51,7 +51,12 @@ namespace gran::platform::x11
         void accessFocusChanged() override;
         void accessRefresh() override;
         void wake() noexcept override;
+        void activate() override;
+        bool placement(WindowPlacement& placement) const override;
+        void setPlacement(const WindowPlacement& placement) override;
     private:
+        void applyOwner(const WindowDesc& desc);
+        void place(const WindowDesc& desc);
         void create(const WindowDesc& desc);
         void configure(const WindowDesc& desc);
         void inputMethod();
@@ -88,6 +93,8 @@ namespace gran::platform::x11
         Size _pixels;
         bool _custom = false;
         bool _resizable = true;
+        // Развернуть после показа (место из настроек) / Maximize after showing (the place from the settings)
+        bool _startMaximized = false;
         bool _clipboardReady = false;
         // Курсор интерфейса, край своей рамки под указателем (направление _NET_WM_MOVERESIZE, -1 — нет)
         // и форма из cursorfont, уже заданная окну: курсор пересоздаётся только при смене формы.

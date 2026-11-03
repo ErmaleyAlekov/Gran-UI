@@ -213,6 +213,119 @@ class TestApplication(unittest.TestCase):
         self.app.timer(0.05, task)
         self.app.run()
 
+    def test_owned_modal_window(self):
+        # Модальное окно с владельцем: результат close_window приходит в on_closed / A modal window with an owner: the close_window result comes to on_closed
+        results = []
+        def closed(result):
+            results.append(result)
+            self.app.command("close")
+        def open_dialog():
+            self.app.open_window('<Window title="Dialog" width="200" height="120" kind="dialog"><Text id="dlg">?</Text></Window>',
+                                 is_file=False, owner="root", modal=True, on_closed=closed)
+        self.app.timer(0.05, open_dialog)
+        self.app.timer(0.4, lambda: self.app.close_window("dlg", "ok"))
+        self.app.run()
+        self.assertEqual(results, ["ok"])
+
+    def test_background_task(self):
+        # Результат, прогресс и сбой фоновой работы приходят в поток UI / The result, the progress and the failure of a background work come to the UI thread
+        outcomes, steps = [], []
+        def work(task):
+            for step in range(1, 11):
+                task.progress(step / 10, "шаг")
+            return {"answer": 42}
+        def failing(task):
+            raise ValueError("broken")
+        def finish(status, result, error):
+            outcomes.append((status, result, error))
+            if len(outcomes) == 2:
+                self.app.command("close")
+        self.app.run_task(work, finish, lambda fraction, text: steps.append(fraction))
+        self.app.run_task(failing, finish)
+        self.app.run()
+        self.assertIn(("done", {"answer": 42}, ""), outcomes)
+        self.assertIn(("failed", None, "broken"), outcomes)
+        self.assertEqual(steps[-1], 1.0)
+        self.assertFalse(self.app.cancel_task(12345))
+
+    def test_resources_blob(self):
+        # Блок ресурсов (формат gran_rcc --blob): разметка грузится по пути res:/ / A resource block (the gran_rcc --blob format): markup loads by a res:/ path
+        import struct
+        markup = '<Window title="FromResources"><Text id="res_text">из ресурсов</Text></Window>'.encode("utf-8")
+        path = b"bindings/python_window.xml"
+        blob = b"GRANRES1" + struct.pack("<I", 1) + struct.pack("<I", len(path)) + path + struct.pack("<Q", len(markup)) + markup
+        self.app.mount_resources(blob)
+        self.app.load_file("res:/bindings/python_window.xml")
+        self.assertEqual(self.app.read("res_text", "text"), "из ресурсов")
+        with self.assertRaises(RuntimeError):
+            self.app.mount_resources(b"broken")
+
+    def test_settings(self):
+        # Настройки: типы значений, список, сохранение и повторная загрузка / The settings: the value types, a list, saving and reloading
+        import tempfile, os
+        path = os.path.join(tempfile.mkdtemp(prefix="gran_settings_py_"), "settings.xml")
+        self.app.load_settings(path=path)
+        self.app.set_setting("theme", "тёмная")
+        self.app.set_setting("zoom", 1.25)
+        self.app.set_setting("sidebar", True)
+        self.app.set_setting("recent", ["a.txt", "б.txt"])
+        self.app.save_settings()
+        self.app.remove_setting("theme")
+        self.assertIsNone(self.app.setting("theme"))
+        self.app.load_settings(path=path)
+        self.assertEqual(self.app.setting("theme"), "тёмная")
+        self.assertEqual(self.app.setting("zoom"), 1.25)
+        self.assertIs(self.app.setting("sidebar"), True)
+        self.assertEqual(self.app.setting("recent"), ["a.txt", "б.txt"])
+        self.assertEqual(self.app.setting("missing", 7), 7)
+
+    def test_saved_layout(self):
+        # Раскладка: переменная и атрибут persist, место окна — сохраняются в конце run и возвращаются при следующем запуске
+        # The layout: the persist variable and attribute, the window place — saved at the end of run and restored on the next start
+        import tempfile, os
+        path = os.path.join(tempfile.mkdtemp(prefix="gran_layout_py_"), "settings.xml")
+        markup = ('<Window title="LayoutPython" width="420" height="260" layout="main"><Resources>'
+                  '<Variable name="dark" type="boolean" value="false" persist="true"/></Resources>'
+                  '<Stack id="side" width="200" persist="width"><Text id="label">x</Text></Stack></Window>')
+        first = Application(backend=1 if os.name == "nt" else 3, warp=True, exit_after=3.0)
+        first.load_settings(path=path)
+        first.load_string(markup)
+        def change():
+            first.set_variable("dark", True)
+            first.set_markup_attribute("side", "width", "320")
+            first.command("close")
+        first.timer(0.1, change)
+        first.run()
+        first.close()
+        with open(path, encoding="utf-8") as stream:
+            saved = stream.read()
+        self.assertIn('<Attribute layout="main" node="side" name="width" value="320"/>', saved)
+        self.assertIn('<Variable name="dark" type="boolean">true</Variable>', saved)
+        self.assertIn('<Window layout="main"', saved)
+        second = Application(backend=1 if os.name == "nt" else 3, warp=True, exit_after=3.0)
+        second.load_settings(path=path)
+        second.load_string(markup)
+        seen = []
+        def check():
+            seen.append((second.variable("dark"), second.markup_attribute("side", "width")))
+            second.command("close")
+        second.timer(0.1, check)
+        second.run()
+        second.close()
+        self.assertEqual(seen, [("true", "320")])
+
+    def test_log_file(self):
+        # Журнал процесса: запись попадает в файл / The process log: a record goes into the file
+        import tempfile
+        folder = tempfile.mkdtemp(prefix="gran_log_py_")
+        self.app.open_log("GranPythonTest", folder, crash_reports=False)
+        self.app.log("info", "test", "запись журнала")
+        path = self.app.log_path()
+        self.assertTrue(path.endswith("GranPythonTest.log"))
+        with open(path, encoding="utf-8") as stream:
+            self.assertIn("| test | запись журнала", stream.read())
+        self.assertEqual(self.app.previous_crash(), "")
+
     def test_timer_raises_value_error(self):
         def task():
             raise ValueError('callback marker')

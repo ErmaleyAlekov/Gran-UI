@@ -1,4 +1,5 @@
 #include "gran/render/image_store.hpp"
+#include "gran/res/resources.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/image/image.hpp"
 
@@ -45,13 +46,13 @@ namespace gran::render
     ImageEntry ImageStore::load(const std::string& source)
     {
         std::filesystem::path path = std::filesystem::path(_base) / source;
-        std::ifstream file(path, std::ios::binary);
-        std::vector<std::uint8_t> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        std::vector<std::uint8_t> data;
         ImageEntry entry;
         image::Image picture;
 
         entry.failed = true;
-        if (!file && data.empty())
+        // Файл диска или ресурс res:/ (база окна из res:/ даёт путь «res:/…») / A disk file or a res:/ resource (a res:/ window base gives a "res:/…" path)
+        if (!res::readFile(path, data))
             return entry;
         try
         {

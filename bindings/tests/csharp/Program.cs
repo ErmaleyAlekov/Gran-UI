@@ -187,6 +187,63 @@ class Program
             busy.Run();
             Assert(survived);
 
+            // Модальное окно с владельцем: результат CloseWindow приходит в onClosed / A modal window with an owner: the CloseWindow result comes to onClosed
+            using var windows = new GranUI.Application(backend:Backend(), exitAfter:3.0, warp:true);
+            windows.LoadString(xml);
+            string? closedWith = null;
+            windows.Timer(0.05, () => windows.OpenWindow("<Window title=\"Dialog\" width=\"200\" height=\"120\" kind=\"dialog\"><Text id=\"dlg\">?</Text></Window>",
+                isFile:false, owner:"root", modal:true, onClosed:result => { closedWith = result; windows.Command("close"); }));
+            windows.Timer(0.4, () => windows.CloseWindow("dlg", "ok"));
+            windows.Run();
+            Assert(closedWith == "ok");
+
+            // Фоновая задача: результат, прогресс и сбой — в потоке UI / A background task: the result, the progress and the failure — on the UI thread
+            using var tasks = new GranUI.Application(backend:Backend(), exitAfter:3.0, warp:true);
+            tasks.LoadString(xml);
+            var outcomes = new List<(GranUI.BackgroundStatus, object?, string)>();
+            double lastStep = 0;
+            Action<GranUI.BackgroundStatus, object?, string> finish = (status, result, error) => {
+                outcomes.Add((status, result, error));
+                if (outcomes.Count == 2) tasks.Command("close");
+            };
+            tasks.RunTask(task => { for (int step = 1; step <= 10; ++step) task.Progress(step / 10.0, "шаг"); return 42; }, finish, (fraction, _) => lastStep = fraction);
+            tasks.RunTask(_ => throw new InvalidOperationException("broken"), finish);
+            tasks.Run();
+            Assert(outcomes.Contains((GranUI.BackgroundStatus.Done, 42, "")));
+            Assert(outcomes.Contains((GranUI.BackgroundStatus.Failed, null, "broken")));
+            Assert(lastStep == 1.0);
+            Assert(!tasks.CancelTask(12345));
+
+            // Блок ресурсов (формат gran_rcc --blob): разметка грузится по пути res:/ / A resource block: markup loads by a res:/ path
+            byte[] markupBytes = System.Text.Encoding.UTF8.GetBytes("<Window title=\"FromResources\"><Text id=\"res_text\">из ресурсов</Text></Window>");
+            byte[] pathBytes = System.Text.Encoding.ASCII.GetBytes("bindings/csharp_window.xml");
+            var blob = new List<byte>(System.Text.Encoding.ASCII.GetBytes("GRANRES1"));
+            blob.AddRange(BitConverter.GetBytes(1u)); blob.AddRange(BitConverter.GetBytes((uint)pathBytes.Length)); blob.AddRange(pathBytes);
+            blob.AddRange(BitConverter.GetBytes((ulong)markupBytes.Length)); blob.AddRange(markupBytes);
+            tasks.MountResources(blob.ToArray());
+            tasks.LoadFile("res:/bindings/csharp_window.xml");
+            Assert(tasks.Read("res_text", "text") == "из ресурсов");
+
+            // Настройки: типы значений, список, сохранение и повторная загрузка / The settings: the value types, a list, saving and reloading
+            string settingsPath = Path.Combine(Path.GetTempPath(), "gran_settings_cs_" + Environment.ProcessId, "settings.xml");
+            tasks.LoadSettings(path:settingsPath);
+            tasks.SetSetting("theme", "тёмная"); tasks.SetSetting("zoom", 1.25); tasks.SetSetting("sidebar", true);
+            tasks.SetSetting("recent", new[] { "a.txt", "б.txt" });
+            tasks.SaveSettings();
+            tasks.LoadSettings(path:settingsPath);
+            Assert((string?)tasks.GetSetting("theme") == "тёмная" && (double?)tasks.GetSetting("zoom") == 1.25);
+            Assert((bool?)tasks.GetSetting("sidebar") == true && ((string[])tasks.GetSetting("recent")!).SequenceEqual(new[] { "a.txt", "б.txt" }));
+            Assert(tasks.GetSetting("missing") == null);
+
+            // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
+            string logFolder = Path.Combine(Path.GetTempPath(), "gran_log_cs_" + Environment.ProcessId);
+            tasks.OpenLog("GranCSharpTest", logFolder, crashReports:false);
+            tasks.Log(GranUI.LogLevel.Info, "test", "запись журнала");
+            Assert(tasks.LogPath().EndsWith("GranCSharpTest.log"));
+            using (var reader = new StreamReader(new FileStream(tasks.LogPath(), FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+                Assert(reader.ReadToEnd().Contains("| test | запись журнала"));
+            Assert(tasks.PreviousCrash() == "");
+
             app.Dispose();
         }
         catch (Exception ex)

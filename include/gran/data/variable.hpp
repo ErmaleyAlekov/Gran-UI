@@ -33,6 +33,8 @@ namespace gran::data
         std::string name;
         VariableType type = VariableType::STRING;
         std::string value;
+        // persist="true": значение хранится в настройках программы между запусками / persist="true": the value is kept in the program settings between runs
+        bool persist = false;
     };
 }
 

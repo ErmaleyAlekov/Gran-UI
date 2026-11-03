@@ -1,6 +1,7 @@
 #ifndef GRAN_GALLERY_ACTIONS_HPP
 #define GRAN_GALLERY_ACTIONS_HPP
 
+#include "gran/res/resources.hpp"
 #include "gran/app/application.hpp"
 
 #include <string>
@@ -48,6 +49,33 @@ namespace gallery
     ** the pointer capture, the wheel, a custom context menu; keyLog is the keys in the capture phase; the field focus.
     */
     void registerEvents(gran::Application& application);
+
+    /*
+    ** Окна и программа (gallery_program.cpp, samples/program.xml): programDialog — модальный диалог
+    ** program_dialog.xml, подчинённый окну кнопки (результат — в строку состояния); programTool —
+    ** tool_window.xml с владельцем, без модальности.
+    **
+    ** Windows and the program (gallery_program.cpp, samples/program.xml): programDialog is the modal dialog
+    ** program_dialog.xml owned by the button window (the result goes into the status line); programTool is
+    ** tool_window.xml with an owner, without modality.
+    */
+    void registerProgram(gran::Application& application, const std::string& markup);
+
+    // Фоновая работа примера (gallery_program.cpp): 50 шагов с прогрессом и проверкой отмены / The sample background work (gallery_program.cpp): 50 steps with progress and a cancellation check
+    void slowWork(gran::TaskContext& task);
+
+    // Кнопки taskStart / taskCancel samples/program.xml (gallery_tasks.cpp) / The taskStart / taskCancel buttons of samples/program.xml (gallery_tasks.cpp)
+    void registerTasks(gran::Application& application);
+
+    // Кнопки logWrite / crashNow и сведения о журнале и прошлом сбое (gallery_log.cpp) / The logWrite / crashNow buttons and the log and previous crash information (gallery_log.cpp)
+    void registerLog(gran::Application& application);
+
+    // Кнопка settingsBar и счётчик запусков в настройках (gallery_settings.cpp) / The settingsBar button and the launch counter in the settings (gallery_settings.cpp)
+    void registerSettings(gran::Application& application);
 }
+
+// Пакет ресурсов галереи, созданный gran_rcc из examples/gallery/resources.xml (gen/examples/gallery/resources.cpp)
+// The gallery resource bundle created by gran_rcc from examples/gallery/resources.xml (gen/examples/gallery/resources.cpp)
+const gran::res::Bundle& granResources_gallery();
 
 #endif

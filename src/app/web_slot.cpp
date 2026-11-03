@@ -2,7 +2,7 @@
 #include "gran/core/i18n.hpp"
 
 #include <cstdio>
-#include <iostream>
+#include "gran/log/log.hpp"
 
 namespace gran::app
 {
@@ -48,9 +48,9 @@ namespace gran::app
         {
             // Код 0 — браузера нет в сборке (заглушка web_view_fallback.cpp) / The code 0 — the build has no browser (the web_view_fallback.cpp stub)
             if (code == 0)
-                std::cerr << i18n::format(i18n::Message::WEBVIEW_NOT_BUILT) << '\n';
+                log::write(log::Level::WARNING, "webview", i18n::format(i18n::Message::WEBVIEW_NOT_BUILT));
             else
-                std::cerr << i18n::format(i18n::Message::WEBVIEW_UNAVAILABLE, {hexCode(code)}) << '\n';
+                log::write(log::Level::WARNING, "webview", i18n::format(i18n::Message::WEBVIEW_UNAVAILABLE, {hexCode(code)}));
         }
         catch (...)
         {

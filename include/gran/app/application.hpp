@@ -2,6 +2,8 @@
 #define GRAN_APP_APPLICATION_HPP
 
 #include "gran/app/timer_queue.hpp"
+#include "gran/app/background_task.hpp"
+#include "gran/settings/settings.hpp"
 #include "gran/binding/list_bindings.hpp"
 #include "gran/platform/file_dialog.hpp"
 #include "gran/ui/node.hpp"
@@ -59,6 +61,27 @@ namespace gran
     // Обработчик смены стека отмены: имя стека ("" — основной) и сам стек / An undo stack change handler: the stack name ("" is the main one) and the stack itself
     using UndoHandler = std::function<void(const std::string& name, const UndoStack& stack)>;
 
+    // Обработчик закрытия окна: результат closeWindow (крестик и закрытие с владельцем — "") / A window close handler: the closeWindow result (the cross and closing with the owner — "")
+    using WindowCloseHandler = std::function<void(const std::string& result)>;
+
+    /*
+    ** Параметры нового окна (Application::openWindow). owner — любой узел окна-владельца: подчинённое
+    ** окно держится над ним, сворачивается и закрывается вместе с ним, у него нет кнопки в панели задач.
+    ** modal — владелец (и его владельцы) не получает ввода, пока окно открыто; щелчок по нему поднимает
+    ** модальное окно. Модальность асинхронная: openWindow возвращается сразу, результат приходит в onClosed.
+    **
+    ** The new window parameters (Application::openWindow). owner is any node of the owner window: the owned
+    ** window stays above it, minimizes and closes together with it, it has no taskbar button.
+    ** modal — the owner (and its owners) gets no input while the window is open; a click on it raises
+    ** the modal window. The modality is asynchronous: openWindow returns at once, the result comes to onClosed.
+    */
+    struct WindowOptions
+    {
+        ui::Node* owner = nullptr;
+        bool modal = false;
+        WindowCloseHandler onClosed;
+    };
+
     // Параметры приложения / The application parameters
     struct AppOptions
     {
@@ -68,6 +91,22 @@ namespace gran
         rhi::BackendKind backend = rhi::BackendKind::AUTO;
         bool forceWarp = false;
         bool watchMarkup = false; // проверять XML каждые 250 мс / check XML every 250 ms
+        unsigned taskThreads = 0; // потоков пула runTask (0 — ядра − 1, от 1 до 8) / runTask pool threads (0 — cores − 1, from 1 to 8)
+        /*
+        ** Журнал в файл и отчёт о сбое: appName — имя программы (пусто — журнала нет, ошибки только в stderr);
+        ** logDirectory — свой каталог журнала (пусто — %LOCALAPPDATA%\<программа>\logs или ~/.local/state/<программа>/logs);
+        ** crashReports — перехватывать падение и писать отчёт (минидамп на Windows) в каталог crashes.
+        **
+        ** The log file and the crash report: appName is the program name (empty — no log, errors only to stderr);
+        ** logDirectory is a custom log directory (empty — %LOCALAPPDATA%\<program>\logs or ~/.local/state/<program>/logs);
+        ** crashReports — catch a crash and write a report (a minidump on Windows) into the crashes directory.
+        */
+        std::string appName;
+        std::string logDirectory;
+        bool crashReports = true;
+        // Свой файл настроек (UTF-8); пусто — %APPDATA%\<appName>\settings.xml или ~/.config/<appName>/settings.xml
+        // A custom settings file (UTF-8); empty — %APPDATA%\<appName>\settings.xml or ~/.config/<appName>/settings.xml
+        std::string settingsFile;
     };
 
     /*
@@ -189,10 +228,10 @@ namespace gran
         ** root. The window appears on the nearest run() loop pass (before run() — together with the main one).
         ** The first loaded window (loadFile, loadString or openWindow) is the main one: closing it ends run().
         */
-        ui::Node& openWindow(const std::string& path);
+        ui::Node& openWindow(const std::string& path, const WindowOptions& options = WindowOptions{});
 
         // То же из строки разметки / The same from a markup string
-        ui::Node& openWindowString(std::string_view markup);
+        ui::Node& openWindowString(std::string_view markup, const WindowOptions& options = WindowOptions{});
 
         /*
         ** Закрыть окно, которому принадлежит узел (после текущего прохода событий; узлы окна
@@ -202,6 +241,17 @@ namespace gran
         ** are invalid after that). The main window — leaving run(). A node not from a window — nothing.
         */
         void closeWindow(ui::Node& node);
+
+        /*
+        ** То же с результатом для WindowOptions::onClosed ("ok", "cancel", имя файла…). Подчинённые окна
+        ** закрываются раньше владельца, их onClosed получает "". onClosed выполняется после уничтожения
+        ** окна в потоке интерфейса; из него можно открыть следующее окно.
+        **
+        ** The same with a result for WindowOptions::onClosed ("ok", "cancel", a file name…). The owned windows
+        ** close before the owner, their onClosed gets "". onClosed runs after the window is destroyed
+        ** on the UI thread; the next window may be opened from it.
+        */
+        void closeWindow(ui::Node& node, const std::string& result);
 
         // ---- file_drop.cpp: перетаскивание файлов (только поток интерфейса) ----
         // ---- file_drop.cpp: dragging files (the UI thread only) ----
@@ -583,6 +633,52 @@ namespace gran
         ** run() are destroyed together with the application without being called.
         */
         void post(Task task);
+
+        // ---- application_settings.cpp ----
+
+        /*
+        ** Настройки программы в XML (schemas/gran-settings.xsd): значения программы, место окон с layout,
+        ** атрибуты persist и переменные persist. Загружаются в конструкторе (appName или settingsFile),
+        ** сохраняются в конце run() вместе с раскладкой окон; save() — сохранить сейчас.
+        **
+        ** The program settings in XML (schemas/gran-settings.xsd): the program values, the place of the windows with layout,
+        ** the persist attributes and the persist variables. Loaded in the constructor (appName or settingsFile),
+        ** saved at the end of run() together with the window layout; save() — save now.
+        */
+        settings::Settings& settings();
+
+        // ---- application_logging.cpp ----
+
+        /*
+        ** Отчёт о сбое прошлого запуска, ещё не показанный программе (путь к .txt; рядом .dmp на Windows),
+        ** или пусто. Программа может один раз предложить отправить его разработчику.
+        **
+        ** The crash report of the previous run not shown to the program yet (the .txt path; a .dmp beside it on Windows),
+        ** or empty. The program may offer once to send it to the developer.
+        */
+        const std::string& previousCrash() const;
+
+        // ---- application_background.cpp: пул фоновых задач ----
+        // ---- application_background.cpp: the background task pool ----
+
+        /*
+        ** Фоновая задача: work выполняется в потоке пула (не трогает дерево интерфейса), done и progress —
+        ** в потоке интерфейса, после них кадр перерисуется. Исключение в work — итог FAILED с текстом, программа
+        ** не падает. Потоки пула создаются при первой задаче; при выходе задачи отменяются, приложение ждёт
+        ** их потоки (work проверяет TaskContext::cancelled), недоставленные итоги пропадают без вызова done.
+        **
+        ** A background task: work runs on a pool thread (it does not touch the UI tree), done and progress —
+        ** on the UI thread, the frame is redrawn after them. An exception in work is a FAILED outcome with a text, the program
+        ** does not crash. The pool threads are created on the first task; on exit the tasks are cancelled, the application waits for
+        ** their threads (work checks TaskContext::cancelled), the undelivered outcomes are lost without calling done.
+        */
+        TaskId runTask(BackgroundWork work, TaskDone done = TaskDone(), TaskProgress progress = TaskProgress());
+
+        // Попросить отменить задачу: итог придёт с CANCELLED; false — задачи нет (итог уже доставлен) / Ask to cancel a task: the outcome comes with CANCELLED; false — no such task (the outcome is delivered)
+        bool cancelTask(TaskId id);
+
+        // Задачи в очереди, в работе и ждущие доставки итога / The tasks in the queue, at work and waiting for the outcome delivery
+        std::size_t activeTasks() const;
 
         // ---- application_timers.cpp: таймеры (только поток интерфейса; из других потоков — через post) ----
         // ---- application_timers.cpp: timers (the UI thread only; from other threads — through post) ----

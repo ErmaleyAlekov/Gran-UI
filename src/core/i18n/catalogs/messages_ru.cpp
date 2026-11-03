@@ -116,7 +116,17 @@ namespace gran::i18n
             {Message::DATA_UNKNOWN_MODEL, "модель «{0}» не найдена"},
             {Message::DATA_MODEL_KIND, "имя «{0}» уже занято моделью другого вида ({1})"},
             {Message::DATA_SOURCE_CYCLE, "модель «{0}» опирается сама на себя через source, tree или model"},
-            {Message::DATA_SELECTION_MISMATCH, "выделение «{0}» не найдено или относится не к списку «{1}», который показывает контейнер"}
+            {Message::DATA_SELECTION_MISMATCH, "выделение «{0}» не найдено или относится не к списку «{1}», который показывает контейнер"},
+            {Message::APP_OWNER_NOT_WINDOW, "владелец окна должен быть узлом открытого окна"},
+            {Message::TASK_UNKNOWN_ERROR, "фоновая задача завершилась неизвестной ошибкой"},
+            {Message::GPU_DEVICE_RECREATED, "устройство GPU потеряно, графика окна создана заново"},
+            {Message::LOG_START, "запуск: {0}"},
+            {Message::LOG_PREVIOUS_CRASH, "отчёт о сбое прошлого запуска: {0}"},
+            {Message::RES_BAD_BLOB, "блок ресурсов повреждён или не начинается с GRANRES1"},
+            {Message::RES_MISSING_FILE, "файл или папка ресурса не найдены: {0}"},
+            {Message::RES_DUPLICATE_ALIAS, "путь res:/{0} встречается в манифесте дважды"},
+            {Message::RES_TOOL_USAGE, "использование: gran_rcc <манифест.xml> <выход.cpp> [--blob <пакет.bin>] [--depfile <выход.d>]"},
+            {Message::SETTINGS_DAMAGED, "файл настроек повреждён и сохранён как .bad, взяты значения по умолчанию: {0}"}
         };
     }
 

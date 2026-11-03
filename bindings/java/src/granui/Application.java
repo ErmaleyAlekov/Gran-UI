@@ -465,6 +465,203 @@ public final class Application implements AutoCloseable {
     public void modelClear(String model) {
         try (Arena scope=Arena.ofConfined()) { status("gran_model_clear",app,utf8(scope,model)); }
     }
+    // ---- Окна и программа 1.8: владельцы и модальные окна ----
+    // ---- Windows and the program 1.8: owners and modal windows ----
+    // Обработчики закрытия окон: user — номер обработчика, один переходник на все окна / The window close handlers: user is the handler number, one trampoline for all the windows
+    private final ConcurrentMap<Long,Consumer<String>> windowHandlers = new ConcurrentHashMap<>();
+    private MemorySegment windowEntry;
+    private void windowClosed(MemorySegment user, MemorySegment result) {
+        Consumer<String> handler=windowHandlers.remove(user.address());
+        if (handler == null) return;
+        String value=text(result);
+        protect(() -> handler.accept(value));
+    }
+    private synchronized MemorySegment windowEntry() {
+        ensureOpen();
+        if (windowEntry == null)
+            windowEntry=entry("windowClosed",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class),
+                FunctionDescriptor.ofVoid(ADDRESS,ADDRESS),this);
+        return windowEntry;
+    }
+    // Ещё одно окно; owner — id узла окна-владельца (null — без владельца), onClosed(result) — после закрытия
+    // One more window; owner is the id of an owner window node (null — without an owner), onClosed(result) — after closing
+    public void openWindow(String source, boolean isFile, String owner, boolean modal, Consumer<String> onClosed) {
+        long key=0;
+        if (onClosed != null) { key=nextTask.incrementAndGet(); windowHandlers.put(key,onClosed); }
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment options=scope.allocate(40,8);
+            options.set(JAVA_INT,0,40); options.set(ADDRESS,8,utf8(scope,owner)); options.set(JAVA_INT,16,modal ? 1 : 0);
+            options.set(ADDRESS,24,onClosed != null ? windowEntry() : MemorySegment.NULL);
+            options.set(ADDRESS,32,MemorySegment.ofAddress(key));
+            status("gran_app_open_window",app,utf8(scope,source),isFile ? 1 : 0,options);
+        } catch (RuntimeException | Error failure) { windowHandlers.remove(key); throw failure; }
+    }
+    public void openWindow(String path) { openWindow(path,true,null,false,null); }
+    // Закрыть окно узла target с результатом для onClosed (null — "") / Close the window of the target node with a result for onClosed (null — "")
+    public void closeWindow(String target, String result) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_close_window",app,utf8(scope,target),utf8(scope,result)); }
+    }
+    // ---- Ресурсы внутри программы 1.8: блок gran_rcc --blob (на весь процесс) ----
+    // ---- Resources inside the program 1.8: a gran_rcc --blob block (process-wide) ----
+    public void mountResources(byte[] blob) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment data=scope.allocate(Math.max(1,blob.length));
+            MemorySegment.copy(blob,0,data,JAVA_BYTE,0,blob.length);
+            check((int)invoke("gran_resources_mount",JAVA_INT,data,(long)blob.length));
+        }
+    }
+    // ---- Настройки программы 1.8 ----
+    // ---- The program settings 1.8 ----
+    // Файл настроек: path или по имени программы (null — не задано) / The settings file: path or by the program name (null — not set)
+    public void loadSettings(String appName, String path) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_settings_load",app,utf8(scope,appName),utf8(scope,path)); }
+    }
+    // Значение: String, Double, Boolean, String[] или null — нет / A value: String, Double, Boolean, String[] or null — none
+    public Object getSetting(String name) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment type=scope.allocate(JAVA_INT), output=scope.allocate(ADDRESS), key=utf8(scope,name);
+            status("gran_settings_get",app,key,type,output);
+            int kind=type.get(JAVA_INT,0);
+            if (kind < 0) return null;
+            if (kind == 3) return settingList(scope,key);
+            MemorySegment value=output.get(ADDRESS,0);
+            String text;
+            try { text=text(value); } finally { invoke("gran_string_free",null,value); }
+            if (kind == 1) return Double.valueOf(text);
+            if (kind == 2) return Boolean.valueOf(text.equals("true"));
+            return text;
+        }
+    }
+    private String[] settingList(Arena scope, MemorySegment key) {
+        java.util.List<String> items=new java.util.ArrayList<>();
+        MemorySegment output=scope.allocate(ADDRESS);
+        for (long index=0;; ++index) {
+            status("gran_settings_list_item",app,key,index,output);
+            MemorySegment value=output.get(ADDRESS,0);
+            if (value.address() == 0) return items.toArray(new String[0]);
+            try { items.add(text(value)); } finally { invoke("gran_string_free",null,value); }
+        }
+    }
+    // Тип — по значению: Boolean, Number, String[] или строка / The type — by the value: Boolean, Number, String[] or a string
+    public void setSetting(String name, Object value) {
+        try (Arena scope=Arena.ofConfined()) {
+            if (value instanceof String[] items) {
+                MemorySegment array=scope.allocate(ADDRESS,Math.max(1,items.length));
+                for (int index=0; index<items.length; ++index) array.setAtIndex(ADDRESS,index,utf8(scope,items[index]));
+                status("gran_settings_set_list",app,utf8(scope,name),array,(long)items.length);
+            }
+            else if (value instanceof Boolean flag) status("gran_settings_set",app,utf8(scope,name),2,utf8(scope,flag ? "true" : "false"));
+            else if (value instanceof Number number) status("gran_settings_set",app,utf8(scope,name),1,utf8(scope,Double.toString(number.doubleValue())));
+            else status("gran_settings_set",app,utf8(scope,name),0,utf8(scope,String.valueOf(value)));
+        }
+    }
+    public void removeSetting(String name) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_settings_remove",app,utf8(scope,name)); }
+    }
+    public void saveSettings() { status("gran_settings_save",app); }
+    // ---- Журнал и отчёт о сбое 1.8 (на весь процесс) ----
+    // ---- The log and the crash report 1.8 (process-wide) ----
+    public static final int LOG_SEVERE=0, LOG_WARNING=1, LOG_INFO=2, LOG_VERBOSE=3;
+    // Журнал процесса в файл и перехват падения (directory null — каталог по умолчанию) / The process log file and the crash catching (directory null — the default directory)
+    public void openLog(String appName, String directory, boolean crashReports) {
+        try (Arena scope=Arena.ofConfined()) {
+            check((int)invoke("gran_log_open",JAVA_INT,utf8(scope,appName),utf8(scope,directory),crashReports ? 1 : 0));
+        }
+    }
+    public void log(int level, String category, String text) {
+        try (Arena scope=Arena.ofConfined()) {
+            check((int)invoke("gran_log_write",JAVA_INT,level,utf8(scope,category),utf8(scope,text)));
+        }
+    }
+    private String processString(String name) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(ADDRESS);
+            check((int)invoke(name,JAVA_INT,output));
+            MemorySegment value=output.get(ADDRESS,0);
+            try { return text(value); }
+            finally { invoke("gran_string_free",null,value); }
+        }
+    }
+    public String logPath() { return processString("gran_log_path"); }
+    // Отчёт о сбое прошлого запуска ("" — нет) / The previous run crash report ("" — none)
+    public String previousCrash() { return processString("gran_log_previous_crash"); }
+    // ---- Фоновые задачи 1.8: work — в потоке пула, done и progress — в потоке UI ----
+    // ---- Background tasks 1.8: work runs on a pool thread, done and progress — on the UI thread ----
+    // Состояния GRAN_TASK_* / The GRAN_TASK_* statuses
+    public static final int TASK_DONE=0, TASK_CANCELLED=1, TASK_FAILED=2;
+    // Контекст фоновой работы: действителен только внутри неё / A background work context: valid only inside it
+    public final class BackgroundTask {
+        private final MemorySegment handle;
+        private BackgroundTask(MemorySegment task) { handle=task; }
+        public boolean cancelled() { return (int)invoke("gran_task_cancelled",JAVA_INT,handle) != 0; }
+        public void progress(double fraction, String text) {
+            try (Arena scope=Arena.ofConfined()) { invoke("gran_task_progress",JAVA_INT,handle,fraction,utf8(scope,text)); }
+        }
+    }
+    public interface BackgroundWork { Object run(BackgroundTask task) throws Exception; }
+    public interface TaskDone { void done(int status, Object result, String error); }
+    public interface TaskProgress { void progress(double fraction, String text); }
+    private static final class BackgroundEntry {
+        final BackgroundWork work; final TaskDone done; final TaskProgress progress; volatile Object result;
+        BackgroundEntry(BackgroundWork work, TaskDone done, TaskProgress progress) { this.work=work; this.done=done; this.progress=progress; }
+    }
+    // Фоновые задачи: user — номер записи, переходники общие / The background tasks: user is the entry number, the trampolines are shared
+    private final ConcurrentMap<Long,BackgroundEntry> background = new ConcurrentHashMap<>();
+    private MemorySegment workEntry, doneEntry, progressEntry;
+    // Поток пула: исключение не пересекает FFM — оно становится сбоем задачи / A pool thread: an exception does not cross FFM — it becomes the task failure
+    private void runWork(MemorySegment user, MemorySegment task) {
+        BackgroundEntry entry=background.get(user.address());
+        if (entry == null) return;
+        try { entry.result=entry.work.run(new BackgroundTask(task)); }
+        catch (Throwable error) {
+            String message=error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
+            try (Arena scope=Arena.ofConfined()) { invoke("gran_task_fail",JAVA_INT,task,utf8(scope,message)); }
+        }
+    }
+    private void taskDone(MemorySegment user, long task, int status, MemorySegment error) {
+        BackgroundEntry entry=background.remove(user.address());
+        if (entry == null || entry.done == null) return;
+        Object result=status == TASK_DONE ? entry.result : null;
+        String text=text(error);
+        protect(() -> entry.done.done(status,result,text));
+    }
+    private void taskProgress(MemorySegment user, long task, double fraction, MemorySegment caption) {
+        BackgroundEntry entry=background.get(user.address());
+        if (entry == null || entry.progress == null) return;
+        String text=text(caption);
+        protect(() -> entry.progress.progress(fraction,text));
+    }
+    private synchronized void taskEntries() {
+        ensureOpen();
+        if (workEntry != null) return;
+        workEntry=entry("runWork",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,ADDRESS),this);
+        doneEntry=entry("taskDone",MethodType.methodType(void.class,MemorySegment.class,long.class,int.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,JAVA_LONG,JAVA_INT,ADDRESS),this);
+        progressEntry=entry("taskProgress",MethodType.methodType(void.class,MemorySegment.class,long.class,double.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,JAVA_LONG,JAVA_DOUBLE,ADDRESS),this);
+    }
+    public long runTask(BackgroundWork work, TaskDone done, TaskProgress progress) {
+        Objects.requireNonNull(work);
+        taskEntries();
+        long key=nextTask.incrementAndGet();
+        background.put(key,new BackgroundEntry(work,done,progress));
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment task=scope.allocate(40,8), output=scope.allocate(JAVA_LONG);
+            task.set(JAVA_INT,0,40); task.set(ADDRESS,8,workEntry); task.set(ADDRESS,16,doneEntry);
+            task.set(ADDRESS,24,progressEntry); task.set(ADDRESS,32,MemorySegment.ofAddress(key));
+            status("gran_app_run_task",app,task,output);
+            return output.get(JAVA_LONG,0);
+        } catch (RuntimeException | Error failure) { background.remove(key); throw failure; }
+    }
+    // Попросить отменить; false — задачи уже нет / Ask to cancel; false — the task is gone
+    public boolean cancelTask(long task) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment found=scope.allocate(JAVA_INT);
+            status("gran_app_cancel_task",app,task,found);
+            return found.get(JAVA_INT,0) != 0;
+        }
+    }
     // ---- Модели 1.7: таблицы, ленивая подгрузка, деревья, представления, выделение ----
     // ---- Models 1.7: tables, lazy loading, trees, views, selection ----
     // Строка плоского дерева: узел, глубина и признаки / A flat tree row: the node, the depth and the flags

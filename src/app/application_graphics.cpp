@@ -1,5 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/rhi/backend_factory.hpp"
+#include "gran/core/i18n.hpp"
+#include "gran/log/log.hpp"
 
 namespace gran::app
 {
@@ -75,7 +77,9 @@ namespace gran::app
         desc.resizable = spec.resizable;
         desc.titleBar = spec.titleBar;
         desc.darkTitleBar = darkBackground(win.windowStyle);
+        ownWindow(win, desc);
         win.window = platform::createWindow(desc);
+        restorePlacement(win);
         win.window->setLiveResize(LiveResize{&win});
         win.access.root = win.document.root.get();
         win.window->setAccessTree(&win.access);
@@ -90,9 +94,11 @@ namespace gran::app
     // Старый рендерер отдаёт текстуры старому бэкенду до его разрушения / The old renderer returns the textures to the old backend before it is destroyed
     void recreateGraphics(AppWindow& win)
     {
+        log::write(log::Level::WARNING, "gpu", i18n::format(i18n::Message::GPU_DEVICE_RECREATED));
         win.renderer.reset();
         win.backend.reset();
         createBackend(win);
+        logAdapter(win);
         ui::markDirty(*win.document.root, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
     }
 }

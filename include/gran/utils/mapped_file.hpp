@@ -54,6 +54,8 @@ namespace gran
         std::size_t _size = 0;
         // Дескриптор объекта отображения Windows (на POSIX не нужен) / The Windows mapping object handle (not needed on POSIX)
         void* _mapping = nullptr;
+        // Байты ресурса res:/ (не отображение: снимать нечего) / The res:/ resource bytes (not a mapping: nothing to remove)
+        bool _resource = false;
     };
 }
 

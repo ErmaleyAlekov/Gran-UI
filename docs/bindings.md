@@ -202,6 +202,23 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 приложение: текст ошибки из каталога пишется в stderr.
 Обычные имена действий вызывают зарегистрированную бизнес-логику.
 
+### Окна и программа
+
+Окна-владельцы, модальные окна, фоновые задачи, журнал, ресурсы и настройки (см. [руководство](guide.md#окна-и-программа)). Работа фоновой задачи
+выполняется в потоке пула: исключение языка внутри неё становится сбоем (`failed`) с текстом, результат — объект языка,
+который обёртка хранит сама до `done`. Владелец — id любого узла его окна;
+обработчик закрытия получает результат (`""` — крестик или закрытие с владельцем) и вызывается один раз в потоке UI.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `open_window(source, is_file=True, owner=None, modal=False, on_closed=None)` | `OpenWindow(source, isFile, owner, modal, onClosed)` | `openWindow(source, isFile, owner, modal, onClosed)` / `openWindow(path)` | `gran_app_open_window` (`gran_window_options`) |
+| `close_window(target, result=None)` | `CloseWindow(target, result)` | `closeWindow(target, result)` | `gran_app_close_window` |
+| `run_task(work, done, progress)` → номер; `work(task)` возвращает результат, `task.cancelled()`, `task.progress(f, text)`; `done(status, result, error)`, `status` — `"done"`/`"cancelled"`/`"failed"` | `RunTask(work, done, progress)`; `BackgroundTask.Cancelled/Progress`; `BackgroundStatus` | `runTask(work, done, progress)`; `BackgroundTask.cancelled/progress`; `TASK_DONE/CANCELLED/FAILED` | `gran_app_run_task` (`gran_background`), `gran_task_cancelled/_progress/_fail` |
+| `cancel_task(id)` → `bool` | `CancelTask` | `cancelTask` | `gran_app_cancel_task` |
+| `open_log(app_name, directory=None, crash_reports=True)`, `log("info", category, text)`, `log_path()`, `previous_crash()` | `OpenLog`, `Log(LogLevel, …)`, `LogPath`, `PreviousCrash` | `openLog`, `log(LOG_INFO, …)`, `logPath`, `previousCrash` | `gran_log_open` / `_write` (`GRAN_LOG_*`) / `_path` / `_previous_crash` (на весь процесс) |
+| `mount_resources(bytes или путь)` — блок `gran_rcc --blob` | `MountResources(byte[])` | `mountResources(byte[])` | `gran_resources_mount` (байты копируются) |
+| `load_settings(app_name=None, path=None)`, `setting(name, default)` → `str`/`float`/`bool`/`list`, `set_setting(name, value)` (тип — по значению), `remove_setting`, `save_settings` | `LoadSettings`, `GetSetting` → `object?`, `SetSetting` (string/double/bool/список), `RemoveSetting`, `SaveSettings` | `loadSettings`, `getSetting` → `Object`, `setSetting`, `removeSetting`, `saveSettings` | `gran_settings_load/_get/_set/_list_item/_set_list/_remove/_save` (`GRAN_SETTING_*`) |
+
 ## C ABI
 
 Все строки — UTF-8 с завершающим нулём. Возвращённые `char*` освобождаются только

@@ -69,6 +69,9 @@ namespace gran::rhi::dx11
         void releaseTexture(std::uint32_t slot) override;
         FrameStatus render(const FrameData& frame) override;
         std::vector<std::string> takeDiagnostics() override;
+
+        // ---- dx11_adapter.cpp ----
+        AdapterInfo adapterInfo() const override;
         void readPixels(std::vector<std::uint8_t>& rgba, std::uint32_t& width, std::uint32_t& height) override;
 
     private:

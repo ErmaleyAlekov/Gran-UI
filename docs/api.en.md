@@ -265,6 +265,100 @@ missed periods are not caught up. Time is counted from the start, including befo
 `showDialog(dialog)` and `hideDialog(dialog)` manage modal layers inside the window.
 These methods are intended for a running `run()`; the dialog returns focus after closing.
 
+## Windows and the program
+
+### Owner windows and modal windows
+
+`openWindow(const std::string& path, const WindowOptions& options = {})` and `openWindowString(std::string_view,
+const WindowOptions&)` open one more window and return its content root. The `WindowOptions` fields:
+
+- `ui::Node* owner = nullptr` — any node of the owner window. A node outside the open windows is `GranException(MARKUP)`
+  (`APP_OWNER_NOT_WINDOW`), no window is created. The owned window stands in the window list after the owner, closes
+  before it and together with it.
+- `bool modal = false` — while the window is open, the owner and its owners get no input (Win32 `EnableWindow`,
+  on X11 the engine drops the events). Without an owner the flag is reset.
+- `WindowCloseHandler onClosed` — `std::function<void(const std::string& result)>`, called on the UI thread after
+  the window is destroyed.
+
+`closeWindow(ui::Node&, const std::string& result)` marks the node window for closing (after the event pass) with
+a result for `onClosed`; `closeWindow(ui::Node&)` is the same with an empty result. Closing together with the owner
+and the close button give `""`; closing the main window ends `run()` without calling `onClosed` of the other windows.
+The built-in `gran:close:result` action is equivalent to `closeWindow(node, "result")`.
+
+Platform: `platform::WindowDesc::owner` (`platform::Window*`), `modal`, `kind` (`WindowKind::NORMAL|DIALOG|TOOL`),
+`position` (`WindowPosition::DEFAULT|CENTER|CENTER_OWNER`; the enumerations are in `gran/platform/window_frame.hpp`);
+`Window::setEnabled(bool)` and `Window::activate()` (do nothing by default). Markup:
+`markup::WindowSpec::kind` and `position` from the `<Window kind position>` attributes.
+
+### The background task pool
+
+`TaskId runTask(BackgroundWork work, TaskDone done = {}, TaskProgress progress = {})` (`gran/app/background_task.hpp`):
+`BackgroundWork` is `std::function<void(TaskContext&)>` on a pool thread, `TaskDone` is `void(TaskOutcome&)` and
+`TaskProgress` is `void(const TaskProgressInfo&)` on the UI thread. `cancelTask(TaskId)` sets the cancel flag (`false` —
+the outcome is already delivered or the number is unknown), `activeTasks() const` is the tasks in the queue, at work and with an undelivered outcome.
+`AppOptions::taskThreads` (0 — cores − 1, from 1 to 8); the threads are created on the first task.
+
+`TaskContext` (only inside the work): `id()`, `cancelled()`, `progress(double fraction, const std::string& text = {})`
+(merged to the latest value), `setResult(std::any)`, `fail(const std::string&)` — a failure without an exception.
+`TaskOutcome`: `id`, `status` (`TaskStatus::DONE|CANCELLED|FAILED`), `error`, `result` (`std::any`, empty on
+cancellation and failure). A work exception is `FAILED` with `what()`; an unknown exception is the `TASK_UNKNOWN_ERROR` text.
+A task cancelled in the queue does not start. The application destructor cancels the tasks and waits for the pool threads (`app::TaskPool`,
+the last field of `Application::State`); the outcomes not delivered by then are destroyed without calling `done`.
+
+### The log and the crash report
+
+`AppOptions::appName` (empty — no log), `logDirectory`, `crashReports = true`; the `Application` constructor opens
+the log, writes the start and installs the crash handler. `const std::string& previousCrash() const` is the previous run report
+(`.txt`; the `.seen` file in the report directory remembers the shown one).
+
+The `gran/log/log.hpp` module (the process log, the Singleton pattern): `Level::SEVERE|WARNING|INFO|VERBOSE`; `LogOptions`
+(`appName`, `directory`, `maxBytes = 1 MB`, `files = 5`, `level = INFO`); `bool open(const LogOptions&)` (again with the same
+path — nothing), `close()`, `filePath()`, `directory()` (UTF-8); `write(Level, std::string_view category, std::string_view text)
+noexcept` — from any thread, the file is flushed after every line, `SEVERE`/`WARNING` are duplicated to stderr;
+`copyRecent(char*, std::size_t) noexcept` — the tail of the ring of the latest records (16 KB, without allocations and locks — for the crash
+handler); `defaultDirectory(appName)`, `systemDescription()`.
+
+`gran/log/crash_report.hpp`: `CrashOptions{appName, directory}`, `bool installCrashHandler(const CrashOptions&)` (again —
+nothing), `crashDirectory(const CrashOptions&)`, `previousCrash(const std::string& directory)`. The file names are
+`<program>-<time>-<process>.txt|.dmp|.stack`. Windows: the SEH filter hands the pointers to a helper thread (created
+in advance, the crashed thread may have no stack), `MiniDumpWriteDump` (dbghelp is loaded on installing;
+`MiniDumpWithIndirectlyReferencedMemory | ScanMemory | ThreadInfo | UnloadedModules`), the stack is `RtlVirtualUnwind`;
+`std::terminate`, `abort`, a CRT invalid parameter are own codes `0xE0000001…3`. Linux: `sigaction` with `SA_ONSTACK | SA_RESETHAND`
+on a 64 KB `sigaltstack`, only async-signal-safe calls, then the signal is repeated. Rendering: `rhi::RenderBackend::adapterInfo()`
+→ `AdapterInfo{api, name, driver, software}` for the log.
+
+### Resources inside the program
+
+`gran/res/resources.hpp`: `Entry{path, data, size}`, `Bundle{name, entries, count}`, `ResourceView{data, size}`;
+`mount(const Bundle&)` (the bytes are not copied; a bundle mounted later overrides equal paths), `mountBlob(const void*,
+std::size_t)` (the "GRANRES1" block is copied; a damaged one is `GranException(RESOURCE)`, `RES_BAD_BLOB`), `unmountAll()`,
+`isResourcePath(std::string_view)`, `find(std::string_view, ResourceView&)`, `normalize(std::string_view)` (both slashes,
+`.` and `..`; leaving the root — empty), `readFile(const std::filesystem::path&, std::vector<std::uint8_t>&)` and
+`openStream(const std::filesystem::path&)` — a resource or a disk file. `MappedFile::open("res:/…")` gives the bundle bytes without
+a mapping. The block format: `"GRANRES1"`, `u32` entry count, for each `u32` path length, the path, `u64` length, the data (LE).
+
+`gran/res/manifest.hpp` (used by `gran_rcc`): `readManifest(path)` → `Manifest{name, location, files}` (the
+`gran-resources.xsd` schema; a missing file is `RES_MISSING_FILE`, a repeated path is `RES_DUPLICATE_ALIAS`), `matchPattern`, `expandFolder`,
+`sortFiles`, `generateSource`, `generateBlob`, `generateDepfile`. The generated `.cpp` declares
+`const gran::res::Bundle& granResources_<name>()`.
+
+### The program settings
+
+`settings::Settings& Application::settings()`; `AppOptions::settingsFile` (empty — `settings::defaultPath(appName)`).
+`gran/settings/settings.hpp`: `ValueType::STRING|NUMBER|BOOLEAN|LIST`, `Value{type, text, items}`;
+`Settings::load(path)` (no file — empty and `true`; a damaged one goes into `.bad`, `SETTINGS_DAMAGED` to the log, `false`),
+`save()` (a temporary `.tmp` and renaming), `path()`, `modified()`; `getString/getNumber/getBool(name, fallback)`,
+`getList`, `find(name)` → `const Value*`; `setString/setNumber/setBool/setList`, `remove`; the layout —
+`windowPlacement/setWindowPlacement(layout, WindowPlacement)`, `attribute/setAttribute({layout, id, name}, value)`,
+`variable/setVariable(name, Value)` (they change `modified` only for a different value).
+
+The engine: `restorePlacement` — right after the OS window creation, before the backend (the swap chain is of the right size at once);
+`restoreState` (the `persist` attributes through `setMarkupAttribute`, the `persist` variables with their type) — before the first frame;
+`saveState` — before closing a window and for all the windows at the end of `run()`, then `save()` if there are changes.
+Platform: `platform::WindowPlacement{x, y, width, height, maximized}`, `Window::placement()` / `setPlacement()` —
+Win32 `Get/SetWindowPlacement` (`rcNormalPosition`, the maximization on `show`), X11 — the client area relative to
+the root and `StaticGravity`. Markup: `WindowSpec::layout`, `data::Variable::persist`, the `persist` attribute (the `PersistList` type).
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` sets a handler `void(ui::Node&, const std::string&)`.

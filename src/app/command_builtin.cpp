@@ -2,7 +2,7 @@
 #include "gran/app/commands.hpp"
 #include "gran/core/gran_exception.hpp"
 
-#include <iostream>
+#include "gran/log/log.hpp"
 
 namespace gran::app
 {
@@ -74,6 +74,16 @@ namespace gran::app
         {
             if (call.target.empty() && windowBuiltin(windowOf(state, node), call.command))
                 return;
+            // gran:close:результат — закрыть окно узла с результатом для onClosed (без onClose, как closeWindow)
+            // gran:close:result — close the node window with a result for onClosed (without onClose, as closeWindow)
+            if (call.command == "close")
+            {
+                std::string result = call.target;
+                if (!call.argument.empty())
+                    result += ":" + call.argument;
+                markClosing(state, node, result);
+                return;
+            }
             if (call.target.empty() && fieldHistory(windowOf(state, node), call.command))
                 return;
             if (call.target.empty() && treeRowBuiltin(state, call.command, node))
@@ -111,7 +121,7 @@ namespace gran::app
             if (error.getCode() == ErrorCode::GPU || error.getCode() == ErrorCode::DEVICE_LOST
                 || error.getCode() == ErrorCode::PLATFORM)
                 throw;
-            std::cerr << error.what() << '\n';
+            log::write(log::Level::SEVERE, "markup", error.what());
         }
         return true;
     }

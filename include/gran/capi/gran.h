@@ -211,6 +211,98 @@ GRAN_API gran_status gran_app_markup_read(gran_app* app, const char* target, con
 GRAN_API gran_status gran_app_markup_write(gran_app* app, const char* target, const char* name, const char* value);
 GRAN_API gran_status gran_app_markup_save(gran_app* app, const char* window, char** result);
 
+/* Окна: open_window открывает ещё одно окно (source — путь при is_file != 0, иначе разметка). options == NULL —
+ * независимое окно; owner — id узла окна-владельца (подчинённое держится над ним и закрывается вместе с ним),
+ * modal != 0 — владелец не получает ввода, пока окно открыто; on_closed(user, result) вызывается в потоке UI после
+ * закрытия (result действителен только во время вызова; крестик и закрытие с владельцем — ""). close_window закрывает
+ * окно узла target с результатом result (NULL — ""); закрытие главного окна завершает run.
+ * Windows: open_window opens one more window (source is a path when is_file != 0, otherwise markup). options == NULL is
+ * an independent window; owner is the id of a node of the owner window (the owned one stays above it and closes with it),
+ * modal != 0 — the owner gets no input while the window is open; on_closed(user, result) is called on the UI thread after
+ * closing (result is valid only during the call; the cross and closing with the owner give ""). close_window closes
+ * the window of the target node with the result (NULL — ""); closing the main window ends run. */
+typedef void (*gran_window_closed_fn)(void* user, const char* result);
+typedef struct gran_window_options {
+    uint32_t size;
+    const char* owner;
+    int32_t modal;
+    gran_window_closed_fn on_closed;
+    void* user;
+} gran_window_options;
+GRAN_API gran_status gran_app_open_window(gran_app* app, const char* source, int32_t is_file,
+    const gran_window_options* options);
+GRAN_API gran_status gran_app_close_window(gran_app* app, const char* target, const char* result);
+
+/* Фоновые задачи: work(user, task) выполняется в потоке пула; из неё — gran_task_cancelled, gran_task_progress
+ * (сливается: в поток UI доходит последнее значение) и gran_task_fail (сбой с текстом; исключения языка не пересекают
+ * ABI). done(user, id, status, error) и progress(user, id, fraction, text) — в потоке UI, строки действительны только
+ * во время вызова; после done прогресса нет. status — GRAN_TASK_*. При destroy задачи отменяются, приложение ждёт потоки.
+ * Background tasks: work(user, task) runs on a pool thread; from it — gran_task_cancelled, gran_task_progress
+ * (merged: the latest value reaches the UI thread) and gran_task_fail (a failure with a text; the language exceptions do not
+ * cross the ABI). done(user, id, status, error) and progress(user, id, fraction, text) — on the UI thread, the strings are valid
+ * only during the call; no progress comes after done. status is GRAN_TASK_*. On destroy the tasks are cancelled, the application waits for the threads. */
+enum { GRAN_TASK_DONE = 0, GRAN_TASK_CANCELLED = 1, GRAN_TASK_FAILED = 2 };
+typedef struct gran_task gran_task;
+typedef void (*gran_work_fn)(void* user, gran_task* task);
+typedef void (*gran_task_done_fn)(void* user, uint64_t task, int32_t status, const char* error);
+typedef void (*gran_task_progress_fn)(void* user, uint64_t task, double fraction, const char* text);
+typedef struct gran_background {
+    uint32_t size;
+    gran_work_fn work;
+    gran_task_done_fn done;
+    gran_task_progress_fn progress;
+    void* user;
+} gran_background;
+GRAN_API gran_status gran_app_run_task(gran_app* app, const gran_background* task, uint64_t* result);
+GRAN_API gran_status gran_app_cancel_task(gran_app* app, uint64_t task, int32_t* found);
+GRAN_API int32_t gran_task_cancelled(const gran_task* task);
+GRAN_API gran_status gran_task_progress(gran_task* task, double fraction, const char* text);
+GRAN_API gran_status gran_task_fail(gran_task* task, const char* message);
+
+/* Журнал и отчёт о сбое (на весь процесс; вызывать до gran_app_create, из любого потока). log_open открывает файл
+ * <directory>/<app_name>.log (directory == NULL — %LOCALAPPDATA%\<app_name>\logs или ~/.local/state/<app_name>/logs)
+ * и при crash_reports != 0 ставит перехват падения (минидамп и отчёт в каталог crashes рядом с журналом).
+ * log_write: level — GRAN_LOG_*. log_path и log_previous_crash возвращают строку (пустую — нет), освободить
+ * gran_string_free; previous_crash — отчёт прошлого запуска, найденный в log_open.
+ * The log and the crash report (process-wide; call before gran_app_create, from any thread). log_open opens the file
+ * <directory>/<app_name>.log (directory == NULL — %LOCALAPPDATA%\<app_name>\logs or ~/.local/state/<app_name>/logs)
+ * and with crash_reports != 0 installs the crash catching (a minidump and a report in the crashes directory beside the log).
+ * log_write: level is GRAN_LOG_*. log_path and log_previous_crash return a string (empty — none), free it with
+ * gran_string_free; previous_crash is the previous run report found in log_open. */
+enum { GRAN_LOG_SEVERE = 0, GRAN_LOG_WARNING = 1, GRAN_LOG_INFO = 2, GRAN_LOG_VERBOSE = 3 };
+GRAN_API gran_status gran_log_open(const char* app_name, const char* directory, int32_t crash_reports);
+GRAN_API gran_status gran_log_write(int32_t level, const char* category, const char* text);
+GRAN_API gran_status gran_log_path(char** result);
+GRAN_API gran_status gran_log_previous_crash(char** result);
+
+/* Ресурсы внутри программы: resources_mount подключает блок gran_rcc --blob (байты копируются, на весь процесс);
+ * после него пути «res:/…» работают в gran_app_load, gran_app_open_window, картинках, шрифтах и источниках данных.
+ * Испорченный блок — GRAN_ERROR.
+ * Resources inside the program: resources_mount mounts a gran_rcc --blob block (the bytes are copied, process-wide);
+ * after it the "res:/…" paths work in gran_app_load, gran_app_open_window, images, fonts and data sources.
+ * A damaged block is GRAN_ERROR. */
+GRAN_API gran_status gran_resources_mount(const void* data, size_t size);
+
+/* Настройки программы (Application::settings): settings_load читает файл path (NULL — по имени программы app_name:
+ * %APPDATA%/<app_name>/settings.xml или ~/.config/<app_name>/settings.xml); без загрузки настройки не сохраняются.
+ * get: *type — GRAN_SETTING_* (GRAN_SETTING_MISSING — нет), *result — текст (у списка NULL; освободить gran_string_free).
+ * set: число и логическое передаются текстом ("2.5", "true"). list_item: *result == NULL — индекс за концом.
+ * Раскладка окон (<Window layout>, persist) сохраняется сама в конце gran_app_run; save — сохранить сейчас.
+ * The program settings (Application::settings): settings_load reads the path file (NULL — by the app_name program name:
+ * %APPDATA%/<app_name>/settings.xml or ~/.config/<app_name>/settings.xml); without loading the settings are not saved.
+ * get: *type is GRAN_SETTING_* (GRAN_SETTING_MISSING — none), *result is the text (NULL for a list; free it with gran_string_free).
+ * set: a number and a boolean are passed as text ("2.5", "true"). list_item: *result == NULL — the index is past the end.
+ * The window layout (<Window layout>, persist) is saved by itself at the end of gran_app_run; save — save now. */
+enum { GRAN_SETTING_MISSING = -1, GRAN_SETTING_STRING = 0, GRAN_SETTING_NUMBER = 1, GRAN_SETTING_BOOLEAN = 2,
+       GRAN_SETTING_LIST = 3 };
+GRAN_API gran_status gran_settings_load(gran_app* app, const char* app_name, const char* path);
+GRAN_API gran_status gran_settings_get(gran_app* app, const char* name, int32_t* type, char** result);
+GRAN_API gran_status gran_settings_set(gran_app* app, const char* name, int32_t type, const char* value);
+GRAN_API gran_status gran_settings_list_item(gran_app* app, const char* name, size_t index, char** result);
+GRAN_API gran_status gran_settings_set_list(gran_app* app, const char* name, const char* const* items, size_t count);
+GRAN_API gran_status gran_settings_remove(gran_app* app, const char* name);
+GRAN_API gran_status gran_settings_save(gran_app* app);
+
 /* Компоненты: сгенерированная XSD библиотеки namespace_uri, подключённой <xi:include> в окне узла window (NULL — главном);
  * пустая строка — такой библиотеки нет; освободить gran_string_free. Её сохраняют рядом с разметкой для подсказок редактора XML.
  * Components: the generated XSD of the namespace_uri library included with <xi:include> in the window of the node window (NULL — the main one);

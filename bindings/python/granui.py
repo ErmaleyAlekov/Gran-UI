@@ -91,6 +91,32 @@ class _UndoStep(C.Structure):
     _fields_ = [("size", C.c_uint32), ("undo", _Task), ("redo", _Task), ("release", _Task), ("user", C.c_void_p)]
 
 _UndoFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_uint32)
+_WindowClosedFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p)
+
+_WorkFn = C.CFUNCTYPE(None, C.c_void_p, C.c_void_p)
+_TaskDoneFn = C.CFUNCTYPE(None, C.c_void_p, C.c_uint64, C.c_int32, C.c_char_p)
+_TaskProgressFn = C.CFUNCTYPE(None, C.c_void_p, C.c_uint64, C.c_double, C.c_char_p)
+
+class _Background(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("work", _WorkFn), ("done", _TaskDoneFn), ("progress", _TaskProgressFn),
+                ("user", C.c_void_p)]
+
+TASK_STATUS = ("done", "cancelled", "failed")
+
+class BackgroundTask:
+    """Контекст фоновой работы: действителен только внутри неё. / A background work context: valid only inside it."""
+    def __init__(self, lib, handle):
+        self._lib, self._handle = lib, handle
+
+    def cancelled(self):
+        return bool(self._lib.gran_task_cancelled(self._handle))
+
+    def progress(self, fraction, text=""):
+        self._lib.gran_task_progress(self._handle, float(fraction), _encode(text))
+
+class _WindowOptions(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("owner", C.c_char_p), ("modal", C.c_int32),
+                ("on_closed", _WindowClosedFn), ("user", C.c_void_p)]
 _ConvertFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_void_p)
 
 class UndoState(tuple):
@@ -163,6 +189,19 @@ def _configure(lib):
         "selection_change": (C.c_int32, [p, s, C.c_int32, z, z]),
         "selection_read": (C.c_int32, [p, s, C.POINTER(z), C.POINTER(z), C.POINTER(z)]),
         "selection_on_change": (C.c_int32, [p, s, _SelectionFn, p]),
+        "app_open_window": (C.c_int32, [p, s, C.c_int32, C.POINTER(_WindowOptions)]),
+        "app_close_window": (C.c_int32, [p, s, s]),
+        "app_run_task": (C.c_int32, [p, C.POINTER(_Background), C.POINTER(C.c_uint64)]),
+        "app_cancel_task": (C.c_int32, [p, C.c_uint64, C.POINTER(C.c_int32)]),
+        "task_cancelled": (C.c_int32, [p]), "task_progress": (C.c_int32, [p, C.c_double, s]),
+        "task_fail": (C.c_int32, [p, s]),
+        "resources_mount": (C.c_int32, [p, z]),
+        "settings_load": (C.c_int32, [p, s, s]), "settings_get": (C.c_int32, [p, s, C.POINTER(C.c_int32), C.POINTER(p)]),
+        "settings_set": (C.c_int32, [p, s, C.c_int32, s]), "settings_list_item": (C.c_int32, [p, s, z, C.POINTER(p)]),
+        "settings_set_list": (C.c_int32, [p, s, C.POINTER(s), z]), "settings_remove": (C.c_int32, [p, s]),
+        "settings_save": (C.c_int32, [p]),
+        "log_open": (C.c_int32, [s, s, C.c_int32]), "log_write": (C.c_int32, [C.c_int32, s, s]),
+        "log_path": (C.c_int32, [C.POINTER(p)]), "log_previous_crash": (C.c_int32, [C.POINTER(p)]),
     }
     for name, (result, args) in declarations.items():
         function = getattr(lib, "gran_" + name)
@@ -192,6 +231,16 @@ class Application:
         self._release_entry = _Task(lambda user: self._undo_steps.pop(user or 0, None))
         self._undo_handler = None
         self._converters = {}
+        # Обработчики закрытия окон: user — номер обработчика, один переходник на все окна.
+        # The window close handlers: user is the handler number, one trampoline for all the windows.
+        self._windows = {}
+        self._window_entry = _WindowClosedFn(self._window_closed)
+        # Фоновые задачи: user — номер записи [work, done, progress, результат], переходники общие.
+        # The background tasks: user is the number of an entry [work, done, progress, result], the trampolines are shared.
+        self._background = {}
+        self._work_entry = _WorkFn(self._run_work)
+        self._done_entry = _TaskDoneFn(self._task_done)
+        self._progress_entry = _TaskProgressFn(self._task_progress)
         options = _Options(C.sizeof(_Options), backend, 0, warp, 0, 0, exit_after)
         self._check(self._lib.gran_app_create(C.byref(options), C.byref(self._app)))
 
@@ -474,6 +523,161 @@ class Application:
             key = self._timer_keys.get(timer)
         if key is not None:
             self._drop_task(key)
+
+    def _window_closed(self, user, result):
+        handler = self._windows.pop(user or 0, None)
+        if handler is not None:
+            self._protect(handler, (result or b"").decode("utf-8"))
+
+    def open_window(self, source, is_file=True, owner=None, modal=False, on_closed=None):
+        """Ещё одно окно; owner — id узла окна-владельца, on_closed(result) — после закрытия.
+        One more window; owner is the id of an owner window node, on_closed(result) — after closing."""
+        key = 0
+        if on_closed is not None:
+            with self._task_lock:
+                key = next(self._task_keys)
+            self._windows[key] = on_closed
+        options = _WindowOptions(C.sizeof(_WindowOptions), _encode(owner), 1 if modal else 0,
+                                 self._window_entry if on_closed is not None else _WindowClosedFn(), C.c_void_p(key))
+        try:
+            self._call("app_open_window", _encode(source), 1 if is_file else 0, C.byref(options))
+        except BaseException:
+            self._windows.pop(key, None)
+            raise
+
+    def _run_work(self, user, handle):
+        # Поток пула: исключение не пересекает ctypes — оно становится сбоем задачи.
+        # A pool thread: an exception does not cross ctypes — it becomes the task failure.
+        entry = self._background.get(user or 0)
+        if entry is None:
+            return
+        try:
+            entry[3] = entry[0](BackgroundTask(self._lib, handle))
+        except BaseException as error:
+            self._lib.gran_task_fail(handle, _encode(str(error) or type(error).__name__))
+
+    def _task_done(self, user, task, status, error):
+        entry = self._background.pop(user or 0, None)
+        if entry is not None and entry[1] is not None:
+            result = entry[3] if status == 0 else None
+            self._protect(entry[1], TASK_STATUS[status], result, (error or b"").decode("utf-8"))
+
+    def _task_progress(self, user, task, fraction, text):
+        entry = self._background.get(user or 0)
+        if entry is not None and entry[2] is not None:
+            self._protect(entry[2], fraction, (text or b"").decode("utf-8"))
+
+    def run_task(self, work, done=None, progress=None):
+        """work(task) -> результат в потоке пула; done(status, result, error) и progress(fraction, text) — в потоке UI.
+        work(task) -> a result on a pool thread; done(status, result, error) and progress(fraction, text) — on the UI thread."""
+        with self._task_lock:
+            key = next(self._task_keys)
+        self._background[key] = [work, done, progress, None]
+        task = _Background(C.sizeof(_Background), self._work_entry, self._done_entry, self._progress_entry, C.c_void_p(key))
+        result = C.c_uint64()
+        try:
+            self._call("app_run_task", C.byref(task), C.byref(result))
+        except BaseException:
+            self._background.pop(key, None)
+            raise
+        return result.value
+
+    def cancel_task(self, task):
+        """Попросить отменить; False — задачи уже нет. / Ask to cancel; False — the task is gone."""
+        found = C.c_int32()
+        self._call("app_cancel_task", C.c_uint64(task), C.byref(found))
+        return bool(found.value)
+
+    def mount_resources(self, blob):
+        """Подключить блок gran_rcc --blob (bytes или путь к файлу): пути res:/ для всего процесса.
+        Mount a gran_rcc --blob block (bytes or a file path): the res:/ paths for the whole process."""
+        if not isinstance(blob, (bytes, bytearray)):
+            with open(blob, "rb") as stream:
+                blob = stream.read()
+        data = C.create_string_buffer(bytes(blob), len(blob))
+        self._check(self._lib.gran_resources_mount(data, len(blob)))
+
+    def load_settings(self, app_name=None, path=None):
+        """Файл настроек: path или по имени программы. / The settings file: path or by the program name."""
+        self._call("settings_load", _encode(app_name), _encode(path))
+
+    def setting(self, name, default=None):
+        """Значение настройки (str, float, bool или list) или default. / A setting value (str, float, bool or list) or default."""
+        kind, output = C.c_int32(), C.c_void_p()
+        self._call("settings_get", _encode(name), C.byref(kind), C.byref(output))
+        if kind.value < 0:
+            return default
+        if kind.value == 3:
+            return self._setting_list(name)
+        try:
+            text = C.string_at(output).decode("utf-8")
+        finally:
+            self._lib.gran_string_free(output)
+        if kind.value == 1:
+            return float(text)
+        if kind.value == 2:
+            return text == "true"
+        return text
+
+    def _setting_list(self, name):
+        items, index = [], 0
+        while True:
+            output = C.c_void_p()
+            self._call("settings_list_item", _encode(name), index, C.byref(output))
+            if not output.value:
+                return items
+            try:
+                items.append(C.string_at(output).decode("utf-8"))
+            finally:
+                self._lib.gran_string_free(output)
+            index += 1
+
+    def set_setting(self, name, value):
+        """Тип — по значению: bool, число, список строк или строка. / The type — by the value: bool, a number, a list of strings or a string."""
+        if isinstance(value, (list, tuple)):
+            data = (C.c_char_p * max(1, len(value)))(*[_encode(item) for item in value])
+            self._call("settings_set_list", _encode(name), data, len(value))
+        elif isinstance(value, bool):
+            self._call("settings_set", _encode(name), 2, b"true" if value else b"false")
+        elif isinstance(value, (int, float)):
+            self._call("settings_set", _encode(name), 1, repr(float(value)).encode("ascii"))
+        else:
+            self._call("settings_set", _encode(name), 0, _encode(value))
+
+    def remove_setting(self, name):
+        self._call("settings_remove", _encode(name))
+
+    def save_settings(self):
+        self._call("settings_save")
+
+    LOG_LEVELS = ("severe", "warning", "info", "verbose")
+
+    def open_log(self, app_name, directory=None, crash_reports=True):
+        """Журнал процесса в файл и перехват падения. / The process log file and the crash catching."""
+        self._check(self._lib.gran_log_open(_encode(app_name), _encode(directory), 1 if crash_reports else 0))
+
+    def log(self, level, category, text):
+        """level — "severe" / "warning" / "info" / "verbose". / level is "severe" / "warning" / "info" / "verbose"."""
+        self._check(self._lib.gran_log_write(self.LOG_LEVELS.index(level), _encode(category), _encode(text)))
+
+    def _process_string(self, name):
+        output = C.c_void_p()
+        self._check(getattr(self._lib, "gran_" + name)(C.byref(output)))
+        try:
+            return C.string_at(output).decode("utf-8")
+        finally:
+            self._lib.gran_string_free(output)
+
+    def log_path(self):
+        return self._process_string("log_path")
+
+    def previous_crash(self):
+        """Отчёт о сбое прошлого запуска ("" — нет). / The previous run crash report ("" — none)."""
+        return self._process_string("log_previous_crash")
+
+    def close_window(self, target, result=None):
+        """Закрыть окно узла target с результатом для on_closed. / Close the window of the target node with a result for on_closed."""
+        self._call("app_close_window", _encode(target), _encode(result))
 
     def pending_tasks(self):
         """Число задач и таймеров, ждущих вызова (для проверок). / The number of tasks and timers waiting for a call (for checks)."""

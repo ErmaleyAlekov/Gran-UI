@@ -1,8 +1,10 @@
 #include "gran/text/font_library.hpp"
 #include "gran/text/internal/font_parts.hpp"
+#include "gran/res/resources.hpp"
 
 #include <cstdlib>
-#include <fstream>
+#include <filesystem>
+#include <memory>
 
 namespace gran::text
 {
@@ -12,7 +14,7 @@ namespace gran::text
         constexpr std::uint32_t SCAN_LIMIT = 1u << 20;
 
         // Чтение участка файла; false — файл короче / Reading a file part; false — the file is shorter
-        bool readBytes(std::ifstream& file, std::uint32_t offset, std::uint32_t length, std::vector<std::uint8_t>& bytes)
+        bool readBytes(std::istream& file, std::uint32_t offset, std::uint32_t length, std::vector<std::uint8_t>& bytes)
         {
             bytes.assign(length, 0);
             file.clear();
@@ -22,7 +24,7 @@ namespace gran::text
         }
 
         // Признаки из таблиц name и OS/2 по каталогу / The traits from the name and OS/2 tables by the directory
-        void readTraits(std::ifstream& file, const FontReader& directory, std::uint16_t count, FontCandidate& candidate)
+        void readTraits(std::istream& file, const FontReader& directory, std::uint16_t count, FontCandidate& candidate)
         {
             std::vector<std::uint8_t> table;
 
@@ -51,7 +53,7 @@ namespace gran::text
         ** One face: the table directory, then only name and OS/2. CFF outlines ('OTTO')
         ** are skipped — the engine does not draw them yet.
         */
-        void scanFace(std::ifstream& file, const std::string& path, std::uint32_t index, std::uint32_t offset,
+        void scanFace(std::istream& file, const std::string& path, std::uint32_t index, std::uint32_t offset,
             std::vector<FontCandidate>& candidates)
         {
             std::vector<std::uint8_t> head;
@@ -71,7 +73,9 @@ namespace gran::text
     // TTC — до 64 начертаний; TTF — одно / A TTC — up to 64 faces; a TTF — one
     void scanFontFile(const std::string& path, std::vector<FontCandidate>& candidates)
     {
-        std::ifstream file(path, std::ios::binary);
+        // Файл диска или шрифт из ресурсов res:/ / A disk file or a font from the res:/ resources
+        std::unique_ptr<std::istream> stream = res::openStream(std::filesystem::path(path));
+        std::istream& file = *stream;
         std::vector<std::uint8_t> header;
 
         if (!file || !readBytes(file, 0, 12, header))

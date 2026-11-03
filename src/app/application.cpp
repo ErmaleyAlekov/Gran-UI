@@ -1,4 +1,5 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/res/resources.hpp"
 
 #include <filesystem>
 #include <utility>
@@ -11,6 +12,8 @@ namespace gran
     {
         _state->owner = this;
         _state->options = options;
+        app::startLogging(*_state);
+        app::startSettings(*_state);
     }
 
     // Порядок разрушения задан порядком полей State / The destruction order is set by the State field order
@@ -19,9 +22,12 @@ namespace gran
     // Разметка из файла: разбор и проверка схемой за один проход / Markup from a file: parsing and the schema check in one pass
     void Application::loadFile(const std::string& path)
     {
-        // Абсолютный путь: наблюдение и reload не зависят от смены текущего каталога
-        // An absolute path: watching and reload do not depend on changing the current directory
-        std::string absolute = std::filesystem::absolute(path).lexically_normal().string();
+        // Абсолютный путь: наблюдение и reload не зависят от смены текущего каталога; res:/ — уже абсолютный
+        // An absolute path: watching and reload do not depend on changing the current directory; res:/ is already absolute
+        std::string absolute = path;
+
+        if (!res::isResourcePath(path))
+            absolute = std::filesystem::absolute(path).lexically_normal().string();
 
         app::stageDocument(*_state, markup::loadMarkupFile(absolute, markup::LoadOptions{}), absolute);
     }

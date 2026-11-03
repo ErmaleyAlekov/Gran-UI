@@ -27,8 +27,9 @@
 19. [Embedded browser: WebView](#embedded-browser-webview)
 20. [Accessibility](#accessibility)
 21. [Platform: windows, files, icons](#platform-windows-files-icons)
-22. [Errors and Message Language](#errors-and-message-language)
-23. [Custom window title bar](#custom-window-title-bar)
+22. [Windows and the program](#windows-and-the-program)
+23. [Errors and Message Language](#errors-and-message-language)
+24. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -127,7 +128,8 @@ The complete example with two icons and a search field is `samples/custom_window
 ## Window and Resources
 
 The document root is `<Window>`: `title`, `width`, `height` (default 800 × 600), `minWidth`, `minHeight`, `onClose`,
-as well as any styling attributes that children inherit (`background`, `color`, `fontSize`, `fontFamily`).
+`kind`, `position` and `layout` (the "Windows and the program" section), as well as any styling attributes that children inherit
+(`background`, `color`, `fontSize`, `fontFamily`).
 Inside: an optional `<Resources>` and exactly one root interface element.
 
 ```xml
@@ -337,8 +339,9 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `selectTab(tabs, value)` | Select a `Tabs` page from code (without `onChange`) |
 | `setValue(node, number)` / `setChecked(node, yes/no)` | The number of a `ProgressBar`/`Slider`, the mark of a `CheckBox`/`Switch`/`RadioButton` (without `onChange`) |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
+| `runTask(work, done, progress)` / `cancelTask(id)` | A background task in the thread pool, the outcome and the progress — on the UI thread |
 | `setTimeout(seconds, function)` / `setInterval(seconds, function)` / `clearTimer(id)` | Timers on the UI thread |
-| `openWindow(path)` / `openWindowString(markup)` / `closeWindow(node)` | One more window / close the node window |
+| `openWindow(path[, options])` / `openWindowString(markup[, options])` / `closeWindow(node[, result])` | One more window (an owner, modality, `onClosed`) / close the node window |
 | `openFileDialog(options, multiple)` / `saveFileDialog` / `folderDialog` | The system file dialogs |
 | `onFileDrop(name, function)` | Files dropped onto an element with `onDrop="name"` (nodes — the `drop` event, see «Events») |
 | `run()` | Event loop until the main window is closed; returns the exit code |
@@ -1058,6 +1061,190 @@ app.onFileDrop("filesDropped", DropHandler{&app});   // void(ui::Node& zone, con
 - Corrupted or inaccessible file, like with `Image`, does not stop the window: the icon is simply not drawn.
 
 **JPEG.** `Image` understands PNG and JPEG (format — by file content, not by extension): sequential and progressive JPEG, grayscale and colored, any color subsampling. CMYK, 12-bit and arithmetic coding are not supported.
+
+## Windows and the program
+
+The section sample is `samples/program.xml` (`gran_gallery samples/program.xml`).
+
+**Owner windows.** `openWindow(path, options)` with `WindowOptions::owner` (any node of the owner window) opens
+an owned window: it always stays above the owner, minimizes together with it and has no taskbar button of its own.
+Closing the owner closes the owned windows first.
+
+**Modal windows.** `modal = true` (only together with an owner) disables the owner and its whole owner chain
+while the window is open: a click on them raises the modal window, their close button does nothing. The modality is
+asynchronous: `openWindow` returns at once, there is no nested event loop (the tasks, timers and repainting of the other
+windows go on as usual), and the result comes to `onClosed` after the window closes.
+
+```cpp
+gran::WindowOptions options;
+options.owner = &node;                       // the pressed button node — its window is the owner
+options.modal = true;
+options.onClosed = SaveAnswer{&app};         // void(const std::string& result), on the UI thread
+app.openWindow("ask_save.xml", options);
+```
+
+The result is set by `closeWindow(node, "ok")` or by the `gran:close:result` action right in the markup — the "OK" and
+"Cancel" buttons need no code. The close button and closing together with the owner give an empty result; the plain
+`gran:close` still goes through `onClose`, while `gran:close:result` closes the window at once. `onClosed` is called when
+the window is already gone, and the next window may be opened from it.
+
+```xml
+<Window title="Confirmation" width="380" height="190" kind="dialog" resizable="false">
+  <Resources>
+    <Command id="accept" text="OK" key="Enter" action="gran:close:ok"/>
+    <Command id="reject" text="Cancel" key="Escape" action="gran:close:cancel"/>
+  </Resources>
+  <Stack padding="20" spacing="16">
+    <Text>Save the changes?</Text>
+    <Stack orientation="horizontal" spacing="10" justify="end">
+      <Button command="reject"/>
+      <Button command="accept"/>
+    </Stack>
+  </Stack>
+</Window>
+```
+
+| `<Window>` attribute | Values |
+|---|---|
+| `kind` | `normal` (default); `dialog` — without the minimize and maximize buttons and the title bar icon; `tool` — a narrow title bar (Windows), the UTILITY type (X11) |
+| `position` | `default` — the OS chooses the place (a window with an owner — at the owner center); `center` — at the monitor center; `centerOwner` — at the owner center |
+
+On Windows the owner is the Win32 owner window (`hWndParent`), the modality is `EnableWindow`. On Linux (X11) the window
+gets `WM_TRANSIENT_FOR`, the `_NET_WM_WINDOW_TYPE_DIALOG` type and the `_NET_WM_STATE_MODAL`, `_NET_WM_STATE_SKIP_TASKBAR`
+states; the engine itself drops the input of a blocked window, and a click on it activates the modal window (`_NET_ACTIVE_WINDOW`).
+
+`<Dialog>` (the "Pop-up Layers" section) is different: it is a layer inside a window, not a separate OS window.
+
+**Background tasks.** `runTask(work, done, progress)` runs the work in a thread pool and delivers the outcome and the progress
+to the UI thread — their handlers change the tree like ordinary actions, without locks. The work does not touch the tree.
+The default thread count is one less than the cores (from 1 to 8; `AppOptions::taskThreads`), they are created on the first task.
+
+```cpp
+struct LoadReport                       // the work: a pool thread
+{
+    std::string path;
+    void operator()(gran::TaskContext& task) const
+    {
+        Report report;
+        for (std::size_t line = 0; line < total && !task.cancelled(); ++line)
+        {
+            report.add(readLine(path, line));
+            task.progress(double(line + 1) / total, "Lines: " + std::to_string(line + 1));
+        }
+        task.setResult(report);              // any copyable value (std::any)
+    }
+};
+
+struct ShowReport                       // the outcome: the UI thread
+{
+    gran::Application* app;
+    void operator()(gran::TaskOutcome& outcome) const
+    {
+        if (outcome.status == gran::TaskStatus::DONE)
+            show(*app, std::any_cast<Report&>(outcome.result));
+        else if (outcome.status == gran::TaskStatus::FAILED)
+            showError(*app, outcome.error);  // a work exception → FAILED with a text
+    }
+};
+
+gran::TaskId id = app.runTask(LoadReport{path}, ShowReport{&app}, ShowProgress{&app});
+app.cancelTask(id);                     // the outcome comes with CANCELLED
+```
+
+- An exception in the work does not crash the program: the outcome is `FAILED`, the text is in `outcome.error`.
+- The progress is merged: a thousand `progress` calls per frame give one handler call with the latest value;
+  no progress comes after the outcome.
+- `cancelTask` only asks: the work checks `cancelled()` itself and finishes; the outcome comes with `CANCELLED`
+  (the result is dropped), a task from the queue does not start at all.
+- On the program exit the tasks are cancelled and the application waits for the pool threads; undelivered outcomes are lost.
+- `post(task)` still fits your own threads (network, a device); `activeTasks()` is the number of unfinished tasks.
+
+**The log and the crash report.** A windowed program has no visible stderr, so the engine keeps a log file — it is enough
+to give the program a name:
+
+```cpp
+gran::AppOptions options;
+options.appName = "Warehouse";             // the log and the crash reports are enabled by the name
+gran::Application app(options);
+if (!app.previousCrash().empty())          // the previous run report (once)
+    offerToSend(app.previousCrash());
+gran::log::write(gran::log::Level::INFO, "orders", "orders loaded: 120");
+```
+
+- The file is `%LOCALAPPDATA%\<program>\logs\<program>.log` (Windows) or `~/.local/state/<program>/logs/` (Linux,
+  `$XDG_STATE_HOME`); a custom directory is `AppOptions::logDirectory`. Over 1 MB the file is renamed into `.1.log`,
+  5 files are kept. A line: `time | level | thread | category | text`; the levels are `SEVERE`, `WARNING`, `INFO`, `VERBOSE`.
+- The engine itself writes: the start (the OS version), the video card, the API and the driver, a GPU device loss, the debug layer
+  messages, markup errors, unknown commands, an unavailable WebView. Errors and warnings are duplicated to stderr.
+- The crash report (`crashReports = true` by default) goes into the `crashes` directory beside the log. Windows: an unhandled
+  exception, `std::terminate`, `abort`, a CRT invalid parameter → a `.dmp` minidump (opens in Visual Studio and WinDbg)
+  and a `.txt` text: the exception code, the uncaught exception text, the "module+offset" stack, the latest log records.
+  Linux: `SIGSEGV`, `SIGBUS`, `SIGILL`, `SIGFPE`, `SIGABRT` → `.txt` (the signal, the address, the registers, backtrace, a copy of
+  `/proc/self/maps` for `addr2line`, the log tail) and `.stack` (64 KB of the stack); then the process ends the same way
+  as without the handler (the exit code, the core dump).
+- `make test-crash` checks the reports: the program crashes in three ways and checks its files.
+
+**Resources inside the program.** Markup, images, icons, fonts and data files can be embedded into the exe — the program
+ships as one file, and the markup does not lie beside it as plain text. The manifest (`schemas/gran-resources.xsd`):
+
+```xml
+<Bundle name="store">
+  <File path="ui/main.xml" alias="ui/main.xml"/>
+  <Folder path="assets" alias="assets" include="*.png *.svg *.ttf"/>
+</Bundle>
+```
+
+`gran_rcc resources.xml resources.cpp [--depfile resources.d] [--blob store.bin]` turns it into a `.cpp` with the
+`granResources_store()` function; the program mounts the bundle before loading the markup and opens the files by `res:/` paths:
+
+```cpp
+const gran::res::Bundle& granResources_store();   // from the generated resources.cpp
+
+gran::res::mount(granResources_store());
+app.loadFile("res:/ui/main.xml");                 // relative paths inside go to res:/ too
+```
+
+- `res:/` is understood by `loadFile`, `openWindow`, `xi:include` of component libraries, `<Image>`, `<Icon source>`, `<Font>`,
+  the `<Data source>` sources (JSON and XML). Fonts are read right from the program memory, without a copy. `<WebView source>`
+  still needs a file or an address.
+- `path` is relative to the manifest; `alias` is the path inside `res:/` (Latin letters, digits, `_ . / -`, without `..`), by default
+  equal to `path`. `<Folder>` takes the files by the `include` patterns (`*` and `?`, space-separated), with subfolders (`recursive="false"`
+  — without them). A repeated path is a `gran_rcc` error.
+- Make: in `examples/<name>/resources.xml` the bundle is built and embedded into the example automatically (the `.d` file rebuilds
+  it when any embedded file is edited). CMake: `gran_add_resources(target resources.xml)`.
+- The language wrappers mount the bundle as one block: `gran_rcc … --blob store.bin`, then `mount_resources("store.bin")`.
+- Sample: `gran_gallery res:/samples/program.xml` — the section sample without files beside the program.
+
+**Settings and the window layout.** The settings file is XML with its own schema (`schemas/gran-settings.xsd`):
+`%APPDATA%\<program>\settings.xml` (Windows) or `~/.config/<program>/settings.xml` (Linux, `$XDG_CONFIG_HOME`);
+a custom path is `AppOptions::settingsFile`. It is loaded in the constructor by `appName` and saved at the end of `run()`.
+
+```xml
+<Window title="Warehouse" layout="main">                      <!-- the place, the size, the maximization -->
+  <Resources>
+    <Variable name="sideWidth" type="number" value="240" persist="true"/>
+  </Resources>
+  <Stack orientation="horizontal">
+    <Stack width="{$sideWidth}">…</Stack>
+    <Box id="details" width="300" persist="width visible"/>   <!-- the node attributes by id -->
+  </Stack>
+</Window>
+```
+
+- `layout` of `<Window>` is the record name in the settings: on the next opening the window takes its former place of the same size
+  (and maximized if it was); a place outside all the monitors is not applied.
+- `persist="names"` of an element with an `id` — these live markup attributes are saved and restored (the panels and splitters of
+  stage 2.1 will keep them the same way). `persist="true"` of a `<Variable>` — the expression variable value.
+- The program own values — `app.settings()`: `getString/getNumber/getBool/getList` with a fallback value,
+  `setString/setNumber/setBool/setList`, `remove`, `save()` (save now).
+- Writing is atomic (a temporary file and renaming). A damaged file is renamed into `.bad`, a warning goes to the log,
+  the program starts with the default values.
+
+```cpp
+gran::settings::Settings& settings = app.settings();
+std::vector<std::string> recent = settings.getList("recentFiles");
+settings.setNumber("zoom", 1.25);
+```
 
 ## Errors and Message Language
 

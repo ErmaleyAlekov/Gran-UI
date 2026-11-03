@@ -27,8 +27,9 @@
 19. [Встроенный браузер: WebView](#встроенный-браузер-webview)
 20. [Доступность](#доступность)
 21. [Платформа: окна, файлы, иконки](#платформа-окна-файлы-иконки)
-22. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
-23. [Свой заголовок окна](#свой-заголовок-окна)
+22. [Окна и программа](#окна-и-программа)
+23. [Ошибки и язык сообщений](#ошибки-и-язык-сообщений)
+24. [Свой заголовок окна](#свой-заголовок-окна)
 
 ## Быстрый старт
 
@@ -126,7 +127,8 @@ Alt+Space открывает системное меню. Поля ввода, �
 ## Окно и ресурсы
 
 Корень документа — `<Window>`: `title`, `width`, `height` (по умолчанию 800 × 600), `minWidth`, `minHeight`, `onClose`,
-а также любые атрибуты оформления, которые наследуют дети (`background`, `color`, `fontSize`, `fontFamily`).
+`kind`, `position` и `layout` (раздел «Окна и программа»), а также любые атрибуты оформления, которые наследуют дети
+(`background`, `color`, `fontSize`, `fontFamily`).
 Внутри — необязательный `<Resources>` и ровно один корневой элемент интерфейса.
 
 ```xml
@@ -361,8 +363,9 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 | `selectTab(вкладки, значение)` | Выбрать страницу `Tabs` из кода (без `onChange`) |
 | `setValue(узел, число)` / `setChecked(узел, да/нет)` | Число `ProgressBar`/`Slider`, отметка `CheckBox`/`Switch`/`RadioButton` (без `onChange`) |
 | `post(задача)` | Выполнить функцию в потоке интерфейса (безопасно из любого потока) |
+| `runTask(работа, итог, прогресс)` / `cancelTask(номер)` | Фоновая задача в пуле потоков, итог и прогресс — в потоке интерфейса |
 | `setTimeout(секунды, функция)` / `setInterval(секунды, функция)` / `clearTimer(номер)` | Таймеры в потоке интерфейса |
-| `openWindow(путь)` / `openWindowString(разметка)` / `closeWindow(узел)` | Ещё одно окно / закрыть окно узла |
+| `openWindow(путь[, параметры])` / `openWindowString(разметка[, параметры])` / `closeWindow(узел[, результат])` | Ещё одно окно (владелец, модальность, `onClosed`) / закрыть окно узла |
 | `openFileDialog(параметры, несколько)` / `saveFileDialog` / `folderDialog` | Системные диалоги файлов |
 | `onFileDrop(имя, функция)` | Файлы, брошенные на элемент с `onDrop="имя"` (узлы — событие `drop`, раздел «События») |
 | `run()` | Цикл событий до закрытия главного окна; возвращает код выхода |
@@ -1191,6 +1194,190 @@ app.onFileDrop("filesDropped", DropHandler{&app});   // void(ui::Node& зона,
 **JPEG.** `Image` понимает PNG и JPEG (формат — по содержимому файла, а не по расширению): последовательный
 и прогрессивный JPEG, серый и цветной, любая субдискретизация цветности. CMYK, 12 бит и арифметическое кодирование
 не поддерживаются.
+
+## Окна и программа
+
+Образец раздела — `samples/program.xml` (`gran_gallery samples/program.xml`).
+
+**Окна-владельцы.** `openWindow(путь, параметры)` с `WindowOptions::owner` (любой узел окна-владельца) открывает
+подчинённое окно: оно всегда над владельцем, сворачивается вместе с ним, у него нет своей кнопки в панели задач.
+Закрытие владельца сначала закрывает подчинённые окна.
+
+**Модальные окна.** `modal = true` (только вместе с владельцем) выключает владельца и всю цепочку его владельцев,
+пока окно открыто: щелчок по ним поднимает модальное окно, их крестик не действует. Модальность асинхронная:
+`openWindow` возвращается сразу, вложенного цикла событий нет (задачи, таймеры и перерисовка остальных окон идут
+как обычно), а результат приходит в `onClosed` после закрытия окна.
+
+```cpp
+gran::WindowOptions options;
+options.owner = &node;                       // узел нажатой кнопки — владелец его окно
+options.modal = true;
+options.onClosed = SaveAnswer{&app};         // void(const std::string& результат), в потоке интерфейса
+app.openWindow("ask_save.xml", options);
+```
+
+Результат задаёт `closeWindow(узел, "ok")` или действие `gran:close:результат` прямо в разметке — кнопкам «ОК» и
+«Отмена» код не нужен. Крестик и закрытие вместе с владельцем дают пустой результат; обычное `gran:close` по-прежнему
+идёт через `onClose`, а `gran:close:результат` закрывает окно сразу. `onClosed` вызывается, когда окна уже нет,
+и из него можно открыть следующее окно.
+
+```xml
+<Window title="Подтверждение" width="380" height="190" kind="dialog" resizable="false">
+  <Resources>
+    <Command id="accept" text="ОК" key="Enter" action="gran:close:ok"/>
+    <Command id="reject" text="Отмена" key="Escape" action="gran:close:cancel"/>
+  </Resources>
+  <Stack padding="20" spacing="16">
+    <Text>Сохранить изменения?</Text>
+    <Stack orientation="horizontal" spacing="10" justify="end">
+      <Button command="reject"/>
+      <Button command="accept"/>
+    </Stack>
+  </Stack>
+</Window>
+```
+
+| Атрибут `<Window>` | Значения |
+|---|---|
+| `kind` | `normal` (по умолчанию); `dialog` — без кнопок свёртки и развёртки и значка в заголовке; `tool` — узкий заголовок (Windows), тип UTILITY (X11) |
+| `position` | `default` — место выбирает ОС (у окна с владельцем — по центру владельца); `center` — по центру монитора; `centerOwner` — по центру владельца |
+
+На Windows владелец — окно-хозяин Win32 (`hWndParent`), модальность — `EnableWindow`. На Linux (X11) окно получает
+`WM_TRANSIENT_FOR`, тип `_NET_WM_WINDOW_TYPE_DIALOG` и состояния `_NET_WM_STATE_MODAL`, `_NET_WM_STATE_SKIP_TASKBAR`;
+ввод заблокированного окна отбрасывает сам движок, а щелчок по нему активирует модальное окно (`_NET_ACTIVE_WINDOW`).
+
+`<Dialog>` (раздел «Всплывающие слои») — другое: это слой внутри окна, а не отдельное окно ОС.
+
+**Фоновые задачи.** `runTask(работа, итог, прогресс)` выполняет работу в пуле потоков, а итог и прогресс доставляет
+в поток интерфейса — их обработчики меняют дерево как обычные действия, без замков. Работа дерева не трогает.
+Потоков по умолчанию — на одно меньше, чем ядер (от 1 до 8; `AppOptions::taskThreads`), создаются они при первой задаче.
+
+```cpp
+struct LoadReport                       // работа: поток пула
+{
+    std::string path;
+    void operator()(gran::TaskContext& task) const
+    {
+        Report report;
+        for (std::size_t line = 0; line < total && !task.cancelled(); ++line)
+        {
+            report.add(readLine(path, line));
+            task.progress(double(line + 1) / total, "Строк: " + std::to_string(line + 1));
+        }
+        task.setResult(report);              // любое копируемое значение (std::any)
+    }
+};
+
+struct ShowReport                       // итог: поток интерфейса
+{
+    gran::Application* app;
+    void operator()(gran::TaskOutcome& outcome) const
+    {
+        if (outcome.status == gran::TaskStatus::DONE)
+            show(*app, std::any_cast<Report&>(outcome.result));
+        else if (outcome.status == gran::TaskStatus::FAILED)
+            showError(*app, outcome.error);  // исключение работы → FAILED с текстом
+    }
+};
+
+gran::TaskId id = app.runTask(LoadReport{path}, ShowReport{&app}, ShowProgress{&app});
+app.cancelTask(id);                     // итог придёт с CANCELLED
+```
+
+- Исключение в работе не роняет программу: итог `FAILED`, текст — в `outcome.error`.
+- Прогресс сливается: тысяча вызовов `progress` за кадр дают один вызов обработчика с последним значением;
+  после итога прогресс не приходит.
+- `cancelTask` только просит: работа сама проверяет `cancelled()` и заканчивается; итог приходит с `CANCELLED`
+  (результат отбрасывается), задача из очереди не начинается вовсе.
+- При выходе из программы задачи отменяются, и приложение ждёт потоки пула; недоставленные итоги пропадают.
+- `post(задача)` по-прежнему годится для своих потоков (сеть, устройство); `activeTasks()` — число незавершённых задач.
+
+**Журнал и отчёт о сбое.** У оконной программы stderr не виден, поэтому движок ведёт журнал в файл — достаточно
+дать программе имя:
+
+```cpp
+gran::AppOptions options;
+options.appName = "Склад";                 // журнал и отчёты о сбое включаются по имени
+gran::Application app(options);
+if (!app.previousCrash().empty())          // отчёт прошлого запуска (один раз)
+    offerToSend(app.previousCrash());
+gran::log::write(gran::log::Level::INFO, "orders", "загружено заказов: 120");
+```
+
+- Файл — `%LOCALAPPDATA%\<программа>\logs\<программа>.log` (Windows) или `~/.local/state/<программа>/logs/` (Linux,
+  `$XDG_STATE_HOME`); свой каталог — `AppOptions::logDirectory`. Больше 1 МБ — файл переименовывается в `.1.log`,
+  хранится 5 файлов. Строка: `время | уровень | поток | категория | текст`; уровни `SEVERE`, `WARNING`, `INFO`, `VERBOSE`.
+- Движок сам пишет: запуск (версия ОС), видеокарту, API и драйвер, потерю устройства GPU, сообщения отладочного слоя,
+  ошибки разметки, неизвестные команды, недоступный WebView. Ошибки и предупреждения дублируются в stderr.
+- Отчёт о сбое (`crashReports = true` по умолчанию) — в каталог `crashes` рядом с журналом. Windows: необработанное
+  исключение, `std::terminate`, `abort`, неверный параметр CRT → минидамп `.dmp` (открывается в Visual Studio и WinDbg)
+  и текст `.txt`: код исключения, текст непойманного исключения, стек «модуль+смещение», последние записи журнала.
+  Linux: `SIGSEGV`, `SIGBUS`, `SIGILL`, `SIGFPE`, `SIGABRT` → `.txt` (сигнал, адрес, регистры, backtrace, копия
+  `/proc/self/maps` для `addr2line`, хвост журнала) и `.stack` (64 КБ стека); затем процесс завершается так же,
+  как без обработчика (код выхода, core dump).
+- `make test-crash` проверяет отчёты: программа падает тремя способами и проверяет свои файлы.
+
+**Ресурсы внутри программы.** Разметку, картинки, иконки, шрифты и файлы данных можно встроить в exe — программа
+поставляется одним файлом, а разметка не лежит рядом открытым текстом. Манифест (`schemas/gran-resources.xsd`):
+
+```xml
+<Bundle name="store">
+  <File path="ui/main.xml" alias="ui/main.xml"/>
+  <Folder path="assets" alias="assets" include="*.png *.svg *.ttf"/>
+</Bundle>
+```
+
+`gran_rcc resources.xml resources.cpp [--depfile resources.d] [--blob store.bin]` превращает его в `.cpp` с функцией
+`granResources_store()`; программа подключает пакет до загрузки разметки и открывает файлы по путям `res:/`:
+
+```cpp
+const gran::res::Bundle& granResources_store();   // из сгенерированного resources.cpp
+
+gran::res::mount(granResources_store());
+app.loadFile("res:/ui/main.xml");                 // относительные пути внутри тоже идут в res:/
+```
+
+- `res:/` понимают `loadFile`, `openWindow`, `xi:include` библиотек компонентов, `<Image>`, `<Icon source>`, `<Font>`,
+  источники `<Data source>` (JSON и XML). Шрифты читаются прямо из памяти программы, без копии. `<WebView source>`
+  по-прежнему требует файл или адрес.
+- `path` — относительно манифеста; `alias` — путь внутри `res:/` (латиница, цифры, `_ . / -`, без `..`), по умолчанию
+  равен `path`. `<Folder>` берёт файлы по шаблонам `include` (`*` и `?`, через пробел), с подпапками (`recursive="false"`
+  — без них). Повтор пути — ошибка `gran_rcc`.
+- Make: в `examples/<имя>/resources.xml` пакет собирается и встраивается в пример автоматически (файл `.d` пересобирает
+  его при правке любого встроенного файла). CMake: `gran_add_resources(цель resources.xml)`.
+- Обёртки языков подключают пакет одним блоком: `gran_rcc … --blob store.bin`, затем `mount_resources("store.bin")`.
+- Пример: `gran_gallery res:/samples/program.xml` — пример раздела без файлов рядом с программой.
+
+**Настройки и раскладка окон.** Файл настроек — XML со своей схемой (`schemas/gran-settings.xsd`):
+`%APPDATA%\<программа>\settings.xml` (Windows) или `~/.config/<программа>/settings.xml` (Linux, `$XDG_CONFIG_HOME`);
+свой путь — `AppOptions::settingsFile`. Загружается в конструкторе по `appName`, сохраняется в конце `run()`.
+
+```xml
+<Window title="Склад" layout="main">                          <!-- место, размер, развёрнутость -->
+  <Resources>
+    <Variable name="sideWidth" type="number" value="240" persist="true"/>
+  </Resources>
+  <Stack orientation="horizontal">
+    <Stack width="{$sideWidth}">…</Stack>
+    <Box id="details" width="300" persist="width visible"/>   <!-- атрибуты узла по id -->
+  </Stack>
+</Window>
+```
+
+- `layout` у `<Window>` — имя записи в настройках: при следующем открытии окно встаёт на прежнее место того же размера
+  (и развёрнутым, если было); место вне всех мониторов не применяется.
+- `persist="имена"` у элемента с `id` — эти атрибуты живой разметки сохраняются и возвращаются (так же их будут хранить
+  панели и разделители этапа 2.1). `persist="true"` у `<Variable>` — значение переменной выражений.
+- Свои значения программы — `app.settings()`: `getString/getNumber/getBool/getList` с запасным значением,
+  `setString/setNumber/setBool/setList`, `remove`, `save()` (сохранить сейчас).
+- Запись атомарная (временный файл и переименование). Испорченный файл переименовывается в `.bad`, в журнал идёт
+  предупреждение, программа стартует со значениями по умолчанию.
+
+```cpp
+gran::settings::Settings& settings = app.settings();
+std::vector<std::string> recent = settings.getList("recentFiles");
+settings.setNumber("zoom", 1.25);
+```
 
 ## Ошибки и язык сообщений
 

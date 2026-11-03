@@ -178,6 +178,71 @@ public class Smoke {
                 busy.run(); localStaticCheck(survived[0]);
             }
 
+            // Модальное окно с владельцем: результат closeWindow приходит в onClosed / A modal window with an owner: the closeWindow result comes to onClosed
+            try (Application windows=new Application(libraryPath,backend(),3.0,true)) {
+                windows.loadString(xml);
+                String[] closedWith={null};
+                windows.timer(0.05,() -> windows.openWindow("<Window title=\"Dialog\" width=\"200\" height=\"120\" kind=\"dialog\"><Text id=\"dlg\">?</Text></Window>",
+                    false,"root",true,answer -> { closedWith[0]=answer; windows.command("close"); }),false);
+                windows.timer(0.4,() -> windows.closeWindow("dlg","ok"),false);
+                windows.run();
+                localStaticCheck("ok".equals(closedWith[0]));
+            }
+
+            // Фоновая задача: результат, прогресс и сбой — в потоке UI / A background task: the result, the progress and the failure — on the UI thread
+            try (Application tasks=new Application(libraryPath,backend(),3.0,true)) {
+                tasks.loadString(xml);
+                java.util.List<String> outcomes=new java.util.ArrayList<>();
+                double[] lastStep={0};
+                Application.TaskDone finish=(status,taskResult,error) -> {
+                    outcomes.add(status+":"+taskResult+":"+error);
+                    if (outcomes.size() == 2) tasks.command("close");
+                };
+                tasks.runTask(task -> { for (int step=1; step<=10; ++step) task.progress(step/10.0,"шаг"); return 42; },
+                    finish,(fraction,caption) -> lastStep[0]=fraction);
+                tasks.runTask(task -> { throw new IllegalStateException("broken"); },finish,null);
+                tasks.run();
+                localStaticCheck(outcomes.contains("0:42:") && outcomes.contains("2:null:broken"));
+                localStaticCheck(lastStep[0] == 1.0);
+                localStaticCheck(!tasks.cancelTask(12345));
+            }
+
+            // Блок ресурсов (формат gran_rcc --blob): разметка грузится по пути res:/ / A resource block: markup loads by a res:/ path
+            try (Application resources=new Application(libraryPath,backend(),0.3,true)) {
+                byte[] markupBytes="<Window title=\"FromResources\"><Text id=\"res_text\">из ресурсов</Text></Window>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                byte[] pathBytes="bindings/java_window.xml".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+                java.nio.ByteBuffer blob=java.nio.ByteBuffer.allocate(8+4+4+pathBytes.length+8+markupBytes.length).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+                blob.put("GRANRES1".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(1).putInt(pathBytes.length).put(pathBytes)
+                    .putLong(markupBytes.length).put(markupBytes);
+                resources.mountResources(blob.array());
+                resources.loadFile("res:/bindings/java_window.xml");
+                localStaticCheck(resources.read("res_text","text").equals("из ресурсов"));
+            }
+
+            // Настройки: типы значений, список, сохранение и повторная загрузка / The settings: the value types, a list, saving and reloading
+            try (Application options=new Application(libraryPath,backend(),0.3,true)) {
+                String settingsPath=java.nio.file.Files.createTempDirectory("gran_settings_java_").resolve("settings.xml").toString();
+                options.loadSettings(null,settingsPath);
+                options.setSetting("theme","тёмная"); options.setSetting("zoom",1.25); options.setSetting("sidebar",true);
+                options.setSetting("recent",new String[]{"a.txt","б.txt"});
+                options.saveSettings();
+                options.loadSettings(null,settingsPath);
+                localStaticCheck("тёмная".equals(options.getSetting("theme")) && Double.valueOf(1.25).equals(options.getSetting("zoom")));
+                localStaticCheck(Boolean.TRUE.equals(options.getSetting("sidebar")) && options.getSetting("missing") == null);
+                localStaticCheck(java.util.Arrays.equals((String[])options.getSetting("recent"),new String[]{"a.txt","б.txt"}));
+            }
+
+            // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
+            try (Application logs=new Application(libraryPath,backend(),0.3,true)) {
+                java.nio.file.Path folder=java.nio.file.Files.createTempDirectory("gran_log_java_");
+                logs.openLog("GranJavaTest",folder.toString(),false);
+                logs.log(Application.LOG_INFO,"test","запись журнала");
+                localStaticCheck(logs.logPath().endsWith("GranJavaTest.log"));
+                String content=java.nio.file.Files.readString(java.nio.file.Path.of(logs.logPath()));
+                localStaticCheck(content.contains("| test | запись журнала"));
+                localStaticCheck(logs.previousCrash().isEmpty());
+            }
+
             // Print success message
             System.out.println("Java smoke OK");
 

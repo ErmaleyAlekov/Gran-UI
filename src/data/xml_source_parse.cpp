@@ -1,6 +1,8 @@
 #include "gran/data/internal/source_readers.hpp"
 #include "gran/core/i18n.hpp"
 
+#include "gran/res/resources.hpp"
+
 #include "beresta.hpp"
 
 #include <filesystem>
@@ -33,14 +35,14 @@ namespace gran::data::internal
     {
         FieldPaths fields = compileFields(spec);
         XmlRecordHandler handler(spec, fields, sink);
-        std::filesystem::path path = std::filesystem::u8path(spec.path);
-        std::error_code status;
+        std::unique_ptr<std::istream> stream = res::openStream(std::filesystem::u8path(spec.path));
 
-        if (!std::filesystem::is_regular_file(path, status))
+        // Файл диска или ресурс res:/ — SAX читает поток порциями, DOM целиком не строится / A disk file or a res:/ resource — SAX reads the stream by portions, the whole DOM is not built
+        if (!*stream)
             throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_READ_FAILED, {spec.path}));
         try
         {
-            beresta::SaxParser().parseFile(path, handler);
+            beresta::SaxParser().parse(*stream, handler);
         }
         catch (const beresta::ParseException& error)
         {

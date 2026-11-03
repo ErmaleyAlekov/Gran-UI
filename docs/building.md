@@ -59,6 +59,8 @@ make BERESTA_DIR=../beresta
 |---|---|
 | `make` | `bin/libgran.a`, `bin/gran_gallery.exe`, `bin/gran_snapshot.exe`, `bin/gran_chat.exe`, `bin/gran_tests.exe` |
 | `make test` | Собрать и запустить модульные тесты |
+| `make test-crash` | Проверить отчёты о сбое (программа падает сама: SEGV, terminate, abort) |
+| `bin/gran_rcc` | Встраивание ресурсов в exe по манифесту (собирается вместе с примерами) |
 | `make shaders` | HLSL → DXIL; `make shaders-vulkan` — SPIR-V → `src/rhi/shaders_gen/*.cpp`, нужен `dxc` |
 | `make beresta` | Собрать статическую «Берёсту» в `BERESTA_DIR` |
 | `make clean` / `fclean` / `re` | Удалить объектные файлы / всё собранное / пересобрать |

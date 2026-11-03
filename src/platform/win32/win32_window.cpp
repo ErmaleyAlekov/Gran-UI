@@ -60,22 +60,28 @@ namespace gran::platform::win32
     **
     ** The window is created hidden, then gets its size with the DPI of its monitor
     ** (AdjustWindowRectExForDpi) and, if asked, a dark title bar. Showing — after the first frame.
+    ** Затем окно встаёт на место (по центру экрана или владельца), если его не оставили ОС.
+    ** Then the window takes its place (at the screen or owner center) unless it was left to the OS.
     */
     Win32Window::Win32Window(const WindowDesc& windowDesc)
         : desc(windowDesc)
     {
-        DWORD style = WS_OVERLAPPEDWINDOW;
+        DWORD style = windowStyle(desc);
+        HWND owner = nullptr;
 
         enableDpiAwareness();
         registerClass();
-        if (!desc.resizable)
-            style &= ~static_cast<DWORD>(WS_THICKFRAME | WS_MAXIMIZEBOX);
-        CreateWindowExW(0, CLASS_NAME, toWide(desc.title).c_str(), style, CW_USEDEFAULT, CW_USEDEFAULT, 100, 100,
-            nullptr, nullptr, GetModuleHandleW(nullptr), this);
+        // Владелец — окно верхнего уровня, а не родитель: подчинённое остаётся отдельным окном над ним
+        // The owner is a top-level window, not a parent: the owned window stays a separate window above it
+        if (desc.owner != nullptr)
+            owner = static_cast<HWND>(desc.owner->nativeHandle());
+        CreateWindowExW(windowExStyle(desc), CLASS_NAME, toWide(desc.title).c_str(), style, CW_USEDEFAULT,
+            CW_USEDEFAULT, 100, 100, owner, nullptr, GetModuleHandleW(nullptr), this);
         if (window == nullptr)
             throw GranException(ErrorCode::PLATFORM, i18n::format(i18n::Message::PLATFORM_WINDOW_FAILED,
                 {std::to_string(GetLastError())}));
         setInitialSize(*this, style);
+        placeWindow(*this, owner);
     }
 
     // Окно уничтожается; указатель на объект из него убирается до этого / The window is destroyed; the object pointer is removed from it before that

@@ -67,6 +67,15 @@ namespace gran::rhi
     };
 
     // Итог кадра / The frame result
+    // Сведения о видеокарте: API, имя, версия драйвера, программный ли адаптер (WARP, lavapipe) / The video card information: the API, the name, the driver version, whether the adapter is software (WARP, lavapipe)
+    struct AdapterInfo
+    {
+        std::string api;
+        std::string name;
+        std::string driver;
+        bool software = false;
+    };
+
     enum class FrameStatus : std::uint8_t
     {
         PRESENTED,      // кадр показан / the frame is shown
@@ -108,6 +117,11 @@ namespace gran::rhi
         // Накопленные сообщения отладочного слоя (и их очистка); без слоя — пусто
         // The accumulated debug layer messages (and clearing them); without the layer — empty
         virtual std::vector<std::string> takeDiagnostics() = 0;
+
+        // ---- render_backend.cpp ----
+
+        // Видеокарта и драйвер для журнала; по умолчанию — пусто / The video card and the driver for the log; empty by default
+        virtual AdapterInfo adapterInfo() const;
     };
 
     /*

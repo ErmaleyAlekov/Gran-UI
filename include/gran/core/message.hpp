@@ -134,6 +134,16 @@ namespace gran::i18n
         DATA_MODEL_KIND,
         DATA_SOURCE_CYCLE,
         DATA_SELECTION_MISMATCH,
+        APP_OWNER_NOT_WINDOW,
+        TASK_UNKNOWN_ERROR,
+        GPU_DEVICE_RECREATED,
+        LOG_START,
+        LOG_PREVIOUS_CRASH,
+        RES_BAD_BLOB,
+        RES_MISSING_FILE,
+        RES_DUPLICATE_ALIAS,
+        RES_TOOL_USAGE,
+        SETTINGS_DAMAGED,
         COUNT
     };
 }

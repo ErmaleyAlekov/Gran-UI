@@ -116,7 +116,17 @@ namespace gran::i18n
             {Message::DATA_UNKNOWN_MODEL, "model \"{0}\" is not found"},
             {Message::DATA_MODEL_KIND, "the name \"{0}\" is already taken by a model of another kind ({1})"},
             {Message::DATA_SOURCE_CYCLE, "model \"{0}\" depends on itself through source, tree or model"},
-            {Message::DATA_SELECTION_MISMATCH, "selection \"{0}\" is not found or does not belong to the list \"{1}\" the container shows"}
+            {Message::DATA_SELECTION_MISMATCH, "selection \"{0}\" is not found or does not belong to the list \"{1}\" the container shows"},
+            {Message::APP_OWNER_NOT_WINDOW, "the window owner must be a node of an open window"},
+            {Message::TASK_UNKNOWN_ERROR, "the background task ended with an unknown error"},
+            {Message::GPU_DEVICE_RECREATED, "the GPU device was lost, the window graphics were recreated"},
+            {Message::LOG_START, "start: {0}"},
+            {Message::LOG_PREVIOUS_CRASH, "the previous run crash report: {0}"},
+            {Message::RES_BAD_BLOB, "the resource block is damaged or does not start with GRANRES1"},
+            {Message::RES_MISSING_FILE, "the resource file or folder is not found: {0}"},
+            {Message::RES_DUPLICATE_ALIAS, "the res:/{0} path occurs in the manifest twice"},
+            {Message::RES_TOOL_USAGE, "usage: gran_rcc <manifest.xml> <output.cpp> [--blob <bundle.bin>] [--depfile <output.d>]"},
+            {Message::SETTINGS_DAMAGED, "the settings file is damaged and kept as .bad, the default values are used: {0}"}
         };
     }
 

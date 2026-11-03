@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Окна и программа (пункт 1.8): модальный диалог с результатом, окно-инструмент с владельцем,
+  вложенные модальные окна, фоновая задача с прогрессом и отменой, журнал и отчёт о сбое, настройки и раскладка окна.
+  Запуск: gran_gallery samples/program.xml
+
+  Windows and the program (item 1.8): a modal dialog with a result, a tool window with an owner,
+  nested modal windows, a background task with progress and cancellation, the log and the crash report, the settings and the window layout.
+  Run: gran_gallery samples/program.xml
+-->
+<Window title="Gran UI — окна и программа" width="720" height="900" background="#f5f6f8" layout="program">
+  <Resources>
+    <Style name="section" spacing="10" padding="16" borderRadius="12" background="#ffffff" borderWidth="1" borderColor="#e1e4ea"/>
+    <Style name="caption" fontWeight="600" fontSize="15"/>
+    <!-- persist="true": значение переживает перезапуск (файл настроек программы) / the value survives a restart (the program settings file) -->
+    <Variable name="barWidth" type="number" value="200" persist="true"/>
+    <Variable name="tinted" type="boolean" value="false" persist="true"/>
+  </Resources>
+  <Stack padding="24" spacing="16">
+    <Stack style="section">
+      <Text style="caption">Окна</Text>
+      <Text color="#667085" maxWidth="620">Модальный диалог выключает это окно, пока открыт; щелчок по главному окну поднимает диалог. Результат приходит в onClosed. Окно-инструмент держится над главным и закрывается вместе с ним.</Text>
+      <Stack orientation="horizontal" spacing="10">
+        <Button onClick="programDialog" text="Модальный диалог…"/>
+        <Button onClick="programTool" text="Окно-инструмент"/>
+      </Stack>
+    </Stack>
+    <Stack style="section">
+      <Text style="caption">Фоновые задачи</Text>
+      <Text color="#667085" maxWidth="620">Работа идёт в пуле потоков, окно не замирает; прогресс и итог приходят в поток интерфейса. Отмена — флаг, который работа проверяет сама.</Text>
+      <ProgressBar id="taskProgress" value="0" width="400"/>
+      <Stack orientation="horizontal" spacing="10" align="center">
+        <Button onClick="taskStart" text="Запустить"/>
+        <Button onClick="taskCancel" text="Отменить"/>
+        <Text id="taskStatus" color="#667085">Нет задачи</Text>
+      </Stack>
+    </Stack>
+    <Stack style="section">
+      <Text style="caption">Журнал и отчёт о сбое</Text>
+      <Text id="logInfo" color="#667085" maxWidth="620">Журнал не открыт</Text>
+      <Text id="crashInfo" color="#667085" maxWidth="620">Сбоев не было</Text>
+      <Stack orientation="horizontal" spacing="10">
+        <Button onClick="logWrite" text="Записать в журнал"/>
+        <Button onClick="crashNow" text="Упасть (проверка отчёта)"/>
+      </Stack>
+    </Stack>
+    <Stack style="section">
+      <Text style="caption">Настройки</Text>
+      <Text id="settingsInfo" color="#667085" maxWidth="620">Место и размер окна, ползунок, флажок и ширина синей полосы сохраняются в настройках и возвращаются при следующем запуске.</Text>
+      <Stack orientation="horizontal" spacing="12" align="center">
+        <Slider min="120" max="400" value="{$barWidth}" width="220"/>
+        <Box width="{$barWidth}" height="12" borderRadius="6" background="#7b5cff"/>
+      </Stack>
+      <Stack orientation="horizontal" spacing="12" align="center">
+        <Button onClick="gran:toggleVariable:tinted" text="Подсветка вкл/выкл"/>
+        <Text visible="{$tinted}" color="#1a9b55">Подсветка включена</Text>
+      </Stack>
+      <Stack orientation="horizontal" spacing="12" align="center">
+        <Button onClick="settingsBar" text="Сменить ширину"/>
+        <!-- persist="width": атрибут узла хранится в настройках (нужны id и layout у окна) / the node attribute is kept in the settings -->
+        <Box id="settingsBar" width="160" height="12" borderRadius="6" background="#2f6fed" persist="width"/>
+      </Stack>
+    </Stack>
+    <Text id="programStatus" color="#344054">Готово</Text>
+  </Stack>
+</Window>
