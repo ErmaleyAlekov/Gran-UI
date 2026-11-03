@@ -51,7 +51,7 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/`, `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
 | `platform/` | window and events: `win32/`, `x11/` (then `cocoa/`); the embedded browser `webview2/` (optional) |
-| `app/` | application: windows (an `AppWindow` per window — the document, the renderer, input; the shared part is in `Application::State`; the owner is a non-owning reference to a window standing earlier in the list: the owned windows close before the owners, the graphics go from the list end; the modality is the `blocked` flag of the owners, the input is dropped before the tree, on Win32 also `EnableWindow`), event loop, file dialogs, file dragging, timers (`setTimeout`/`setInterval`), action binding (`onClick="name"` → C++ function), `<WebView>` placement |
+| `app/` | application: windows (an `AppWindow` per window — the document, the renderer, input; the shared part is in `Application::State`; the owner is a non-owning reference to a window standing earlier in the list: the owned windows close before the owners, the graphics go from the list end; the modality is the `blocked` flag of the owners, the input is dropped before the tree, on Win32 also `EnableWindow`), the background task pool `TaskPool` (a shared queue, the threads on the first task, the outcome and the merged progress — through `post`), event loop, file dialogs, file dragging, timers (`setTimeout`/`setInterval`), action binding (`onClick="name"` → C++ function), `<WebView>` placement |
 
 ### The embedded browser (hybrid)
 

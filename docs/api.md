@@ -293,6 +293,21 @@ const WindowOptions&)` открывают ещё одно окно и возвр
 `Window::setEnabled(bool)` и `Window::activate()` (по умолчанию ничего не делают). Разметка:
 `markup::WindowSpec::kind` и `position` из атрибутов `<Window kind position>`.
 
+### Пул фоновых задач
+
+`TaskId runTask(BackgroundWork work, TaskDone done = {}, TaskProgress progress = {})` (`gran/app/background_task.hpp`):
+`BackgroundWork` — `std::function<void(TaskContext&)>` в потоке пула, `TaskDone` — `void(TaskOutcome&)` и
+`TaskProgress` — `void(const TaskProgressInfo&)` в потоке UI. `cancelTask(TaskId)` ставит флаг отмены (`false` —
+итог уже доставлен или номер неизвестен), `activeTasks() const` — задачи в очереди, в работе и с недоставленным итогом.
+`AppOptions::taskThreads` (0 — ядра − 1, от 1 до 8); потоки создаются при первой задаче.
+
+`TaskContext` (только внутри работы): `id()`, `cancelled()`, `progress(double fraction, const std::string& text = {})`
+(сливается до последнего значения), `setResult(std::any)`, `fail(const std::string&)` — сбой без исключения.
+`TaskOutcome`: `id`, `status` (`TaskStatus::DONE|CANCELLED|FAILED`), `error`, `result` (`std::any`, пуст при
+отмене и сбое). Исключение работы — `FAILED` с `what()`; неизвестное исключение — текст `TASK_UNKNOWN_ERROR`.
+Отменённая в очереди задача не начинается. Деструктор приложения отменяет задачи и ждёт потоки пула (`app::TaskPool`,
+последнее поле `Application::State`); итоги, не доставленные к этому времени, уничтожаются без вызова `done`.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` задаёт обработчик `void(ui::Node&, const std::string&)`.

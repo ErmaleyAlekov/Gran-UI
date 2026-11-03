@@ -501,6 +501,83 @@ public final class Application implements AutoCloseable {
     public void closeWindow(String target, String result) {
         try (Arena scope=Arena.ofConfined()) { status("gran_app_close_window",app,utf8(scope,target),utf8(scope,result)); }
     }
+    // ---- Фоновые задачи 1.8: work — в потоке пула, done и progress — в потоке UI ----
+    // ---- Background tasks 1.8: work runs on a pool thread, done and progress — on the UI thread ----
+    // Состояния GRAN_TASK_* / The GRAN_TASK_* statuses
+    public static final int TASK_DONE=0, TASK_CANCELLED=1, TASK_FAILED=2;
+    // Контекст фоновой работы: действителен только внутри неё / A background work context: valid only inside it
+    public final class BackgroundTask {
+        private final MemorySegment handle;
+        private BackgroundTask(MemorySegment task) { handle=task; }
+        public boolean cancelled() { return (int)invoke("gran_task_cancelled",JAVA_INT,handle) != 0; }
+        public void progress(double fraction, String text) {
+            try (Arena scope=Arena.ofConfined()) { invoke("gran_task_progress",JAVA_INT,handle,fraction,utf8(scope,text)); }
+        }
+    }
+    public interface BackgroundWork { Object run(BackgroundTask task) throws Exception; }
+    public interface TaskDone { void done(int status, Object result, String error); }
+    public interface TaskProgress { void progress(double fraction, String text); }
+    private static final class BackgroundEntry {
+        final BackgroundWork work; final TaskDone done; final TaskProgress progress; volatile Object result;
+        BackgroundEntry(BackgroundWork work, TaskDone done, TaskProgress progress) { this.work=work; this.done=done; this.progress=progress; }
+    }
+    // Фоновые задачи: user — номер записи, переходники общие / The background tasks: user is the entry number, the trampolines are shared
+    private final ConcurrentMap<Long,BackgroundEntry> background = new ConcurrentHashMap<>();
+    private MemorySegment workEntry, doneEntry, progressEntry;
+    // Поток пула: исключение не пересекает FFM — оно становится сбоем задачи / A pool thread: an exception does not cross FFM — it becomes the task failure
+    private void runWork(MemorySegment user, MemorySegment task) {
+        BackgroundEntry entry=background.get(user.address());
+        if (entry == null) return;
+        try { entry.result=entry.work.run(new BackgroundTask(task)); }
+        catch (Throwable error) {
+            String message=error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
+            try (Arena scope=Arena.ofConfined()) { invoke("gran_task_fail",JAVA_INT,task,utf8(scope,message)); }
+        }
+    }
+    private void taskDone(MemorySegment user, long task, int status, MemorySegment error) {
+        BackgroundEntry entry=background.remove(user.address());
+        if (entry == null || entry.done == null) return;
+        Object result=status == TASK_DONE ? entry.result : null;
+        String text=text(error);
+        protect(() -> entry.done.done(status,result,text));
+    }
+    private void taskProgress(MemorySegment user, long task, double fraction, MemorySegment caption) {
+        BackgroundEntry entry=background.get(user.address());
+        if (entry == null || entry.progress == null) return;
+        String text=text(caption);
+        protect(() -> entry.progress.progress(fraction,text));
+    }
+    private synchronized void taskEntries() {
+        ensureOpen();
+        if (workEntry != null) return;
+        workEntry=entry("runWork",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,ADDRESS),this);
+        doneEntry=entry("taskDone",MethodType.methodType(void.class,MemorySegment.class,long.class,int.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,JAVA_LONG,JAVA_INT,ADDRESS),this);
+        progressEntry=entry("taskProgress",MethodType.methodType(void.class,MemorySegment.class,long.class,double.class,MemorySegment.class),
+            FunctionDescriptor.ofVoid(ADDRESS,JAVA_LONG,JAVA_DOUBLE,ADDRESS),this);
+    }
+    public long runTask(BackgroundWork work, TaskDone done, TaskProgress progress) {
+        Objects.requireNonNull(work);
+        taskEntries();
+        long key=nextTask.incrementAndGet();
+        background.put(key,new BackgroundEntry(work,done,progress));
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment task=scope.allocate(40,8), output=scope.allocate(JAVA_LONG);
+            task.set(JAVA_INT,0,40); task.set(ADDRESS,8,workEntry); task.set(ADDRESS,16,doneEntry);
+            task.set(ADDRESS,24,progressEntry); task.set(ADDRESS,32,MemorySegment.ofAddress(key));
+            status("gran_app_run_task",app,task,output);
+            return output.get(JAVA_LONG,0);
+        } catch (RuntimeException | Error failure) { background.remove(key); throw failure; }
+    }
+    // Попросить отменить; false — задачи уже нет / Ask to cancel; false — the task is gone
+    public boolean cancelTask(long task) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment found=scope.allocate(JAVA_INT);
+            status("gran_app_cancel_task",app,task,found);
+            return found.get(JAVA_INT,0) != 0;
+        }
+    }
     // ---- Модели 1.7: таблицы, ленивая подгрузка, деревья, представления, выделение ----
     // ---- Models 1.7: tables, lazy loading, trees, views, selection ----
     // Строка плоского дерева: узел, глубина и признаки / A flat tree row: the node, the depth and the flags

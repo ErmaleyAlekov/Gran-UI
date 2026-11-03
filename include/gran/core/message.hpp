@@ -135,6 +135,7 @@ namespace gran::i18n
         DATA_SOURCE_CYCLE,
         DATA_SELECTION_MISMATCH,
         APP_OWNER_NOT_WINDOW,
+        TASK_UNKNOWN_ERROR,
         COUNT
     };
 }

@@ -339,6 +339,7 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `selectTab(tabs, value)` | Select a `Tabs` page from code (without `onChange`) |
 | `setValue(node, number)` / `setChecked(node, yes/no)` | The number of a `ProgressBar`/`Slider`, the mark of a `CheckBox`/`Switch`/`RadioButton` (without `onChange`) |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
+| `runTask(work, done, progress)` / `cancelTask(id)` | A background task in the thread pool, the outcome and the progress — on the UI thread |
 | `setTimeout(seconds, function)` / `setInterval(seconds, function)` / `clearTimer(id)` | Timers on the UI thread |
 | `openWindow(path[, options])` / `openWindowString(markup[, options])` / `closeWindow(node[, result])` | One more window (an owner, modality, `onClosed`) / close the node window |
 | `openFileDialog(options, multiple)` / `saveFileDialog` / `folderDialog` | The system file dialogs |
@@ -1113,6 +1114,50 @@ gets `WM_TRANSIENT_FOR`, the `_NET_WM_WINDOW_TYPE_DIALOG` type and the `_NET_WM_
 states; the engine itself drops the input of a blocked window, and a click on it activates the modal window (`_NET_ACTIVE_WINDOW`).
 
 `<Dialog>` (the "Pop-up Layers" section) is different: it is a layer inside a window, not a separate OS window.
+
+**Background tasks.** `runTask(work, done, progress)` runs the work in a thread pool and delivers the outcome and the progress
+to the UI thread — their handlers change the tree like ordinary actions, without locks. The work does not touch the tree.
+The default thread count is one less than the cores (from 1 to 8; `AppOptions::taskThreads`), they are created on the first task.
+
+```cpp
+struct LoadReport                       // the work: a pool thread
+{
+    std::string path;
+    void operator()(gran::TaskContext& task) const
+    {
+        Report report;
+        for (std::size_t line = 0; line < total && !task.cancelled(); ++line)
+        {
+            report.add(readLine(path, line));
+            task.progress(double(line + 1) / total, "Lines: " + std::to_string(line + 1));
+        }
+        task.setResult(report);              // any copyable value (std::any)
+    }
+};
+
+struct ShowReport                       // the outcome: the UI thread
+{
+    gran::Application* app;
+    void operator()(gran::TaskOutcome& outcome) const
+    {
+        if (outcome.status == gran::TaskStatus::DONE)
+            show(*app, std::any_cast<Report&>(outcome.result));
+        else if (outcome.status == gran::TaskStatus::FAILED)
+            showError(*app, outcome.error);  // a work exception → FAILED with a text
+    }
+};
+
+gran::TaskId id = app.runTask(LoadReport{path}, ShowReport{&app}, ShowProgress{&app});
+app.cancelTask(id);                     // the outcome comes with CANCELLED
+```
+
+- An exception in the work does not crash the program: the outcome is `FAILED`, the text is in `outcome.error`.
+- The progress is merged: a thousand `progress` calls per frame give one handler call with the latest value;
+  no progress comes after the outcome.
+- `cancelTask` only asks: the work checks `cancelled()` itself and finishes; the outcome comes with `CANCELLED`
+  (the result is dropped), a task from the queue does not start at all.
+- On the program exit the tasks are cancelled and the application waits for the pool threads; undelivered outcomes are lost.
+- `post(task)` still fits your own threads (network, a device); `activeTasks()` is the number of unfinished tasks.
 
 ## Errors and Message Language
 

@@ -227,6 +227,27 @@ class TestApplication(unittest.TestCase):
         self.app.run()
         self.assertEqual(results, ["ok"])
 
+    def test_background_task(self):
+        # Результат, прогресс и сбой фоновой работы приходят в поток UI / The result, the progress and the failure of a background work come to the UI thread
+        outcomes, steps = [], []
+        def work(task):
+            for step in range(1, 11):
+                task.progress(step / 10, "шаг")
+            return {"answer": 42}
+        def failing(task):
+            raise ValueError("broken")
+        def finish(status, result, error):
+            outcomes.append((status, result, error))
+            if len(outcomes) == 2:
+                self.app.command("close")
+        self.app.run_task(work, finish, lambda fraction, text: steps.append(fraction))
+        self.app.run_task(failing, finish)
+        self.app.run()
+        self.assertIn(("done", {"answer": 42}, ""), outcomes)
+        self.assertIn(("failed", None, "broken"), outcomes)
+        self.assertEqual(steps[-1], 1.0)
+        self.assertFalse(self.app.cancel_task(12345))
+
     def test_timer_raises_value_error(self):
         def task():
             raise ValueError('callback marker')

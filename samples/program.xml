@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Окна и программа (пункт 1.8): модальный диалог с результатом, окно-инструмент с владельцем,
-  вложенные модальные окна.
+  вложенные модальные окна, фоновая задача с прогрессом и отменой.
   Запуск: gran_gallery samples/program.xml
 
   Windows and the program (item 1.8): a modal dialog with a result, a tool window with an owner,
-  nested modal windows.
+  nested modal windows, a background task with progress and cancellation.
   Run: gran_gallery samples/program.xml
 -->
-<Window title="Gran UI — окна и программа" width="720" height="460" background="#f5f6f8">
+<Window title="Gran UI — окна и программа" width="720" height="600" background="#f5f6f8">
   <Resources>
     <Style name="section" spacing="10" padding="16" borderRadius="12" background="#ffffff" borderWidth="1" borderColor="#e1e4ea"/>
     <Style name="caption" fontWeight="600" fontSize="15"/>
@@ -20,6 +20,16 @@
       <Stack orientation="horizontal" spacing="10">
         <Button onClick="programDialog" text="Модальный диалог…"/>
         <Button onClick="programTool" text="Окно-инструмент"/>
+      </Stack>
+    </Stack>
+    <Stack style="section">
+      <Text style="caption">Фоновые задачи</Text>
+      <Text color="#667085" maxWidth="620">Работа идёт в пуле потоков, окно не замирает; прогресс и итог приходят в поток интерфейса. Отмена — флаг, который работа проверяет сама.</Text>
+      <ProgressBar id="taskProgress" value="0" width="400"/>
+      <Stack orientation="horizontal" spacing="10" align="center">
+        <Button onClick="taskStart" text="Запустить"/>
+        <Button onClick="taskCancel" text="Отменить"/>
+        <Text id="taskStatus" color="#667085">Нет задачи</Text>
       </Stack>
     </Stack>
     <Text id="programStatus" color="#344054">Готово</Text>

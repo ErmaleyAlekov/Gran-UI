@@ -233,6 +233,32 @@ GRAN_API gran_status gran_app_open_window(gran_app* app, const char* source, int
     const gran_window_options* options);
 GRAN_API gran_status gran_app_close_window(gran_app* app, const char* target, const char* result);
 
+/* Фоновые задачи: work(user, task) выполняется в потоке пула; из неё — gran_task_cancelled, gran_task_progress
+ * (сливается: в поток UI доходит последнее значение) и gran_task_fail (сбой с текстом; исключения языка не пересекают
+ * ABI). done(user, id, status, error) и progress(user, id, fraction, text) — в потоке UI, строки действительны только
+ * во время вызова; после done прогресса нет. status — GRAN_TASK_*. При destroy задачи отменяются, приложение ждёт потоки.
+ * Background tasks: work(user, task) runs on a pool thread; from it — gran_task_cancelled, gran_task_progress
+ * (merged: the latest value reaches the UI thread) and gran_task_fail (a failure with a text; the language exceptions do not
+ * cross the ABI). done(user, id, status, error) and progress(user, id, fraction, text) — on the UI thread, the strings are valid
+ * only during the call; no progress comes after done. status is GRAN_TASK_*. On destroy the tasks are cancelled, the application waits for the threads. */
+enum { GRAN_TASK_DONE = 0, GRAN_TASK_CANCELLED = 1, GRAN_TASK_FAILED = 2 };
+typedef struct gran_task gran_task;
+typedef void (*gran_work_fn)(void* user, gran_task* task);
+typedef void (*gran_task_done_fn)(void* user, uint64_t task, int32_t status, const char* error);
+typedef void (*gran_task_progress_fn)(void* user, uint64_t task, double fraction, const char* text);
+typedef struct gran_background {
+    uint32_t size;
+    gran_work_fn work;
+    gran_task_done_fn done;
+    gran_task_progress_fn progress;
+    void* user;
+} gran_background;
+GRAN_API gran_status gran_app_run_task(gran_app* app, const gran_background* task, uint64_t* result);
+GRAN_API gran_status gran_app_cancel_task(gran_app* app, uint64_t task, int32_t* found);
+GRAN_API int32_t gran_task_cancelled(const gran_task* task);
+GRAN_API gran_status gran_task_progress(gran_task* task, double fraction, const char* text);
+GRAN_API gran_status gran_task_fail(gran_task* task, const char* message);
+
 /* Компоненты: сгенерированная XSD библиотеки namespace_uri, подключённой <xi:include> в окне узла window (NULL — главном);
  * пустая строка — такой библиотеки нет; освободить gran_string_free. Её сохраняют рядом с разметкой для подсказок редактора XML.
  * Components: the generated XSD of the namespace_uri library included with <xi:include> in the window of the node window (NULL — the main one);

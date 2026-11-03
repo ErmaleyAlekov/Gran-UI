@@ -59,6 +59,12 @@ namespace gallery
     ** tool_window.xml with an owner, without modality.
     */
     void registerProgram(gran::Application& application, const std::string& markup);
+
+    // Фоновая работа примера (gallery_program.cpp): 50 шагов с прогрессом и проверкой отмены / The sample background work (gallery_program.cpp): 50 steps with progress and a cancellation check
+    void slowWork(gran::TaskContext& task);
+
+    // Кнопки taskStart / taskCancel samples/program.xml (gallery_tasks.cpp) / The taskStart / taskCancel buttons of samples/program.xml (gallery_tasks.cpp)
+    void registerTasks(gran::Application& application);
 }
 
 #endif

@@ -2,6 +2,7 @@
 #define GRAN_APP_APPLICATION_HPP
 
 #include "gran/app/timer_queue.hpp"
+#include "gran/app/background_task.hpp"
 #include "gran/binding/list_bindings.hpp"
 #include "gran/platform/file_dialog.hpp"
 #include "gran/ui/node.hpp"
@@ -89,6 +90,7 @@ namespace gran
         rhi::BackendKind backend = rhi::BackendKind::AUTO;
         bool forceWarp = false;
         bool watchMarkup = false; // проверять XML каждые 250 мс / check XML every 250 ms
+        unsigned taskThreads = 0; // потоков пула runTask (0 — ядра − 1, от 1 до 8) / runTask pool threads (0 — cores − 1, from 1 to 8)
     };
 
     /*
@@ -615,6 +617,28 @@ namespace gran
         ** run() are destroyed together with the application without being called.
         */
         void post(Task task);
+
+        // ---- application_background.cpp: пул фоновых задач ----
+        // ---- application_background.cpp: the background task pool ----
+
+        /*
+        ** Фоновая задача: work выполняется в потоке пула (не трогает дерево интерфейса), done и progress —
+        ** в потоке интерфейса, после них кадр перерисуется. Исключение в work — итог FAILED с текстом, программа
+        ** не падает. Потоки пула создаются при первой задаче; при выходе задачи отменяются, приложение ждёт
+        ** их потоки (work проверяет TaskContext::cancelled), недоставленные итоги пропадают без вызова done.
+        **
+        ** A background task: work runs on a pool thread (it does not touch the UI tree), done and progress —
+        ** on the UI thread, the frame is redrawn after them. An exception in work is a FAILED outcome with a text, the program
+        ** does not crash. The pool threads are created on the first task; on exit the tasks are cancelled, the application waits for
+        ** their threads (work checks TaskContext::cancelled), the undelivered outcomes are lost without calling done.
+        */
+        TaskId runTask(BackgroundWork work, TaskDone done = TaskDone(), TaskProgress progress = TaskProgress());
+
+        // Попросить отменить задачу: итог придёт с CANCELLED; false — задачи нет (итог уже доставлен) / Ask to cancel a task: the outcome comes with CANCELLED; false — no such task (the outcome is delivered)
+        bool cancelTask(TaskId id);
+
+        // Задачи в очереди, в работе и ждущие доставки итога / The tasks in the queue, at work and waiting for the outcome delivery
+        std::size_t activeTasks() const;
 
         // ---- application_timers.cpp: таймеры (только поток интерфейса; из других потоков — через post) ----
         // ---- application_timers.cpp: timers (the UI thread only; from other threads — through post) ----

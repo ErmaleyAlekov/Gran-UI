@@ -1,7 +1,9 @@
 #include "gallery_actions.hpp"
 
+#include <chrono>
 #include <filesystem>
 #include <string>
+#include <thread>
 
 namespace gallery
 {
@@ -59,6 +61,27 @@ namespace gallery
         };
     }
 
+    /*
+    ** Работа примера в потоке пула: 50 шагов по 60 мс с прогрессом; отмена проверяется на каждом шаге.
+    ** Дерево здесь не трогается — подписи меняют обработчики в потоке интерфейса.
+    **
+    ** The sample work on a pool thread: 50 steps of 60 ms with progress; the cancellation is checked on every step.
+    ** The tree is not touched here — the handlers on the UI thread change the captions.
+    */
+    void slowWork(gran::TaskContext& task)
+    {
+        const int steps = 50;
+
+        for (int step = 1; step <= steps; ++step)
+        {
+            if (task.cancelled())
+                return;
+            std::this_thread::sleep_for(std::chrono::milliseconds(60));
+            task.progress(static_cast<double>(step) / steps, "Шаг " + std::to_string(step) + " из " + std::to_string(steps));
+        }
+        task.setResult(std::string("Готово: 50 шагов"));
+    }
+
     // Действия samples/program.xml и его диалога / The samples/program.xml and its dialog actions
     void registerProgram(gran::Application& application, const std::string& markup)
     {
@@ -66,5 +89,6 @@ namespace gallery
 
         application.onAction("programDialog", OpenOwned{&application, (folder / "program_dialog.xml").string(), true});
         application.onAction("programTool", OpenOwned{&application, (folder / "tool_window.xml").string(), false});
+        registerTasks(application);
     }
 }

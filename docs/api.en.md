@@ -290,6 +290,21 @@ Platform: `platform::WindowDesc::owner` (`platform::Window*`), `modal`, `kind` (
 `Window::setEnabled(bool)` and `Window::activate()` (do nothing by default). Markup:
 `markup::WindowSpec::kind` and `position` from the `<Window kind position>` attributes.
 
+### The background task pool
+
+`TaskId runTask(BackgroundWork work, TaskDone done = {}, TaskProgress progress = {})` (`gran/app/background_task.hpp`):
+`BackgroundWork` is `std::function<void(TaskContext&)>` on a pool thread, `TaskDone` is `void(TaskOutcome&)` and
+`TaskProgress` is `void(const TaskProgressInfo&)` on the UI thread. `cancelTask(TaskId)` sets the cancel flag (`false` —
+the outcome is already delivered or the number is unknown), `activeTasks() const` is the tasks in the queue, at work and with an undelivered outcome.
+`AppOptions::taskThreads` (0 — cores − 1, from 1 to 8); the threads are created on the first task.
+
+`TaskContext` (only inside the work): `id()`, `cancelled()`, `progress(double fraction, const std::string& text = {})`
+(merged to the latest value), `setResult(std::any)`, `fail(const std::string&)` — a failure without an exception.
+`TaskOutcome`: `id`, `status` (`TaskStatus::DONE|CANCELLED|FAILED`), `error`, `result` (`std::any`, empty on
+cancellation and failure). A work exception is `FAILED` with `what()`; an unknown exception is the `TASK_UNKNOWN_ERROR` text.
+A task cancelled in the queue does not start. The application destructor cancels the tasks and waits for the pool threads (`app::TaskPool`,
+the last field of `Application::State`); the outcomes not delivered by then are destroyed without calling `done`.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` sets a handler `void(ui::Node&, const std::string&)`.

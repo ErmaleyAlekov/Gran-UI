@@ -191,13 +191,17 @@ Normal action names invoke registered business logic.
 
 ### Windows and the program
 
-Owner windows and modal windows (see the [guide](guide.en.md#windows-and-the-program)). The owner is the id of any node of its window;
+Owner windows, modal windows and background tasks (see the [guide](guide.en.md#windows-and-the-program)). A background task work
+runs on a pool thread: a language exception inside it becomes a failure (`failed`) with a text, the result is a language object
+the wrapper keeps itself until `done`. The owner is the id of any node of its window;
 the close handler gets the result (`""` — the close button or closing with the owner) and is called once on the UI thread.
 
 | Python | C# | Java | C ABI |
 |---|---|---|---|
 | `open_window(source, is_file=True, owner=None, modal=False, on_closed=None)` | `OpenWindow(source, isFile, owner, modal, onClosed)` | `openWindow(source, isFile, owner, modal, onClosed)` / `openWindow(path)` | `gran_app_open_window` (`gran_window_options`) |
 | `close_window(target, result=None)` | `CloseWindow(target, result)` | `closeWindow(target, result)` | `gran_app_close_window` |
+| `run_task(work, done, progress)` → id; `work(task)` returns the result, `task.cancelled()`, `task.progress(f, text)`; `done(status, result, error)`, `status` is `"done"`/`"cancelled"`/`"failed"` | `RunTask(work, done, progress)`; `BackgroundTask.Cancelled/Progress`; `BackgroundStatus` | `runTask(work, done, progress)`; `BackgroundTask.cancelled/progress`; `TASK_DONE/CANCELLED/FAILED` | `gran_app_run_task` (`gran_background`), `gran_task_cancelled/_progress/_fail` |
+| `cancel_task(id)` → `bool` | `CancelTask` | `cancelTask` | `gran_app_cancel_task` |
 
 ## C ABI
 

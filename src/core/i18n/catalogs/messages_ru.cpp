@@ -117,7 +117,8 @@ namespace gran::i18n
             {Message::DATA_MODEL_KIND, "имя «{0}» уже занято моделью другого вида ({1})"},
             {Message::DATA_SOURCE_CYCLE, "модель «{0}» опирается сама на себя через source, tree или model"},
             {Message::DATA_SELECTION_MISMATCH, "выделение «{0}» не найдено или относится не к списку «{1}», который показывает контейнер"},
-            {Message::APP_OWNER_NOT_WINDOW, "владелец окна должен быть узлом открытого окна"}
+            {Message::APP_OWNER_NOT_WINDOW, "владелец окна должен быть узлом открытого окна"},
+            {Message::TASK_UNKNOWN_ERROR, "фоновая задача завершилась неизвестной ошибкой"}
         };
     }
 

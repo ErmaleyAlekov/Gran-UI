@@ -363,6 +363,7 @@ app.onAction("save", SaveAction{&app});   // функция получает у�
 | `selectTab(вкладки, значение)` | Выбрать страницу `Tabs` из кода (без `onChange`) |
 | `setValue(узел, число)` / `setChecked(узел, да/нет)` | Число `ProgressBar`/`Slider`, отметка `CheckBox`/`Switch`/`RadioButton` (без `onChange`) |
 | `post(задача)` | Выполнить функцию в потоке интерфейса (безопасно из любого потока) |
+| `runTask(работа, итог, прогресс)` / `cancelTask(номер)` | Фоновая задача в пуле потоков, итог и прогресс — в потоке интерфейса |
 | `setTimeout(секунды, функция)` / `setInterval(секунды, функция)` / `clearTimer(номер)` | Таймеры в потоке интерфейса |
 | `openWindow(путь[, параметры])` / `openWindowString(разметка[, параметры])` / `closeWindow(узел[, результат])` | Ещё одно окно (владелец, модальность, `onClosed`) / закрыть окно узла |
 | `openFileDialog(параметры, несколько)` / `saveFileDialog` / `folderDialog` | Системные диалоги файлов |
@@ -1246,6 +1247,50 @@ app.openWindow("ask_save.xml", options);
 ввод заблокированного окна отбрасывает сам движок, а щелчок по нему активирует модальное окно (`_NET_ACTIVE_WINDOW`).
 
 `<Dialog>` (раздел «Всплывающие слои») — другое: это слой внутри окна, а не отдельное окно ОС.
+
+**Фоновые задачи.** `runTask(работа, итог, прогресс)` выполняет работу в пуле потоков, а итог и прогресс доставляет
+в поток интерфейса — их обработчики меняют дерево как обычные действия, без замков. Работа дерева не трогает.
+Потоков по умолчанию — на одно меньше, чем ядер (от 1 до 8; `AppOptions::taskThreads`), создаются они при первой задаче.
+
+```cpp
+struct LoadReport                       // работа: поток пула
+{
+    std::string path;
+    void operator()(gran::TaskContext& task) const
+    {
+        Report report;
+        for (std::size_t line = 0; line < total && !task.cancelled(); ++line)
+        {
+            report.add(readLine(path, line));
+            task.progress(double(line + 1) / total, "Строк: " + std::to_string(line + 1));
+        }
+        task.setResult(report);              // любое копируемое значение (std::any)
+    }
+};
+
+struct ShowReport                       // итог: поток интерфейса
+{
+    gran::Application* app;
+    void operator()(gran::TaskOutcome& outcome) const
+    {
+        if (outcome.status == gran::TaskStatus::DONE)
+            show(*app, std::any_cast<Report&>(outcome.result));
+        else if (outcome.status == gran::TaskStatus::FAILED)
+            showError(*app, outcome.error);  // исключение работы → FAILED с текстом
+    }
+};
+
+gran::TaskId id = app.runTask(LoadReport{path}, ShowReport{&app}, ShowProgress{&app});
+app.cancelTask(id);                     // итог придёт с CANCELLED
+```
+
+- Исключение в работе не роняет программу: итог `FAILED`, текст — в `outcome.error`.
+- Прогресс сливается: тысяча вызовов `progress` за кадр дают один вызов обработчика с последним значением;
+  после итога прогресс не приходит.
+- `cancelTask` только просит: работа сама проверяет `cancelled()` и заканчивается; итог приходит с `CANCELLED`
+  (результат отбрасывается), задача из очереди не начинается вовсе.
+- При выходе из программы задачи отменяются, и приложение ждёт потоки пула; недоставленные итоги пропадают.
+- `post(задача)` по-прежнему годится для своих потоков (сеть, устройство); `activeTasks()` — число незавершённых задач.
 
 ## Ошибки и язык сообщений
 

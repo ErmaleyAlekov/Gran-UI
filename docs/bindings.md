@@ -204,13 +204,17 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 
 ### Окна и программа
 
-Окна-владельцы и модальные окна (см. [руководство](guide.md#окна-и-программа)). Владелец — id любого узла его окна;
+Окна-владельцы, модальные окна и фоновые задачи (см. [руководство](guide.md#окна-и-программа)). Работа фоновой задачи
+выполняется в потоке пула: исключение языка внутри неё становится сбоем (`failed`) с текстом, результат — объект языка,
+который обёртка хранит сама до `done`. Владелец — id любого узла его окна;
 обработчик закрытия получает результат (`""` — крестик или закрытие с владельцем) и вызывается один раз в потоке UI.
 
 | Python | C# | Java | C ABI |
 |---|---|---|---|
 | `open_window(source, is_file=True, owner=None, modal=False, on_closed=None)` | `OpenWindow(source, isFile, owner, modal, onClosed)` | `openWindow(source, isFile, owner, modal, onClosed)` / `openWindow(path)` | `gran_app_open_window` (`gran_window_options`) |
 | `close_window(target, result=None)` | `CloseWindow(target, result)` | `closeWindow(target, result)` | `gran_app_close_window` |
+| `run_task(work, done, progress)` → номер; `work(task)` возвращает результат, `task.cancelled()`, `task.progress(f, text)`; `done(status, result, error)`, `status` — `"done"`/`"cancelled"`/`"failed"` | `RunTask(work, done, progress)`; `BackgroundTask.Cancelled/Progress`; `BackgroundStatus` | `runTask(work, done, progress)`; `BackgroundTask.cancelled/progress`; `TASK_DONE/CANCELLED/FAILED` | `gran_app_run_task` (`gran_background`), `gran_task_cancelled/_progress/_fail` |
+| `cancel_task(id)` → `bool` | `CancelTask` | `cancelTask` | `gran_app_cancel_task` |
 
 ## C ABI
 

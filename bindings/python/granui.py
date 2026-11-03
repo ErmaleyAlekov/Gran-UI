@@ -93,6 +93,27 @@ class _UndoStep(C.Structure):
 _UndoFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_uint32)
 _WindowClosedFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p)
 
+_WorkFn = C.CFUNCTYPE(None, C.c_void_p, C.c_void_p)
+_TaskDoneFn = C.CFUNCTYPE(None, C.c_void_p, C.c_uint64, C.c_int32, C.c_char_p)
+_TaskProgressFn = C.CFUNCTYPE(None, C.c_void_p, C.c_uint64, C.c_double, C.c_char_p)
+
+class _Background(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("work", _WorkFn), ("done", _TaskDoneFn), ("progress", _TaskProgressFn),
+                ("user", C.c_void_p)]
+
+TASK_STATUS = ("done", "cancelled", "failed")
+
+class BackgroundTask:
+    """Контекст фоновой работы: действителен только внутри неё. / A background work context: valid only inside it."""
+    def __init__(self, lib, handle):
+        self._lib, self._handle = lib, handle
+
+    def cancelled(self):
+        return bool(self._lib.gran_task_cancelled(self._handle))
+
+    def progress(self, fraction, text=""):
+        self._lib.gran_task_progress(self._handle, float(fraction), _encode(text))
+
 class _WindowOptions(C.Structure):
     _fields_ = [("size", C.c_uint32), ("owner", C.c_char_p), ("modal", C.c_int32),
                 ("on_closed", _WindowClosedFn), ("user", C.c_void_p)]
@@ -170,6 +191,10 @@ def _configure(lib):
         "selection_on_change": (C.c_int32, [p, s, _SelectionFn, p]),
         "app_open_window": (C.c_int32, [p, s, C.c_int32, C.POINTER(_WindowOptions)]),
         "app_close_window": (C.c_int32, [p, s, s]),
+        "app_run_task": (C.c_int32, [p, C.POINTER(_Background), C.POINTER(C.c_uint64)]),
+        "app_cancel_task": (C.c_int32, [p, C.c_uint64, C.POINTER(C.c_int32)]),
+        "task_cancelled": (C.c_int32, [p]), "task_progress": (C.c_int32, [p, C.c_double, s]),
+        "task_fail": (C.c_int32, [p, s]),
     }
     for name, (result, args) in declarations.items():
         function = getattr(lib, "gran_" + name)
@@ -203,6 +228,12 @@ class Application:
         # The window close handlers: user is the handler number, one trampoline for all the windows.
         self._windows = {}
         self._window_entry = _WindowClosedFn(self._window_closed)
+        # Фоновые задачи: user — номер записи [work, done, progress, результат], переходники общие.
+        # The background tasks: user is the number of an entry [work, done, progress, result], the trampolines are shared.
+        self._background = {}
+        self._work_entry = _WorkFn(self._run_work)
+        self._done_entry = _TaskDoneFn(self._task_done)
+        self._progress_entry = _TaskProgressFn(self._task_progress)
         options = _Options(C.sizeof(_Options), backend, 0, warp, 0, 0, exit_after)
         self._check(self._lib.gran_app_create(C.byref(options), C.byref(self._app)))
 
@@ -506,6 +537,49 @@ class Application:
         except BaseException:
             self._windows.pop(key, None)
             raise
+
+    def _run_work(self, user, handle):
+        # Поток пула: исключение не пересекает ctypes — оно становится сбоем задачи.
+        # A pool thread: an exception does not cross ctypes — it becomes the task failure.
+        entry = self._background.get(user or 0)
+        if entry is None:
+            return
+        try:
+            entry[3] = entry[0](BackgroundTask(self._lib, handle))
+        except BaseException as error:
+            self._lib.gran_task_fail(handle, _encode(str(error) or type(error).__name__))
+
+    def _task_done(self, user, task, status, error):
+        entry = self._background.pop(user or 0, None)
+        if entry is not None and entry[1] is not None:
+            result = entry[3] if status == 0 else None
+            self._protect(entry[1], TASK_STATUS[status], result, (error or b"").decode("utf-8"))
+
+    def _task_progress(self, user, task, fraction, text):
+        entry = self._background.get(user or 0)
+        if entry is not None and entry[2] is not None:
+            self._protect(entry[2], fraction, (text or b"").decode("utf-8"))
+
+    def run_task(self, work, done=None, progress=None):
+        """work(task) -> результат в потоке пула; done(status, result, error) и progress(fraction, text) — в потоке UI.
+        work(task) -> a result on a pool thread; done(status, result, error) and progress(fraction, text) — on the UI thread."""
+        with self._task_lock:
+            key = next(self._task_keys)
+        self._background[key] = [work, done, progress, None]
+        task = _Background(C.sizeof(_Background), self._work_entry, self._done_entry, self._progress_entry, C.c_void_p(key))
+        result = C.c_uint64()
+        try:
+            self._call("app_run_task", C.byref(task), C.byref(result))
+        except BaseException:
+            self._background.pop(key, None)
+            raise
+        return result.value
+
+    def cancel_task(self, task):
+        """Попросить отменить; False — задачи уже нет. / Ask to cancel; False — the task is gone."""
+        found = C.c_int32()
+        self._call("app_cancel_task", C.c_uint64(task), C.byref(found))
+        return bool(found.value)
 
     def close_window(self, target, result=None):
         """Закрыть окно узла target с результатом для on_closed. / Close the window of the target node with a result for on_closed."""

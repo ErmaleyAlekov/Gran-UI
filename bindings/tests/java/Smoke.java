@@ -189,6 +189,24 @@ public class Smoke {
                 localStaticCheck("ok".equals(closedWith[0]));
             }
 
+            // Фоновая задача: результат, прогресс и сбой — в потоке UI / A background task: the result, the progress and the failure — on the UI thread
+            try (Application tasks=new Application(libraryPath,backend(),3.0,true)) {
+                tasks.loadString(xml);
+                java.util.List<String> outcomes=new java.util.ArrayList<>();
+                double[] lastStep={0};
+                Application.TaskDone finish=(status,taskResult,error) -> {
+                    outcomes.add(status+":"+taskResult+":"+error);
+                    if (outcomes.size() == 2) tasks.command("close");
+                };
+                tasks.runTask(task -> { for (int step=1; step<=10; ++step) task.progress(step/10.0,"шаг"); return 42; },
+                    finish,(fraction,caption) -> lastStep[0]=fraction);
+                tasks.runTask(task -> { throw new IllegalStateException("broken"); },finish,null);
+                tasks.run();
+                localStaticCheck(outcomes.contains("0:42:") && outcomes.contains("2:null:broken"));
+                localStaticCheck(lastStep[0] == 1.0);
+                localStaticCheck(!tasks.cancelTask(12345));
+            }
+
             // Print success message
             System.out.println("Java smoke OK");
 

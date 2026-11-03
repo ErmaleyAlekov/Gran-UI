@@ -3,6 +3,7 @@
 
 #include "gran/app/application.hpp"
 #include "gran/app/internal/app_window.hpp"
+#include "gran/app/internal/task_pool.hpp"
 
 #include <cstdint>
 #include <filesystem>
@@ -115,6 +116,14 @@ namespace gran
         // Идёт run(); идёт замена документа (рисовать нельзя) / run() goes on; a document replacement goes on (no rendering)
         bool running = false;
         bool reloading = false;
+        /*
+        ** Пул фоновых задач (создаётся при первой runTask). Последнее поле — уничтожается первым:
+        ** его потоки дожидаются, пока очередь post (taskMutex, tasks) ещё жива.
+        **
+        ** The background task pool (created on the first runTask). The last field — destroyed first:
+        ** its threads are waited for while the post queue (taskMutex, tasks) is still alive.
+        */
+        std::unique_ptr<app::TaskPool> pool;
     };
 
     namespace app

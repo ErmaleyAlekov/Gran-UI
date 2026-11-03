@@ -56,6 +56,7 @@ namespace suites
     void registerExpressionTests(test::TestRunner& runner);
     void registerBuiltinCommandTests(test::TestRunner& runner);
     void registerWindowOwnerTests(test::TestRunner& runner);
+    void registerTaskPoolTests(test::TestRunner& runner);
     void registerShortcutTests(test::TestRunner& runner);
     void registerCommandTests(test::TestRunner& runner);
     void registerUndoStackTests(test::TestRunner& runner);

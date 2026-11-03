@@ -197,6 +197,23 @@ class Program
             windows.Run();
             Assert(closedWith == "ok");
 
+            // Фоновая задача: результат, прогресс и сбой — в потоке UI / A background task: the result, the progress and the failure — on the UI thread
+            using var tasks = new GranUI.Application(backend:Backend(), exitAfter:3.0, warp:true);
+            tasks.LoadString(xml);
+            var outcomes = new List<(GranUI.BackgroundStatus, object?, string)>();
+            double lastStep = 0;
+            Action<GranUI.BackgroundStatus, object?, string> finish = (status, result, error) => {
+                outcomes.Add((status, result, error));
+                if (outcomes.Count == 2) tasks.Command("close");
+            };
+            tasks.RunTask(task => { for (int step = 1; step <= 10; ++step) task.Progress(step / 10.0, "шаг"); return 42; }, finish, (fraction, _) => lastStep = fraction);
+            tasks.RunTask(_ => throw new InvalidOperationException("broken"), finish);
+            tasks.Run();
+            Assert(outcomes.Contains((GranUI.BackgroundStatus.Done, 42, "")));
+            Assert(outcomes.Contains((GranUI.BackgroundStatus.Failed, null, "broken")));
+            Assert(lastStep == 1.0);
+            Assert(!tasks.CancelTask(12345));
+
             app.Dispose();
         }
         catch (Exception ex)
