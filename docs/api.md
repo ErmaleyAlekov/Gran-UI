@@ -308,6 +308,28 @@ const WindowOptions&)` открывают ещё одно окно и возвр
 Отменённая в очереди задача не начинается. Деструктор приложения отменяет задачи и ждёт потоки пула (`app::TaskPool`,
 последнее поле `Application::State`); итоги, не доставленные к этому времени, уничтожаются без вызова `done`.
 
+### Журнал и отчёт о сбое
+
+`AppOptions::appName` (пусто — журнала нет), `logDirectory`, `crashReports = true`; конструктор `Application` открывает
+журнал, пишет запуск и ставит обработчик сбоя. `const std::string& previousCrash() const` — отчёт прошлого запуска
+(`.txt`; файл `.seen` в каталоге отчётов помнит показанный).
+
+Модуль `gran/log/log.hpp` (журнал процесса, паттерн Singleton): `Level::SEVERE|WARNING|INFO|VERBOSE`; `LogOptions`
+(`appName`, `directory`, `maxBytes = 1 МБ`, `files = 5`, `level = INFO`); `bool open(const LogOptions&)` (повторно с тем же
+путём — ничего), `close()`, `filePath()`, `directory()` (UTF-8); `write(Level, std::string_view category, std::string_view text)
+noexcept` — из любого потока, файл сбрасывается после каждой строки, `SEVERE`/`WARNING` дублируются в stderr;
+`copyRecent(char*, std::size_t) noexcept` — хвост кольца последних записей (16 КБ, без выделений и замков — для обработчика
+сбоя); `defaultDirectory(appName)`, `systemDescription()`.
+
+`gran/log/crash_report.hpp`: `CrashOptions{appName, directory}`, `bool installCrashHandler(const CrashOptions&)` (повторно —
+ничего), `crashDirectory(const CrashOptions&)`, `previousCrash(const std::string& directory)`. Имена файлов —
+`<программа>-<время>-<процесс>.txt|.dmp|.stack`. Windows: фильтр SEH передаёт указатели потоку-помощнику (создан
+заранее, у упавшего потока может не быть стека), `MiniDumpWriteDump` (dbghelp загружается при установке;
+`MiniDumpWithIndirectlyReferencedMemory | ScanMemory | ThreadInfo | UnloadedModules`), стек — `RtlVirtualUnwind`;
+`std::terminate`, `abort`, неверный параметр CRT — свои коды `0xE0000001…3`. Linux: `sigaction` с `SA_ONSTACK | SA_RESETHAND`
+на `sigaltstack` 64 КБ, только async-signal-safe вызовы, затем сигнал повторяется. Рендер: `rhi::RenderBackend::adapterInfo()`
+→ `AdapterInfo{api, name, driver, software}` для журнала.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` задаёт обработчик `void(ui::Node&, const std::string&)`.

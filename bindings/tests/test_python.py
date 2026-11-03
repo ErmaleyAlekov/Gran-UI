@@ -248,6 +248,18 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(steps[-1], 1.0)
         self.assertFalse(self.app.cancel_task(12345))
 
+    def test_log_file(self):
+        # Журнал процесса: запись попадает в файл / The process log: a record goes into the file
+        import tempfile
+        folder = tempfile.mkdtemp(prefix="gran_log_py_")
+        self.app.open_log("GranPythonTest", folder, crash_reports=False)
+        self.app.log("info", "test", "запись журнала")
+        path = self.app.log_path()
+        self.assertTrue(path.endswith("GranPythonTest.log"))
+        with open(path, encoding="utf-8") as stream:
+            self.assertIn("| test | запись журнала", stream.read())
+        self.assertEqual(self.app.previous_crash(), "")
+
     def test_timer_raises_value_error(self):
         def task():
             raise ValueError('callback marker')

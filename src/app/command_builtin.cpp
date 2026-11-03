@@ -2,7 +2,7 @@
 #include "gran/app/commands.hpp"
 #include "gran/core/gran_exception.hpp"
 
-#include <iostream>
+#include "gran/log/log.hpp"
 
 namespace gran::app
 {
@@ -121,7 +121,7 @@ namespace gran::app
             if (error.getCode() == ErrorCode::GPU || error.getCode() == ErrorCode::DEVICE_LOST
                 || error.getCode() == ErrorCode::PLATFORM)
                 throw;
-            std::cerr << error.what() << '\n';
+            log::write(log::Level::SEVERE, "markup", error.what());
         }
         return true;
     }

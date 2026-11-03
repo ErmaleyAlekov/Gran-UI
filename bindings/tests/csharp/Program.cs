@@ -214,6 +214,15 @@ class Program
             Assert(lastStep == 1.0);
             Assert(!tasks.CancelTask(12345));
 
+            // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
+            string logFolder = Path.Combine(Path.GetTempPath(), "gran_log_cs_" + Environment.ProcessId);
+            tasks.OpenLog("GranCSharpTest", logFolder, crashReports:false);
+            tasks.Log(GranUI.LogLevel.Info, "test", "запись журнала");
+            Assert(tasks.LogPath().EndsWith("GranCSharpTest.log"));
+            using (var reader = new StreamReader(new FileStream(tasks.LogPath(), FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+                Assert(reader.ReadToEnd().Contains("| test | запись журнала"));
+            Assert(tasks.PreviousCrash() == "");
+
             app.Dispose();
         }
         catch (Exception ex)

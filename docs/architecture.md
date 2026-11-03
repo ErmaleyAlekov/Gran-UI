@@ -37,7 +37,8 @@
 
 | Модуль | Что внутри |
 |---|---|
-| `core/` | `GranException` + `ErrorCode`, каталог сообщений `i18n` (ru, en), журнал |
+| `core/` | `GranException` + `ErrorCode`, каталог сообщений `i18n` (ru, en) |
+| `log/` | журнал процесса в файл (кольцо последних записей без выделений, ротация) и отчёт о сбое: Windows — фильтр SEH + поток-помощник + `MiniDumpWriteDump` + раскрутка `RtlVirtualUnwind`; Linux — сигналы на `sigaltstack`, async-signal-safe отчёт, `/proc/self/maps`, байты стека |
 | `utils/` | UTF-8, разбор чисел и списков, геометрия (`Vec2`, `Rect`, `Affine2D`), цвет |
 | `markup/` | загрузка через Берёсту, встроенная схема `gran-ui.xsd`, построение `ui::Node`, живой DOM (`live_document.hpp`) |
 | `style/` | разбор значений (цвет, длина, отступы, радиусы, тени, градиенты, переходы), каскад, тема |

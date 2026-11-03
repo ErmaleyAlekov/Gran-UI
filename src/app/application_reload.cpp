@@ -1,7 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
-#include <iostream>
+#include "gran/log/log.hpp"
 
 namespace gran
 {
@@ -75,7 +75,7 @@ namespace gran::app
         catch (const std::exception& error)
         {
             state.reloadFailure = error.what();
-            std::cerr << state.reloadFailure << '\n';
+            log::write(log::Level::SEVERE, "markup", state.reloadFailure);
         }
         return false;
     }

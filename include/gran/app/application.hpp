@@ -91,6 +91,18 @@ namespace gran
         bool forceWarp = false;
         bool watchMarkup = false; // проверять XML каждые 250 мс / check XML every 250 ms
         unsigned taskThreads = 0; // потоков пула runTask (0 — ядра − 1, от 1 до 8) / runTask pool threads (0 — cores − 1, from 1 to 8)
+        /*
+        ** Журнал в файл и отчёт о сбое: appName — имя программы (пусто — журнала нет, ошибки только в stderr);
+        ** logDirectory — свой каталог журнала (пусто — %LOCALAPPDATA%\<программа>\logs или ~/.local/state/<программа>/logs);
+        ** crashReports — перехватывать падение и писать отчёт (минидамп на Windows) в каталог crashes.
+        **
+        ** The log file and the crash report: appName is the program name (empty — no log, errors only to stderr);
+        ** logDirectory is a custom log directory (empty — %LOCALAPPDATA%\<program>\logs or ~/.local/state/<program>/logs);
+        ** crashReports — catch a crash and write a report (a minidump on Windows) into the crashes directory.
+        */
+        std::string appName;
+        std::string logDirectory;
+        bool crashReports = true;
     };
 
     /*
@@ -617,6 +629,17 @@ namespace gran
         ** run() are destroyed together with the application without being called.
         */
         void post(Task task);
+
+        // ---- application_logging.cpp ----
+
+        /*
+        ** Отчёт о сбое прошлого запуска, ещё не показанный программе (путь к .txt; рядом .dmp на Windows),
+        ** или пусто. Программа может один раз предложить отправить его разработчику.
+        **
+        ** The crash report of the previous run not shown to the program yet (the .txt path; a .dmp beside it on Windows),
+        ** or empty. The program may offer once to send it to the developer.
+        */
+        const std::string& previousCrash() const;
 
         // ---- application_background.cpp: пул фоновых задач ----
         // ---- application_background.cpp: the background task pool ----

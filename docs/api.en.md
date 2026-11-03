@@ -305,6 +305,28 @@ cancellation and failure). A work exception is `FAILED` with `what()`; an unknow
 A task cancelled in the queue does not start. The application destructor cancels the tasks and waits for the pool threads (`app::TaskPool`,
 the last field of `Application::State`); the outcomes not delivered by then are destroyed without calling `done`.
 
+### The log and the crash report
+
+`AppOptions::appName` (empty — no log), `logDirectory`, `crashReports = true`; the `Application` constructor opens
+the log, writes the start and installs the crash handler. `const std::string& previousCrash() const` is the previous run report
+(`.txt`; the `.seen` file in the report directory remembers the shown one).
+
+The `gran/log/log.hpp` module (the process log, the Singleton pattern): `Level::SEVERE|WARNING|INFO|VERBOSE`; `LogOptions`
+(`appName`, `directory`, `maxBytes = 1 MB`, `files = 5`, `level = INFO`); `bool open(const LogOptions&)` (again with the same
+path — nothing), `close()`, `filePath()`, `directory()` (UTF-8); `write(Level, std::string_view category, std::string_view text)
+noexcept` — from any thread, the file is flushed after every line, `SEVERE`/`WARNING` are duplicated to stderr;
+`copyRecent(char*, std::size_t) noexcept` — the tail of the ring of the latest records (16 KB, without allocations and locks — for the crash
+handler); `defaultDirectory(appName)`, `systemDescription()`.
+
+`gran/log/crash_report.hpp`: `CrashOptions{appName, directory}`, `bool installCrashHandler(const CrashOptions&)` (again —
+nothing), `crashDirectory(const CrashOptions&)`, `previousCrash(const std::string& directory)`. The file names are
+`<program>-<time>-<process>.txt|.dmp|.stack`. Windows: the SEH filter hands the pointers to a helper thread (created
+in advance, the crashed thread may have no stack), `MiniDumpWriteDump` (dbghelp is loaded on installing;
+`MiniDumpWithIndirectlyReferencedMemory | ScanMemory | ThreadInfo | UnloadedModules`), the stack is `RtlVirtualUnwind`;
+`std::terminate`, `abort`, a CRT invalid parameter are own codes `0xE0000001…3`. Linux: `sigaction` with `SA_ONSTACK | SA_RESETHAND`
+on a 64 KB `sigaltstack`, only async-signal-safe calls, then the signal is repeated. Rendering: `rhi::RenderBackend::adapterInfo()`
+→ `AdapterInfo{api, name, driver, software}` for the log.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` sets a handler `void(ui::Node&, const std::string&)`.

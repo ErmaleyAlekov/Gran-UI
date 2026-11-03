@@ -303,6 +303,16 @@ $(CAPI_BIN): $(CAPI_SRC) $(LIB_BIN) | $(BIN_DIR)
 test: $(TEST_BIN)
 	$(call native,$(TEST_BIN))
 
+# Отчёт о сбое: программа падает сама (SEGV, terminate, abort) и проверяет свои отчёты
+# The crash report: the program crashes itself (SEGV, terminate, abort) and checks its reports
+CRASH_SRC := $(wildcard tests/crash/*.cpp)
+CRASH_BIN := $(BIN_DIR)/gran_crash_probe$(EXE)
+.PHONY: test-crash
+$(CRASH_BIN): $(CRASH_SRC) $(LIB_BIN) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(CRASH_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+test-crash: $(CRASH_BIN)
+	$(call native,$(CRASH_BIN)) --check $(BIN_DIR)/crash_check
+
 # Статическая «Берёста» собирается её собственным Makefile
 # The static Beresta is built by its own Makefile
 beresta:

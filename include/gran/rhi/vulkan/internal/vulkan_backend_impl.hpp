@@ -95,6 +95,9 @@ namespace gran::rhi::vk
         void releaseTexture(unsigned slot) override;
         FrameStatus render(const FrameData& data) override;
         std::vector<std::string> takeDiagnostics() override;
+
+        // ---- vulkan_adapter.cpp ----
+        AdapterInfo adapterInfo() const override;
         void readPixels(std::vector<std::uint8_t>& rgba, unsigned& width, unsigned& height) override;
     private:
         void createInstance();

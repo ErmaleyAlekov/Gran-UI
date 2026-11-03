@@ -52,6 +52,8 @@ namespace gran::app
             if (win.window || win.closing)
                 continue;
             createGraphics(win);
+            if (index == 0)
+                logAdapter(win);
             renderFrame(win);
             win.window->show();
         }

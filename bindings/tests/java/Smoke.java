@@ -207,6 +207,17 @@ public class Smoke {
                 localStaticCheck(!tasks.cancelTask(12345));
             }
 
+            // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
+            try (Application logs=new Application(libraryPath,backend(),0.3,true)) {
+                java.nio.file.Path folder=java.nio.file.Files.createTempDirectory("gran_log_java_");
+                logs.openLog("GranJavaTest",folder.toString(),false);
+                logs.log(Application.LOG_INFO,"test","запись журнала");
+                localStaticCheck(logs.logPath().endsWith("GranJavaTest.log"));
+                String content=java.nio.file.Files.readString(java.nio.file.Path.of(logs.logPath()));
+                localStaticCheck(content.contains("| test | запись журнала"));
+                localStaticCheck(logs.previousCrash().isEmpty());
+            }
+
             // Print success message
             System.out.println("Java smoke OK");
 

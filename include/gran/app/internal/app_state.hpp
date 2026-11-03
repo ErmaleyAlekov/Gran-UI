@@ -123,6 +123,8 @@ namespace gran
         ** The background task pool (created on the first runTask). The last field — destroyed first:
         ** its threads are waited for while the post queue (taskMutex, tasks) is still alive.
         */
+        // Отчёт о сбое прошлого запуска (application_logging.cpp) / The crash report of the previous run (application_logging.cpp)
+        std::string previousCrash;
         std::unique_ptr<app::TaskPool> pool;
     };
 
@@ -290,6 +292,14 @@ namespace gran
 
         // Окнам без графики — окно ОС, бэкенд, первый кадр и показ (из цикла run) / The windows without graphics get the OS window, the backend, the first frame and showing (from the run loop)
         void openWindows(Application::State& state);
+
+        // ---- application_logging.cpp ----
+
+        // Журнал и обработчик сбоя по AppOptions::appName (из конструктора приложения) / The log and the crash handler by AppOptions::appName (from the application constructor)
+        void startLogging(Application::State& state);
+
+        // Видеокарта и драйвер окна — в журнал / The window video card and driver go into the log
+        void logAdapter(const AppWindow& win);
 
         // ---- window_closing.cpp ----
 

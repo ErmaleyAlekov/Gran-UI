@@ -1159,6 +1159,31 @@ app.cancelTask(id);                     // the outcome comes with CANCELLED
 - On the program exit the tasks are cancelled and the application waits for the pool threads; undelivered outcomes are lost.
 - `post(task)` still fits your own threads (network, a device); `activeTasks()` is the number of unfinished tasks.
 
+**The log and the crash report.** A windowed program has no visible stderr, so the engine keeps a log file — it is enough
+to give the program a name:
+
+```cpp
+gran::AppOptions options;
+options.appName = "Warehouse";             // the log and the crash reports are enabled by the name
+gran::Application app(options);
+if (!app.previousCrash().empty())          // the previous run report (once)
+    offerToSend(app.previousCrash());
+gran::log::write(gran::log::Level::INFO, "orders", "orders loaded: 120");
+```
+
+- The file is `%LOCALAPPDATA%\<program>\logs\<program>.log` (Windows) or `~/.local/state/<program>/logs/` (Linux,
+  `$XDG_STATE_HOME`); a custom directory is `AppOptions::logDirectory`. Over 1 MB the file is renamed into `.1.log`,
+  5 files are kept. A line: `time | level | thread | category | text`; the levels are `SEVERE`, `WARNING`, `INFO`, `VERBOSE`.
+- The engine itself writes: the start (the OS version), the video card, the API and the driver, a GPU device loss, the debug layer
+  messages, markup errors, unknown commands, an unavailable WebView. Errors and warnings are duplicated to stderr.
+- The crash report (`crashReports = true` by default) goes into the `crashes` directory beside the log. Windows: an unhandled
+  exception, `std::terminate`, `abort`, a CRT invalid parameter → a `.dmp` minidump (opens in Visual Studio and WinDbg)
+  and a `.txt` text: the exception code, the uncaught exception text, the "module+offset" stack, the latest log records.
+  Linux: `SIGSEGV`, `SIGBUS`, `SIGILL`, `SIGFPE`, `SIGABRT` → `.txt` (the signal, the address, the registers, backtrace, a copy of
+  `/proc/self/maps` for `addr2line`, the log tail) and `.stack` (64 KB of the stack); then the process ends the same way
+  as without the handler (the exit code, the core dump).
+- `make test-crash` checks the reports: the program crashes in three ways and checks its files.
+
 ## Errors and Message Language
 
 The [C++ API reference](api.en.md) documents node lifetimes, threading, D3D11/D3D12 selection and markup

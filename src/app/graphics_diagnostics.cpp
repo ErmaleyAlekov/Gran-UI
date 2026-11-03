@@ -1,6 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/log/log.hpp"
 
 namespace gran::app
 {
@@ -11,6 +12,8 @@ namespace gran::app
         if (!win.shared.options.debugLayer)
             return;
         auto messages = win.backend->takeDiagnostics();
+        for (const std::string& message : messages)
+            log::write(log::Level::SEVERE, "gpu", message);
         if (!messages.empty())
             throw GpuException(ErrorCode::GPU,
                 i18n::format(i18n::Message::GPU_DEBUG_MESSAGE, {"Application", messages.front()}), 0);

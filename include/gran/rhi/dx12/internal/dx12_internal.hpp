@@ -24,6 +24,12 @@
 
 namespace gran::rhi::dx12
 {
+    // ---- dxgi_adapter.cpp ----
+
+    // Имя адаптера DXGI (UTF-8), версия драйвера пользовательского режима и признак программного адаптера
+    // The DXGI adapter name (UTF-8), the user mode driver version and the software adapter flag
+    AdapterInfo describeDxgiAdapter(IDXGIAdapter* adapter, const char* api);
+
     // Кадров в полёте: CPU готовит следующий, пока GPU рисует текущий / Frames in flight: the CPU prepares the next one while the GPU draws the current
     constexpr std::uint32_t FRAMES_IN_FLIGHT = 2;
 

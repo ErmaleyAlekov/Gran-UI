@@ -210,6 +210,16 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
     endif()
 endforeach()
 
+# Проверка отчёта о сбое (как make test-crash): программа падает сама и проверяет отчёты.
+# The crash report check (as make test-crash): the program crashes itself and checks the reports.
+if(GRAN_BUILD_TESTS)
+    add_executable(gran_crash_probe "${CMAKE_CURRENT_SOURCE_DIR}/tests/crash/crash_probe.cpp")
+    target_link_libraries(gran_crash_probe PRIVATE gran)
+    gran_apply_compile_options(gran_crash_probe)
+    gran_apply_link_options(gran_crash_probe)
+    add_test(NAME gran_crash_reports COMMAND gran_crash_probe --check "${CMAKE_BINARY_DIR}/crash-check")
+endif()
+
 # Отдельный набор GPU-тестов, включаемый явно. / A separate GPU suite enabled explicitly.
 if(WIN32 AND GRAN_BUILD_RENDER_TESTS)
     enable_testing()

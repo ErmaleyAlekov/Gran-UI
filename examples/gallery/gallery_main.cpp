@@ -38,6 +38,10 @@ namespace
     {
         gran::AppOptions options;
 
+        // Журнал и отчёт о сбое галереи: %LOCALAPPDATA%\GranGallery (Windows), ~/.local/state/GranGallery (Linux)
+        // The gallery log and crash report: %LOCALAPPDATA%\GranGallery (Windows), ~/.local/state/GranGallery (Linux)
+        options.appName = "GranGallery";
+
         for (int index = 1; index < argc; ++index)
         {
             if (std::strcmp(argv[index], "--debug") == 0)

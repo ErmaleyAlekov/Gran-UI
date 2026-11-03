@@ -195,6 +195,8 @@ def _configure(lib):
         "app_cancel_task": (C.c_int32, [p, C.c_uint64, C.POINTER(C.c_int32)]),
         "task_cancelled": (C.c_int32, [p]), "task_progress": (C.c_int32, [p, C.c_double, s]),
         "task_fail": (C.c_int32, [p, s]),
+        "log_open": (C.c_int32, [s, s, C.c_int32]), "log_write": (C.c_int32, [C.c_int32, s, s]),
+        "log_path": (C.c_int32, [C.POINTER(p)]), "log_previous_crash": (C.c_int32, [C.POINTER(p)]),
     }
     for name, (result, args) in declarations.items():
         function = getattr(lib, "gran_" + name)
@@ -580,6 +582,31 @@ class Application:
         found = C.c_int32()
         self._call("app_cancel_task", C.c_uint64(task), C.byref(found))
         return bool(found.value)
+
+    LOG_LEVELS = ("severe", "warning", "info", "verbose")
+
+    def open_log(self, app_name, directory=None, crash_reports=True):
+        """Журнал процесса в файл и перехват падения. / The process log file and the crash catching."""
+        self._check(self._lib.gran_log_open(_encode(app_name), _encode(directory), 1 if crash_reports else 0))
+
+    def log(self, level, category, text):
+        """level — "severe" / "warning" / "info" / "verbose". / level is "severe" / "warning" / "info" / "verbose"."""
+        self._check(self._lib.gran_log_write(self.LOG_LEVELS.index(level), _encode(category), _encode(text)))
+
+    def _process_string(self, name):
+        output = C.c_void_p()
+        self._check(getattr(self._lib, "gran_" + name)(C.byref(output)))
+        try:
+            return C.string_at(output).decode("utf-8")
+        finally:
+            self._lib.gran_string_free(output)
+
+    def log_path(self):
+        return self._process_string("log_path")
+
+    def previous_crash(self):
+        """Отчёт о сбое прошлого запуска ("" — нет). / The previous run crash report ("" — none)."""
+        return self._process_string("log_previous_crash")
 
     def close_window(self, target, result=None):
         """Закрыть окно узла target с результатом для on_closed. / Close the window of the target node with a result for on_closed."""

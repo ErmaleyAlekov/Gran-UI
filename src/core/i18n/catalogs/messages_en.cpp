@@ -118,7 +118,10 @@ namespace gran::i18n
             {Message::DATA_SOURCE_CYCLE, "model \"{0}\" depends on itself through source, tree or model"},
             {Message::DATA_SELECTION_MISMATCH, "selection \"{0}\" is not found or does not belong to the list \"{1}\" the container shows"},
             {Message::APP_OWNER_NOT_WINDOW, "the window owner must be a node of an open window"},
-            {Message::TASK_UNKNOWN_ERROR, "the background task ended with an unknown error"}
+            {Message::TASK_UNKNOWN_ERROR, "the background task ended with an unknown error"},
+            {Message::GPU_DEVICE_RECREATED, "the GPU device was lost, the window graphics were recreated"},
+            {Message::LOG_START, "start: {0}"},
+            {Message::LOG_PREVIOUS_CRASH, "the previous run crash report: {0}"}
         };
     }
 

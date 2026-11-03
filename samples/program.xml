@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Окна и программа (пункт 1.8): модальный диалог с результатом, окно-инструмент с владельцем,
-  вложенные модальные окна, фоновая задача с прогрессом и отменой.
+  вложенные модальные окна, фоновая задача с прогрессом и отменой, журнал и отчёт о сбое.
   Запуск: gran_gallery samples/program.xml
 
   Windows and the program (item 1.8): a modal dialog with a result, a tool window with an owner,
-  nested modal windows, a background task with progress and cancellation.
+  nested modal windows, a background task with progress and cancellation, the log and the crash report.
   Run: gran_gallery samples/program.xml
 -->
-<Window title="Gran UI — окна и программа" width="720" height="600" background="#f5f6f8">
+<Window title="Gran UI — окна и программа" width="720" height="760" background="#f5f6f8">
   <Resources>
     <Style name="section" spacing="10" padding="16" borderRadius="12" background="#ffffff" borderWidth="1" borderColor="#e1e4ea"/>
     <Style name="caption" fontWeight="600" fontSize="15"/>
@@ -30,6 +30,15 @@
         <Button onClick="taskStart" text="Запустить"/>
         <Button onClick="taskCancel" text="Отменить"/>
         <Text id="taskStatus" color="#667085">Нет задачи</Text>
+      </Stack>
+    </Stack>
+    <Stack style="section">
+      <Text style="caption">Журнал и отчёт о сбое</Text>
+      <Text id="logInfo" color="#667085" maxWidth="620">Журнал не открыт</Text>
+      <Text id="crashInfo" color="#667085" maxWidth="620">Сбоев не было</Text>
+      <Stack orientation="horizontal" spacing="10">
+        <Button onClick="logWrite" text="Записать в журнал"/>
+        <Button onClick="crashNow" text="Упасть (проверка отчёта)"/>
       </Stack>
     </Stack>
     <Text id="programStatus" color="#344054">Готово</Text>

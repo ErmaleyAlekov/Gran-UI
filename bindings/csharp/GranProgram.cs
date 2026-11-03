@@ -22,9 +22,16 @@ internal static class NativeProgram
     [DllImport(Library)] internal static extern int gran_task_cancelled(IntPtr task);
     [DllImport(Library)] internal static extern int gran_task_progress(IntPtr task, double fraction, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
     [DllImport(Library)] internal static extern int gran_task_fail(IntPtr task, [MarshalAs(UnmanagedType.LPUTF8Str)] string message);
+    [DllImport(Library)] internal static extern int gran_log_open([MarshalAs(UnmanagedType.LPUTF8Str)] string appName, [MarshalAs(UnmanagedType.LPUTF8Str)] string? directory, int crashReports);
+    [DllImport(Library)] internal static extern int gran_log_write(int level, [MarshalAs(UnmanagedType.LPUTF8Str)] string category, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
+    [DllImport(Library)] internal static extern int gran_log_path(out IntPtr result);
+    [DllImport(Library)] internal static extern int gran_log_previous_crash(out IntPtr result);
     [DllImport(Library)] internal static extern int gran_app_open_window(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string source, int isFile, ref WindowOptions options);
     [DllImport(Library)] internal static extern int gran_app_close_window(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string? result);
 }
+
+// Уровень записи журнала (GRAN_LOG_*) / The log record level (GRAN_LOG_*)
+public enum LogLevel { Severe = 0, Warning = 1, Info = 2, Verbose = 3 }
 
 // Чем кончилась фоновая задача (GRAN_TASK_*) / How a background task ended (GRAN_TASK_*)
 public enum BackgroundStatus { Done = 0, Cancelled = 1, Failed = 2 }
@@ -104,6 +111,16 @@ public sealed partial class Application
         try { Check(NativeProgram.gran_app_open_window(Handle, Arguments.Text(source), isFile ? 1 : 0, ref options)); }
         catch { windowHandlers.TryRemove(key, out _); throw; }
     }
+    // Журнал процесса в файл и перехват падения (directory null — каталог по умолчанию) / The process log file and the crash catching (directory null — the default directory)
+    public void OpenLog(string appName, string? directory=null, bool crashReports=true) {
+        if (directory != null) Arguments.Text(directory);
+        Check(NativeProgram.gran_log_open(Arguments.Text(appName), directory, crashReports ? 1 : 0));
+    }
+    public void Log(LogLevel level, string category, string text) =>
+        Check(NativeProgram.gran_log_write((int)level, Arguments.Text(category), Arguments.Text(text)));
+    public string LogPath() { Check(NativeProgram.gran_log_path(out var value)); return OwnedString(value); }
+    // Отчёт о сбое прошлого запуска ("" — нет) / The previous run crash report ("" — none)
+    public string PreviousCrash() { Check(NativeProgram.gran_log_previous_crash(out var value)); return OwnedString(value); }
     // Закрыть окно узла target с результатом для onClosed / Close the window of the target node with a result for onClosed
     public void CloseWindow(string target, string? result=null) {
         if (result != null) Arguments.Text(result);

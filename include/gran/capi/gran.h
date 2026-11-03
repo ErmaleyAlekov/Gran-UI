@@ -259,6 +259,22 @@ GRAN_API int32_t gran_task_cancelled(const gran_task* task);
 GRAN_API gran_status gran_task_progress(gran_task* task, double fraction, const char* text);
 GRAN_API gran_status gran_task_fail(gran_task* task, const char* message);
 
+/* Журнал и отчёт о сбое (на весь процесс; вызывать до gran_app_create, из любого потока). log_open открывает файл
+ * <directory>/<app_name>.log (directory == NULL — %LOCALAPPDATA%\<app_name>\logs или ~/.local/state/<app_name>/logs)
+ * и при crash_reports != 0 ставит перехват падения (минидамп и отчёт в каталог crashes рядом с журналом).
+ * log_write: level — GRAN_LOG_*. log_path и log_previous_crash возвращают строку (пустую — нет), освободить
+ * gran_string_free; previous_crash — отчёт прошлого запуска, найденный в log_open.
+ * The log and the crash report (process-wide; call before gran_app_create, from any thread). log_open opens the file
+ * <directory>/<app_name>.log (directory == NULL — %LOCALAPPDATA%\<app_name>\logs or ~/.local/state/<app_name>/logs)
+ * and with crash_reports != 0 installs the crash catching (a minidump and a report in the crashes directory beside the log).
+ * log_write: level is GRAN_LOG_*. log_path and log_previous_crash return a string (empty — none), free it with
+ * gran_string_free; previous_crash is the previous run report found in log_open. */
+enum { GRAN_LOG_SEVERE = 0, GRAN_LOG_WARNING = 1, GRAN_LOG_INFO = 2, GRAN_LOG_VERBOSE = 3 };
+GRAN_API gran_status gran_log_open(const char* app_name, const char* directory, int32_t crash_reports);
+GRAN_API gran_status gran_log_write(int32_t level, const char* category, const char* text);
+GRAN_API gran_status gran_log_path(char** result);
+GRAN_API gran_status gran_log_previous_crash(char** result);
+
 /* Компоненты: сгенерированная XSD библиотеки namespace_uri, подключённой <xi:include> в окне узла window (NULL — главном);
  * пустая строка — такой библиотеки нет; освободить gran_string_free. Её сохраняют рядом с разметкой для подсказок редактора XML.
  * Components: the generated XSD of the namespace_uri library included with <xi:include> in the window of the node window (NULL — the main one);

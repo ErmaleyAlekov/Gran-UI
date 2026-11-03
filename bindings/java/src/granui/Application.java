@@ -501,6 +501,32 @@ public final class Application implements AutoCloseable {
     public void closeWindow(String target, String result) {
         try (Arena scope=Arena.ofConfined()) { status("gran_app_close_window",app,utf8(scope,target),utf8(scope,result)); }
     }
+    // ---- Журнал и отчёт о сбое 1.8 (на весь процесс) ----
+    // ---- The log and the crash report 1.8 (process-wide) ----
+    public static final int LOG_SEVERE=0, LOG_WARNING=1, LOG_INFO=2, LOG_VERBOSE=3;
+    // Журнал процесса в файл и перехват падения (directory null — каталог по умолчанию) / The process log file and the crash catching (directory null — the default directory)
+    public void openLog(String appName, String directory, boolean crashReports) {
+        try (Arena scope=Arena.ofConfined()) {
+            check((int)invoke("gran_log_open",JAVA_INT,utf8(scope,appName),utf8(scope,directory),crashReports ? 1 : 0));
+        }
+    }
+    public void log(int level, String category, String text) {
+        try (Arena scope=Arena.ofConfined()) {
+            check((int)invoke("gran_log_write",JAVA_INT,level,utf8(scope,category),utf8(scope,text)));
+        }
+    }
+    private String processString(String name) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment output=scope.allocate(ADDRESS);
+            check((int)invoke(name,JAVA_INT,output));
+            MemorySegment value=output.get(ADDRESS,0);
+            try { return text(value); }
+            finally { invoke("gran_string_free",null,value); }
+        }
+    }
+    public String logPath() { return processString("gran_log_path"); }
+    // Отчёт о сбое прошлого запуска ("" — нет) / The previous run crash report ("" — none)
+    public String previousCrash() { return processString("gran_log_previous_crash"); }
     // ---- Фоновые задачи 1.8: work — в потоке пула, done и progress — в потоке UI ----
     // ---- Background tasks 1.8: work runs on a pool thread, done and progress — on the UI thread ----
     // Состояния GRAN_TASK_* / The GRAN_TASK_* statuses

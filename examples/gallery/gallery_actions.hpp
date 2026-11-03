@@ -65,6 +65,9 @@ namespace gallery
 
     // Кнопки taskStart / taskCancel samples/program.xml (gallery_tasks.cpp) / The taskStart / taskCancel buttons of samples/program.xml (gallery_tasks.cpp)
     void registerTasks(gran::Application& application);
+
+    // Кнопки logWrite / crashNow и сведения о журнале и прошлом сбое (gallery_log.cpp) / The logWrite / crashNow buttons and the log and previous crash information (gallery_log.cpp)
+    void registerLog(gran::Application& application);
 }
 
 #endif

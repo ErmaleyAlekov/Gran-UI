@@ -136,6 +136,9 @@ namespace gran::i18n
         DATA_SELECTION_MISMATCH,
         APP_OWNER_NOT_WINDOW,
         TASK_UNKNOWN_ERROR,
+        GPU_DEVICE_RECREATED,
+        LOG_START,
+        LOG_PREVIOUS_CRASH,
         COUNT
     };
 }
