@@ -207,6 +207,18 @@ public class Smoke {
                 localStaticCheck(!tasks.cancelTask(12345));
             }
 
+            // Блок ресурсов (формат gran_rcc --blob): разметка грузится по пути res:/ / A resource block: markup loads by a res:/ path
+            try (Application resources=new Application(libraryPath,backend(),0.3,true)) {
+                byte[] markupBytes="<Window title=\"FromResources\"><Text id=\"res_text\">из ресурсов</Text></Window>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                byte[] pathBytes="bindings/java_window.xml".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+                java.nio.ByteBuffer blob=java.nio.ByteBuffer.allocate(8+4+4+pathBytes.length+8+markupBytes.length).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+                blob.put("GRANRES1".getBytes(java.nio.charset.StandardCharsets.US_ASCII)).putInt(1).putInt(pathBytes.length).put(pathBytes)
+                    .putLong(markupBytes.length).put(markupBytes);
+                resources.mountResources(blob.array());
+                resources.loadFile("res:/bindings/java_window.xml");
+                localStaticCheck(resources.read("res_text","text").equals("из ресурсов"));
+            }
+
             // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
             try (Application logs=new Application(libraryPath,backend(),0.3,true)) {
                 java.nio.file.Path folder=java.nio.file.Files.createTempDirectory("gran_log_java_");

@@ -203,6 +203,7 @@ the close handler gets the result (`""` — the close button or closing with the
 | `run_task(work, done, progress)` → id; `work(task)` returns the result, `task.cancelled()`, `task.progress(f, text)`; `done(status, result, error)`, `status` is `"done"`/`"cancelled"`/`"failed"` | `RunTask(work, done, progress)`; `BackgroundTask.Cancelled/Progress`; `BackgroundStatus` | `runTask(work, done, progress)`; `BackgroundTask.cancelled/progress`; `TASK_DONE/CANCELLED/FAILED` | `gran_app_run_task` (`gran_background`), `gran_task_cancelled/_progress/_fail` |
 | `cancel_task(id)` → `bool` | `CancelTask` | `cancelTask` | `gran_app_cancel_task` |
 | `open_log(app_name, directory=None, crash_reports=True)`, `log("info", category, text)`, `log_path()`, `previous_crash()` | `OpenLog`, `Log(LogLevel, …)`, `LogPath`, `PreviousCrash` | `openLog`, `log(LOG_INFO, …)`, `logPath`, `previousCrash` | `gran_log_open` / `_write` (`GRAN_LOG_*`) / `_path` / `_previous_crash` (process-wide) |
+| `mount_resources(bytes or a path)` — a `gran_rcc --blob` block | `MountResources(byte[])` | `mountResources(byte[])` | `gran_resources_mount` (the bytes are copied) |
 
 ## C ABI
 

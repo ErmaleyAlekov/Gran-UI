@@ -5,6 +5,7 @@
 ** gran_gallery — an interactive showcase: the samples/showcase.xml markup in a window with actions.
 ** Usage: gran_gallery [markup.xml] [--debug] [--exit-after seconds]
 */
+#include "gran/res/resources.hpp"
 #include "gallery_actions.hpp"
 #include "gran/core/gran_exception.hpp"
 
@@ -75,6 +76,9 @@ int main(int argc, char* argv[])
     try
     {
         gran::Application application(parseOptions(argc, argv, markup));
+        // Встроенные примеры (examples/gallery/resources.xml): gran_gallery res:/samples/program.xml
+        // The embedded samples (examples/gallery/resources.xml): gran_gallery res:/samples/program.xml
+        gran::res::mount(granResources_gallery());
         application.loadFile(markup);
         gallery::registerActions(application);
         gallery::registerTimers(application);

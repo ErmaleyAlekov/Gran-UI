@@ -275,6 +275,14 @@ GRAN_API gran_status gran_log_write(int32_t level, const char* category, const c
 GRAN_API gran_status gran_log_path(char** result);
 GRAN_API gran_status gran_log_previous_crash(char** result);
 
+/* Ресурсы внутри программы: resources_mount подключает блок gran_rcc --blob (байты копируются, на весь процесс);
+ * после него пути «res:/…» работают в gran_app_load, gran_app_open_window, картинках, шрифтах и источниках данных.
+ * Испорченный блок — GRAN_ERROR.
+ * Resources inside the program: resources_mount mounts a gran_rcc --blob block (the bytes are copied, process-wide);
+ * after it the "res:/…" paths work in gran_app_load, gran_app_open_window, images, fonts and data sources.
+ * A damaged block is GRAN_ERROR. */
+GRAN_API gran_status gran_resources_mount(const void* data, size_t size);
+
 /* Компоненты: сгенерированная XSD библиотеки namespace_uri, подключённой <xi:include> в окне узла window (NULL — главном);
  * пустая строка — такой библиотеки нет; освободить gran_string_free. Её сохраняют рядом с разметкой для подсказок редактора XML.
  * Components: the generated XSD of the namespace_uri library included with <xi:include> in the window of the node window (NULL — the main one);

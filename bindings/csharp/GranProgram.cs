@@ -22,6 +22,7 @@ internal static class NativeProgram
     [DllImport(Library)] internal static extern int gran_task_cancelled(IntPtr task);
     [DllImport(Library)] internal static extern int gran_task_progress(IntPtr task, double fraction, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
     [DllImport(Library)] internal static extern int gran_task_fail(IntPtr task, [MarshalAs(UnmanagedType.LPUTF8Str)] string message);
+    [DllImport(Library)] internal static extern int gran_resources_mount(byte[] data, nuint size);
     [DllImport(Library)] internal static extern int gran_log_open([MarshalAs(UnmanagedType.LPUTF8Str)] string appName, [MarshalAs(UnmanagedType.LPUTF8Str)] string? directory, int crashReports);
     [DllImport(Library)] internal static extern int gran_log_write(int level, [MarshalAs(UnmanagedType.LPUTF8Str)] string category, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
     [DllImport(Library)] internal static extern int gran_log_path(out IntPtr result);
@@ -110,6 +111,11 @@ public sealed partial class Application
             OnClosed=onClosed != null ? windowEntry : null, User=(IntPtr)key };
         try { Check(NativeProgram.gran_app_open_window(Handle, Arguments.Text(source), isFile ? 1 : 0, ref options)); }
         catch { windowHandlers.TryRemove(key, out _); throw; }
+    }
+    // Подключить блок gran_rcc --blob: пути res:/ для всего процесса (байты копируются) / Mount a gran_rcc --blob block: the res:/ paths for the whole process (the bytes are copied)
+    public void MountResources(byte[] blob) {
+        ArgumentNullException.ThrowIfNull(blob);
+        Check(NativeProgram.gran_resources_mount(blob, (nuint)blob.Length));
     }
     // Журнал процесса в файл и перехват падения (directory null — каталог по умолчанию) / The process log file and the crash catching (directory null — the default directory)
     public void OpenLog(string appName, string? directory=null, bool crashReports=true) {

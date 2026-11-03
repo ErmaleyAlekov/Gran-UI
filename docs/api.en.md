@@ -327,6 +327,21 @@ in advance, the crashed thread may have no stack), `MiniDumpWriteDump` (dbghelp 
 on a 64 KB `sigaltstack`, only async-signal-safe calls, then the signal is repeated. Rendering: `rhi::RenderBackend::adapterInfo()`
 → `AdapterInfo{api, name, driver, software}` for the log.
 
+### Resources inside the program
+
+`gran/res/resources.hpp`: `Entry{path, data, size}`, `Bundle{name, entries, count}`, `ResourceView{data, size}`;
+`mount(const Bundle&)` (the bytes are not copied; a bundle mounted later overrides equal paths), `mountBlob(const void*,
+std::size_t)` (the "GRANRES1" block is copied; a damaged one is `GranException(RESOURCE)`, `RES_BAD_BLOB`), `unmountAll()`,
+`isResourcePath(std::string_view)`, `find(std::string_view, ResourceView&)`, `normalize(std::string_view)` (both slashes,
+`.` and `..`; leaving the root — empty), `readFile(const std::filesystem::path&, std::vector<std::uint8_t>&)` and
+`openStream(const std::filesystem::path&)` — a resource or a disk file. `MappedFile::open("res:/…")` gives the bundle bytes without
+a mapping. The block format: `"GRANRES1"`, `u32` entry count, for each `u32` path length, the path, `u64` length, the data (LE).
+
+`gran/res/manifest.hpp` (used by `gran_rcc`): `readManifest(path)` → `Manifest{name, location, files}` (the
+`gran-resources.xsd` schema; a missing file is `RES_MISSING_FILE`, a repeated path is `RES_DUPLICATE_ALIAS`), `matchPattern`, `expandFolder`,
+`sortFiles`, `generateSource`, `generateBlob`, `generateDepfile`. The generated `.cpp` declares
+`const gran::res::Bundle& granResources_<name>()`.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` sets a handler `void(ui::Node&, const std::string&)`.

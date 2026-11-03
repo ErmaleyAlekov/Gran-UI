@@ -1317,6 +1317,37 @@ gran::log::write(gran::log::Level::INFO, "orders", "загружено зака�
   как без обработчика (код выхода, core dump).
 - `make test-crash` проверяет отчёты: программа падает тремя способами и проверяет свои файлы.
 
+**Ресурсы внутри программы.** Разметку, картинки, иконки, шрифты и файлы данных можно встроить в exe — программа
+поставляется одним файлом, а разметка не лежит рядом открытым текстом. Манифест (`schemas/gran-resources.xsd`):
+
+```xml
+<Bundle name="store">
+  <File path="ui/main.xml" alias="ui/main.xml"/>
+  <Folder path="assets" alias="assets" include="*.png *.svg *.ttf"/>
+</Bundle>
+```
+
+`gran_rcc resources.xml resources.cpp [--depfile resources.d] [--blob store.bin]` превращает его в `.cpp` с функцией
+`granResources_store()`; программа подключает пакет до загрузки разметки и открывает файлы по путям `res:/`:
+
+```cpp
+const gran::res::Bundle& granResources_store();   // из сгенерированного resources.cpp
+
+gran::res::mount(granResources_store());
+app.loadFile("res:/ui/main.xml");                 // относительные пути внутри тоже идут в res:/
+```
+
+- `res:/` понимают `loadFile`, `openWindow`, `xi:include` библиотек компонентов, `<Image>`, `<Icon source>`, `<Font>`,
+  источники `<Data source>` (JSON и XML). Шрифты читаются прямо из памяти программы, без копии. `<WebView source>`
+  по-прежнему требует файл или адрес.
+- `path` — относительно манифеста; `alias` — путь внутри `res:/` (латиница, цифры, `_ . / -`, без `..`), по умолчанию
+  равен `path`. `<Folder>` берёт файлы по шаблонам `include` (`*` и `?`, через пробел), с подпапками (`recursive="false"`
+  — без них). Повтор пути — ошибка `gran_rcc`.
+- Make: в `examples/<имя>/resources.xml` пакет собирается и встраивается в пример автоматически (файл `.d` пересобирает
+  его при правке любого встроенного файла). CMake: `gran_add_resources(цель resources.xml)`.
+- Обёртки языков подключают пакет одним блоком: `gran_rcc … --blob store.bin`, затем `mount_resources("store.bin")`.
+- Пример: `gran_gallery res:/samples/program.xml` — пример раздела без файлов рядом с программой.
+
 ## Ошибки и язык сообщений
 
 Полный [справочник C++ API](api.md) описывает время жизни узлов, потоки, выбор D3D11/D3D12 и перезагрузку

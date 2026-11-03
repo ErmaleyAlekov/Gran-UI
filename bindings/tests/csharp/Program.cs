@@ -214,6 +214,16 @@ class Program
             Assert(lastStep == 1.0);
             Assert(!tasks.CancelTask(12345));
 
+            // Блок ресурсов (формат gran_rcc --blob): разметка грузится по пути res:/ / A resource block: markup loads by a res:/ path
+            byte[] markupBytes = System.Text.Encoding.UTF8.GetBytes("<Window title=\"FromResources\"><Text id=\"res_text\">из ресурсов</Text></Window>");
+            byte[] pathBytes = System.Text.Encoding.ASCII.GetBytes("bindings/csharp_window.xml");
+            var blob = new List<byte>(System.Text.Encoding.ASCII.GetBytes("GRANRES1"));
+            blob.AddRange(BitConverter.GetBytes(1u)); blob.AddRange(BitConverter.GetBytes((uint)pathBytes.Length)); blob.AddRange(pathBytes);
+            blob.AddRange(BitConverter.GetBytes((ulong)markupBytes.Length)); blob.AddRange(markupBytes);
+            tasks.MountResources(blob.ToArray());
+            tasks.LoadFile("res:/bindings/csharp_window.xml");
+            Assert(tasks.Read("res_text", "text") == "из ресурсов");
+
             // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
             string logFolder = Path.Combine(Path.GetTempPath(), "gran_log_cs_" + Environment.ProcessId);
             tasks.OpenLog("GranCSharpTest", logFolder, crashReports:false);

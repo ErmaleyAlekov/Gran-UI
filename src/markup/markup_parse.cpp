@@ -1,6 +1,7 @@
 #include "gran/markup/internal/build_context.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/res/resources.hpp"
 
 #include "beresta.hpp"
 
@@ -69,7 +70,11 @@ namespace gran::markup::internal
     {
         beresta::CollectingErrorHandler handler;
         beresta::Document dom;
+        res::ResourceView view;
 
+        // Ресурс res:/ разбирается из памяти программы / A res:/ resource is parsed from the program memory
+        if (res::find(path, view))
+            return parseMarkupText(std::string_view(reinterpret_cast<const char*>(view.data), view.size));
         try
         {
             dom = beresta::XmlParser(parserOptions(handler)).parseFile(path);

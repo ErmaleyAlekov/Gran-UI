@@ -501,6 +501,15 @@ public final class Application implements AutoCloseable {
     public void closeWindow(String target, String result) {
         try (Arena scope=Arena.ofConfined()) { status("gran_app_close_window",app,utf8(scope,target),utf8(scope,result)); }
     }
+    // ---- Ресурсы внутри программы 1.8: блок gran_rcc --blob (на весь процесс) ----
+    // ---- Resources inside the program 1.8: a gran_rcc --blob block (process-wide) ----
+    public void mountResources(byte[] blob) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment data=scope.allocate(Math.max(1,blob.length));
+            MemorySegment.copy(blob,0,data,JAVA_BYTE,0,blob.length);
+            check((int)invoke("gran_resources_mount",JAVA_INT,data,(long)blob.length));
+        }
+    }
     // ---- Журнал и отчёт о сбое 1.8 (на весь процесс) ----
     // ---- The log and the crash report 1.8 (process-wide) ----
     public static final int LOG_SEVERE=0, LOG_WARNING=1, LOG_INFO=2, LOG_VERBOSE=3;

@@ -248,6 +248,18 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(steps[-1], 1.0)
         self.assertFalse(self.app.cancel_task(12345))
 
+    def test_resources_blob(self):
+        # Блок ресурсов (формат gran_rcc --blob): разметка грузится по пути res:/ / A resource block (the gran_rcc --blob format): markup loads by a res:/ path
+        import struct
+        markup = '<Window title="FromResources"><Text id="res_text">из ресурсов</Text></Window>'.encode("utf-8")
+        path = b"bindings/python_window.xml"
+        blob = b"GRANRES1" + struct.pack("<I", 1) + struct.pack("<I", len(path)) + path + struct.pack("<Q", len(markup)) + markup
+        self.app.mount_resources(blob)
+        self.app.load_file("res:/bindings/python_window.xml")
+        self.assertEqual(self.app.read("res_text", "text"), "из ресурсов")
+        with self.assertRaises(RuntimeError):
+            self.app.mount_resources(b"broken")
+
     def test_log_file(self):
         # Журнал процесса: запись попадает в файл / The process log: a record goes into the file
         import tempfile

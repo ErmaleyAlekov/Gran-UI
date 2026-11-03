@@ -1,6 +1,7 @@
 #ifndef GRAN_GALLERY_ACTIONS_HPP
 #define GRAN_GALLERY_ACTIONS_HPP
 
+#include "gran/res/resources.hpp"
 #include "gran/app/application.hpp"
 
 #include <string>
@@ -69,5 +70,9 @@ namespace gallery
     // Кнопки logWrite / crashNow и сведения о журнале и прошлом сбое (gallery_log.cpp) / The logWrite / crashNow buttons and the log and previous crash information (gallery_log.cpp)
     void registerLog(gran::Application& application);
 }
+
+// Пакет ресурсов галереи, созданный gran_rcc из examples/gallery/resources.xml (gen/examples/gallery/resources.cpp)
+// The gallery resource bundle created by gran_rcc from examples/gallery/resources.xml (gen/examples/gallery/resources.cpp)
+const gran::res::Bundle& granResources_gallery();
 
 #endif

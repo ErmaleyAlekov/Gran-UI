@@ -8,7 +8,8 @@
 #include "sax/content_handler.hpp"
 
 #include <condition_variable>
-#include <fstream>
+#include <istream>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <utility>
@@ -55,7 +56,9 @@ namespace gran::data::internal
 
     private:
         SourceSpec _spec;
-        std::ifstream _file;
+        // Файл диска или ресурс res:/ (поток из памяти); объявлен до _reader — читатель ссылается на него
+        // A disk file or a res:/ resource (a stream from memory); declared before _reader — the reader refers to it
+        std::unique_ptr<std::istream> _file;
         JsonReader _reader;
         bool _done = false;
     };

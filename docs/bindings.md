@@ -216,6 +216,7 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 | `run_task(work, done, progress)` → номер; `work(task)` возвращает результат, `task.cancelled()`, `task.progress(f, text)`; `done(status, result, error)`, `status` — `"done"`/`"cancelled"`/`"failed"` | `RunTask(work, done, progress)`; `BackgroundTask.Cancelled/Progress`; `BackgroundStatus` | `runTask(work, done, progress)`; `BackgroundTask.cancelled/progress`; `TASK_DONE/CANCELLED/FAILED` | `gran_app_run_task` (`gran_background`), `gran_task_cancelled/_progress/_fail` |
 | `cancel_task(id)` → `bool` | `CancelTask` | `cancelTask` | `gran_app_cancel_task` |
 | `open_log(app_name, directory=None, crash_reports=True)`, `log("info", category, text)`, `log_path()`, `previous_crash()` | `OpenLog`, `Log(LogLevel, …)`, `LogPath`, `PreviousCrash` | `openLog`, `log(LOG_INFO, …)`, `logPath`, `previousCrash` | `gran_log_open` / `_write` (`GRAN_LOG_*`) / `_path` / `_previous_crash` (на весь процесс) |
+| `mount_resources(bytes или путь)` — блок `gran_rcc --blob` | `MountResources(byte[])` | `mountResources(byte[])` | `gran_resources_mount` (байты копируются) |
 
 ## C ABI
 

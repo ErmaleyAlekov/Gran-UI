@@ -195,6 +195,7 @@ def _configure(lib):
         "app_cancel_task": (C.c_int32, [p, C.c_uint64, C.POINTER(C.c_int32)]),
         "task_cancelled": (C.c_int32, [p]), "task_progress": (C.c_int32, [p, C.c_double, s]),
         "task_fail": (C.c_int32, [p, s]),
+        "resources_mount": (C.c_int32, [p, z]),
         "log_open": (C.c_int32, [s, s, C.c_int32]), "log_write": (C.c_int32, [C.c_int32, s, s]),
         "log_path": (C.c_int32, [C.POINTER(p)]), "log_previous_crash": (C.c_int32, [C.POINTER(p)]),
     }
@@ -582,6 +583,15 @@ class Application:
         found = C.c_int32()
         self._call("app_cancel_task", C.c_uint64(task), C.byref(found))
         return bool(found.value)
+
+    def mount_resources(self, blob):
+        """Подключить блок gran_rcc --blob (bytes или путь к файлу): пути res:/ для всего процесса.
+        Mount a gran_rcc --blob block (bytes or a file path): the res:/ paths for the whole process."""
+        if not isinstance(blob, (bytes, bytearray)):
+            with open(blob, "rb") as stream:
+                blob = stream.read()
+        data = C.create_string_buffer(bytes(blob), len(blob))
+        self._check(self._lib.gran_resources_mount(data, len(blob)))
 
     LOG_LEVELS = ("severe", "warning", "info", "verbose")
 

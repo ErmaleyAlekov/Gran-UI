@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ресурсы галереи внутри exe (gran_rcc): пример samples/program.xml с диалогом и окном-инструментом работает
+  без файлов рядом с программой: gran_gallery res:/samples/program.xml.
+
+  The gallery resources inside the exe (gran_rcc): the samples/program.xml sample with the dialog and the tool window works
+  without files beside the program: gran_gallery res:/samples/program.xml.
+-->
+<Bundle name="gallery">
+  <File path="../../samples/program.xml" alias="samples/program.xml"/>
+  <File path="../../samples/program_dialog.xml" alias="samples/program_dialog.xml"/>
+  <File path="../../samples/tool_window.xml" alias="samples/tool_window.xml"/>
+  <Folder path="../../samples/assets/icons" alias="samples/assets/icons" include="*.svg"/>
+</Bundle>

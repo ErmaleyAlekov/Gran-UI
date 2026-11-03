@@ -121,7 +121,11 @@ namespace gran::i18n
             {Message::TASK_UNKNOWN_ERROR, "фоновая задача завершилась неизвестной ошибкой"},
             {Message::GPU_DEVICE_RECREATED, "устройство GPU потеряно, графика окна создана заново"},
             {Message::LOG_START, "запуск: {0}"},
-            {Message::LOG_PREVIOUS_CRASH, "отчёт о сбое прошлого запуска: {0}"}
+            {Message::LOG_PREVIOUS_CRASH, "отчёт о сбое прошлого запуска: {0}"},
+            {Message::RES_BAD_BLOB, "блок ресурсов повреждён или не начинается с GRANRES1"},
+            {Message::RES_MISSING_FILE, "файл или папка ресурса не найдены: {0}"},
+            {Message::RES_DUPLICATE_ALIAS, "путь res:/{0} встречается в манифесте дважды"},
+            {Message::RES_TOOL_USAGE, "использование: gran_rcc <манифест.xml> <выход.cpp> [--blob <пакет.bin>] [--depfile <выход.d>]"}
         };
     }
 

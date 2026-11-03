@@ -1184,6 +1184,37 @@ gran::log::write(gran::log::Level::INFO, "orders", "orders loaded: 120");
   as without the handler (the exit code, the core dump).
 - `make test-crash` checks the reports: the program crashes in three ways and checks its files.
 
+**Resources inside the program.** Markup, images, icons, fonts and data files can be embedded into the exe — the program
+ships as one file, and the markup does not lie beside it as plain text. The manifest (`schemas/gran-resources.xsd`):
+
+```xml
+<Bundle name="store">
+  <File path="ui/main.xml" alias="ui/main.xml"/>
+  <Folder path="assets" alias="assets" include="*.png *.svg *.ttf"/>
+</Bundle>
+```
+
+`gran_rcc resources.xml resources.cpp [--depfile resources.d] [--blob store.bin]` turns it into a `.cpp` with the
+`granResources_store()` function; the program mounts the bundle before loading the markup and opens the files by `res:/` paths:
+
+```cpp
+const gran::res::Bundle& granResources_store();   // from the generated resources.cpp
+
+gran::res::mount(granResources_store());
+app.loadFile("res:/ui/main.xml");                 // relative paths inside go to res:/ too
+```
+
+- `res:/` is understood by `loadFile`, `openWindow`, `xi:include` of component libraries, `<Image>`, `<Icon source>`, `<Font>`,
+  the `<Data source>` sources (JSON and XML). Fonts are read right from the program memory, without a copy. `<WebView source>`
+  still needs a file or an address.
+- `path` is relative to the manifest; `alias` is the path inside `res:/` (Latin letters, digits, `_ . / -`, without `..`), by default
+  equal to `path`. `<Folder>` takes the files by the `include` patterns (`*` and `?`, space-separated), with subfolders (`recursive="false"`
+  — without them). A repeated path is a `gran_rcc` error.
+- Make: in `examples/<name>/resources.xml` the bundle is built and embedded into the example automatically (the `.d` file rebuilds
+  it when any embedded file is edited). CMake: `gran_add_resources(target resources.xml)`.
+- The language wrappers mount the bundle as one block: `gran_rcc … --blob store.bin`, then `mount_resources("store.bin")`.
+- Sample: `gran_gallery res:/samples/program.xml` — the section sample without files beside the program.
+
 ## Errors and Message Language
 
 The [C++ API reference](api.en.md) documents node lifetimes, threading, D3D11/D3D12 selection and markup

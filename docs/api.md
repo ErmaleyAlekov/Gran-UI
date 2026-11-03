@@ -330,6 +330,21 @@ noexcept` — из любого потока, файл сбрасывается 
 на `sigaltstack` 64 КБ, только async-signal-safe вызовы, затем сигнал повторяется. Рендер: `rhi::RenderBackend::adapterInfo()`
 → `AdapterInfo{api, name, driver, software}` для журнала.
 
+### Ресурсы внутри программы
+
+`gran/res/resources.hpp`: `Entry{path, data, size}`, `Bundle{name, entries, count}`, `ResourceView{data, size}`;
+`mount(const Bundle&)` (байты не копируются; позже подключённый пакет перекрывает одинаковые пути), `mountBlob(const void*,
+std::size_t)` (блок «GRANRES1» копируется; испорченный — `GranException(RESOURCE)`, `RES_BAD_BLOB`), `unmountAll()`,
+`isResourcePath(std::string_view)`, `find(std::string_view, ResourceView&)`, `normalize(std::string_view)` (обе косые,
+`.` и `..`; выход за корень — пусто), `readFile(const std::filesystem::path&, std::vector<std::uint8_t>&)` и
+`openStream(const std::filesystem::path&)` — ресурс или файл диска. `MappedFile::open("res:/…")` отдаёт байты пакета без
+отображения. Формат блока: `"GRANRES1"`, `u32` число записей, для каждой `u32` длина пути, путь, `u64` длина, данные (LE).
+
+`gran/res/manifest.hpp` (им пользуется `gran_rcc`): `readManifest(path)` → `Manifest{name, location, files}` (схема
+`gran-resources.xsd`; нет файла — `RES_MISSING_FILE`, повтор пути — `RES_DUPLICATE_ALIAS`), `matchPattern`, `expandFolder`,
+`sortFiles`, `generateSource`, `generateBlob`, `generateDepfile`. Сгенерированный `.cpp` объявляет
+`const gran::res::Bundle& granResources_<имя>()`.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` задаёт обработчик `void(ui::Node&, const std::string&)`.

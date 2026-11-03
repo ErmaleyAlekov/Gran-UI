@@ -139,6 +139,10 @@ namespace gran::i18n
         GPU_DEVICE_RECREATED,
         LOG_START,
         LOG_PREVIOUS_CRASH,
+        RES_BAD_BLOB,
+        RES_MISSING_FILE,
+        RES_DUPLICATE_ALIAS,
+        RES_TOOL_USAGE,
         COUNT
     };
 }

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Схема манифеста ресурсов gran_rcc (пункт 1.8): какие файлы встроить в программу и под какими путями res:/.
+  Пути path — относительно манифеста; alias — путь внутри res:/ (латиница, цифры, «_ . / -»; без «..»).
+
+  The gran_rcc resource manifest schema (item 1.8): which files to embed into the program and under which res:/ paths.
+  The path paths are relative to the manifest; alias is the path inside res:/ (Latin letters, digits, "_ . / -"; without "..").
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+           vc:minVersion="1.1" elementFormDefault="qualified">
+
+  <!-- Имя пакета: часть имени функции granResources_<имя> / The bundle name: a part of the granResources_<name> function name -->
+  <xs:simpleType name="BundleName">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z_][A-Za-z0-9_]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Путь внутри res:/ — только ASCII: одинаков в любой кодировке путей ОС / A path inside res:/ — ASCII only: the same in any OS path encoding -->
+  <xs:simpleType name="Alias">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z0-9_.\-]+(/[A-Za-z0-9_.\-]+)*"/>
+      <xs:assertion test="not(contains($value, '..'))"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Шаблоны имён файлов через пробел: «*.png *.svg» («*» — любые символы, «?» — один) / File name patterns separated by spaces -->
+  <xs:simpleType name="Patterns">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="Bundle">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <!-- Один файл; alias по умолчанию — path / One file; alias defaults to path -->
+        <xs:element name="File">
+          <xs:complexType>
+            <xs:attribute name="path" type="xs:string" use="required"/>
+            <xs:attribute name="alias" type="Alias"/>
+          </xs:complexType>
+        </xs:element>
+        <!-- Папка: файлы по шаблонам include, с подпапками при recursive / A folder: the files by the include patterns, with subfolders when recursive -->
+        <xs:element name="Folder">
+          <xs:complexType>
+            <xs:attribute name="path" type="xs:string" use="required"/>
+            <xs:attribute name="alias" type="Alias"/>
+            <xs:attribute name="include" type="Patterns" default="*"/>
+            <xs:attribute name="recursive" type="xs:boolean" default="true"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+      <xs:attribute name="name" type="BundleName" use="required"/>
+    </xs:complexType>
+    <!-- Один путь res:/ — один файл / One res:/ path — one file -->
+    <xs:unique name="uniqueAlias">
+      <xs:selector xpath="File"/>
+      <xs:field xpath="@alias"/>
+    </xs:unique>
+  </xs:element>
+</xs:schema>

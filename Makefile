@@ -208,13 +208,19 @@ SCHEMA_OBJ    := $(OBJ_DIR)/$(GEN_DIR)/markup/gran_ui_schema.o
 THEME_XML     := schemas/default_theme.xml
 THEME_CPP     := $(GEN_DIR)/markup/default_theme.cpp
 THEME_OBJ     := $(OBJ_DIR)/$(GEN_DIR)/markup/default_theme.o
-LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ)
+RES_SCHEMA_XSD := schemas/gran-resources.xsd
+RES_SCHEMA_CPP := $(GEN_DIR)/res/gran_resources_schema.cpp
+RES_SCHEMA_OBJ := $(OBJ_DIR)/$(GEN_DIR)/res/gran_resources_schema.o
+LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ) $(RES_SCHEMA_OBJ)
 
 # Инструмент встраивания файлов в C++ (собирается первым, без библиотеки)
 # The tool that embeds files into C++ (built first, without the library)
 EMBED_SRC     := $(TOOL_DIR)/embed/embed_main.cpp
 EMBED_OBJ     := $(OBJ_DIR)/$(TOOL_DIR)/embed/embed_main.o
 EMBED_BIN     := $(BIN_DIR)/gran_embed$(EXE)
+# Встраивание ресурсов программы в exe (gran_rcc, нужна библиотека) / Embedding the program resources into the exe (gran_rcc, needs the library)
+RCC_OBJ       := $(OBJ_DIR)/$(TOOL_DIR)/rcc/rcc_main.o
+RCC_BIN       := $(BIN_DIR)/gran_rcc$(EXE)
 
 TEST_SRC      := $(call rwildcard,$(TEST_DIR)/src,*.cpp)
 TEST_OBJ      := $(TEST_SRC:$(TEST_DIR)/src/%.cpp=$(OBJ_DIR)/$(TEST_DIR)/%.o)
@@ -232,6 +238,8 @@ ifneq ($(PLATFORM_OS),windows)
     EXAMPLES  := $(filter-out chat,$(EXAMPLES))
 endif
 EXAMPLE_BINS  := $(foreach e,$(EXAMPLES),$(BIN_DIR)/gran_$(e)$(EXE))
+# Объект встроенных ресурсов примера (есть examples/<имя>/resources.xml) / The example embedded resource object (when examples/<name>/resources.xml exists)
+example_resources = $(if $(wildcard $(EXAMPLE_DIR)/$(1)/resources.xml),$(OBJ_DIR)/$(GEN_DIR)/$(EXAMPLE_DIR)/$(1)/resources.o)
 
 # Свои системные библиотеки примера: по имени в строке файла examples/<имя>/system_libs.txt
 # The example's own system libraries: one name per line of the examples/<name>/system_libs.txt file
@@ -242,10 +250,11 @@ example_libs  = $(if $(wildcard $(EXAMPLE_DIR)/$(1)/system_libs.txt),$(addprefix
 example_gui   = $(if $(and $(filter windows,$(PLATFORM_OS)),$(wildcard $(EXAMPLE_DIR)/$(1)/windows_gui.txt)),-mwindows)
 
 LIB_BIN       := $(BIN_DIR)/$(NAME)
-ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(CHAT_COMMON) \
+ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(RCC_OBJ) $(CHAT_COMMON) \
+                 $(foreach e,$(EXAMPLES),$(call example_resources,$(e))) \
                  $(foreach e,$(EXAMPLES),$(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(e),*.cpp)))
 ALL_DEP       := $(call dep_of,$(ALL_OBJ))
-ALL_DIRS      := $(sort $(call dir_of,$(ALL_OBJ) $(ALL_DEP) $(SCHEMA_CPP)) $(BIN_DIR))
+ALL_DIRS      := $(sort $(call dir_of,$(ALL_OBJ) $(ALL_DEP) $(SCHEMA_CPP) $(RES_SCHEMA_CPP)) $(BIN_DIR))
 
 # -MMD/-MP: зависимости от заголовков в dep/, удалённый заголовок не ломает сборку
 # -MMD/-MP: the header dependencies go to dep/, a removed header does not break the build
@@ -330,9 +339,25 @@ $(TEST_BIN): $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) | $(BIN_DIR)
 # Шаблон компоновки примера: его объекты + библиотека + «Берёста» + системные библиотеки
 # The example link template: its objects + the library + Beresta + the system libraries
 define EXAMPLE_RULE
-$(BIN_DIR)/gran_$(1)$(EXE): $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(1),*.cpp)) $(LIB_BIN) | $(BIN_DIR)
+$(BIN_DIR)/gran_$(1)$(EXE): $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(1),*.cpp)) $(call example_resources,$(1)) $(LIB_BIN) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $$(filter %.o,$$^) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) $(call example_libs,$(1)) $(call example_gui,$(1)) -o $$@
 endef
+
+# Ресурсы примера: examples/<имя>/resources.xml → gen/examples/<имя>/resources.cpp (gran_rcc) → объект в exe;
+# файл .d от gran_rcc пересобирает .cpp при правке любого встроенного файла
+# The example resources: examples/<name>/resources.xml → gen/examples/<name>/resources.cpp (gran_rcc) → an object in the exe;
+# the .d file from gran_rcc rebuilds the .cpp when any embedded file is edited
+define RESOURCE_RULE
+$(GEN_DIR)/$(EXAMPLE_DIR)/$(1)/resources.cpp: $(EXAMPLE_DIR)/$(1)/resources.xml $(RCC_BIN)
+	@$(call MKDIR,$(GEN_DIR)/$(EXAMPLE_DIR)/$(1))
+	@$(call MKDIR,$(OBJ_DIR)/$(GEN_DIR)/$(EXAMPLE_DIR)/$(1))
+	$(call native,$(RCC_BIN)) $(EXAMPLE_DIR)/$(1)/resources.xml $$@ --depfile $(GEN_DIR)/$(EXAMPLE_DIR)/$(1)/resources.d
+-include $(GEN_DIR)/$(EXAMPLE_DIR)/$(1)/resources.d
+endef
+$(foreach e,$(EXAMPLES),$(if $(wildcard $(EXAMPLE_DIR)/$(e)/resources.xml),$(eval $(call RESOURCE_RULE,$(e)))))
+
+$(RCC_BIN): $(RCC_OBJ) $(LIB_BIN) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(RCC_OBJ) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 $(foreach e,$(EXAMPLES),$(eval $(call EXAMPLE_RULE,$(e))))
 
 # Загрузчик WebView2 рядом с программами: движок ищет его только в каталоге программы и System32
@@ -347,6 +372,10 @@ $(EMBED_BIN): $(EMBED_OBJ) | $(BIN_DIR)
 # The markup schema becomes the byte array gran::generated::GRAN_UI_SCHEMA
 $(SCHEMA_CPP): $(SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(SCHEMA_CPP))
 	$(call native,$(EMBED_BIN)) $(SCHEMA_XSD) $@ GRAN_UI_SCHEMA
+
+# Схема манифеста ресурсов gran_rcc — GRAN_RESOURCES_SCHEMA / The gran_rcc resource manifest schema — GRAN_RESOURCES_SCHEMA
+$(RES_SCHEMA_CPP): $(RES_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(RES_SCHEMA_CPP))
+	$(call native,$(EMBED_BIN)) $(RES_SCHEMA_XSD) $@ GRAN_RESOURCES_SCHEMA
 
 # Тема по умолчанию — разметка, встроенная как DEFAULT_THEME / The default theme is markup embedded as DEFAULT_THEME
 $(THEME_CPP): $(THEME_XML) $(EMBED_BIN) | $(call dir_of,$(THEME_CPP))
@@ -405,6 +434,11 @@ $(OBJ_DIR)/$(EXAMPLE_DIR)/%.o: $(EXAMPLE_DIR)/%.cpp | $(ALL_DIRS)
 
 $(OBJ_DIR)/$(TOOL_DIR)/%.o: $(TOOL_DIR)/%.cpp | $(ALL_DIRS)
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
+
+# gran_rcc пользуется библиотекой (схема, разбор манифеста) — ему нужны её заголовки
+# gran_rcc uses the library (the schema, the manifest parsing) — it needs its headers
+$(RCC_OBJ): $(TOOL_DIR)/rcc/rcc_main.cpp | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
 
 $(ALL_DIRS):
 	@$(call MKDIR,$@)

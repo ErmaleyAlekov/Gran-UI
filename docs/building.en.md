@@ -57,6 +57,8 @@ The first command builds `libberesta.a` using Beresta's own Makefile, the second
 |---|---|
 | `make` | `bin/libgran.a`, `bin/gran_gallery.exe`, `bin/gran_snapshot.exe`, `bin/gran_chat.exe`, `bin/gran_tests.exe` |
 | `make test` | Build and run unit tests |
+| `make test-crash` | Check the crash reports (the program crashes itself: SEGV, terminate, abort) |
+| `bin/gran_rcc` | Embedding resources into the exe by a manifest (built together with the examples) |
 | `make shaders` | HLSL → DXIL; `make shaders-vulkan` generates SPIR-V → `src/rhi/shaders_gen/*.cpp`, requires `dxc` |
 | `make beresta` | Build static Beresta in `BERESTA_DIR` |
 | `make clean` / `fclean` / `re` | Remove object files / everything built / rebuild |

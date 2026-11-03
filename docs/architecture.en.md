@@ -35,6 +35,7 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 |---|---|
 | `core/` | `GranException` + `ErrorCode`, message catalog `i18n` (ru, en), logger |
 | `log/` | the process log file (a ring of the latest records without allocations, rotation) and the crash report: Windows — an SEH filter + a helper thread + `MiniDumpWriteDump` + `RtlVirtualUnwind` unwinding; Linux — signals on `sigaltstack`, an async-signal-safe report, `/proc/self/maps`, the stack bytes |
+| `res/` | resources inside the exe: the bundle registry (`res:/path` → the program bytes), path normalization, streams from memory (`MemoryBuffer`), the "GRANRES1" block for the wrappers; the manifest (the `gran-resources.xsd` schema) and generating the `.cpp`/block/dependency file for `gran_rcc` |
 | `utils/` | UTF-8, number and list parsing, geometry (`Vec2`, `Rect`, `Affine2D`), color |
 | `markup/` | loading through Beresta, built-in schema `gran-ui.xsd`, building `ui::Node`, the live DOM (`live_document.hpp`) |
 | `style/` | value parsing (color, length, margins, radii, shadows, gradients, transitions), cascade, theme |

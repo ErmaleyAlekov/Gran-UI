@@ -2,6 +2,8 @@
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 
+#include "gran/res/resources.hpp"
+
 #include "beresta.hpp"
 
 #include <utility>
@@ -108,18 +110,19 @@ namespace gran::vector
         beresta::Document dom;
         auto shape = std::make_shared<Shape>();
 
+        std::vector<std::uint8_t> bytes;
+
         options.maxDepth = MAX_DEPTH;
+        // Файл диска или ресурс res:/ — разбор из памяти в обоих случаях / A disk file or a res:/ resource — parsing from memory in both cases
+        if (!res::readFile(std::filesystem::path(path), bytes))
+            throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_READ_FAILED, {path}));
         try
         {
-            dom = beresta::XmlParser(options).parseFile(path);
+            dom = beresta::XmlParser(options).parse(std::string_view(reinterpret_cast<const char*>(bytes.data()), bytes.size()));
         }
         catch (const beresta::ParseException& error)
         {
             throw GranException(ErrorCode::MARKUP, i18n::format(i18n::Message::ICON_BAD_SVG, {path, error.getMessage()}));
-        }
-        catch (const beresta::DomException&)
-        {
-            throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_READ_FAILED, {path}));
         }
         const beresta::Element* root = dom.getRoot();
         if (root == nullptr || root->getLocalName() != "svg")
