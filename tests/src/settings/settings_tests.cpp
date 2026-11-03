@@ -78,6 +78,9 @@ namespace
         TEST_ASSERT(!settings.load(path));
         TEST_ASSERT(std::filesystem::exists(damaged) && !std::filesystem::exists(file));
         TEST_ASSERT(settings.find("x") == nullptr);
+        std::ofstream(file) << "<Settings><Value name=\"y\" type=\"boolean\">да</Value></Settings>";
+        TEST_ASSERT(!settings.load(path));
+        TEST_ASSERT(settings.find("y") == nullptr);
         std::ofstream(file) << "<Settings><Value name=\"x\"";
         TEST_ASSERT(!settings.load(path));
         TEST_ASSERT(gran::settings::defaultPath("App").find("settings.xml") != std::string::npos);
