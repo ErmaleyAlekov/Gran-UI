@@ -213,6 +213,20 @@ class TestApplication(unittest.TestCase):
         self.app.timer(0.05, task)
         self.app.run()
 
+    def test_owned_modal_window(self):
+        # Модальное окно с владельцем: результат close_window приходит в on_closed / A modal window with an owner: the close_window result comes to on_closed
+        results = []
+        def closed(result):
+            results.append(result)
+            self.app.command("close")
+        def open_dialog():
+            self.app.open_window('<Window title="Dialog" width="200" height="120" kind="dialog"><Text id="dlg">?</Text></Window>',
+                                 is_file=False, owner="root", modal=True, on_closed=closed)
+        self.app.timer(0.05, open_dialog)
+        self.app.timer(0.4, lambda: self.app.close_window("dlg", "ok"))
+        self.app.run()
+        self.assertEqual(results, ["ok"])
+
     def test_timer_raises_value_error(self):
         def task():
             raise ValueError('callback marker')

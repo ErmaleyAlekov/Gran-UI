@@ -65,6 +65,11 @@ namespace gran::markup::internal
     // All animation names of an animation value are declared in <Keyframes>; otherwise GranException(RESOURCE)
     void checkAnimationNames(const style::PropertyValue& value, const BuildContext& context);
 
+    // ---- window_spec.cpp ----
+
+    // <Window>: параметры окна и наследуемые свойства для корня / <Window>: the window parameters and inherited properties for the root
+    void readWindow(const beresta::Element& element, BuildContext& context);
+
     // ---- declarations.cpp ----
 
     // Один атрибут-свойство в набор; false — это не свойство стиля

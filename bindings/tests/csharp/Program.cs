@@ -187,6 +187,16 @@ class Program
             busy.Run();
             Assert(survived);
 
+            // Модальное окно с владельцем: результат CloseWindow приходит в onClosed / A modal window with an owner: the CloseWindow result comes to onClosed
+            using var windows = new GranUI.Application(backend:Backend(), exitAfter:3.0, warp:true);
+            windows.LoadString(xml);
+            string? closedWith = null;
+            windows.Timer(0.05, () => windows.OpenWindow("<Window title=\"Dialog\" width=\"200\" height=\"120\" kind=\"dialog\"><Text id=\"dlg\">?</Text></Window>",
+                isFile:false, owner:"root", modal:true, onClosed:result => { closedWith = result; windows.Command("close"); }));
+            windows.Timer(0.4, () => windows.CloseWindow("dlg", "ok"));
+            windows.Run();
+            Assert(closedWith == "ok");
+
             app.Dispose();
         }
         catch (Exception ex)

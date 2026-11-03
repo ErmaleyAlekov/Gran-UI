@@ -63,6 +63,11 @@ namespace gran
         // Снять ссылки ввода, анимаций и доступности на поддерево перед его удалением / Drop the input, animation and accessibility references to the subtree before removing it
         void nodeRemoving(const ui::Node& node) noexcept override;
 
+        // ---- window_closing.cpp ----
+
+        // Графика окон уходит с конца списка (подчинённые раньше владельцев) / The window graphics go from the list end (the owned ones before the owners)
+        ~State() override;
+
         AppOptions options;
         text::FontLibrary fonts;
         std::map<std::string, ActionHandler> actions;
@@ -231,13 +236,40 @@ namespace gran
         // Секунды монотонных часов / Seconds of the monotonic clock
         double now();
 
-        // ---- application_windows.cpp ----
+        // ---- window_lookup.cpp ----
 
         // Окно узла (по корню дерева) или nullptr, если узел не в окне / The node window (by the tree root) or nullptr if the node is not in a window
         AppWindow* findWindow(Application::State& state, const ui::Node& node) noexcept;
 
         // Маршрутизатор ввода окна узла (nullptr — узел не в окне или окно ещё не показано) / The input router of the node window (nullptr — the node is not in a window or the window is not shown yet)
         input::InputRouter* routerOf(Application::State& state, const ui::Node& node) noexcept;
+
+        // ---- window_owner.cpp ----
+
+        // Пометить окно узла к закрытию с результатом для onClosed / Mark the node window for closing with a result for onClosed
+        void markClosing(Application::State& state, const ui::Node& node, const std::string& result);
+
+        // Окно-владелец из WindowOptions (nullptr — без владельца); узел вне окон — GranException
+        // The owner window from WindowOptions (nullptr — without an owner); a node outside the windows is GranException
+        AppWindow* requireOwner(Application::State& state, const WindowOptions& options);
+
+        // Владелец, модальность и обработчик закрытия нового окна / The owner, the modality and the close handler of a new window
+        void attachOwner(AppWindow& win, AppWindow* owner, const WindowOptions& options);
+
+        // Вид, место, модальность и окно ОС владельца для описания нового окна ОС / The kind, the place, the modality and the owner OS window for describing a new OS window
+        void ownWindow(const AppWindow& win, platform::WindowDesc& desc);
+
+        // ---- window_modal.cpp ----
+
+        // Верхнее модальное окно, блокирующее win (nullptr — win свободно) / The top modal window blocking win (nullptr — win is free)
+        AppWindow* blockingModal(Application::State& state, const AppWindow& win) noexcept;
+
+        // Пересчитать blocked всех окон, выключить или включить их окна ОС / Recompute blocked of all the windows, disable or enable their OS windows
+        void updateBlocking(Application::State& state);
+
+        // Ввод заблокированного окна отбросить, модальное поднять; true — событие поглощено
+        // Drop the input of a blocked window, raise the modal one; true — the event is consumed
+        bool dropBlockedInput(AppWindow& win, const platform::Event& event);
 
         // ---- app_window_list.cpp ----
 
@@ -250,7 +282,10 @@ namespace gran
         // Окнам без графики — окно ОС, бэкенд, первый кадр и показ (из цикла run) / The windows without graphics get the OS window, the backend, the first frame and showing (from the run loop)
         void openWindows(Application::State& state);
 
-        // Закрыть окна с флагом closing; закрытие главного — выход из run() / Close the windows with the closing flag; closing the main one — leaving run()
+        // ---- window_closing.cpp ----
+
+        // Закрыть окна с флагом closing (с подчинёнными, onClosed); закрытие главного — выход из run()
+        // Close the windows with the closing flag (with the owned ones, onClosed); closing the main one — leaving run()
         void closeWindows(Application::State& state);
 
         // ---- application_tasks.cpp ----

@@ -189,6 +189,16 @@ from `openWindow`). An error in a markup command (an unknown id, invalid XML on 
 the application: the catalog error text goes to stderr.
 Normal action names invoke registered business logic.
 
+### Windows and the program
+
+Owner windows and modal windows (see the [guide](guide.en.md#windows-and-the-program)). The owner is the id of any node of its window;
+the close handler gets the result (`""` — the close button or closing with the owner) and is called once on the UI thread.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `open_window(source, is_file=True, owner=None, modal=False, on_closed=None)` | `OpenWindow(source, isFile, owner, modal, onClosed)` | `openWindow(source, isFile, owner, modal, onClosed)` / `openWindow(path)` | `gran_app_open_window` (`gran_window_options`) |
+| `close_window(target, result=None)` | `CloseWindow(target, result)` | `closeWindow(target, result)` | `gran_app_close_window` |
+
 ## C ABI
 
 All strings are UTF-8 with a null terminator. Returned `char*` are only freed by

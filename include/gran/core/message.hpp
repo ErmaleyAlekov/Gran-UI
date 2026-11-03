@@ -134,6 +134,7 @@ namespace gran::i18n
         DATA_MODEL_KIND,
         DATA_SOURCE_CYCLE,
         DATA_SELECTION_MISMATCH,
+        APP_OWNER_NOT_WINDOW,
         COUNT
     };
 }

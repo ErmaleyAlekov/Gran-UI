@@ -75,6 +75,7 @@ namespace gran::app
         desc.resizable = spec.resizable;
         desc.titleBar = spec.titleBar;
         desc.darkTitleBar = darkBackground(win.windowStyle);
+        ownWindow(win, desc);
         win.window = platform::createWindow(desc);
         win.window->setLiveResize(LiveResize{&win});
         win.access.root = win.document.root.get();

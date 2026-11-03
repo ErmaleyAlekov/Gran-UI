@@ -27,8 +27,9 @@
 19. [Embedded browser: WebView](#embedded-browser-webview)
 20. [Accessibility](#accessibility)
 21. [Platform: windows, files, icons](#platform-windows-files-icons)
-22. [Errors and Message Language](#errors-and-message-language)
-23. [Custom window title bar](#custom-window-title-bar)
+22. [Windows and the program](#windows-and-the-program)
+23. [Errors and Message Language](#errors-and-message-language)
+24. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -127,7 +128,8 @@ The complete example with two icons and a search field is `samples/custom_window
 ## Window and Resources
 
 The document root is `<Window>`: `title`, `width`, `height` (default 800 × 600), `minWidth`, `minHeight`, `onClose`,
-as well as any styling attributes that children inherit (`background`, `color`, `fontSize`, `fontFamily`).
+`kind` and `position` (the "Windows and the program" section), as well as any styling attributes that children inherit
+(`background`, `color`, `fontSize`, `fontFamily`).
 Inside: an optional `<Resources>` and exactly one root interface element.
 
 ```xml
@@ -338,7 +340,7 @@ Class `gran::Application` (`gran/app/application.hpp`):
 | `setValue(node, number)` / `setChecked(node, yes/no)` | The number of a `ProgressBar`/`Slider`, the mark of a `CheckBox`/`Switch`/`RadioButton` (without `onChange`) |
 | `post(task)` | Execute a function in the UI thread (safely from any thread) |
 | `setTimeout(seconds, function)` / `setInterval(seconds, function)` / `clearTimer(id)` | Timers on the UI thread |
-| `openWindow(path)` / `openWindowString(markup)` / `closeWindow(node)` | One more window / close the node window |
+| `openWindow(path[, options])` / `openWindowString(markup[, options])` / `closeWindow(node[, result])` | One more window (an owner, modality, `onClosed`) / close the node window |
 | `openFileDialog(options, multiple)` / `saveFileDialog` / `folderDialog` | The system file dialogs |
 | `onFileDrop(name, function)` | Files dropped onto an element with `onDrop="name"` (nodes — the `drop` event, see «Events») |
 | `run()` | Event loop until the main window is closed; returns the exit code |
@@ -1058,6 +1060,59 @@ app.onFileDrop("filesDropped", DropHandler{&app});   // void(ui::Node& zone, con
 - Corrupted or inaccessible file, like with `Image`, does not stop the window: the icon is simply not drawn.
 
 **JPEG.** `Image` understands PNG and JPEG (format — by file content, not by extension): sequential and progressive JPEG, grayscale and colored, any color subsampling. CMYK, 12-bit and arithmetic coding are not supported.
+
+## Windows and the program
+
+The section sample is `samples/program.xml` (`gran_gallery samples/program.xml`).
+
+**Owner windows.** `openWindow(path, options)` with `WindowOptions::owner` (any node of the owner window) opens
+an owned window: it always stays above the owner, minimizes together with it and has no taskbar button of its own.
+Closing the owner closes the owned windows first.
+
+**Modal windows.** `modal = true` (only together with an owner) disables the owner and its whole owner chain
+while the window is open: a click on them raises the modal window, their close button does nothing. The modality is
+asynchronous: `openWindow` returns at once, there is no nested event loop (the tasks, timers and repainting of the other
+windows go on as usual), and the result comes to `onClosed` after the window closes.
+
+```cpp
+gran::WindowOptions options;
+options.owner = &node;                       // the pressed button node — its window is the owner
+options.modal = true;
+options.onClosed = SaveAnswer{&app};         // void(const std::string& result), on the UI thread
+app.openWindow("ask_save.xml", options);
+```
+
+The result is set by `closeWindow(node, "ok")` or by the `gran:close:result` action right in the markup — the "OK" and
+"Cancel" buttons need no code. The close button and closing together with the owner give an empty result; the plain
+`gran:close` still goes through `onClose`, while `gran:close:result` closes the window at once. `onClosed` is called when
+the window is already gone, and the next window may be opened from it.
+
+```xml
+<Window title="Confirmation" width="380" height="190" kind="dialog" resizable="false">
+  <Resources>
+    <Command id="accept" text="OK" key="Enter" action="gran:close:ok"/>
+    <Command id="reject" text="Cancel" key="Escape" action="gran:close:cancel"/>
+  </Resources>
+  <Stack padding="20" spacing="16">
+    <Text>Save the changes?</Text>
+    <Stack orientation="horizontal" spacing="10" justify="end">
+      <Button command="reject"/>
+      <Button command="accept"/>
+    </Stack>
+  </Stack>
+</Window>
+```
+
+| `<Window>` attribute | Values |
+|---|---|
+| `kind` | `normal` (default); `dialog` — without the minimize and maximize buttons and the title bar icon; `tool` — a narrow title bar (Windows), the UTILITY type (X11) |
+| `position` | `default` — the OS chooses the place (a window with an owner — at the owner center); `center` — at the monitor center; `centerOwner` — at the owner center |
+
+On Windows the owner is the Win32 owner window (`hWndParent`), the modality is `EnableWindow`. On Linux (X11) the window
+gets `WM_TRANSIENT_FOR`, the `_NET_WM_WINDOW_TYPE_DIALOG` type and the `_NET_WM_STATE_MODAL`, `_NET_WM_STATE_SKIP_TASKBAR`
+states; the engine itself drops the input of a blocked window, and a click on it activates the modal window (`_NET_ACTIVE_WINDOW`).
+
+`<Dialog>` (the "Pop-up Layers" section) is different: it is a layer inside a window, not a separate OS window.
 
 ## Errors and Message Language
 

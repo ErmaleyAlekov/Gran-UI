@@ -23,6 +23,23 @@
       <xs:enumeration value="custom"/>
     </xs:restriction>
   </xs:simpleType>
+  <!-- Вид окна: обычное, диалог (без свёртки и развёртки), инструментальное / The window kind: normal, a dialog (without minimize and maximize), a tool one -->
+  <xs:simpleType name="WindowKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="normal"/>
+      <xs:enumeration value="dialog"/>
+      <xs:enumeration value="tool"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- Начальное место окна; у окна с владельцем default означает centerOwner -->
+  <!-- The initial window place; for a window with an owner default means centerOwner -->
+  <xs:simpleType name="WindowPosition">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="default"/>
+      <xs:enumeration value="center"/>
+      <xs:enumeration value="centerOwner"/>
+    </xs:restriction>
+  </xs:simpleType>
   <xs:simpleType name="WindowRole">
     <xs:restriction base="xs:string">
       <xs:enumeration value="none"/>
@@ -1496,6 +1513,8 @@
     <!-- The action on an attempt to close the window (the cross, Alt+F4); when set, the handler closes the window (closeWindow) -->
     <xs:attribute name="onClose" type="PlainAction"/>
     <xs:attribute name="titleBar" type="TitleBar" default="system"/>
+    <xs:attribute name="kind" type="WindowKind" default="normal"/>
+    <xs:attribute name="position" type="WindowPosition" default="default"/>
     <xs:attribute name="background" type="Paint"/>
     <xs:attributeGroup ref="TextAttributes"/>
     <!-- Окно — не узел интерфейса: выражений у его атрибутов нет / The window is not a UI node: its attributes have no expressions -->

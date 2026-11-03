@@ -178,6 +178,17 @@ public class Smoke {
                 busy.run(); localStaticCheck(survived[0]);
             }
 
+            // Модальное окно с владельцем: результат closeWindow приходит в onClosed / A modal window with an owner: the closeWindow result comes to onClosed
+            try (Application windows=new Application(libraryPath,backend(),3.0,true)) {
+                windows.loadString(xml);
+                String[] closedWith={null};
+                windows.timer(0.05,() -> windows.openWindow("<Window title=\"Dialog\" width=\"200\" height=\"120\" kind=\"dialog\"><Text id=\"dlg\">?</Text></Window>",
+                    false,"root",true,answer -> { closedWith[0]=answer; windows.command("close"); }),false);
+                windows.timer(0.4,() -> windows.closeWindow("dlg","ok"),false);
+                windows.run();
+                localStaticCheck("ok".equals(closedWith[0]));
+            }
+
             // Print success message
             System.out.println("Java smoke OK");
 

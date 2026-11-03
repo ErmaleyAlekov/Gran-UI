@@ -44,6 +44,8 @@ namespace gran::platform::x11
         _native.wakeRead = wakePipe[0]; _native.wakeWrite = wakePipe[1];
         create(desc);
         configure(desc);
+        applyOwner(desc);
+        place(desc);
         inputMethod();
         registry().push_back(this);
     }

@@ -265,6 +265,31 @@ missed periods are not caught up. Time is counted from the start, including befo
 `showDialog(dialog)` and `hideDialog(dialog)` manage modal layers inside the window.
 These methods are intended for a running `run()`; the dialog returns focus after closing.
 
+## Windows and the program
+
+### Owner windows and modal windows
+
+`openWindow(const std::string& path, const WindowOptions& options = {})` and `openWindowString(std::string_view,
+const WindowOptions&)` open one more window and return its content root. The `WindowOptions` fields:
+
+- `ui::Node* owner = nullptr` — any node of the owner window. A node outside the open windows is `GranException(MARKUP)`
+  (`APP_OWNER_NOT_WINDOW`), no window is created. The owned window stands in the window list after the owner, closes
+  before it and together with it.
+- `bool modal = false` — while the window is open, the owner and its owners get no input (Win32 `EnableWindow`,
+  on X11 the engine drops the events). Without an owner the flag is reset.
+- `WindowCloseHandler onClosed` — `std::function<void(const std::string& result)>`, called on the UI thread after
+  the window is destroyed.
+
+`closeWindow(ui::Node&, const std::string& result)` marks the node window for closing (after the event pass) with
+a result for `onClosed`; `closeWindow(ui::Node&)` is the same with an empty result. Closing together with the owner
+and the close button give `""`; closing the main window ends `run()` without calling `onClosed` of the other windows.
+The built-in `gran:close:result` action is equivalent to `closeWindow(node, "result")`.
+
+Platform: `platform::WindowDesc::owner` (`platform::Window*`), `modal`, `kind` (`WindowKind::NORMAL|DIALOG|TOOL`),
+`position` (`WindowPosition::DEFAULT|CENTER|CENTER_OWNER`; the enumerations are in `gran/platform/window_frame.hpp`);
+`Window::setEnabled(bool)` and `Window::activate()` (do nothing by default). Markup:
+`markup::WindowSpec::kind` and `position` from the `<Window kind position>` attributes.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` sets a handler `void(ui::Node&, const std::string&)`.

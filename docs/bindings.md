@@ -202,6 +202,16 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 приложение: текст ошибки из каталога пишется в stderr.
 Обычные имена действий вызывают зарегистрированную бизнес-логику.
 
+### Окна и программа
+
+Окна-владельцы и модальные окна (см. [руководство](guide.md#окна-и-программа)). Владелец — id любого узла его окна;
+обработчик закрытия получает результат (`""` — крестик или закрытие с владельцем) и вызывается один раз в потоке UI.
+
+| Python | C# | Java | C ABI |
+|---|---|---|---|
+| `open_window(source, is_file=True, owner=None, modal=False, on_closed=None)` | `OpenWindow(source, isFile, owner, modal, onClosed)` | `openWindow(source, isFile, owner, modal, onClosed)` / `openWindow(path)` | `gran_app_open_window` (`gran_window_options`) |
+| `close_window(target, result=None)` | `CloseWindow(target, result)` | `closeWindow(target, result)` | `gran_app_close_window` |
+
 ## C ABI
 
 Все строки — UTF-8 с завершающим нулём. Возвращённые `char*` освобождаются только

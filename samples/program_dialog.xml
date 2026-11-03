@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Модальный диалог для samples/program.xml: kind="dialog" — без свёртки и развёртки, место — по центру владельца.
+  Кнопки закрывают окно с результатом без кода (gran:close:ok, gran:close:cancel); Enter и Esc — команды окна.
+  «Ещё диалог…» открывает модальное окно, подчинённое этому: оно блокирует и диалог, и главное окно.
+
+  A modal dialog for samples/program.xml: kind="dialog" — without minimize and maximize, the place is the owner center.
+  The buttons close the window with a result without code (gran:close:ok, gran:close:cancel); Enter and Esc are window commands.
+  "One more dialog…" opens a modal window owned by this one: it blocks both the dialog and the main window.
+-->
+<Window title="Подтверждение" width="380" height="190" kind="dialog" resizable="false" background="#ffffff">
+  <Resources>
+    <Command id="accept" text="ОК" key="Enter" action="gran:close:ok"/>
+    <Command id="reject" text="Отмена" key="Escape" action="gran:close:cancel"/>
+  </Resources>
+  <Stack padding="20" spacing="16">
+    <Text fontWeight="600" fontSize="15">Сохранить изменения?</Text>
+    <Text color="#667085">Результат диалога получит обработчик onClosed главного окна.</Text>
+    <Stack orientation="horizontal" spacing="10" justify="end">
+      <Button onClick="programDialog" text="Ещё диалог…"/>
+      <Button command="reject"/>
+      <Button command="accept"/>
+    </Stack>
+  </Stack>
+</Window>

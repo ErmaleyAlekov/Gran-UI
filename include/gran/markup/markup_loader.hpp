@@ -85,6 +85,9 @@ namespace gran::markup
         // Действие onClose (пусто — окно закрывается само) / The onClose action (empty — the window closes by itself)
         std::string onClose;
         platform::TitleBar titleBar = platform::TitleBar::SYSTEM;
+        // Вид окна и начальное место (kind, position) / The window kind and the initial place (kind, position)
+        platform::WindowKind kind = platform::WindowKind::NORMAL;
+        platform::WindowPosition position = platform::WindowPosition::DEFAULT;
         style::DeclarationBlock declared;
     };
 

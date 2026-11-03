@@ -48,6 +48,17 @@ namespace gallery
     ** the pointer capture, the wheel, a custom context menu; keyLog is the keys in the capture phase; the field focus.
     */
     void registerEvents(gran::Application& application);
+
+    /*
+    ** Окна и программа (gallery_program.cpp, samples/program.xml): programDialog — модальный диалог
+    ** program_dialog.xml, подчинённый окну кнопки (результат — в строку состояния); programTool —
+    ** tool_window.xml с владельцем, без модальности.
+    **
+    ** Windows and the program (gallery_program.cpp, samples/program.xml): programDialog is the modal dialog
+    ** program_dialog.xml owned by the button window (the result goes into the status line); programTool is
+    ** tool_window.xml with an owner, without modality.
+    */
+    void registerProgram(gran::Application& application, const std::string& markup);
 }
 
 #endif

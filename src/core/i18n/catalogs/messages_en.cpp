@@ -116,7 +116,8 @@ namespace gran::i18n
             {Message::DATA_UNKNOWN_MODEL, "model \"{0}\" is not found"},
             {Message::DATA_MODEL_KIND, "the name \"{0}\" is already taken by a model of another kind ({1})"},
             {Message::DATA_SOURCE_CYCLE, "model \"{0}\" depends on itself through source, tree or model"},
-            {Message::DATA_SELECTION_MISMATCH, "selection \"{0}\" is not found or does not belong to the list \"{1}\" the container shows"}
+            {Message::DATA_SELECTION_MISMATCH, "selection \"{0}\" is not found or does not belong to the list \"{1}\" the container shows"},
+            {Message::APP_OWNER_NOT_WINDOW, "the window owner must be a node of an open window"}
         };
     }
 

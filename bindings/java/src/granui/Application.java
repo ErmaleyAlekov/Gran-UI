@@ -465,6 +465,42 @@ public final class Application implements AutoCloseable {
     public void modelClear(String model) {
         try (Arena scope=Arena.ofConfined()) { status("gran_model_clear",app,utf8(scope,model)); }
     }
+    // ---- Окна и программа 1.8: владельцы и модальные окна ----
+    // ---- Windows and the program 1.8: owners and modal windows ----
+    // Обработчики закрытия окон: user — номер обработчика, один переходник на все окна / The window close handlers: user is the handler number, one trampoline for all the windows
+    private final ConcurrentMap<Long,Consumer<String>> windowHandlers = new ConcurrentHashMap<>();
+    private MemorySegment windowEntry;
+    private void windowClosed(MemorySegment user, MemorySegment result) {
+        Consumer<String> handler=windowHandlers.remove(user.address());
+        if (handler == null) return;
+        String value=text(result);
+        protect(() -> handler.accept(value));
+    }
+    private synchronized MemorySegment windowEntry() {
+        ensureOpen();
+        if (windowEntry == null)
+            windowEntry=entry("windowClosed",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class),
+                FunctionDescriptor.ofVoid(ADDRESS,ADDRESS),this);
+        return windowEntry;
+    }
+    // Ещё одно окно; owner — id узла окна-владельца (null — без владельца), onClosed(result) — после закрытия
+    // One more window; owner is the id of an owner window node (null — without an owner), onClosed(result) — after closing
+    public void openWindow(String source, boolean isFile, String owner, boolean modal, Consumer<String> onClosed) {
+        long key=0;
+        if (onClosed != null) { key=nextTask.incrementAndGet(); windowHandlers.put(key,onClosed); }
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment options=scope.allocate(40,8);
+            options.set(JAVA_INT,0,40); options.set(ADDRESS,8,utf8(scope,owner)); options.set(JAVA_INT,16,modal ? 1 : 0);
+            options.set(ADDRESS,24,onClosed != null ? windowEntry() : MemorySegment.NULL);
+            options.set(ADDRESS,32,MemorySegment.ofAddress(key));
+            status("gran_app_open_window",app,utf8(scope,source),isFile ? 1 : 0,options);
+        } catch (RuntimeException | Error failure) { windowHandlers.remove(key); throw failure; }
+    }
+    public void openWindow(String path) { openWindow(path,true,null,false,null); }
+    // Закрыть окно узла target с результатом для onClosed (null — "") / Close the window of the target node with a result for onClosed (null — "")
+    public void closeWindow(String target, String result) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_app_close_window",app,utf8(scope,target),utf8(scope,result)); }
+    }
     // ---- Модели 1.7: таблицы, ленивая подгрузка, деревья, представления, выделение ----
     // ---- Models 1.7: tables, lazy loading, trees, views, selection ----
     // Строка плоского дерева: узел, глубина и признаки / A flat tree row: the node, the depth and the flags

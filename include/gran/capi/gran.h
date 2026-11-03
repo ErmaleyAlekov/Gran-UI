@@ -211,6 +211,28 @@ GRAN_API gran_status gran_app_markup_read(gran_app* app, const char* target, con
 GRAN_API gran_status gran_app_markup_write(gran_app* app, const char* target, const char* name, const char* value);
 GRAN_API gran_status gran_app_markup_save(gran_app* app, const char* window, char** result);
 
+/* Окна: open_window открывает ещё одно окно (source — путь при is_file != 0, иначе разметка). options == NULL —
+ * независимое окно; owner — id узла окна-владельца (подчинённое держится над ним и закрывается вместе с ним),
+ * modal != 0 — владелец не получает ввода, пока окно открыто; on_closed(user, result) вызывается в потоке UI после
+ * закрытия (result действителен только во время вызова; крестик и закрытие с владельцем — ""). close_window закрывает
+ * окно узла target с результатом result (NULL — ""); закрытие главного окна завершает run.
+ * Windows: open_window opens one more window (source is a path when is_file != 0, otherwise markup). options == NULL is
+ * an independent window; owner is the id of a node of the owner window (the owned one stays above it and closes with it),
+ * modal != 0 — the owner gets no input while the window is open; on_closed(user, result) is called on the UI thread after
+ * closing (result is valid only during the call; the cross and closing with the owner give ""). close_window closes
+ * the window of the target node with the result (NULL — ""); closing the main window ends run. */
+typedef void (*gran_window_closed_fn)(void* user, const char* result);
+typedef struct gran_window_options {
+    uint32_t size;
+    const char* owner;
+    int32_t modal;
+    gran_window_closed_fn on_closed;
+    void* user;
+} gran_window_options;
+GRAN_API gran_status gran_app_open_window(gran_app* app, const char* source, int32_t is_file,
+    const gran_window_options* options);
+GRAN_API gran_status gran_app_close_window(gran_app* app, const char* target, const char* result);
+
 /* Компоненты: сгенерированная XSD библиотеки namespace_uri, подключённой <xi:include> в окне узла window (NULL — главном);
  * пустая строка — такой библиотеки нет; освободить gran_string_free. Её сохраняют рядом с разметкой для подсказок редактора XML.
  * Components: the generated XSD of the namespace_uri library included with <xi:include> in the window of the node window (NULL — the main one);

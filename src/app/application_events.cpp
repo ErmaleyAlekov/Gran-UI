@@ -36,6 +36,9 @@ namespace gran::app
     // The size, DPI, repaint go to the graphics; closing — to requestClose; the rest — to the input router
     bool handleEvent(AppWindow& win, const platform::Event& event)
     {
+        // Окно под модальным: ввод не доходит до дерева / A window under a modal one: the input does not reach the tree
+        if (dropBlockedInput(win, event))
+            return false;
         switch (event.kind)
         {
             case platform::EventKind::CLOSE: requestClose(win); return false;

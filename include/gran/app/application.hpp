@@ -59,6 +59,27 @@ namespace gran
     // Обработчик смены стека отмены: имя стека ("" — основной) и сам стек / An undo stack change handler: the stack name ("" is the main one) and the stack itself
     using UndoHandler = std::function<void(const std::string& name, const UndoStack& stack)>;
 
+    // Обработчик закрытия окна: результат closeWindow (крестик и закрытие с владельцем — "") / A window close handler: the closeWindow result (the cross and closing with the owner — "")
+    using WindowCloseHandler = std::function<void(const std::string& result)>;
+
+    /*
+    ** Параметры нового окна (Application::openWindow). owner — любой узел окна-владельца: подчинённое
+    ** окно держится над ним, сворачивается и закрывается вместе с ним, у него нет кнопки в панели задач.
+    ** modal — владелец (и его владельцы) не получает ввода, пока окно открыто; щелчок по нему поднимает
+    ** модальное окно. Модальность асинхронная: openWindow возвращается сразу, результат приходит в onClosed.
+    **
+    ** The new window parameters (Application::openWindow). owner is any node of the owner window: the owned
+    ** window stays above it, minimizes and closes together with it, it has no taskbar button.
+    ** modal — the owner (and its owners) gets no input while the window is open; a click on it raises
+    ** the modal window. The modality is asynchronous: openWindow returns at once, the result comes to onClosed.
+    */
+    struct WindowOptions
+    {
+        ui::Node* owner = nullptr;
+        bool modal = false;
+        WindowCloseHandler onClosed;
+    };
+
     // Параметры приложения / The application parameters
     struct AppOptions
     {
@@ -189,10 +210,10 @@ namespace gran
         ** root. The window appears on the nearest run() loop pass (before run() — together with the main one).
         ** The first loaded window (loadFile, loadString or openWindow) is the main one: closing it ends run().
         */
-        ui::Node& openWindow(const std::string& path);
+        ui::Node& openWindow(const std::string& path, const WindowOptions& options = WindowOptions{});
 
         // То же из строки разметки / The same from a markup string
-        ui::Node& openWindowString(std::string_view markup);
+        ui::Node& openWindowString(std::string_view markup, const WindowOptions& options = WindowOptions{});
 
         /*
         ** Закрыть окно, которому принадлежит узел (после текущего прохода событий; узлы окна
@@ -202,6 +223,17 @@ namespace gran
         ** are invalid after that). The main window — leaving run(). A node not from a window — nothing.
         */
         void closeWindow(ui::Node& node);
+
+        /*
+        ** То же с результатом для WindowOptions::onClosed ("ok", "cancel", имя файла…). Подчинённые окна
+        ** закрываются раньше владельца, их onClosed получает "". onClosed выполняется после уничтожения
+        ** окна в потоке интерфейса; из него можно открыть следующее окно.
+        **
+        ** The same with a result for WindowOptions::onClosed ("ok", "cancel", a file name…). The owned windows
+        ** close before the owner, their onClosed gets "". onClosed runs after the window is destroyed
+        ** on the UI thread; the next window may be opened from it.
+        */
+        void closeWindow(ui::Node& node, const std::string& result);
 
         // ---- file_drop.cpp: перетаскивание файлов (только поток интерфейса) ----
         // ---- file_drop.cpp: dragging files (the UI thread only) ----

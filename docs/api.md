@@ -268,6 +268,31 @@ app.saveMarkupFile("layout.xml");                   // разметка с но�
 `showDialog(dialog)` и `hideDialog(dialog)` управляют модальным слоем внутри окна.
 Эти методы предназначены для работающего `run()`; диалог возвращает фокус после закрытия.
 
+## Окна и программа
+
+### Окна-владельцы и модальные окна
+
+`openWindow(const std::string& path, const WindowOptions& options = {})` и `openWindowString(std::string_view,
+const WindowOptions&)` открывают ещё одно окно и возвращают корень его содержимого. Поля `WindowOptions`:
+
+- `ui::Node* owner = nullptr` — любой узел окна-владельца. Узел вне открытых окон — `GranException(MARKUP)`
+  (`APP_OWNER_NOT_WINDOW`), окно не создаётся. Подчинённое окно стоит в списке окон после владельца, закрывается
+  раньше него и вместе с ним.
+- `bool modal = false` — пока окно открыто, владелец и его владельцы не получают ввода (Win32 `EnableWindow`,
+  на X11 — отбрасывание событий движком). Без владельца флаг сбрасывается.
+- `WindowCloseHandler onClosed` — `std::function<void(const std::string& result)>`, вызывается в потоке UI после
+  уничтожения окна.
+
+`closeWindow(ui::Node&, const std::string& result)` помечает окно узла к закрытию (после прохода событий) с
+результатом для `onClosed`; `closeWindow(ui::Node&)` — то же с пустым результатом. Закрытие вместе с владельцем
+и крестик дают `""`; закрытие главного окна завершает `run()` без вызова `onClosed` остальных окон.
+Встроенное действие `gran:close:результат` равносильно `closeWindow(узел, "результат")`.
+
+Платформа: `platform::WindowDesc::owner` (`platform::Window*`), `modal`, `kind` (`WindowKind::NORMAL|DIALOG|TOOL`),
+`position` (`WindowPosition::DEFAULT|CENTER|CENTER_OWNER`; перечисления — в `gran/platform/window_frame.hpp`);
+`Window::setEnabled(bool)` и `Window::activate()` (по умолчанию ничего не делают). Разметка:
+`markup::WindowSpec::kind` и `position` из атрибутов `<Window kind position>`.
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` задаёт обработчик `void(ui::Node&, const std::string&)`.

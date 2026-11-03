@@ -6,19 +6,25 @@
 namespace gran
 {
     // Окно из файла: шрифты и картинки — относительно каталога файла / A window from a file: the fonts and images are relative to the file directory
-    ui::Node& Application::openWindow(const std::string& path)
+    // Владелец проверяется до загрузки: узел чужого дерева — ошибка без нового окна
+    // The owner is checked before loading: a node of a foreign tree is an error without a new window
+    ui::Node& Application::openWindow(const std::string& path, const WindowOptions& options)
     {
+        app::AppWindow* owner = app::requireOwner(*_state, options);
         app::AppWindow& win = app::addWindow(*_state, markup::loadMarkupFile(path, markup::LoadOptions{}),
             std::filesystem::path(path).parent_path().string());
 
+        app::attachOwner(win, owner, options);
         return *win.document.root;
     }
 
     // Окно из строки: относительные пути — от текущего каталога / A window from a string: relative paths are from the current directory
-    ui::Node& Application::openWindowString(std::string_view markup)
+    ui::Node& Application::openWindowString(std::string_view markup, const WindowOptions& options)
     {
+        app::AppWindow* owner = app::requireOwner(*_state, options);
         app::AppWindow& win = app::addWindow(*_state, markup::loadMarkupString(markup, markup::LoadOptions{}), ".");
 
+        app::attachOwner(win, owner, options);
         return *win.document.root;
     }
 
@@ -26,37 +32,13 @@ namespace gran
     // Closing is deferred to the pass end: the handler that called it still works with the window nodes
     void Application::closeWindow(ui::Node& node)
     {
-        app::AppWindow* win = app::findWindow(*_state, node);
-
-        if (win != nullptr)
-            win->closing = true;
+        closeWindow(node, std::string());
     }
 
-    namespace app
+    // Результат запоминается до закрытия; повторный вызов в том же проходе заменяет его
+    // The result is remembered until closing; a repeated call in the same pass replaces it
+    void Application::closeWindow(ui::Node& node, const std::string& result)
     {
-        // Корень дерева узла — корень документа одного из окон / The node tree root is the document root of one of the windows
-        AppWindow* findWindow(Application::State& state, const ui::Node& node) noexcept
-        {
-            const ui::Node* root = &node;
-
-            while (root->parent != nullptr)
-                root = root->parent;
-            for (const std::unique_ptr<AppWindow>& win : state.windows)
-            {
-                if (win->document.root.get() == root)
-                    return win.get();
-            }
-            return nullptr;
-        }
-
-        // Маршрутизатор есть только у показанного окна / Only a shown window has a router
-        input::InputRouter* routerOf(Application::State& state, const ui::Node& node) noexcept
-        {
-            AppWindow* win = findWindow(state, node);
-
-            if (win == nullptr)
-                return nullptr;
-            return win->router.get();
-        }
+        app::markClosing(*_state, node, result);
     }
 }

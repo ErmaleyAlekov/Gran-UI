@@ -41,7 +41,7 @@ namespace gran::app
     struct AppWindow : input::ActionSink, input::TextLocator
     {
         // ---- app_window_list.cpp ----
-        explicit AppWindow(Application::State& owner) noexcept;
+        explicit AppWindow(Application::State& state) noexcept;
 
         // ---- app_actions.cpp ----
         void action(const std::string& name, ui::Node& node) override;
@@ -101,6 +101,20 @@ namespace gran::app
         std::vector<Rect> dropZones;
         // Окно просили закрыть (крестик, closeWindow): закрывается после прохода событий / The window was asked to close (the cross, closeWindow): it closes after the event pass
         bool closing = false;
+        /*
+        ** Окно-владелец (невладеющая ссылка: подчинённые закрываются раньше владельца и стоят в списке
+        ** окон после него), модальность, обработчик и результат закрытия; blocked — открыто модальное
+        ** окно этого окна или его подчинённых, ввод отбрасывается.
+        **
+        ** The owner window (a non-owning reference: the owned windows close before the owner and stand in the window
+        ** list after it), the modality, the close handler and result; blocked — a modal window of this window
+        ** or of its owned ones is open, the input is dropped.
+        */
+        AppWindow* owner = nullptr;
+        bool modal = false;
+        bool blocked = false;
+        WindowCloseHandler onClosed;
+        std::string closeResult;
         // Окну нужен кадр в этом проходе цикла / The window needs a frame in this loop pass
         bool changed = false;
         bool animating = false;

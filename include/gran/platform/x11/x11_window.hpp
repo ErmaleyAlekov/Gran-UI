@@ -51,7 +51,10 @@ namespace gran::platform::x11
         void accessFocusChanged() override;
         void accessRefresh() override;
         void wake() noexcept override;
+        void activate() override;
     private:
+        void applyOwner(const WindowDesc& desc);
+        void place(const WindowDesc& desc);
         void create(const WindowDesc& desc);
         void configure(const WindowDesc& desc);
         void inputMethod();

@@ -91,6 +91,11 @@ class _UndoStep(C.Structure):
     _fields_ = [("size", C.c_uint32), ("undo", _Task), ("redo", _Task), ("release", _Task), ("user", C.c_void_p)]
 
 _UndoFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_uint32)
+_WindowClosedFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p)
+
+class _WindowOptions(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("owner", C.c_char_p), ("modal", C.c_int32),
+                ("on_closed", _WindowClosedFn), ("user", C.c_void_p)]
 _ConvertFn = C.CFUNCTYPE(None, C.c_void_p, C.c_char_p, C.c_void_p)
 
 class UndoState(tuple):
@@ -163,6 +168,8 @@ def _configure(lib):
         "selection_change": (C.c_int32, [p, s, C.c_int32, z, z]),
         "selection_read": (C.c_int32, [p, s, C.POINTER(z), C.POINTER(z), C.POINTER(z)]),
         "selection_on_change": (C.c_int32, [p, s, _SelectionFn, p]),
+        "app_open_window": (C.c_int32, [p, s, C.c_int32, C.POINTER(_WindowOptions)]),
+        "app_close_window": (C.c_int32, [p, s, s]),
     }
     for name, (result, args) in declarations.items():
         function = getattr(lib, "gran_" + name)
@@ -192,6 +199,10 @@ class Application:
         self._release_entry = _Task(lambda user: self._undo_steps.pop(user or 0, None))
         self._undo_handler = None
         self._converters = {}
+        # Обработчики закрытия окон: user — номер обработчика, один переходник на все окна.
+        # The window close handlers: user is the handler number, one trampoline for all the windows.
+        self._windows = {}
+        self._window_entry = _WindowClosedFn(self._window_closed)
         options = _Options(C.sizeof(_Options), backend, 0, warp, 0, 0, exit_after)
         self._check(self._lib.gran_app_create(C.byref(options), C.byref(self._app)))
 
@@ -474,6 +485,31 @@ class Application:
             key = self._timer_keys.get(timer)
         if key is not None:
             self._drop_task(key)
+
+    def _window_closed(self, user, result):
+        handler = self._windows.pop(user or 0, None)
+        if handler is not None:
+            self._protect(handler, (result or b"").decode("utf-8"))
+
+    def open_window(self, source, is_file=True, owner=None, modal=False, on_closed=None):
+        """Ещё одно окно; owner — id узла окна-владельца, on_closed(result) — после закрытия.
+        One more window; owner is the id of an owner window node, on_closed(result) — after closing."""
+        key = 0
+        if on_closed is not None:
+            with self._task_lock:
+                key = next(self._task_keys)
+            self._windows[key] = on_closed
+        options = _WindowOptions(C.sizeof(_WindowOptions), _encode(owner), 1 if modal else 0,
+                                 self._window_entry if on_closed is not None else _WindowClosedFn(), C.c_void_p(key))
+        try:
+            self._call("app_open_window", _encode(source), 1 if is_file else 0, C.byref(options))
+        except BaseException:
+            self._windows.pop(key, None)
+            raise
+
+    def close_window(self, target, result=None):
+        """Закрыть окно узла target с результатом для on_closed. / Close the window of the target node with a result for on_closed."""
+        self._call("app_close_window", _encode(target), _encode(result))
 
     def pending_tasks(self):
         """Число задач и таймеров, ждущих вызова (для проверок). / The number of tasks and timers waiting for a call (for checks)."""
