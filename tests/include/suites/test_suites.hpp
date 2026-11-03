@@ -59,6 +59,7 @@ namespace suites
     void registerTaskPoolTests(test::TestRunner& runner);
     void registerLogTests(test::TestRunner& runner);
     void registerResourceTests(test::TestRunner& runner);
+    void registerSettingsTests(test::TestRunner& runner);
     void registerShortcutTests(test::TestRunner& runner);
     void registerCommandTests(test::TestRunner& runner);
     void registerUndoStackTests(test::TestRunner& runner);

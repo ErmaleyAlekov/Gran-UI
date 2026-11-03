@@ -53,6 +53,8 @@ namespace gran::markup::internal
                 window.title = attribute.value;
             else if (attribute.name == "onClose")
                 window.onClose = attribute.value;
+            else if (attribute.name == "layout")
+                window.layout = attribute.value;
             else if (attribute.name == "resizable")
                 window.resizable = style::parseBoolean(attribute.value);
             else

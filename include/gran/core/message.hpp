@@ -143,6 +143,7 @@ namespace gran::i18n
         RES_MISSING_FILE,
         RES_DUPLICATE_ALIAS,
         RES_TOOL_USAGE,
+        SETTINGS_DAMAGED,
         COUNT
     };
 }

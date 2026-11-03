@@ -125,7 +125,8 @@ namespace gran::i18n
             {Message::RES_BAD_BLOB, "блок ресурсов повреждён или не начинается с GRANRES1"},
             {Message::RES_MISSING_FILE, "файл или папка ресурса не найдены: {0}"},
             {Message::RES_DUPLICATE_ALIAS, "путь res:/{0} встречается в манифесте дважды"},
-            {Message::RES_TOOL_USAGE, "использование: gran_rcc <манифест.xml> <выход.cpp> [--blob <пакет.bin>] [--depfile <выход.d>]"}
+            {Message::RES_TOOL_USAGE, "использование: gran_rcc <манифест.xml> <выход.cpp> [--blob <пакет.bin>] [--depfile <выход.d>]"},
+            {Message::SETTINGS_DAMAGED, "файл настроек повреждён и сохранён как .bad, взяты значения по умолчанию: {0}"}
         };
     }
 

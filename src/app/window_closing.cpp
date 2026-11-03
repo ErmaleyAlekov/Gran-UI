@@ -37,6 +37,7 @@ namespace gran::app
             WindowCloseHandler handler = std::move(win.onClosed);
             std::string result = std::move(win.closeResult);
 
+            saveState(win);
             win.modal = false;
             updateBlocking(state);
             if (owner != nullptr && !owner->closing && owner->window && !owner->blocked)

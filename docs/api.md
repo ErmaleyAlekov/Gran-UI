@@ -345,6 +345,23 @@ std::size_t)` (блок «GRANRES1» копируется; испорченны�
 `sortFiles`, `generateSource`, `generateBlob`, `generateDepfile`. Сгенерированный `.cpp` объявляет
 `const gran::res::Bundle& granResources_<имя>()`.
 
+### Настройки программы
+
+`settings::Settings& Application::settings()`; `AppOptions::settingsFile` (пусто — `settings::defaultPath(appName)`).
+`gran/settings/settings.hpp`: `ValueType::STRING|NUMBER|BOOLEAN|LIST`, `Value{type, text, items}`;
+`Settings::load(path)` (нет файла — пусто и `true`; испорченный — в `.bad`, `SETTINGS_DAMAGED` в журнал, `false`),
+`save()` (временный `.tmp` и переименование), `path()`, `modified()`; `getString/getNumber/getBool(name, fallback)`,
+`getList`, `find(name)` → `const Value*`; `setString/setNumber/setBool/setList`, `remove`; раскладка —
+`windowPlacement/setWindowPlacement(layout, WindowPlacement)`, `attribute/setAttribute({layout, id, name}, value)`,
+`variable/setVariable(name, Value)` (меняют `modified` только при другом значении).
+
+Движок: `restorePlacement` — сразу после создания окна ОС, до бэкенда (цепочка обмена сразу нужного размера);
+`restoreState` (атрибуты `persist` через `setMarkupAttribute`, переменные `persist` своим типом) — до первого кадра;
+`saveState` — перед закрытием окна и для всех окон в конце `run()`, затем `save()`, если есть изменения.
+Платформа: `platform::WindowPlacement{x, y, width, height, maximized}`, `Window::placement()` / `setPlacement()` —
+Win32 `Get/SetWindowPlacement` (`rcNormalPosition`, развёрнутость при `show`), X11 — клиентская область относительно
+корня и `StaticGravity`. Разметка: `WindowSpec::layout`, `data::Variable::persist`, атрибут `persist` (тип `PersistList`).
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` задаёт обработчик `void(ui::Node&, const std::string&)`.

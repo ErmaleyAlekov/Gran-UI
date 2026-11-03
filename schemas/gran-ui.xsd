@@ -23,6 +23,12 @@
       <xs:enumeration value="custom"/>
     </xs:restriction>
   </xs:simpleType>
+  <!-- Имена атрибутов через пробел (persist) / Attribute names separated by spaces (persist) -->
+  <xs:simpleType name="PersistList">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z][A-Za-z0-9]*( [A-Za-z][A-Za-z0-9]*)*"/>
+    </xs:restriction>
+  </xs:simpleType>
   <!-- Вид окна: обычное, диалог (без свёртки и развёртки), инструментальное / The window kind: normal, a dialog (without minimize and maximize), a tool one -->
   <xs:simpleType name="WindowKind">
     <xs:restriction base="xs:string">
@@ -624,6 +630,9 @@
     <xs:attribute name="visible" type="BindableBoolean"/>
     <xs:attribute name="enabled" type="BindableBoolean"/>
     <xs:attribute name="windowRole" type="WindowRole"/>
+    <!-- Атрибуты узла, которые хранятся в настройках программы (имена через пробел; нужен id и layout у окна) -->
+    <!-- The node attributes kept in the program settings (names separated by spaces; an id and the window layout are needed) -->
+    <xs:attribute name="persist" type="PersistList"/>
     <xs:attribute name="tooltip" type="xs:string"/>
     <!-- Имя для дикторов (как aria-label) и id элемента-подписи (как aria-labelledby) -->
     <!-- The name for screen readers (as aria-label) and the id of the label element (as aria-labelledby) -->
@@ -1153,6 +1162,8 @@
     <xs:attribute name="name" type="xs:NCName" use="required"/>
     <xs:attribute name="type" type="VariableKind" default="string"/>
     <xs:attribute name="value" type="xs:string"/>
+    <!-- Значение хранится в настройках программы между запусками / The value is kept in the program settings between runs -->
+    <xs:attribute name="persist" type="xs:boolean" default="false"/>
     <!-- Зарезервированные имена: $index — номер записи, $узел.свойство — с точкой / Reserved names: $index is the record number, $node.property has a dot -->
     <xs:assert test="not(@name = 'index' or @name = 'selected' or @name = 'current' or @name = 'depth'
                      or @name = 'expanded' or @name = 'hasChildren')
@@ -1515,6 +1526,9 @@
     <xs:attribute name="titleBar" type="TitleBar" default="system"/>
     <xs:attribute name="kind" type="WindowKind" default="normal"/>
     <xs:attribute name="position" type="WindowPosition" default="default"/>
+    <!-- Имя раскладки в настройках программы: место, размер и атрибуты persist окна сохраняются между запусками -->
+    <!-- The layout name in the program settings: the window place, size and persist attributes are kept between runs -->
+    <xs:attribute name="layout" type="xs:NCName"/>
     <xs:attribute name="background" type="Paint"/>
     <xs:attributeGroup ref="TextAttributes"/>
     <!-- Окно — не узел интерфейса: выражений у его атрибутов нет / The window is not a UI node: its attributes have no expressions -->

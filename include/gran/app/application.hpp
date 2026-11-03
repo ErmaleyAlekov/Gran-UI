@@ -3,6 +3,7 @@
 
 #include "gran/app/timer_queue.hpp"
 #include "gran/app/background_task.hpp"
+#include "gran/settings/settings.hpp"
 #include "gran/binding/list_bindings.hpp"
 #include "gran/platform/file_dialog.hpp"
 #include "gran/ui/node.hpp"
@@ -103,6 +104,9 @@ namespace gran
         std::string appName;
         std::string logDirectory;
         bool crashReports = true;
+        // Свой файл настроек (UTF-8); пусто — %APPDATA%\<appName>\settings.xml или ~/.config/<appName>/settings.xml
+        // A custom settings file (UTF-8); empty — %APPDATA%\<appName>\settings.xml or ~/.config/<appName>/settings.xml
+        std::string settingsFile;
     };
 
     /*
@@ -629,6 +633,19 @@ namespace gran
         ** run() are destroyed together with the application without being called.
         */
         void post(Task task);
+
+        // ---- application_settings.cpp ----
+
+        /*
+        ** Настройки программы в XML (schemas/gran-settings.xsd): значения программы, место окон с layout,
+        ** атрибуты persist и переменные persist. Загружаются в конструкторе (appName или settingsFile),
+        ** сохраняются в конце run() вместе с раскладкой окон; save() — сохранить сейчас.
+        **
+        ** The program settings in XML (schemas/gran-settings.xsd): the program values, the place of the windows with layout,
+        ** the persist attributes and the persist variables. Loaded in the constructor (appName or settingsFile),
+        ** saved at the end of run() together with the window layout; save() — save now.
+        */
+        settings::Settings& settings();
 
         // ---- application_logging.cpp ----
 

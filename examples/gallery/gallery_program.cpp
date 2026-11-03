@@ -91,5 +91,6 @@ namespace gallery
         application.onAction("programTool", OpenOwned{&application, (folder / "tool_window.xml").string(), false});
         registerTasks(application);
         registerLog(application);
+        registerSettings(application);
     }
 }

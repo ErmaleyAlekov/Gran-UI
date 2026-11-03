@@ -191,7 +191,7 @@ Normal action names invoke registered business logic.
 
 ### Windows and the program
 
-Owner windows, modal windows and background tasks (see the [guide](guide.en.md#windows-and-the-program)). A background task work
+Owner windows, modal windows, background tasks, the log, resources and settings (see the [guide](guide.en.md#windows-and-the-program)). A background task work
 runs on a pool thread: a language exception inside it becomes a failure (`failed`) with a text, the result is a language object
 the wrapper keeps itself until `done`. The owner is the id of any node of its window;
 the close handler gets the result (`""` — the close button or closing with the owner) and is called once on the UI thread.
@@ -204,6 +204,7 @@ the close handler gets the result (`""` — the close button or closing with the
 | `cancel_task(id)` → `bool` | `CancelTask` | `cancelTask` | `gran_app_cancel_task` |
 | `open_log(app_name, directory=None, crash_reports=True)`, `log("info", category, text)`, `log_path()`, `previous_crash()` | `OpenLog`, `Log(LogLevel, …)`, `LogPath`, `PreviousCrash` | `openLog`, `log(LOG_INFO, …)`, `logPath`, `previousCrash` | `gran_log_open` / `_write` (`GRAN_LOG_*`) / `_path` / `_previous_crash` (process-wide) |
 | `mount_resources(bytes or a path)` — a `gran_rcc --blob` block | `MountResources(byte[])` | `mountResources(byte[])` | `gran_resources_mount` (the bytes are copied) |
+| `load_settings(app_name=None, path=None)`, `setting(name, default)` → `str`/`float`/`bool`/`list`, `set_setting(name, value)` (the type — by the value), `remove_setting`, `save_settings` | `LoadSettings`, `GetSetting` → `object?`, `SetSetting` (string/double/bool/list), `RemoveSetting`, `SaveSettings` | `loadSettings`, `getSetting` → `Object`, `setSetting`, `removeSetting`, `saveSettings` | `gran_settings_load/_get/_set/_list_item/_set_list/_remove/_save` (`GRAN_SETTING_*`) |
 
 ## C ABI
 

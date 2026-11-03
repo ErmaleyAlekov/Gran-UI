@@ -224,6 +224,17 @@ class Program
             tasks.LoadFile("res:/bindings/csharp_window.xml");
             Assert(tasks.Read("res_text", "text") == "из ресурсов");
 
+            // Настройки: типы значений, список, сохранение и повторная загрузка / The settings: the value types, a list, saving and reloading
+            string settingsPath = Path.Combine(Path.GetTempPath(), "gran_settings_cs_" + Environment.ProcessId, "settings.xml");
+            tasks.LoadSettings(path:settingsPath);
+            tasks.SetSetting("theme", "тёмная"); tasks.SetSetting("zoom", 1.25); tasks.SetSetting("sidebar", true);
+            tasks.SetSetting("recent", new[] { "a.txt", "б.txt" });
+            tasks.SaveSettings();
+            tasks.LoadSettings(path:settingsPath);
+            Assert((string?)tasks.GetSetting("theme") == "тёмная" && (double?)tasks.GetSetting("zoom") == 1.25);
+            Assert((bool?)tasks.GetSetting("sidebar") == true && ((string[])tasks.GetSetting("recent")!).SequenceEqual(new[] { "a.txt", "б.txt" }));
+            Assert(tasks.GetSetting("missing") == null);
+
             // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
             string logFolder = Path.Combine(Path.GetTempPath(), "gran_log_cs_" + Environment.ProcessId);
             tasks.OpenLog("GranCSharpTest", logFolder, crashReports:false);

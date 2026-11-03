@@ -23,6 +23,8 @@ namespace gran::markup::internal
                 variable.type = data::VariableType::BOOLEAN;
             if (value != nullptr)
                 variable.value = *value;
+            const std::string* persist = findAttribute(element, "persist");
+            variable.persist = persist != nullptr && (*persist == "true" || *persist == "1");
             context.document.variables.push_back(std::move(variable));
         }
 

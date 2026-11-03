@@ -283,6 +283,26 @@ GRAN_API gran_status gran_log_previous_crash(char** result);
  * A damaged block is GRAN_ERROR. */
 GRAN_API gran_status gran_resources_mount(const void* data, size_t size);
 
+/* Настройки программы (Application::settings): settings_load читает файл path (NULL — по имени программы app_name:
+ * %APPDATA%/<app_name>/settings.xml или ~/.config/<app_name>/settings.xml); без загрузки настройки не сохраняются.
+ * get: *type — GRAN_SETTING_* (GRAN_SETTING_MISSING — нет), *result — текст (у списка NULL; освободить gran_string_free).
+ * set: число и логическое передаются текстом ("2.5", "true"). list_item: *result == NULL — индекс за концом.
+ * Раскладка окон (<Window layout>, persist) сохраняется сама в конце gran_app_run; save — сохранить сейчас.
+ * The program settings (Application::settings): settings_load reads the path file (NULL — by the app_name program name:
+ * %APPDATA%/<app_name>/settings.xml or ~/.config/<app_name>/settings.xml); without loading the settings are not saved.
+ * get: *type is GRAN_SETTING_* (GRAN_SETTING_MISSING — none), *result is the text (NULL for a list; free it with gran_string_free).
+ * set: a number and a boolean are passed as text ("2.5", "true"). list_item: *result == NULL — the index is past the end.
+ * The window layout (<Window layout>, persist) is saved by itself at the end of gran_app_run; save — save now. */
+enum { GRAN_SETTING_MISSING = -1, GRAN_SETTING_STRING = 0, GRAN_SETTING_NUMBER = 1, GRAN_SETTING_BOOLEAN = 2,
+       GRAN_SETTING_LIST = 3 };
+GRAN_API gran_status gran_settings_load(gran_app* app, const char* app_name, const char* path);
+GRAN_API gran_status gran_settings_get(gran_app* app, const char* name, int32_t* type, char** result);
+GRAN_API gran_status gran_settings_set(gran_app* app, const char* name, int32_t type, const char* value);
+GRAN_API gran_status gran_settings_list_item(gran_app* app, const char* name, size_t index, char** result);
+GRAN_API gran_status gran_settings_set_list(gran_app* app, const char* name, const char* const* items, size_t count);
+GRAN_API gran_status gran_settings_remove(gran_app* app, const char* name);
+GRAN_API gran_status gran_settings_save(gran_app* app);
+
 /* Компоненты: сгенерированная XSD библиотеки namespace_uri, подключённой <xi:include> в окне узла window (NULL — главном);
  * пустая строка — такой библиотеки нет; освободить gran_string_free. Её сохраняют рядом с разметкой для подсказок редактора XML.
  * Components: the generated XSD of the namespace_uri library included with <xi:include> in the window of the node window (NULL — the main one);

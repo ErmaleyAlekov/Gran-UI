@@ -99,4 +99,48 @@ namespace gran::platform::x11
         XRaiseWindow(_native.display, _native.window);
         XFlush(_native.display);
     }
+
+    // Клиентская область относительно корня (рамку диспетчера окон не знаем) и развёрнутость / The client area relative to the root (the window manager frame is unknown) and the maximization
+    bool X11Window::placement(WindowPlacement& result) const
+    {
+        XWindowAttributes attributes{};
+        ::Window child = 0;
+
+        if (XGetWindowAttributes(_native.display, _native.window, &attributes) == 0
+            || !XTranslateCoordinates(_native.display, _native.window, DefaultRootWindow(_native.display), 0, 0,
+                &result.x, &result.y, &child))
+            return false;
+        result.width = attributes.width;
+        result.height = attributes.height;
+        result.maximized = isMaximized();
+        return true;
+    }
+
+    /*
+    ** До показа: размер и место с подсказкой StaticGravity — координаты относятся к самому окну, а не
+    ** к рамке, иначе окно сползало бы на высоту заголовка при каждом запуске. Место вне экрана пропускается.
+    **
+    ** Before showing: the size and the place with the StaticGravity hint — the coordinates refer to the window itself, not
+    ** to the frame, otherwise the window would creep by the title bar height on every start. A place outside the screen is skipped.
+    */
+    void X11Window::setPlacement(const WindowPlacement& saved)
+    {
+        Display* display = _native.display;
+        int screen = DefaultScreen(display);
+        XSizeHints hints{};
+        long supplied = 0;
+
+        if (saved.width <= 0 || saved.height <= 0 || saved.x + saved.width <= 0 || saved.y + saved.height <= 0
+            || saved.x >= DisplayWidth(display, screen) || saved.y >= DisplayHeight(display, screen))
+            return;
+        XGetWMNormalHints(display, _native.window, &hints, &supplied);
+        hints.flags |= USPosition | USSize | PWinGravity;
+        hints.x = saved.x; hints.y = saved.y; hints.width = saved.width; hints.height = saved.height;
+        hints.win_gravity = StaticGravity;
+        XSetWMNormalHints(display, _native.window, &hints);
+        XMoveResizeWindow(display, _native.window, saved.x, saved.y, static_cast<unsigned>(saved.width),
+            static_cast<unsigned>(saved.height));
+        _pixels = {static_cast<float>(saved.width), static_cast<float>(saved.height)};
+        _startMaximized = saved.maximized;
+    }
 }

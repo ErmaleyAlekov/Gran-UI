@@ -123,6 +123,8 @@ namespace gran
         ** The background task pool (created on the first runTask). The last field — destroyed first:
         ** its threads are waited for while the post queue (taskMutex, tasks) is still alive.
         */
+        // Настройки программы (application_settings.cpp) / The program settings (application_settings.cpp)
+        settings::Settings settings;
         // Отчёт о сбое прошлого запуска (application_logging.cpp) / The crash report of the previous run (application_logging.cpp)
         std::string previousCrash;
         std::unique_ptr<app::TaskPool> pool;
@@ -300,6 +302,25 @@ namespace gran
 
         // Видеокарта и драйвер окна — в журнал / The window video card and driver go into the log
         void logAdapter(const AppWindow& win);
+
+        // ---- application_settings.cpp ----
+
+        // Загрузить файл настроек по AppOptions (из конструктора) / Load the settings file by AppOptions (from the constructor)
+        void startSettings(Application::State& state);
+
+        // Состояние всех окон — в настройки, файл — на диск (конец run) / The state of all the windows into the settings, the file to disk (the end of run)
+        void saveSettings(Application::State& state);
+
+        // ---- window_layout.cpp ----
+
+        // Место окна из настроек — до создания бэкенда / The window place from the settings — before the backend creation
+        void restorePlacement(AppWindow& win);
+
+        // Атрибуты persist и переменные persist из настроек — до первого кадра / The persist attributes and variables from the settings — before the first frame
+        void restoreState(AppWindow& win);
+
+        // Место окна, атрибуты persist, переменные persist — в настройки / The window place, the persist attributes, the persist variables into the settings
+        void saveState(AppWindow& win);
 
         // ---- window_closing.cpp ----
 

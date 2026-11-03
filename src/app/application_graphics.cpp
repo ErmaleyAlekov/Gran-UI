@@ -79,6 +79,7 @@ namespace gran::app
         desc.darkTitleBar = darkBackground(win.windowStyle);
         ownWindow(win, desc);
         win.window = platform::createWindow(desc);
+        restorePlacement(win);
         win.window->setLiveResize(LiveResize{&win});
         win.access.root = win.document.root.get();
         win.window->setAccessTree(&win.access);

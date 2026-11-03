@@ -127,7 +127,7 @@ Alt+Space открывает системное меню. Поля ввода, �
 ## Окно и ресурсы
 
 Корень документа — `<Window>`: `title`, `width`, `height` (по умолчанию 800 × 600), `minWidth`, `minHeight`, `onClose`,
-`kind` и `position` (раздел «Окна и программа»), а также любые атрибуты оформления, которые наследуют дети
+`kind`, `position` и `layout` (раздел «Окна и программа»), а также любые атрибуты оформления, которые наследуют дети
 (`background`, `color`, `fontSize`, `fontFamily`).
 Внутри — необязательный `<Resources>` и ровно один корневой элемент интерфейса.
 
@@ -1347,6 +1347,37 @@ app.loadFile("res:/ui/main.xml");                 // относительные 
   его при правке любого встроенного файла). CMake: `gran_add_resources(цель resources.xml)`.
 - Обёртки языков подключают пакет одним блоком: `gran_rcc … --blob store.bin`, затем `mount_resources("store.bin")`.
 - Пример: `gran_gallery res:/samples/program.xml` — пример раздела без файлов рядом с программой.
+
+**Настройки и раскладка окон.** Файл настроек — XML со своей схемой (`schemas/gran-settings.xsd`):
+`%APPDATA%\<программа>\settings.xml` (Windows) или `~/.config/<программа>/settings.xml` (Linux, `$XDG_CONFIG_HOME`);
+свой путь — `AppOptions::settingsFile`. Загружается в конструкторе по `appName`, сохраняется в конце `run()`.
+
+```xml
+<Window title="Склад" layout="main">                          <!-- место, размер, развёрнутость -->
+  <Resources>
+    <Variable name="sideWidth" type="number" value="240" persist="true"/>
+  </Resources>
+  <Stack orientation="horizontal">
+    <Stack width="{$sideWidth}">…</Stack>
+    <Box id="details" width="300" persist="width visible"/>   <!-- атрибуты узла по id -->
+  </Stack>
+</Window>
+```
+
+- `layout` у `<Window>` — имя записи в настройках: при следующем открытии окно встаёт на прежнее место того же размера
+  (и развёрнутым, если было); место вне всех мониторов не применяется.
+- `persist="имена"` у элемента с `id` — эти атрибуты живой разметки сохраняются и возвращаются (так же их будут хранить
+  панели и разделители этапа 2.1). `persist="true"` у `<Variable>` — значение переменной выражений.
+- Свои значения программы — `app.settings()`: `getString/getNumber/getBool/getList` с запасным значением,
+  `setString/setNumber/setBool/setList`, `remove`, `save()` (сохранить сейчас).
+- Запись атомарная (временный файл и переименование). Испорченный файл переименовывается в `.bad`, в журнал идёт
+  предупреждение, программа стартует со значениями по умолчанию.
+
+```cpp
+gran::settings::Settings& settings = app.settings();
+std::vector<std::string> recent = settings.getList("recentFiles");
+settings.setNumber("zoom", 1.25);
+```
 
 ## Ошибки и язык сообщений
 

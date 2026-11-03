@@ -13,6 +13,7 @@ namespace gran
         _state->owner = this;
         _state->options = options;
         app::startLogging(*_state);
+        app::startSettings(*_state);
     }
 
     // Порядок разрушения задан порядком полей State / The destruction order is set by the State field order

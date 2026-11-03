@@ -51,4 +51,41 @@ namespace gran::platform::win32
         centerOnce(self, owner);
         centerOnce(self, owner);
     }
+
+    // Обычная рамка (rcNormalPosition) — и у развёрнутого окна: её и нужно восстановить / The normal frame (rcNormalPosition) — also for a maximized window: it is what must be restored
+    bool Win32Window::placement(WindowPlacement& result) const
+    {
+        WINDOWPLACEMENT place{};
+
+        place.length = sizeof(place);
+        if (!GetWindowPlacement(window, &place))
+            return false;
+        result.x = place.rcNormalPosition.left;
+        result.y = place.rcNormalPosition.top;
+        result.width = place.rcNormalPosition.right - place.rcNormalPosition.left;
+        result.height = place.rcNormalPosition.bottom - place.rcNormalPosition.top;
+        result.maximized = place.showCmd == SW_SHOWMAXIMIZED || IsZoomed(window);
+        return true;
+    }
+
+    /*
+    ** Рамка ставится скрытому окну (SW_HIDE), развёрнутость — при show. Место, не попадающее ни на один
+    ** монитор (монитор отключили), пропускается: окно остаётся там, куда его поставило создание.
+    **
+    ** The frame is set on the hidden window (SW_HIDE), the maximization — on show. A place that falls on no
+    ** monitor (the monitor was unplugged) is skipped: the window stays where the creation put it.
+    */
+    void Win32Window::setPlacement(const WindowPlacement& saved)
+    {
+        WINDOWPLACEMENT place{};
+        RECT frame{saved.x, saved.y, saved.x + saved.width, saved.y + saved.height};
+
+        if (saved.width <= 0 || saved.height <= 0 || MonitorFromRect(&frame, MONITOR_DEFAULTTONULL) == nullptr)
+            return;
+        place.length = sizeof(place);
+        place.showCmd = SW_HIDE;
+        place.rcNormalPosition = frame;
+        SetWindowPlacement(window, &place);
+        startMaximized = saved.maximized;
+    }
 }

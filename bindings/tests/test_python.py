@@ -260,6 +260,60 @@ class TestApplication(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.app.mount_resources(b"broken")
 
+    def test_settings(self):
+        # Настройки: типы значений, список, сохранение и повторная загрузка / The settings: the value types, a list, saving and reloading
+        import tempfile, os
+        path = os.path.join(tempfile.mkdtemp(prefix="gran_settings_py_"), "settings.xml")
+        self.app.load_settings(path=path)
+        self.app.set_setting("theme", "тёмная")
+        self.app.set_setting("zoom", 1.25)
+        self.app.set_setting("sidebar", True)
+        self.app.set_setting("recent", ["a.txt", "б.txt"])
+        self.app.save_settings()
+        self.app.remove_setting("theme")
+        self.assertIsNone(self.app.setting("theme"))
+        self.app.load_settings(path=path)
+        self.assertEqual(self.app.setting("theme"), "тёмная")
+        self.assertEqual(self.app.setting("zoom"), 1.25)
+        self.assertIs(self.app.setting("sidebar"), True)
+        self.assertEqual(self.app.setting("recent"), ["a.txt", "б.txt"])
+        self.assertEqual(self.app.setting("missing", 7), 7)
+
+    def test_saved_layout(self):
+        # Раскладка: переменная и атрибут persist, место окна — сохраняются в конце run и возвращаются при следующем запуске
+        # The layout: the persist variable and attribute, the window place — saved at the end of run and restored on the next start
+        import tempfile, os
+        path = os.path.join(tempfile.mkdtemp(prefix="gran_layout_py_"), "settings.xml")
+        markup = ('<Window title="LayoutPython" width="420" height="260" layout="main"><Resources>'
+                  '<Variable name="dark" type="boolean" value="false" persist="true"/></Resources>'
+                  '<Stack id="side" width="200" persist="width"><Text id="label">x</Text></Stack></Window>')
+        first = Application(backend=1 if os.name == "nt" else 3, warp=True, exit_after=3.0)
+        first.load_settings(path=path)
+        first.load_string(markup)
+        def change():
+            first.set_variable("dark", True)
+            first.set_markup_attribute("side", "width", "320")
+            first.command("close")
+        first.timer(0.1, change)
+        first.run()
+        first.close()
+        with open(path, encoding="utf-8") as stream:
+            saved = stream.read()
+        self.assertIn('<Attribute layout="main" node="side" name="width" value="320"/>', saved)
+        self.assertIn('<Variable name="dark" type="boolean">true</Variable>', saved)
+        self.assertIn('<Window layout="main"', saved)
+        second = Application(backend=1 if os.name == "nt" else 3, warp=True, exit_after=3.0)
+        second.load_settings(path=path)
+        second.load_string(markup)
+        seen = []
+        def check():
+            seen.append((second.variable("dark"), second.markup_attribute("side", "width")))
+            second.command("close")
+        second.timer(0.1, check)
+        second.run()
+        second.close()
+        self.assertEqual(seen, [("true", "320")])
+
     def test_log_file(self):
         # Журнал процесса: запись попадает в файл / The process log: a record goes into the file
         import tempfile

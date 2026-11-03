@@ -13,7 +13,11 @@ namespace gran::platform::win32
     // Показ и активация окна / Showing and activating the window
     void Win32Window::show()
     {
-        ShowWindow(window, SW_SHOW);
+        int command = SW_SHOW;
+
+        if (startMaximized)
+            command = SW_SHOWMAXIMIZED;
+        ShowWindow(window, command);
         UpdateWindow(window);
     }
 

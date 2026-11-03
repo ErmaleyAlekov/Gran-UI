@@ -196,6 +196,10 @@ def _configure(lib):
         "task_cancelled": (C.c_int32, [p]), "task_progress": (C.c_int32, [p, C.c_double, s]),
         "task_fail": (C.c_int32, [p, s]),
         "resources_mount": (C.c_int32, [p, z]),
+        "settings_load": (C.c_int32, [p, s, s]), "settings_get": (C.c_int32, [p, s, C.POINTER(C.c_int32), C.POINTER(p)]),
+        "settings_set": (C.c_int32, [p, s, C.c_int32, s]), "settings_list_item": (C.c_int32, [p, s, z, C.POINTER(p)]),
+        "settings_set_list": (C.c_int32, [p, s, C.POINTER(s), z]), "settings_remove": (C.c_int32, [p, s]),
+        "settings_save": (C.c_int32, [p]),
         "log_open": (C.c_int32, [s, s, C.c_int32]), "log_write": (C.c_int32, [C.c_int32, s, s]),
         "log_path": (C.c_int32, [C.POINTER(p)]), "log_previous_crash": (C.c_int32, [C.POINTER(p)]),
     }
@@ -592,6 +596,59 @@ class Application:
                 blob = stream.read()
         data = C.create_string_buffer(bytes(blob), len(blob))
         self._check(self._lib.gran_resources_mount(data, len(blob)))
+
+    def load_settings(self, app_name=None, path=None):
+        """Файл настроек: path или по имени программы. / The settings file: path or by the program name."""
+        self._call("settings_load", _encode(app_name), _encode(path))
+
+    def setting(self, name, default=None):
+        """Значение настройки (str, float, bool или list) или default. / A setting value (str, float, bool or list) or default."""
+        kind, output = C.c_int32(), C.c_void_p()
+        self._call("settings_get", _encode(name), C.byref(kind), C.byref(output))
+        if kind.value < 0:
+            return default
+        if kind.value == 3:
+            return self._setting_list(name)
+        try:
+            text = C.string_at(output).decode("utf-8")
+        finally:
+            self._lib.gran_string_free(output)
+        if kind.value == 1:
+            return float(text)
+        if kind.value == 2:
+            return text == "true"
+        return text
+
+    def _setting_list(self, name):
+        items, index = [], 0
+        while True:
+            output = C.c_void_p()
+            self._call("settings_list_item", _encode(name), index, C.byref(output))
+            if not output.value:
+                return items
+            try:
+                items.append(C.string_at(output).decode("utf-8"))
+            finally:
+                self._lib.gran_string_free(output)
+            index += 1
+
+    def set_setting(self, name, value):
+        """Тип — по значению: bool, число, список строк или строка. / The type — by the value: bool, a number, a list of strings or a string."""
+        if isinstance(value, (list, tuple)):
+            data = (C.c_char_p * max(1, len(value)))(*[_encode(item) for item in value])
+            self._call("settings_set_list", _encode(name), data, len(value))
+        elif isinstance(value, bool):
+            self._call("settings_set", _encode(name), 2, b"true" if value else b"false")
+        elif isinstance(value, (int, float)):
+            self._call("settings_set", _encode(name), 1, repr(float(value)).encode("ascii"))
+        else:
+            self._call("settings_set", _encode(name), 0, _encode(value))
+
+    def remove_setting(self, name):
+        self._call("settings_remove", _encode(name))
+
+    def save_settings(self):
+        self._call("settings_save")
 
     LOG_LEVELS = ("severe", "warning", "info", "verbose")
 

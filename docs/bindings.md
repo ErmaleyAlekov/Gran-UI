@@ -204,7 +204,7 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 
 ### Окна и программа
 
-Окна-владельцы, модальные окна и фоновые задачи (см. [руководство](guide.md#окна-и-программа)). Работа фоновой задачи
+Окна-владельцы, модальные окна, фоновые задачи, журнал, ресурсы и настройки (см. [руководство](guide.md#окна-и-программа)). Работа фоновой задачи
 выполняется в потоке пула: исключение языка внутри неё становится сбоем (`failed`) с текстом, результат — объект языка,
 который обёртка хранит сама до `done`. Владелец — id любого узла его окна;
 обработчик закрытия получает результат (`""` — крестик или закрытие с владельцем) и вызывается один раз в потоке UI.
@@ -217,6 +217,7 @@ ProgressBar, `checked` — к CheckBox/Switch/RadioButton, `option` — к Tabs/
 | `cancel_task(id)` → `bool` | `CancelTask` | `cancelTask` | `gran_app_cancel_task` |
 | `open_log(app_name, directory=None, crash_reports=True)`, `log("info", category, text)`, `log_path()`, `previous_crash()` | `OpenLog`, `Log(LogLevel, …)`, `LogPath`, `PreviousCrash` | `openLog`, `log(LOG_INFO, …)`, `logPath`, `previousCrash` | `gran_log_open` / `_write` (`GRAN_LOG_*`) / `_path` / `_previous_crash` (на весь процесс) |
 | `mount_resources(bytes или путь)` — блок `gran_rcc --blob` | `MountResources(byte[])` | `mountResources(byte[])` | `gran_resources_mount` (байты копируются) |
+| `load_settings(app_name=None, path=None)`, `setting(name, default)` → `str`/`float`/`bool`/`list`, `set_setting(name, value)` (тип — по значению), `remove_setting`, `save_settings` | `LoadSettings`, `GetSetting` → `object?`, `SetSetting` (string/double/bool/список), `RemoveSetting`, `SaveSettings` | `loadSettings`, `getSetting` → `Object`, `setSetting`, `removeSetting`, `saveSettings` | `gran_settings_load/_get/_set/_list_item/_set_list/_remove/_save` (`GRAN_SETTING_*`) |
 
 ## C ABI
 

@@ -219,6 +219,19 @@ public class Smoke {
                 localStaticCheck(resources.read("res_text","text").equals("из ресурсов"));
             }
 
+            // Настройки: типы значений, список, сохранение и повторная загрузка / The settings: the value types, a list, saving and reloading
+            try (Application options=new Application(libraryPath,backend(),0.3,true)) {
+                String settingsPath=java.nio.file.Files.createTempDirectory("gran_settings_java_").resolve("settings.xml").toString();
+                options.loadSettings(null,settingsPath);
+                options.setSetting("theme","тёмная"); options.setSetting("zoom",1.25); options.setSetting("sidebar",true);
+                options.setSetting("recent",new String[]{"a.txt","б.txt"});
+                options.saveSettings();
+                options.loadSettings(null,settingsPath);
+                localStaticCheck("тёмная".equals(options.getSetting("theme")) && Double.valueOf(1.25).equals(options.getSetting("zoom")));
+                localStaticCheck(Boolean.TRUE.equals(options.getSetting("sidebar")) && options.getSetting("missing") == null);
+                localStaticCheck(java.util.Arrays.equals((String[])options.getSetting("recent"),new String[]{"a.txt","б.txt"}));
+            }
+
             // Журнал процесса: запись попадает в файл / The process log: a record goes into the file
             try (Application logs=new Application(libraryPath,backend(),0.3,true)) {
                 java.nio.file.Path folder=java.nio.file.Files.createTempDirectory("gran_log_java_");

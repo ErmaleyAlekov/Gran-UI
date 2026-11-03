@@ -13,6 +13,9 @@ namespace gran::platform::x11
     void X11Window::show()
     {
         XMapWindow(_native.display, _native.window);
+        // Развёрнутость — просьба к диспетчеру окон после показа (до показа её некому принять) / The maximization is a request to the window manager after showing
+        if (_startMaximized)
+            sendState(1);
         XFlush(_native.display);
     }
 }

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Схема файла настроек программы (пункт 1.8): значения программы, раскладка окон, сохранённые атрибуты узлов
+  и переменные выражений. Файл пишет движок; программа читает и меняет его через Application::settings().
+
+  The program settings file schema (item 1.8): the program values, the window layout, the saved node attributes
+  and the expression variables. The engine writes the file; the program reads and changes it through Application::settings().
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+           vc:minVersion="1.1" elementFormDefault="qualified">
+
+  <xs:simpleType name="ValueType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="string"/>
+      <xs:enumeration value="number"/>
+      <xs:enumeration value="boolean"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="WindowState">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="normal"/>
+      <xs:enumeration value="maximized"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Значение: текст элемента; число и логическое проверяются по type / A value: the element text; a number and a boolean are checked by type -->
+  <xs:complexType name="TypedValue">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="ValueType" default="string"/>
+        <!-- «.» вместо $value: «Берёста» пока не связывает $value в утверждениях простого содержимого -->
+        <!-- "." instead of $value: Beresta does not bind $value in simple content assertions yet -->
+        <xs:assert test="not(@type = 'number') or string(number(.)) != 'NaN'"/>
+        <xs:assert test="not(@type = 'boolean') or . = 'true' or . = 'false'"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:element name="Settings">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <!-- Место окна в координатах ОС (Windows — рамка в пикселях устройства, X11 — клиентская область) / The window place in OS coordinates -->
+        <xs:element name="Window">
+          <xs:complexType>
+            <xs:attribute name="layout" type="xs:string" use="required"/>
+            <xs:attribute name="x" type="xs:int" use="required"/>
+            <xs:attribute name="y" type="xs:int" use="required"/>
+            <xs:attribute name="width" type="xs:positiveInteger" use="required"/>
+            <xs:attribute name="height" type="xs:positiveInteger" use="required"/>
+            <xs:attribute name="state" type="WindowState" default="normal"/>
+          </xs:complexType>
+        </xs:element>
+        <!-- Атрибут узла с persist: окно (layout), id узла, имя и значение / A node attribute with persist -->
+        <xs:element name="Attribute">
+          <xs:complexType>
+            <xs:attribute name="layout" type="xs:string" use="required"/>
+            <xs:attribute name="node" type="xs:string" use="required"/>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="value" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Value" type="TypedValue"/>
+        <xs:element name="Variable" type="TypedValue"/>
+        <xs:element name="List">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Item" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+      <xs:attribute name="version" type="xs:positiveInteger" default="1"/>
+    </xs:complexType>
+    <xs:unique name="uniqueWindow">
+      <xs:selector xpath="Window"/>
+      <xs:field xpath="@layout"/>
+    </xs:unique>
+    <!-- Значения и списки — одно пространство имён / The values and the lists — one namespace -->
+    <xs:unique name="uniqueValue">
+      <xs:selector xpath="Value | List"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <xs:unique name="uniqueVariable">
+      <xs:selector xpath="Variable"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+  </xs:element>
+</xs:schema>

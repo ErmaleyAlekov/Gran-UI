@@ -74,6 +74,10 @@ namespace gran::platform::win32
         void setEnabled(bool enabled) override;
         void activate() override;
 
+        // ---- win32_placement.cpp ----
+        bool placement(WindowPlacement& placement) const override;
+        void setPlacement(const WindowPlacement& placement) override;
+
         // ---- win32_frame.cpp ----
         void setFrameHitTest(std::function<WindowRole(Vec2)> callback) override;
 
@@ -115,6 +119,8 @@ namespace gran::platform::win32
         WORD cursorArea = HTCLIENT;
         std::function<void()> liveResize;
         WindowDesc desc;
+        // Показать развёрнутым (место из настроек, setPlacement) / Show maximized (the place from the settings, setPlacement)
+        bool startMaximized = false;
         // Обработчик читает дерево только в UI-потоке, не хранит указатели на узлы.
         // The callback reads the tree only on the UI thread and keeps no node pointers.
         std::function<WindowRole(Vec2)> frameHitTest;

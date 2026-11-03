@@ -54,6 +54,7 @@ namespace gran::app
             createGraphics(win);
             if (index == 0)
                 logAdapter(win);
+            restoreState(win);
             renderFrame(win);
             win.window->show();
         }

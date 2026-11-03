@@ -342,6 +342,23 @@ a mapping. The block format: `"GRANRES1"`, `u32` entry count, for each `u32` pat
 `sortFiles`, `generateSource`, `generateBlob`, `generateDepfile`. The generated `.cpp` declares
 `const gran::res::Bundle& granResources_<name>()`.
 
+### The program settings
+
+`settings::Settings& Application::settings()`; `AppOptions::settingsFile` (empty — `settings::defaultPath(appName)`).
+`gran/settings/settings.hpp`: `ValueType::STRING|NUMBER|BOOLEAN|LIST`, `Value{type, text, items}`;
+`Settings::load(path)` (no file — empty and `true`; a damaged one goes into `.bad`, `SETTINGS_DAMAGED` to the log, `false`),
+`save()` (a temporary `.tmp` and renaming), `path()`, `modified()`; `getString/getNumber/getBool(name, fallback)`,
+`getList`, `find(name)` → `const Value*`; `setString/setNumber/setBool/setList`, `remove`; the layout —
+`windowPlacement/setWindowPlacement(layout, WindowPlacement)`, `attribute/setAttribute({layout, id, name}, value)`,
+`variable/setVariable(name, Value)` (they change `modified` only for a different value).
+
+The engine: `restorePlacement` — right after the OS window creation, before the backend (the swap chain is of the right size at once);
+`restoreState` (the `persist` attributes through `setMarkupAttribute`, the `persist` variables with their type) — before the first frame;
+`saveState` — before closing a window and for all the windows at the end of `run()`, then `save()` if there are changes.
+Platform: `platform::WindowPlacement{x, y, width, height, maximized}`, `Window::placement()` / `setPlacement()` —
+Win32 `Get/SetWindowPlacement` (`rcNormalPosition`, the maximization on `show`), X11 — the client area relative to
+the root and `StaticGravity`. Markup: `WindowSpec::layout`, `data::Variable::persist`, the `persist` attribute (the `PersistList` type).
+
 ## WebView
 
 `onWebMessage(name, WebMessageHandler)` sets a handler `void(ui::Node&, const std::string&)`.

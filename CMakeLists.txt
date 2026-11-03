@@ -132,6 +132,7 @@ endfunction()
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-ui.xsd" markup/gran_ui_schema.cpp GRAN_UI_SCHEMA)
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/default_theme.xml" markup/default_theme.cpp DEFAULT_THEME)
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-resources.xsd" res/gran_resources_schema.cpp GRAN_RESOURCES_SCHEMA)
+gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-settings.xsd" settings/gran_settings_schema.cpp GRAN_SETTINGS_SCHEMA)
 
 # ---- Библиотека движка ----------------------------------------------------------
 # ---- The engine library ----------------------------------------------------------

@@ -111,6 +111,9 @@ namespace gran::app
         ** or of its owned ones is open, the input is dropped.
         */
         AppWindow* owner = nullptr;
+        // Объявления <Variable persist="true"> (сами переменные уходят в привязки при принятии документа)
+        // The <Variable persist="true"> declarations (the variables themselves go into the bindings on adopting the document)
+        std::vector<data::Variable> persistedVariables;
         bool modal = false;
         bool blocked = false;
         WindowCloseHandler onClosed;

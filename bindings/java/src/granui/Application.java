@@ -510,6 +510,55 @@ public final class Application implements AutoCloseable {
             check((int)invoke("gran_resources_mount",JAVA_INT,data,(long)blob.length));
         }
     }
+    // ---- Настройки программы 1.8 ----
+    // ---- The program settings 1.8 ----
+    // Файл настроек: path или по имени программы (null — не задано) / The settings file: path or by the program name (null — not set)
+    public void loadSettings(String appName, String path) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_settings_load",app,utf8(scope,appName),utf8(scope,path)); }
+    }
+    // Значение: String, Double, Boolean, String[] или null — нет / A value: String, Double, Boolean, String[] or null — none
+    public Object getSetting(String name) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment type=scope.allocate(JAVA_INT), output=scope.allocate(ADDRESS), key=utf8(scope,name);
+            status("gran_settings_get",app,key,type,output);
+            int kind=type.get(JAVA_INT,0);
+            if (kind < 0) return null;
+            if (kind == 3) return settingList(scope,key);
+            MemorySegment value=output.get(ADDRESS,0);
+            String text;
+            try { text=text(value); } finally { invoke("gran_string_free",null,value); }
+            if (kind == 1) return Double.valueOf(text);
+            if (kind == 2) return Boolean.valueOf(text.equals("true"));
+            return text;
+        }
+    }
+    private String[] settingList(Arena scope, MemorySegment key) {
+        java.util.List<String> items=new java.util.ArrayList<>();
+        MemorySegment output=scope.allocate(ADDRESS);
+        for (long index=0;; ++index) {
+            status("gran_settings_list_item",app,key,index,output);
+            MemorySegment value=output.get(ADDRESS,0);
+            if (value.address() == 0) return items.toArray(new String[0]);
+            try { items.add(text(value)); } finally { invoke("gran_string_free",null,value); }
+        }
+    }
+    // Тип — по значению: Boolean, Number, String[] или строка / The type — by the value: Boolean, Number, String[] or a string
+    public void setSetting(String name, Object value) {
+        try (Arena scope=Arena.ofConfined()) {
+            if (value instanceof String[] items) {
+                MemorySegment array=scope.allocate(ADDRESS,Math.max(1,items.length));
+                for (int index=0; index<items.length; ++index) array.setAtIndex(ADDRESS,index,utf8(scope,items[index]));
+                status("gran_settings_set_list",app,utf8(scope,name),array,(long)items.length);
+            }
+            else if (value instanceof Boolean flag) status("gran_settings_set",app,utf8(scope,name),2,utf8(scope,flag ? "true" : "false"));
+            else if (value instanceof Number number) status("gran_settings_set",app,utf8(scope,name),1,utf8(scope,Double.toString(number.doubleValue())));
+            else status("gran_settings_set",app,utf8(scope,name),0,utf8(scope,String.valueOf(value)));
+        }
+    }
+    public void removeSetting(String name) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_settings_remove",app,utf8(scope,name)); }
+    }
+    public void saveSettings() { status("gran_settings_save",app); }
     // ---- Журнал и отчёт о сбое 1.8 (на весь процесс) ----
     // ---- The log and the crash report 1.8 (process-wide) ----
     public static final int LOG_SEVERE=0, LOG_WARNING=1, LOG_INFO=2, LOG_VERBOSE=3;

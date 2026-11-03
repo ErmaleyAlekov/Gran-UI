@@ -211,7 +211,10 @@ THEME_OBJ     := $(OBJ_DIR)/$(GEN_DIR)/markup/default_theme.o
 RES_SCHEMA_XSD := schemas/gran-resources.xsd
 RES_SCHEMA_CPP := $(GEN_DIR)/res/gran_resources_schema.cpp
 RES_SCHEMA_OBJ := $(OBJ_DIR)/$(GEN_DIR)/res/gran_resources_schema.o
-LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ) $(RES_SCHEMA_OBJ)
+SET_SCHEMA_XSD := schemas/gran-settings.xsd
+SET_SCHEMA_CPP := $(GEN_DIR)/settings/gran_settings_schema.cpp
+SET_SCHEMA_OBJ := $(OBJ_DIR)/$(GEN_DIR)/settings/gran_settings_schema.o
+LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ) $(RES_SCHEMA_OBJ) $(SET_SCHEMA_OBJ)
 
 # Инструмент встраивания файлов в C++ (собирается первым, без библиотеки)
 # The tool that embeds files into C++ (built first, without the library)
@@ -254,7 +257,7 @@ ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(RCC_OBJ) $(CHAT_COMMON) \
                  $(foreach e,$(EXAMPLES),$(call example_resources,$(e))) \
                  $(foreach e,$(EXAMPLES),$(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(e),*.cpp)))
 ALL_DEP       := $(call dep_of,$(ALL_OBJ))
-ALL_DIRS      := $(sort $(call dir_of,$(ALL_OBJ) $(ALL_DEP) $(SCHEMA_CPP) $(RES_SCHEMA_CPP)) $(BIN_DIR))
+ALL_DIRS      := $(sort $(call dir_of,$(ALL_OBJ) $(ALL_DEP) $(SCHEMA_CPP) $(RES_SCHEMA_CPP) $(SET_SCHEMA_CPP)) $(BIN_DIR))
 
 # -MMD/-MP: зависимости от заголовков в dep/, удалённый заголовок не ломает сборку
 # -MMD/-MP: the header dependencies go to dep/, a removed header does not break the build
@@ -376,6 +379,10 @@ $(SCHEMA_CPP): $(SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(SCHEMA_CPP))
 # Схема манифеста ресурсов gran_rcc — GRAN_RESOURCES_SCHEMA / The gran_rcc resource manifest schema — GRAN_RESOURCES_SCHEMA
 $(RES_SCHEMA_CPP): $(RES_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(RES_SCHEMA_CPP))
 	$(call native,$(EMBED_BIN)) $(RES_SCHEMA_XSD) $@ GRAN_RESOURCES_SCHEMA
+
+# Схема файла настроек — GRAN_SETTINGS_SCHEMA / The settings file schema — GRAN_SETTINGS_SCHEMA
+$(SET_SCHEMA_CPP): $(SET_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(SET_SCHEMA_CPP))
+	$(call native,$(EMBED_BIN)) $(SET_SCHEMA_XSD) $@ GRAN_SETTINGS_SCHEMA
 
 # Тема по умолчанию — разметка, встроенная как DEFAULT_THEME / The default theme is markup embedded as DEFAULT_THEME
 $(THEME_CPP): $(THEME_XML) $(EMBED_BIN) | $(call dir_of,$(THEME_CPP))

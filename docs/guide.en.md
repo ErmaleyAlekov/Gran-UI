@@ -128,7 +128,7 @@ The complete example with two icons and a search field is `samples/custom_window
 ## Window and Resources
 
 The document root is `<Window>`: `title`, `width`, `height` (default 800 × 600), `minWidth`, `minHeight`, `onClose`,
-`kind` and `position` (the "Windows and the program" section), as well as any styling attributes that children inherit
+`kind`, `position` and `layout` (the "Windows and the program" section), as well as any styling attributes that children inherit
 (`background`, `color`, `fontSize`, `fontFamily`).
 Inside: an optional `<Resources>` and exactly one root interface element.
 
@@ -1214,6 +1214,37 @@ app.loadFile("res:/ui/main.xml");                 // relative paths inside go to
   it when any embedded file is edited). CMake: `gran_add_resources(target resources.xml)`.
 - The language wrappers mount the bundle as one block: `gran_rcc … --blob store.bin`, then `mount_resources("store.bin")`.
 - Sample: `gran_gallery res:/samples/program.xml` — the section sample without files beside the program.
+
+**Settings and the window layout.** The settings file is XML with its own schema (`schemas/gran-settings.xsd`):
+`%APPDATA%\<program>\settings.xml` (Windows) or `~/.config/<program>/settings.xml` (Linux, `$XDG_CONFIG_HOME`);
+a custom path is `AppOptions::settingsFile`. It is loaded in the constructor by `appName` and saved at the end of `run()`.
+
+```xml
+<Window title="Warehouse" layout="main">                      <!-- the place, the size, the maximization -->
+  <Resources>
+    <Variable name="sideWidth" type="number" value="240" persist="true"/>
+  </Resources>
+  <Stack orientation="horizontal">
+    <Stack width="{$sideWidth}">…</Stack>
+    <Box id="details" width="300" persist="width visible"/>   <!-- the node attributes by id -->
+  </Stack>
+</Window>
+```
+
+- `layout` of `<Window>` is the record name in the settings: on the next opening the window takes its former place of the same size
+  (and maximized if it was); a place outside all the monitors is not applied.
+- `persist="names"` of an element with an `id` — these live markup attributes are saved and restored (the panels and splitters of
+  stage 2.1 will keep them the same way). `persist="true"` of a `<Variable>` — the expression variable value.
+- The program own values — `app.settings()`: `getString/getNumber/getBool/getList` with a fallback value,
+  `setString/setNumber/setBool/setList`, `remove`, `save()` (save now).
+- Writing is atomic (a temporary file and renaming). A damaged file is renamed into `.bad`, a warning goes to the log,
+  the program starts with the default values.
+
+```cpp
+gran::settings::Settings& settings = app.settings();
+std::vector<std::string> recent = settings.getList("recentFiles");
+settings.setNumber("zoom", 1.25);
+```
 
 ## Errors and Message Language
 
