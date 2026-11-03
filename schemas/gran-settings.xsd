@@ -31,10 +31,9 @@
       <xs:extension base="xs:string">
         <xs:attribute name="name" type="xs:string" use="required"/>
         <xs:attribute name="type" type="ValueType" default="string"/>
-        <!-- «.» вместо $value: «Берёста» пока не связывает $value в утверждениях простого содержимого -->
-        <!-- "." instead of $value: Beresta does not bind $value in simple content assertions yet -->
-        <xs:assert test="not(@type = 'number') or string(number(.)) != 'NaN'"/>
-        <xs:assert test="not(@type = 'boolean') or . = 'true' or . = 'false'"/>
+        <!-- $value — типизированное значение простого содержимого (XSD 1.1, 3.13.4.1) / $value — the typed value of the simple content (XSD 1.1, 3.13.4.1) -->
+        <xs:assert test="not(@type = 'number') or string(number($value)) != 'NaN'"/>
+        <xs:assert test="not(@type = 'boolean') or $value = 'true' or $value = 'false'"/>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
