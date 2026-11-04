@@ -42,6 +42,63 @@ This is not a transaction: earlier operations remain applied on error. The core 
 match `items="name"` in XML. `<ItemTemplate>` and `{field}` substitutions are processed by the core; wrappers do not clone elements and do not interpret the markup.
 `model_read`, `model_count`, `model_remove`, `model_clear` work with the same models. Field binding remains one-way: the onChange handler can explicitly save the new value to the model.
 
+## Core and language: who does what
+
+A binding is a thin layer: each of its methods is one C ABI call, and all UI work happens in C++. For a program in
+Python, C# or Java to be as fast as a C++ one, the language should tell the core **what** to do rather than do it itself.
+A good rule: language code is reactions to actions, domain rules, and work with files, the network and the database;
+everything about presentation is described in markup and done by the core.
+
+| Task | How to do it in the core | What to avoid in the language |
+|---|---|---|
+| Change several properties | one `apply([(id, property, value), …])` — one call, one recalculation | a loop of separate calls for each property |
+| Show a list of records | a model + `items="name"` and `<ItemTemplate>`; `model_insert` / `model_set` | creating elements with `appendMarkup` for each record |
+| Load data from a file | `load_data` / `load_tree`: the core parses JSON and XML | parsing the file in the language and inserting records one by one |
+| Sorting and search | `create_proxy`, `set_sort`, `set_filter` (XPath) — the source does not change | re-sorting and rebuilding the model on every keystroke in the search box |
+| Visibility, enabled state, texts that depend on state | binding expressions and variables: one `set_variable`, the core recalculates every dependent attribute | walking nodes and calling `apply` after every mode change |
+| Open a dialog or menu, close a window, undo | `gran:` commands right in the markup | a language handler that only calls `command` |
+| Animations and smooth transitions | `transition` and keyframes in styles | a language timer changing a property every frame |
+| Large lists and trees | `on_fetch` and lazy nodes — data arrives as the user scrolls and expands | inserting every record up front |
+| Watching state | events: onChange, `on_selection_changed`, `on_undo_changed` | polling `read` on a timer |
+
+**A handler must return quickly.** It runs on the UI thread: while it works, the window neither draws nor responds.
+Anything longer than a few milliseconds (files, network, database, computations) belongs in `run_task`: the work runs on a
+pool thread, `task.progress` moves the progress bar, and `done` receives the result back on the UI thread. Your own thread
+is fine too, but then changes reach the UI only through `post`.
+
+**Converters call the language from the core** on every binding evaluation. Keep them short and free of side effects;
+simple formatting and arithmetic are better written as an XPath expression right in the markup.
+
+**The model is for presentation, domain objects live in the language.** Field binding is one-way: onChange stores the new
+value in the language object and, if needed, in the model with `model_set`. The model does not replace a database and
+should not be the only store of business data.
+
+**Language specifics.**
+- Python: `ctypes` releases the GIL for the duration of a C call, so while `run` waits for events and draws a frame, other
+  Python threads run. But a heavy pure-Python computation in `run_task` holds the GIL, and UI handlers wait for it. For such
+  computations use a separate process (`multiprocessing`, `concurrent.futures.ProcessPoolExecutor`) or a library that
+  releases the GIL (for example, NumPy); the result returns to the UI through `post`.
+- C# and Java: C++ draws the frame while the UI thread is in native code, so a garbage collector pause does not stop
+  animations — it only delays a handler's response. Do not allocate many temporary objects in frequent handlers (mouse
+  movement, timers).
+- Any language: handlers, converters and `post` tasks are held by the binding until `close` (or until removed or run),
+  so closures should not keep large data alive longer than needed.
+
+Example (Python): searching a list without walking records in the language.
+
+```python
+# Markup: <Input id="search" onChange="search"/> and a list with items="visible".
+app.load_data("files", "files.json", select="files")         # JSON parsing is in the core
+app.create_proxy("visible", "files", sort="name")             # sorting and filtering are in the core
+
+def on_search(event):
+    # The language only turns input into a condition; the core selects the rows.
+    text = event.text.replace("'", "")
+    app.set_filter("visible", f"contains(name, '{text}')")
+
+app.on_action("search", on_search)
+```
+
 ## Events and Commands
 
 Named handlers `on_action` correspond to onClick/onChange/onSubmit,

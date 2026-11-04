@@ -99,6 +99,20 @@ See [Linux build and validation](docs/building.en.md#linux).
 - **Custom parsers check every byte:** PNG — CRC of each chunk, image size limits (16,384 pixels per side, 32 Mpixels), inflate with a limit on the result size; TrueType — boundary checks at each read and a limit on the nesting of composite glyphs. A damaged file gives an error, not an out-of-bounds memory access.
 - **Careful work with the graphics card:** each write to the GPU buffer is checked against capacity, the resource is deleted only when the GPU is done with it, the D3D12 debug layer is on in frame checks.
 
+### Multilingual
+- **UI in Python, C# and Java, not only C++.** A shared `gran_c` library with a C ABI and ready-made bindings
+  with no third-party packages: Python uses the standard `ctypes`, C# uses P/Invoke (.NET 9), Java uses the
+  Foreign Function & Memory API (JDK 22+). Any other language that can call C functions will work too.
+- **Heavy work stays in the C++ core, the language holds only business logic.** Markup parsing and validation,
+  styles, list templates, XPath bindings, model sorting and filtering, JSON/XML loading, layout, animations and
+  rendering run in C++ whatever the program's language. Python or Java code answers actions and changes data,
+  so the window does not stutter because of an interpreter or a garbage collector.
+- **One markup for all languages:** the same XML, the same schema and the same `gran:` commands work from C++ and
+  from the bindings, so the UI can move to another language without touching the markup.
+- **A safe boundary:** elements are addressed by `id`, the language holds no pointers into the tree; a handler
+  exception does not bring the core down and is rethrown from `run`. How to split work between the core and the
+  language — see [bindings](docs/bindings.en.md#core-and-language-who-does-what).
+
 ---
 
 ## Features
