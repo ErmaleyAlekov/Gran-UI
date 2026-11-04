@@ -67,7 +67,7 @@ See [Linux build and validation](docs/building.en.md#linux).
 - [Building and Integration](docs/building.en.md)
 - [Engine Architecture](docs/architecture.en.md)
 - [Project Structure, Tests, and Coding Rules](docs/development.en.md)
-- [Security: what counts as a vulnerability and how to report it](SECURITY.en.md)
+- [Contributing](CONTRIBUTING.en.md) · [Code of Conduct](CODE_OF_CONDUCT.en.md) · [Security Policy](SECURITY.en.md)
 
 ---
 
@@ -203,7 +203,6 @@ The rights to the program belong to the rights holder (see [LICENSE](LICENSE)).
 
 ## License
 
-Gran UI is **proprietary software**, all rights belong to Ermakov Aleksei Aleksandrovich.
-Using, copying, modifying and distributing it is allowed only under a written agreement with the rights holder;
-the terms are in the [LICENSE](LICENSE) file. Beresta is a separate open project under the MIT license.
+Gran UI is free and is distributed under the **MIT** license — text in the [LICENSE](LICENSE) file.
+Beresta is distributed under the same license.
 
