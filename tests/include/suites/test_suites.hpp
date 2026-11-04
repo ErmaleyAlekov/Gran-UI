@@ -6,6 +6,7 @@
 namespace suites
 {
     void registerCapiTests(test::TestRunner& runner);
+    void registerVersionTests(test::TestRunner& runner);
     // ---- Ядро и утилиты / Core and utilities ----
     void registerI18nTests(test::TestRunner& runner);
     void registerGeometryTests(test::TestRunner& runner);

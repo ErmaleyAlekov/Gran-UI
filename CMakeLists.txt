@@ -44,7 +44,13 @@
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
 
-project(gran_ui LANGUAGES CXX)
+# ---- Версия — из include/gran/gran_version.h (единый источник, docs/versioning.md) -----
+# ---- The version comes from include/gran/gran_version.h (a single source, docs/versioning.md) -----
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GranVersion.cmake")
+gran_read_version("${CMAKE_CURRENT_SOURCE_DIR}/include/gran/gran_version.h")
+
+project(gran_ui VERSION ${GRAN_VERSION} LANGUAGES CXX)
+message(STATUS "Gran UI ${GRAN_VERSION}${GRAN_VERSION_SUFFIX}")
 
 # ---- Тип сборки по умолчанию — Release (однотипные генераторы: Make, Ninja) -----
 # ---- The default build type is Release (single-config generators: Make, Ninja) -----

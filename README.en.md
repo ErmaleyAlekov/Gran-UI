@@ -29,7 +29,9 @@ return app.run();
 
 > **Status:** Under development. Windows 10/11 uses Direct3D 12/11 and Win32; Linux uses Vulkan 1.0 and X11
 > (Wayland sessions require XWayland). Software rendering uses WARP on Windows and Mesa lavapipe on Linux.
-> macOS is currently unsupported. The API may change.
+> macOS is currently unsupported. Versions follow [semantic versioning](docs/versioning.en.md): before 1.0 the API
+> may change between minor versions, while patch releases from `release/X.Y` branches stay compatible.
+> What comes next is in the [roadmap](docs/roadmap.en.md), what changed is in the [CHANGELOG](CHANGELOG.en.md).
 
 ## Linux, including Russian distributions
 
@@ -67,6 +69,8 @@ See [Linux build and validation](docs/building.en.md#linux).
 - [Building and Integration](docs/building.en.md)
 - [Engine Architecture](docs/architecture.en.md)
 - [Project Structure, Tests, and Coding Rules](docs/development.en.md)
+- [Roadmap: what is not done yet and ideas for the future](docs/roadmap.en.md)
+- [Versions, Release Branches, and Compatibility Guarantees](docs/versioning.en.md) · [Changelog](CHANGELOG.en.md)
 - [Contributing](CONTRIBUTING.en.md) · [Code of Conduct](CODE_OF_CONDUCT.en.md) · [Security Policy](SECURITY.en.md)
 
 ---

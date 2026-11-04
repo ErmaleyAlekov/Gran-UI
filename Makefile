@@ -79,6 +79,19 @@ endif
 ifeq ($(DEBUG),0)
     LDFLAGS += -s
 endif
+# Санитайзеры GCC/Clang: make DEBUG=1 SANITIZE=address,undefined test (thread — отдельно, с address несовместим).
+# Флаги идут в CXXFLAGS, потому что CXXFLAGS участвует и в компоновке. MinGW ASan не поддерживает —
+# на Windows санитайзеры только через CMake и MSVC (-DGRAN_SANITIZE=address), см. docs/development.md.
+# GCC/Clang sanitizers: make DEBUG=1 SANITIZE=address,undefined test (thread is separate, incompatible with address).
+# The flags go into CXXFLAGS because CXXFLAGS also takes part in linking. MinGW does not support ASan —
+# on Windows sanitizers are available only through CMake and MSVC (-DGRAN_SANITIZE=address), see docs/development.md.
+SANITIZE    ?=
+ifneq ($(strip $(SANITIZE)),)
+    ifeq ($(OS),Windows_NT)
+        $(error SANITIZE: MinGW does not support sanitizers, use CMake + MSVC with -DGRAN_SANITIZE=address)
+    endif
+    CXXFLAGS += -fsanitize=$(SANITIZE) -fno-omit-frame-pointer -fno-sanitize-recover=undefined -g
+endif
 ifeq ($(VULKAN),1)
     CXXFLAGS += -DGRAN_WITH_VULKAN=1
     INCLUDES += -I"$(VULKAN_SDK)/Include" -I"$(VULKAN_SDK)/include"

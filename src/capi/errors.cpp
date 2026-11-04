@@ -44,6 +44,6 @@ namespace gran::capi
 
 // ABI и ошибки доступны без приложения.
 // ABI and errors are available without an application.
-uint32_t gran_abi_version(void) { return 1; }
+uint32_t gran_abi_version(void) { return GRAN_ABI_VERSION; }
 const char* gran_last_error(void) { return errorText; }
 void gran_string_free(char* value) { delete[] value; }

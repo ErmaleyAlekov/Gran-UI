@@ -26,7 +26,7 @@
 | `examples/` | Programs: `gallery`, `snapshot`, `chat`; each folder — program `gran_<name>` |
 | `tests/` | Unit tests (`tests/src/<module>/`) and a small test framework |
 | `tools/embed/` | `gran_embed` — converts a file into a C++ array |
-| `cmake/` | CMake build parts: parameters, source lists, shaders |
+| `cmake/` | CMake build parts: parameters, source lists, shaders, reading the version from `gran_version.h` |
 | `docs/` | Documentation |
 
 Modules and the pipeline are described in [architecture](architecture.en.md). The `gran/` prefix in header paths is needed to
@@ -48,6 +48,24 @@ macros `TEST_ASSERT`, `TEST_ASSERT_EQ`, `TEST_ASSERT_NEAR`, `TEST_ASSERT_THROWS`
 Frame validation is done by an off-screen frame: `gran_snapshot <markup.xml> <frame.png>` renders the markup through
 Direct3D 12 without a window, with the debug layer enabled, and prints the time of stages. Scene and shader changes
 are compared pixel by pixel with the previous frame.
+
+### Sanitizers and Debug Layers
+
+| What | How to run |
+|---|---|
+| ASan + UBSan (Linux, GCC/Clang) | `make DEBUG=1 SANITIZE=address,undefined test` |
+| TSan (Linux) — for threaded code | `make DEBUG=1 SANITIZE=thread test` (cannot be combined with `address`) |
+| ASan (Windows, MSVC) | `cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug -DGRAN_SANITIZE=address`, then `ctest` |
+| Valgrind memcheck (Linux) | `valgrind --error-exitcode=1 bin/gran_tests` (a build without sanitizers) |
+| D3D12 Debug Layer + GPU-Based Validation | `GRAN_GPU_VALIDATION=1 bin/gran_snapshot <markup> <frame.png>` (the layer is always on, GBV — by the variable) |
+| Vulkan Validation + synchronization validation | `make DEBUG=1`, the `VK_LAYER_KHRONOS_validation` layer is enabled automatically when installed |
+
+MinGW does not support sanitizers — on Windows only MSVC. Any sanitizer or debug layer message is a bug, not noise.
+
+### Manual Checks
+
+Some checks are done by a person: a live window, how the frame looks, frame captures in RenderDoc or PIX, the debugger,
+long sessions, real GPUs. Tasks with exact steps are prepared after every big change — [tests/manual](../tests/manual/README.md).
 
 ## Coding Rules
 

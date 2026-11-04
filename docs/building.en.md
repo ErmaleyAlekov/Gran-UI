@@ -185,7 +185,7 @@ Generated files should not be edited manually.
 
 ## Integration with Your Program
 
-Public headers are in `include/gran/`, the main header for the application is `gran/app/application.hpp`. The program is linked with `libgran.a`, `libberesta.a`, and Windows system libraries:
+Public headers are in `include/gran/`, the main header for the application is `gran/app/application.hpp`; the version number is in `gran/gran_version.h` (`GRAN_VERSION_AT_LEAST`), and what is guaranteed between versions is in [versioning.en.md](versioning.en.md). The program is linked with `libgran.a`, `libberesta.a`, and Windows system libraries:
 
 ```bash
 g++ -std=c++17 -I"Gran-UI/include" -I"beresta/include" main.cpp Gran-UI/bin/libgran.a beresta/bin/libberesta.a -ld3d11 -ld3d12 -ldxgi -ldxguid -ldwmapi -lshcore -limm32 -luiautomationcore -loleaut32 -lole32 -luuid -luser32 -lgdi32 -lshell32 -static -o app.exe

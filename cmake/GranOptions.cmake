@@ -31,6 +31,28 @@ function(gran_apply_compile_options target)
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wshadow)
     endif()
     target_compile_definitions(${target} PRIVATE $<$<CONFIG:Debug>:GRAN_DEBUG=1>)
+    gran_apply_sanitizers(${target})
+endfunction()
+
+# Санитайзеры по -DGRAN_SANITIZE=address[,undefined|thread]: GCC/Clang — -fsanitize=…, MSVC — только address.
+# Флаги нужны и при компиляции, и при компоновке; MinGW санитайзеры не поддерживает.
+# Sanitizers by -DGRAN_SANITIZE=address[,undefined|thread]: GCC/Clang — -fsanitize=…, MSVC — address only.
+# The flags are needed both when compiling and when linking; MinGW does not support sanitizers.
+set(GRAN_SANITIZE "" CACHE STRING "Sanitizers: address, undefined, thread (comma-separated); MSVC: address")
+function(gran_apply_sanitizers target)
+    if(GRAN_SANITIZE STREQUAL "")
+        return()
+    endif()
+    if(MINGW)
+        message(FATAL_ERROR "GRAN_SANITIZE: MinGW does not support sanitizers, use MSVC or Linux GCC/Clang")
+    elseif(MSVC)
+        target_compile_options(${target} PRIVATE /fsanitize=address /Zi)
+        target_link_options(${target} PRIVATE /INCREMENTAL:NO /DEBUG)
+    else()
+        set(flags -fsanitize=${GRAN_SANITIZE} -fno-omit-frame-pointer -fno-sanitize-recover=undefined -g)
+        target_compile_options(${target} PRIVATE ${flags})
+        target_link_options(${target} PRIVATE ${flags})
+    endif()
 endfunction()
 
 # MinGW: -static, как в Makefile — программе не нужны libstdc++-6.dll и libgcc

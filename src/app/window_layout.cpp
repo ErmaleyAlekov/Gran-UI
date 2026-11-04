@@ -95,6 +95,12 @@ namespace gran::app
     // Место окна, атрибуты persist и переменные persist — в настройки (перед закрытием окна) / The window place, the persist attributes and the persist variables go into the settings (before closing the window)
     void saveState(AppWindow& win)
     {
+        // Состояние без программы (модульные тесты оконного слоя создают State сами) — сохранять нечего:
+        // переменные и атрибуты читаются через Application. Найдено UBSan: раньше указатель разыменовывался сразу.
+        // A state without a program (window layer unit tests build State themselves) — nothing to save:
+        // variables and attributes are read through Application. Found by UBSan: the pointer used to be dereferenced at once.
+        if (win.shared.owner == nullptr)
+            return;
         Application& application = *win.shared.owner;
         const std::string& layout = win.document.window.layout;
         platform::WindowPlacement placement;

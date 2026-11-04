@@ -34,7 +34,9 @@ return app.run();
 
 > **Состояние:** движок в разработке. Windows 10/11 — Direct3D 12/11 и Win32; Linux — Vulkan 1.0 и X11
 > (в Wayland-сеансе нужен XWayland). Программный рендеринг: WARP на Windows, Mesa lavapipe на Linux.
-> macOS пока не поддерживается. Программный интерфейс может меняться.
+> macOS пока не поддерживается. Версии — по [семантическому версионированию](docs/versioning.md): до 1.0 программный
+> интерфейс может меняться между минорными версиями, а патч-выпуски с веток `release/X.Y` совместимы.
+> Что дальше — в [плане работ](docs/roadmap.md), что изменилось — в [CHANGELOG](CHANGELOG.md).
 
 ## Linux, включая российские дистрибутивы
 
@@ -72,6 +74,8 @@ ctest --test-dir build --output-on-failure
 - [Сборка и подключение](docs/building.md)
 - [Архитектура движка](docs/architecture.md)
 - [Устройство проекта, тесты и правила кода](docs/development.md)
+- [План работ: что ещё не сделано и идеи на будущее](docs/roadmap.md)
+- [Версии, ветки выпуска и гарантии совместимости](docs/versioning.md) · [История изменений](CHANGELOG.md)
 - [Как участвовать](CONTRIBUTING.md) · [Кодекс поведения](CODE_OF_CONDUCT.md) · [Политика безопасности](SECURITY.md)
 
 ---

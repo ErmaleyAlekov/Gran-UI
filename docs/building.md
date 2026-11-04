@@ -140,7 +140,8 @@ make shaders
 На Linux CMake передаёт системные Vulkan/X11 автоматически через `target_link_libraries(app PRIVATE gran)`.
 Для ручной компоновки нужны `-lX11 -ldl -pthread` вместо библиотек Windows (с `libvulkan` движок не компонуется).
 
-Публичные заголовки — `include/gran/`, главный для приложения — `gran/app/application.hpp`. Программа линкуется
+Публичные заголовки — `include/gran/`, главный для приложения — `gran/app/application.hpp`; номер версии —
+`gran/gran_version.h` (`GRAN_VERSION_AT_LEAST`), что гарантируется между версиями — [versioning.md](versioning.md). Программа линкуется
 с `libgran.a`, `libberesta.a` и системными библиотеками Windows:
 
 ```bash

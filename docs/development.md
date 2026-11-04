@@ -26,7 +26,7 @@
 | `examples/` | Программы: `gallery`, `snapshot`, `chat`; каждая папка — программа `gran_<имя>` |
 | `tests/` | Модульные тесты (`tests/src/<модуль>/`) и свой маленький тестовый каркас |
 | `tools/embed/` | `gran_embed` — превращает файл в массив C++ |
-| `cmake/` | Части сборки CMake: параметры, списки исходников, шейдеры |
+| `cmake/` | Части сборки CMake: параметры, списки исходников, шейдеры, чтение версии из `gran_version.h` |
 | `docs/` | Документация |
 
 Модули и конвейер описаны в [архитектуре](architecture.md). Префикс `gran/` в путях заголовков нужен, чтобы
@@ -48,6 +48,25 @@ JSON, chunked, NDJSON, Markdown). В CMake те же тесты запускае
 Отрисовку проверяет кадр вне экрана: `gran_snapshot <разметка.xml> <кадр.png>` рисует разметку через
 Direct3D 12 без окна, с включённым отладочным слоем, и печатает время этапов. Изменения сцены и шейдеров
 сверяются с прежним кадром пиксель в пиксель.
+
+### Санитайзеры и отладочные слои
+
+| Что | Как запустить |
+|---|---|
+| ASan + UBSan (Linux, GCC/Clang) | `make DEBUG=1 SANITIZE=address,undefined test` |
+| TSan (Linux) — для кода с потоками | `make DEBUG=1 SANITIZE=thread test` (с `address` не сочетается) |
+| ASan (Windows, MSVC) | `cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug -DGRAN_SANITIZE=address`, затем `ctest` |
+| Valgrind memcheck (Linux) | `valgrind --error-exitcode=1 bin/gran_tests` (сборка без санитайзеров) |
+| D3D12 Debug Layer + GPU-Based Validation | `GRAN_GPU_VALIDATION=1 bin/gran_snapshot <разметка> <кадр.png>` (слой включён всегда, GBV — по переменной) |
+| Vulkan Validation + synchronization validation | `make DEBUG=1`, слой `VK_LAYER_KHRONOS_validation` подключается сам, если установлен |
+
+MinGW санитайзеры не поддерживает — на Windows только MSVC. Любое сообщение санитайзера или отладочного слоя —
+ошибка, а не шум.
+
+### Ручные проверки
+
+Часть проверок делает человек: живое окно, вид кадра, захват кадра в RenderDoc или PIX, отладчик, долгие сессии,
+реальные видеокарты. Задачи с точными шагами готовятся после каждой большой доработки — [tests/manual](../tests/manual/README.md).
 
 ## Правила кода
 

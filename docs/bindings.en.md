@@ -271,7 +271,9 @@ the call returns. `gran_last_error` returns the calling thread's latest error te
 successful calls do not clear it. C++ exceptions are caught at the ABI boundary.
 
 `gran_options.size` must be equal to `sizeof(gran_options)`;
-`NULL` selects default settings. `gran_abi_version()` must return 1.
+`NULL` selects default settings. `gran_abi_version()` must return `GRAN_ABI_VERSION` (currently 1);
+`gran_version_string()` and `gran_version_number()` report the version of the built library
+(versioning rules are in [versioning.en.md](versioning.en.md)).
 Codes: `GRAN_OK`, `GRAN_ERROR`, `GRAN_INVALID_ARGUMENT`, `GRAN_WRONG_THREAD`,
 `GRAN_BUSY`. User C callbacks must not throw exceptions.
 Their function and user data must remain valid until the handler is replaced/removed or the application is destroyed;

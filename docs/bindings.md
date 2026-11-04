@@ -284,7 +284,9 @@ app.on_action("search", on_search)
 успешные вызовы её не очищают. Исключения C++ перехватываются на границе ABI.
 
 `gran_options.size` обязательно равен `sizeof(gran_options)`; `NULL` выбирает
-настройки по умолчанию. `gran_abi_version()` должен возвращать 1.
+настройки по умолчанию. `gran_abi_version()` должен возвращать `GRAN_ABI_VERSION` (сейчас 1);
+`gran_version_string()` и `gran_version_number()` сообщают версию собранной библиотеки
+(правила версий — [versioning.md](versioning.md)).
 Коды: `GRAN_OK`, `GRAN_ERROR`, `GRAN_INVALID_ARGUMENT`, `GRAN_WRONG_THREAD`,
 `GRAN_BUSY`. Пользовательские C callbacks не должны выбрасывать исключения.
 Их функция и user-данные действительны до снятия/замены или уничтожения приложения;

@@ -4,15 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if defined(_WIN32) && defined(GRAN_CAPI_BUILD)
-# define GRAN_API __declspec(dllexport)
-#elif defined(_WIN32) && defined(GRAN_CAPI_SHARED)
-# define GRAN_API __declspec(dllimport)
-#elif defined(__GNUC__)
-# define GRAN_API __attribute__((visibility("default")))
-#else
-# define GRAN_API
-#endif
+/* GRAN_API, GRAN_DEPRECATED, номер версии и гарантии совместимости — в gran_export.h.
+ * GRAN_API, GRAN_DEPRECATED, the version number and compatibility guarantees are in gran_export.h. */
+#include "gran/gran_export.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -79,6 +74,12 @@ typedef struct gran_record {
  * Нельзя выбрасывать исключения из callback; user и callback живут до замены/снятия или destroy.
  * Callbacks must not throw; user and callback live until replacement/cancellation or destroy. */
 GRAN_API uint32_t gran_abi_version(void);
+/* Версия собранной библиотеки (может отличаться от GRAN_VERSION_* заголовков, с которыми собрана программа):
+ * число в виде GRAN_VERSION_ENCODE и строка вида "0.1.0"; строка статическая, освобождать не нужно.
+ * Version of the built library (may differ from GRAN_VERSION_* of the headers the program was built with):
+ * a number in GRAN_VERSION_ENCODE form and a string like "0.1.0"; the string is static and must not be freed. */
+GRAN_API uint32_t gran_version_number(void);
+GRAN_API const char* gran_version_string(void);
 GRAN_API const char* gran_last_error(void);
 GRAN_API void gran_string_free(char* text);
 GRAN_API gran_status gran_app_create(const gran_options* options, gran_app** result);
