@@ -25,6 +25,9 @@ namespace gran::binding
         if (!_virtual && oldToNew.size() == _items.size() && _first == 0)
         {
             permute(oldToNew);
+            // Копии унесли с собой отметки, рассчитанные выделением до перестановки (см. ListBinding::inserted)
+            // The copies carried away the marks computed by the selection before the permutation (see ListBinding::inserted)
+            selectionChanged();
             return;
         }
         while (!_items.empty())

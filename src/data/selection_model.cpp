@@ -7,6 +7,7 @@ namespace gran::data
     SelectionModel::SelectionModel(ListSource& source, SelectionMode mode)
         : _source(source), _mode(mode), _marks(source.size(), 0)
     {
+        readKeys();
         _source.subscribe(this);
     }
 
@@ -41,8 +42,7 @@ namespace gran::data
             keep = _current;
         else if (mode == SelectionMode::SINGLE)
             keep = static_cast<std::size_t>(std::find(_marks.begin(), _marks.end(), 1) - _marks.begin());
-        std::fill(_marks.begin(), _marks.end(), 0);
-        _count = 0;
+        unmarkAll();
         if (keep != NO_ROW)
             mark(keep, true);
         publish();

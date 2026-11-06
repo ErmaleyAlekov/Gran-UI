@@ -98,6 +98,7 @@ namespace gran::rhi::vk
 
         // ---- vulkan_adapter.cpp ----
         AdapterInfo adapterInfo() const override;
+        std::string lostReason() const override;
         void readPixels(std::vector<std::uint8_t>& rgba, unsigned& width, unsigned& height) override;
     private:
         void createInstance();

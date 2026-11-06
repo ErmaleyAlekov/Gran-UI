@@ -23,4 +23,10 @@ namespace gran::rhi::vk
         info.software = _properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
         return info;
     }
+
+    // У Vulkan нет запроса причины: потерю сообщает только этот код / Vulkan has no reason query: only this code reports the loss
+    std::string VulkanBackend::lostReason() const
+    {
+        return "VK_ERROR_DEVICE_LOST";
+    }
 }

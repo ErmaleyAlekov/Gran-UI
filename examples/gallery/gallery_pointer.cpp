@@ -15,10 +15,14 @@ namespace gallery
 
         /*
         ** pointerDown захватывает указатель: pointerMove приходит и за краем поля (координаты local выходят
-        ** за 0…размер), pointerUp снимает захват сам. Колесо пишет сдвиг и отменяет прокрутку.
+        ** за 0…размер), pointerUp снимает захват сам. Координаты пишутся только во время захвата — просто
+        ** наведённая мышь строку не трогает, поэтому «Очистить координаты» из меню не перезаписывается сразу же
+        ** (так было до ручной проверки Т-1). Колесо пишет сдвиг и отменяет прокрутку.
         **
         ** pointerDown captures the pointer: pointerMove comes past the area edge too (the local coordinates go beyond
-        ** 0…size), pointerUp removes the capture itself. The wheel writes the shift and cancels the scrolling.
+        ** 0…size), pointerUp removes the capture itself. The coordinates are written only during the capture — a mouse
+        ** merely hovering does not touch the line, so "Clear coordinates" from the menu is not overwritten at once
+        ** (it was before the manual check T-1). The wheel writes the shift and cancels the scrolling.
         */
         struct PadPointer
         {
@@ -28,7 +32,7 @@ namespace gallery
             void operator()(gran::ui::Node& pad, gran::ui::UiEvent& event) const
             {
                 char text[96];
-                const char* suffix = "";
+                bool released = event.type == gran::ui::EventType::POINTER_UP && state->captured;
 
                 if (event.type == gran::ui::EventType::POINTER_DOWN && event.button == gran::platform::MouseButton::LEFT)
                 {
@@ -38,16 +42,22 @@ namespace gallery
                 if (event.type == gran::ui::EventType::POINTER_UP)
                     state->captured = false;
                 if (event.type == gran::ui::EventType::WHEEL)
+                {
                     std::snprintf(text, sizeof(text), "Колесо: %+.1f", static_cast<double>(event.wheel.y));
-                if (state->captured)
-                    suffix = " (захват)";
-                if (event.type == gran::ui::EventType::POINTER_LEAVE && !state->captured)
-                    std::snprintf(text, sizeof(text), "Указатель вне поля");
-                else if (event.type != gran::ui::EventType::WHEEL)
+                    event.preventDefault();
+                }
+                else if (state->captured || released)
+                {
+                    // Отпущенная кнопка оставляет последние координаты без пометки захвата
+                    // A released button leaves the last coordinates without the capture mark
+                    const char* suffix = "";
+                    if (state->captured)
+                        suffix = " (захват)";
                     std::snprintf(text, sizeof(text), "x = %.0f, y = %.0f%s", static_cast<double>(event.local.x),
                         static_cast<double>(event.local.y), suffix);
-                if (event.type == gran::ui::EventType::WHEEL)
-                    event.preventDefault();
+                }
+                else
+                    return;
                 setText(*application, "pointerInfo", text);
             }
         };
@@ -87,7 +97,6 @@ namespace gallery
         application.onEvent("padDown", pointer);
         application.onEvent("padMove", pointer);
         application.onEvent("padUp", pointer);
-        application.onEvent("padLeave", pointer);
         application.onEvent("padWheel", pointer);
         application.onEvent("padMenu", PadMenu{&application});
         application.onAction("padClear", PadClear{&application});

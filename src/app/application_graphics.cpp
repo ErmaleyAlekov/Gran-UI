@@ -91,10 +91,21 @@ namespace gran::app
             win.router->focus(win.pendingFocus);
     }
 
-    // Старый рендерер отдаёт текстуры старому бэкенду до его разрушения / The old renderer returns the textures to the old backend before it is destroyed
+    /*
+    ** Причина спрашивается у старого бэкенда, пока он жив (найдено в ручной проверке Т-5: без причины потерю
+    ** у пользователя не разобрать). Старый рендерер отдаёт текстуры старому бэкенду до его разрушения.
+    **
+    ** The reason is asked from the old backend while it is alive (found in the manual check T-5: without the
+    ** reason a loss at a user's machine cannot be analysed). The old renderer returns the textures to the old
+    ** backend before it is destroyed.
+    */
     void recreateGraphics(AppWindow& win)
     {
-        log::write(log::Level::WARNING, "gpu", i18n::format(i18n::Message::GPU_DEVICE_RECREATED));
+        std::string reason;
+
+        if (win.backend)
+            reason = win.backend->lostReason();
+        log::write(log::Level::WARNING, "gpu", i18n::format(i18n::Message::GPU_DEVICE_RECREATED, {reason}));
         win.renderer.reset();
         win.backend.reset();
         createBackend(win);

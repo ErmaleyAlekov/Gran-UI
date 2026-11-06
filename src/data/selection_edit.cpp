@@ -13,8 +13,7 @@ namespace gran::data
             return;
         if (_mode == SelectionMode::SINGLE)
         {
-            std::fill(_marks.begin(), _marks.end(), 0);
-            _count = 0;
+            unmarkAll();
         }
         mark(index, true);
         publish();
@@ -56,10 +55,10 @@ namespace gran::data
 
     void SelectionModel::clear()
     {
-        if (_count == 0)
+        // Скрытые отметки (свёрнутая ветка) тоже снимаются / The hidden marks (a collapsed branch) are dropped too
+        if (_count == 0 && _hidden.empty())
             return;
-        std::fill(_marks.begin(), _marks.end(), 0);
-        _count = 0;
+        unmarkAll();
         publish();
     }
 }

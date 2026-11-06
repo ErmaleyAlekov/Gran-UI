@@ -62,7 +62,7 @@
         <Text fontWeight="600">Указатель</Text>
         <Box id="pad" height="150" background="#ffffff" borderRadius="12" borderWidth="1" borderColor="#d0d5dd"
              cursor="move" onPointerDown="padDown" onPointerMove="padMove" onPointerUp="padUp" onWheel="padWheel"
-             onContextMenu="padMenu" onPointerLeave="padLeave">
+             onContextMenu="padMenu">
           <Text style="caption" padding="10">Нажмите и ведите мышь за край — захват держит координаты</Text>
         </Box>
         <Text id="pointerInfo" style="caption">x = —, y = —</Text>

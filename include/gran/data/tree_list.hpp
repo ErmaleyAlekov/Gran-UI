@@ -52,6 +52,12 @@ namespace gran::data
         const Record& at(std::size_t index) const override;
         void set(std::size_t index, const std::string& field, std::string value) override;
 
+        // ---- tree_list_keys.cpp ----
+
+        // Ключ строки — её узел (выделение переживает свёртку ветки) / The row key is its node (the selection survives a branch collapse)
+        bool hasRowKeys() const noexcept override;
+        std::uint64_t rowKey(std::size_t index) const override;
+
         // ---- tree_list_query.cpp ----
 
         // Дерево представления / The view tree

@@ -630,10 +630,12 @@ A list from `<Data>` is just one type of model. In addition, in `<Resources>` (a
   (ancestors are expanded when the filter changes).
 - **`<Selection model mode>`** — selection (`none|single|multi|extended`). Container with `selection="…"` accepts focus:
   click selects (Ctrl — add, Shift — range), arrows, Home/End, PageUp/PageDown move the current record
-  (Shift — range, Ctrl — without changing marks), space marks, Ctrl+A — all; for a flat tree, arrows
+  (Shift — range, Ctrl — without changing marks, Ctrl+Shift — a range keeping the former marks), space marks, Ctrl+A — all; for a flat tree, arrows
   right/left expand and collapse. The copy of a marked record gets the style state `<Selected>`;
   in the template — `$selected` and `$current`; in expressions — `$sel.current` (number, -1 — none), `$sel.count` and element
-  `sel/Item` with copies of selected records. Marks follow records when inserting, deleting, and sorting.
+  `sel/Item` with copies of selected records. Marks follow records when inserting, deleting, and sorting;
+  in a tree the marks of a collapsed branch are kept and come back on expansion (the hidden ones are not in `$sel.count`),
+  the current record moves to the parent on collapse; a click without Ctrl and `clear` drop the hidden marks too.
 - Expressions see a tree as nested `Item`s (`count(org//Item)` — all nodes), proxy and `TreeList` — as lists.
 
 From code:

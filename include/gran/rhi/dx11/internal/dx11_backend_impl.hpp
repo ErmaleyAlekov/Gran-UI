@@ -72,6 +72,7 @@ namespace gran::rhi::dx11
 
         // ---- dx11_adapter.cpp ----
         AdapterInfo adapterInfo() const override;
+        std::string lostReason() const override;
         void readPixels(std::vector<std::uint8_t>& rgba, std::uint32_t& width, std::uint32_t& height) override;
 
     private:

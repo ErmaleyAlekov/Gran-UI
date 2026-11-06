@@ -49,6 +49,11 @@ namespace gran::binding
                 materialize(record);
         }
         applySpacers();
+        // Выделение подписано на модель раньше привязки и уже разослало изменение по старым позициям копий —
+        // отметки пересчитываются по новым (иначе подсветка «съезжала» на соседнюю запись; ручная проверка Т-9)
+        // The selection is subscribed to the model before the binding and has already delivered the change by the old
+        // copy positions — the marks are recomputed by the new ones (otherwise the highlight slid to a neighbour; manual check T-9)
+        selectionChanged();
     }
 
     // С конца, чтобы номера ещё не удалённых записей не сдвигались / From the end, so that the indices of the records not yet removed do not shift
@@ -62,6 +67,9 @@ namespace gran::binding
                 dematerialize(record - 1 - _first);
         }
         applySpacers();
+        // Копии после удалённых сдвинулись: отметки — по новым позициям (см. inserted)
+        // The copies after the removed ones shifted: the marks follow the new positions (see inserted)
+        selectionChanged();
     }
 
     // Только тексты с подстановками и только у записи в окне / Only the texts with placeholders and only for a record in the window

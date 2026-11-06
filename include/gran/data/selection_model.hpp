@@ -4,6 +4,7 @@
 #include "gran/data/list_source.hpp"
 
 #include <cstdint>
+#include <unordered_set>
 #include <utility>
 
 namespace gran::data
@@ -124,6 +125,22 @@ namespace gran::data
         // Сообщить подписчикам и сдвинуть версию / Tell the subscribers and bump the version
         void publish();
 
+        // ---- selection_keys.cpp ----
+
+        // Снять все отметки, в том числе скрытые; без уведомления / Drop all marks, the hidden ones too; without a notification
+        void unmarkAll() noexcept;
+
+        // Ключи всех строк заново (только у источника с ключами) / All row keys anew (only for a source with keys)
+        void readKeys();
+
+        // Перед удалением строк [index, index + count): ключи отмеченных — в скрытые, ключи строк — вон
+        // Before removing the rows [index, index + count): the keys of the marked ones go to the hidden, the row keys go away
+        void hideRemoved(std::size_t index, std::size_t count);
+
+        // После вставки строк [index, index + count): их ключи, а строки со скрытыми ключами снова отмечены
+        // After inserting the rows [index, index + count): their keys, and the rows with hidden keys are marked again
+        void restoreInserted(std::size_t index, std::size_t count);
+
         ListSource& _source;
         SelectionMode _mode;
         // Отметки по записям источника (байт на запись — проще и быстрее диапазонов при вставках в конец) / The marks per source record (a byte per record — simpler and faster than ranges on appends)
@@ -133,6 +150,20 @@ namespace gran::data
         std::size_t _anchor = NO_ROW;
         std::uint64_t _version = 1;
         std::vector<SelectionObserver*> _observers;
+        /*
+        ** Только у источника с ключами (TreeList): ключ каждой строки, параллельно _marks, — при удалении строки
+        ** источник её уже не знает, а ключ нужен. _hidden — ключи отмеченных записей, которые сейчас не видны
+        ** (свёрнутая ветка, фильтр): они вернутся отмеченными, когда запись появится снова. В count() и selected()
+        ** скрытые не входят. Простой щелчок, clear() и сужение режима снимают и их — как в Qt.
+        **
+        ** Only for a source with keys (TreeList): the key of every row, parallel to _marks, — on a row removal the
+        ** source does not know it any more, while the key is needed. _hidden — the keys of the marked records that
+        ** are not visible now (a collapsed branch, a filter): they come back marked when the record appears again.
+        ** The hidden ones are not in count() and selected(). A plain click, clear() and a narrower mode drop them
+        ** too — as in Qt.
+        */
+        std::vector<std::uint64_t> _keys;
+        std::unordered_set<std::uint64_t> _hidden;
     };
 }
 

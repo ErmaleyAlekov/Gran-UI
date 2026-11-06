@@ -436,6 +436,32 @@ shaders: $(EMBED_BIN)
 	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/blur_up_ps.dxil $(SHADER_OUT)/blur_up_ps_dxil.cpp BLUR_UP_PS_DXIL
 	$(call native,$(EMBED_BIN)) $(SHADER_TMP)/fullscreen_vs.dxil $(SHADER_OUT)/fullscreen_vs_dxil.cpp FULLSCREEN_VS_DXIL
 
+# ---- Отметка флагов сборки ----------------------------------------------------
+# ---- The build flags stamp ----------------------------------------------------
+# Объектные файлы выпуска и отладки лежат в одном obj/, а make сравнивает только даты файлов: без отметки
+# `make DEBUG=1` после выпуска оставлял объектники -O2 без отладочной информации, и отладчик не ставил точки
+# останова (найдено в ручной проверке Т-2, 2026-11-06). Поэтому полная строка флагов хранится в obj/.flags;
+# если она изменилась, файл переписывается при чтении Makefile и становится новее всех .o — они пересобираются.
+# Сравнение — по содержимому, решение о пересборке — по дате, поэтому `make -n` тоже безопасен.
+# The release and debug object files live in one obj/, and make compares only file dates: without a stamp
+# `make DEBUG=1` after a release build kept -O2 object files without debug information, and the debugger set
+# no breakpoints (found in the manual check T-2, 2026-11-06). Therefore the full flags line is kept in obj/.flags;
+# if it changed, the file is rewritten while the Makefile is read and becomes newer than every .o — they are rebuilt.
+# The comparison is by content, the rebuild decision is by date, so `make -n` is safe as well.
+FLAGS_STAMP := $(OBJ_DIR)/.flags
+FLAGS_NOW   := $(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(SYSTEM_LIBS)
+FLAGS_OLD   := $(file <$(FLAGS_STAMP))
+ifneq '$(FLAGS_OLD)' '$(FLAGS_NOW)'
+    $(shell $(call MKDIR,$(OBJ_DIR)))
+    $(file >$(FLAGS_STAMP),$(FLAGS_NOW))
+endif
+# Пустое правило: после clean в том же вызове отметки нет — make считает её обновлённой и пересобирает всё
+# An empty rule: after clean in the same call there is no stamp — make treats it as updated and rebuilds everything
+$(FLAGS_STAMP): ;
+# Объектники и программы, которые компилируются прямо из исходников, зависят от отметки
+# The object files and the programs compiled straight from sources depend on the stamp
+$(ALL_OBJ) $(RENDER_TEST_BIN) $(CAPI_BIN) $(CRASH_BIN): $(FLAGS_STAMP)
+
 # ---- Правила компиляции -----------------------------------------------------
 # ---- Compilation rules -----------------------------------------------------
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(ALL_DIRS)

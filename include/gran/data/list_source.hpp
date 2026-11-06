@@ -107,6 +107,23 @@ namespace gran::data
         // Описание столбцов (у списка без столбцов — пустое) / The column description (empty for a list without columns)
         virtual const ColumnSet& columns() const noexcept;
 
+        // ---- list_source_keys.cpp ----
+
+        /*
+        ** Есть ли у записей устойчивые ключи: ключ записи не меняется при вставках, удалениях и пересортировке,
+        ** а запись, исчезнувшая и появившаяся снова (свёртка ветки дерева), приходит с тем же ключом. По ключам
+        ** выделение переживает свёртку (найдено в ручной проверке Т-2). По умолчанию — нет.
+        **
+        ** Whether the records have stable keys: a record key does not change on insertions, removals and
+        ** re-sorting, and a record that disappeared and appeared again (a tree branch collapse) comes with the same
+        ** key. With the keys the selection survives a collapse (found in the manual check T-2). By default — no.
+        */
+        virtual bool hasRowKeys() const noexcept;
+
+        // Ключ записи index (имеет смысл, только если hasRowKeys); по умолчанию — сам номер
+        // The key of the record index (meaningful only if hasRowKeys); by default — the index itself
+        virtual std::uint64_t rowKey(std::size_t index) const;
+
         // ---- list_source.cpp ----
 
         // Есть ли ещё записи для ленивой подгрузки / Whether there are more records for lazy loading

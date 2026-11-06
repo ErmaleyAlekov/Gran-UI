@@ -49,6 +49,7 @@ namespace gran::rhi::dx12
 
         // ---- dx12_adapter.cpp ----
         AdapterInfo adapterInfo() const override;
+        std::string lostReason() const override;
 
         // ---- dx12_frame.cpp ----
         FrameStatus render(const FrameData& frame) override;

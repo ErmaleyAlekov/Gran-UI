@@ -56,6 +56,12 @@ namespace gran::log::internal
 
     // Строка записи с временем, уровнем, потоком и категорией (с переводом строки) / The record line with the time, the level, the thread and the category (with a line feed)
     std::string formatLine(Level level, std::string_view category, std::string_view text);
+
+    // ---- log_console.cpp ----
+
+    // Строка в stderr: консоль Windows — в UTF-16 (WriteConsoleW), файл, канал и Unix — байты UTF-8 как есть
+    // A line to stderr: the Windows console — in UTF-16 (WriteConsoleW), a file, a pipe and Unix — the UTF-8 bytes as is
+    void writeStderr(std::string_view line) noexcept;
 }
 
 #endif

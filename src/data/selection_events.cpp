@@ -20,6 +20,7 @@ namespace gran::data
     void SelectionModel::inserted(std::size_t index, std::size_t count)
     {
         _marks.insert(_marks.begin() + static_cast<std::ptrdiff_t>(index), count, 0);
+        restoreInserted(index, count);
         if (_current != NO_ROW && _current >= index)
             _current += count;
         if (_anchor != NO_ROW && _anchor >= index)
@@ -33,6 +34,7 @@ namespace gran::data
     {
         bool lostCurrent = _current != NO_ROW && afterRemoval(_current, index, count) == NO_ROW;
 
+        hideRemoved(index, count);
         for (std::size_t row = index; row < index + count && row < _marks.size(); ++row)
             mark(row, false);
         auto first = _marks.begin() + static_cast<std::ptrdiff_t>(index);
@@ -42,6 +44,10 @@ namespace gran::data
         if (lostCurrent && !_marks.empty())
         {
             _current = index;
+            // В дереве перед удалённым блоком стоит его родитель: свёрнутая ветка отдаёт текущую ему, как Проводник
+            // In a tree the removed block is preceded by its parent: a collapsed branch gives the current role to it, as Explorer does
+            if (_source.hasRowKeys() && index > 0)
+                _current = index - 1;
             if (_current >= _marks.size())
                 _current = _marks.size() - 1;
         }
@@ -66,6 +72,7 @@ namespace gran::data
             _current = oldToNew[_current];
         if (_anchor != NO_ROW && _anchor < oldToNew.size())
             _anchor = oldToNew[_anchor];
+        readKeys();
         publish();
     }
 }

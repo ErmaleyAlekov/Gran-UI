@@ -89,3 +89,7 @@ desktop.ini
 .continueignore
 .codex/
 .continue/
+
+# Захваты кадра RenderDoc из ручных проверок — большие, в git не добавляются (путь пишется в задаче)
+# RenderDoc frame captures from manual checks are large and are not added to git (the task records the path)
+tests/manual/results/**/*.rdc

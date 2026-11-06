@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <ctime>
 #include <functional>
-#include <iostream>
 #include <thread>
 
 namespace gran::log
@@ -81,9 +80,10 @@ namespace gran::log
             internal::LogState& state = internal::logState();
             std::string line = internal::formatLine(level, category, text);
 
-            if (level <= Level::WARNING)
-                std::cerr << line;
             std::lock_guard<std::mutex> lock(state.mutex);
+            // Под замком: строки разных потоков в консоли не перемешиваются / Under the lock: the lines of different threads do not mix in the console
+            if (level <= Level::WARNING)
+                internal::writeStderr(line);
             if (level > state.options.level)
                 return;
             internal::appendRing(state, line);

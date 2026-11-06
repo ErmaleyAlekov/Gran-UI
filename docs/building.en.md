@@ -74,7 +74,8 @@ Cleaning works in CMD/PowerShell and Unix shell.
 
 By default (`DEBUG=0`), programs are linked with `-s`: debug information is removed from the final
 executables, including symbols from statically linked MinGW libraries. `DEBUG=1` preserves symbols.
-After changing the mode, run `make re`: the Makefile does not track changes to build flags.
+The Makefile notices a mode change (`DEBUG`, `SANITIZE`, `VULKAN` and other flags) by itself: the flags line is
+kept in `obj/.flags`, and when it changes all object files are rebuilt — `make re` is not needed.
 
 The built-in schema `schemas/gran-ui.xsd` and theme `schemas/default_theme.xml` are turned into source files `gen/markup/*.cpp` during the build — using the `gran_embed` utility (`tools/embed/`), which is built first.
 

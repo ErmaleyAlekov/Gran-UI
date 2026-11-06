@@ -43,8 +43,7 @@ namespace gran::data
 
         if (!keep && _mode != SelectionMode::NONE)
         {
-            std::fill(_marks.begin(), _marks.end(), 0);
-            _count = 0;
+            unmarkAll();
         }
         if (range)
         {

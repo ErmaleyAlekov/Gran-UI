@@ -7,4 +7,13 @@ namespace gran::rhi::dx12
     {
         return describeDxgiAdapter(_context.adapter.get(), "Direct3D 12");
     }
+
+    // Причина из самого устройства: потерянное устройство отвечает на GetDeviceRemovedReason
+    // The reason from the device itself: a lost device still answers GetDeviceRemovedReason
+    std::string Dx12Backend::lostReason() const
+    {
+        if (!_context.device)
+            return std::string();
+        return describeDeviceLoss(_context.device->GetDeviceRemovedReason());
+    }
 }

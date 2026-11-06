@@ -7,4 +7,10 @@ namespace gran::rhi
     {
         return AdapterInfo{};
     }
+
+    // Бэкенд, не умеющий назвать причину потери (тестовые заглушки) / A backend unable to name the loss reason (test stubs)
+    std::string RenderBackend::lostReason() const
+    {
+        return std::string();
+    }
 }

@@ -113,10 +113,14 @@ namespace gran::binding
             target = nextRow(selection->current(), key, binding->model().size());
         if (target == data::NO_ROW || target >= binding->model().size())
             return true;
-        if (control)
+        // Ctrl — только текущая; Ctrl+Shift — диапазон от опоры с сохранением прежних отметок, как в Проводнике
+        // (раньше Shift при Ctrl терялся — найдено в ручной проверке Т-2)
+        // Ctrl — the current only; Ctrl+Shift — a range from the anchor keeping the former marks, as in Explorer
+        // (Shift used to be lost with Ctrl — found in the manual check T-2)
+        if (control && !shift)
             selection->setCurrent(target);
         else
-            selection->activate(target, false, shift);
+            selection->activate(target, control, shift);
         binding->reveal(target);
         return true;
     }

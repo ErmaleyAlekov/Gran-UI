@@ -60,6 +60,12 @@ namespace gran::rhi::dx12
     // Потеря ли устройства этот код / Whether this code is a device loss
     bool isDeviceLoss(HRESULT result) noexcept;
 
+    // ---- dxgi_lost.cpp ----
+
+    // Код из GetDeviceRemovedReason для журнала: «DXGI_ERROR_DEVICE_HUNG (0x887A0006)»; общий для D3D12 и D3D11
+    // The GetDeviceRemovedReason code for the log: "DXGI_ERROR_DEVICE_HUNG (0x887A0006)"; shared by D3D12 and D3D11
+    std::string describeDeviceLoss(HRESULT reason);
+
     // Неверная операция с текстурой → GranException(INVALID_ARGUMENT) / An invalid texture operation → GranException(INVALID_ARGUMENT)
     [[noreturn]] void throwBadTexture(std::uint32_t slot, const char* reason);
 

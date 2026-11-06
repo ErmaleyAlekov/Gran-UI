@@ -50,3 +50,15 @@ The first release with a version number. Includes everything done up to 2026-11-
 
 - Undefined behaviour (found by UBSan): `saveState` dereferenced a null program pointer when a window was closed
   and the window state had been created without an `Application` (window layer unit tests).
+- Found by manual testing (2026-11-06):
+  - the selection in a tree (`TreeList`) was lost when a branch was collapsed and expanded; now the marks of the hidden
+    descendants come back on expansion, and the current record moves to the parent on collapse
+    (`ListSource::hasRowKeys`/`rowKey`);
+  - the selection highlight slid to a neighbouring record after a tree branch collapse or a removal of a record above
+    the selected one: the list binding recomputed it by the old copy positions — now it recomputes after its own changes;
+  - Ctrl+Shift+arrow in a list only moved the current record — now it extends the range keeping the former marks;
+  - `make DEBUG=1` after a release build did not rebuild the object files — the programs had no debug information;
+    the Makefile keeps the flags line in `obj/.flags` and rebuilds everything when it changes;
+  - log warnings in the Windows console were unreadable (UTF-8 in code page 866) — now through `WriteConsoleW`;
+  - the GPU device loss record did not name the reason — now with the `GetDeviceRemovedReason` code
+    (`DXGI_ERROR_DEVICE_HUNG (0x887A0006)` etc.).

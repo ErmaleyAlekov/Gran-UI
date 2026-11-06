@@ -122,6 +122,12 @@ namespace gran::rhi
 
         // Видеокарта и драйвер для журнала; по умолчанию — пусто / The video card and the driver for the log; empty by default
         virtual AdapterInfo adapterInfo() const;
+
+        // Причина потери устройства для журнала (вызывается после FrameStatus::DEVICE_LOST, до разрушения
+        // бэкенда); по умолчанию — пусто
+        // The device loss reason for the log (called after FrameStatus::DEVICE_LOST, before the backend is
+        // destroyed); empty by default
+        virtual std::string lostReason() const;
     };
 
     /*

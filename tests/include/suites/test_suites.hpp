@@ -42,6 +42,7 @@ namespace suites
     void registerDataListTests(test::TestRunner& runner);
     void registerModelSignalTests(test::TestRunner& runner);
     void registerSelectionModelTests(test::TestRunner& runner);
+    void registerTreeSelectionTests(test::TestRunner& runner);
     void registerSortFilterTests(test::TestRunner& runner);
     void registerDataSourceTests(test::TestRunner& runner);
     void registerModelMarkupTests(test::TestRunner& runner);

@@ -119,7 +119,7 @@ namespace gran::i18n
             {Message::DATA_SELECTION_MISMATCH, "выделение «{0}» не найдено или относится не к списку «{1}», который показывает контейнер"},
             {Message::APP_OWNER_NOT_WINDOW, "владелец окна должен быть узлом открытого окна"},
             {Message::TASK_UNKNOWN_ERROR, "фоновая задача завершилась неизвестной ошибкой"},
-            {Message::GPU_DEVICE_RECREATED, "устройство GPU потеряно, графика окна создана заново"},
+            {Message::GPU_DEVICE_RECREATED, "устройство GPU потеряно ({0}), графика окна создана заново"},
             {Message::LOG_START, "запуск: {0}"},
             {Message::LOG_PREVIOUS_CRASH, "отчёт о сбое прошлого запуска: {0}"},
             {Message::RES_BAD_BLOB, "блок ресурсов повреждён или не начинается с GRANRES1"},
