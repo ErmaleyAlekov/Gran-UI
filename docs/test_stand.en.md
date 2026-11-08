@@ -152,17 +152,21 @@ The desktop is GNOME in a Wayland session; the X11 window tests go through XWayl
 
 **Manual checks T-16 and T-17 (Windows, NVIDIA): found and fixed**
 
-16. **The window sometimes completely black for 1–2 s — on the monitor only.** A screen recording, screenshots and
-    Desktop Duplication show a normal frame; it was caught with a phone camera. Both stand monitors are connected to
-    NVIDIA (MPO3, 4 planes).
+16. **While dragging, the window sometimes completely black for 1–5 s — on the monitor only.** A screen recording,
+    screenshots and Desktop Duplication show a normal frame; it was caught with a phone camera. Both stand monitors are
+    connected to NVIDIA (MPO3, 4 planes).
     - With the hardware planes off (`HKLM\SOFTWARE\Microsoft\Windows\Dwm`, `OverlayTestMode=5`) there is no black.
-    - Did not help: `FLIP_SEQUENTIAL` instead of `FLIP_DISCARD`, D3D11 instead of D3D12.
-    - Edge, Windows Terminal and Explorer do not go dark with the same dragging: they present through DirectComposition.
-    - The fix: the window chain is a composition one (`CreateSwapChainForComposition`) with a DComp visual above the
-      window (`src/rhi/dxgi/window_chain.cpp`). `GRAN_PRESENT=hwnd` brings back the old path for comparison. The GPU log
-      line ends with the presenting way: "· DirectComposition" or "· HWND".
-    - The tool: PresentMon 2.6.0 (`C:\gran\tools\presentmon`) writes the presenting mode of every frame. Manual
-      recording — `C:\gran\pm_manual.cmd --d3d12`, the mouse driver for the gallery — `C:\gran\drag.ps1`.
+    - Edge, Windows Terminal and Explorer do not go dark with the same dragging.
+    - Did not help: `FLIP_SEQUENTIAL` instead of `FLIP_DISCARD`, D3D11 instead of D3D12, presenting through
+      DirectComposition.
+    - The cause: for every `WM_SIZE` (several per screen refresh) the window recreated its buffers and sent a frame;
+      1 frame of 7 reached the monitor (PresentMon: 271 of 1888). Without buffer recreation there is less black, but
+      not zero.
+    - The fix: after every drag frame — `DwmFlush` (`src/platform/win32/win32_procedure.cpp`), one frame per
+      composition. Now 502 of 909 are shown, and there is no black.
+    - The black cannot be caught automatically: the monitor shows not what DWM gives to programs. An indirect check is
+      the share of shown frames while dragging in PresentMon 2.6.0 (`C:\gran\tools\presentmon`; manual recording —
+      `C:\gran\pm_manual.cmd --d3d12`, the mouse driver for the gallery — `C:\gran\drag.ps1`).
     - Along the way: the first run of a freshly built exe waits up to 10 s for the Microsoft Defender cloud check; a
       repeated run is instant. For the stand — a Defender exclusion for `C:\gran`.
 

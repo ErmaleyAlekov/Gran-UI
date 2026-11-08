@@ -73,9 +73,6 @@ namespace gran::rhi
         std::string api;
         std::string name;
         std::string driver;
-        // Способ показа окна: «DirectComposition», «HWND»; пусто — вне окна или не Windows
-        // The window presenting way: "DirectComposition", "HWND"; empty — offscreen or not Windows
-        std::string present;
         bool software = false;
     };
 

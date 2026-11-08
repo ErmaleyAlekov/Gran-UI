@@ -23,26 +23,20 @@ namespace gran::rhi::dx12
         }
     }
 
-    // Цепочка окна (через DirectComposition); Alt+Enter отключён — полноэкранный режим решает приложение
-    // The window chain (through DirectComposition); Alt+Enter is disabled — the application decides on fullscreen
+    // Цепочка для HWND; Alt+Enter отключён — полноэкранный режим решает приложение
+    // A chain for the HWND; Alt+Enter is disabled — the application decides on fullscreen
     SwapchainSurface::SwapchainSurface(DeviceContext& context, const BackendOptions& options)
         : _tearing(context.tearing)
     {
         D3D12_DESCRIPTOR_HEAP_DESC heap{};
         ComRef<IDXGISwapChain1> chain;
         HWND window = static_cast<HWND>(options.nativeWindow);
-        dxgi::WindowChainRequest request;
 
         if (_tearing)
             _flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-        request.factory = context.factory.get();
-        request.device = context.queue.get();
-        request.window = window;
-        request.desc = chainDesc(options, _flags);
-        GRAN_CHECK_HR(dxgi::createWindowChain(request, _composition, chain.put()));
-        context.present = "HWND";
-        if (_composition.attached())
-            context.present = "DirectComposition";
+        DXGI_SWAP_CHAIN_DESC1 desc = chainDesc(options, _flags);
+        GRAN_CHECK_HR(context.factory->CreateSwapChainForHwnd(context.queue.get(), window, &desc, nullptr, nullptr,
+            chain.put()));
         GRAN_CHECK_HR(chain->QueryInterface(__uuidof(IDXGISwapChain3), reinterpret_cast<void**>(_swapchain.put())));
         GRAN_CHECK_HR(context.factory->MakeWindowAssociation(window, DXGI_MWA_NO_ALT_ENTER));
         heap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;

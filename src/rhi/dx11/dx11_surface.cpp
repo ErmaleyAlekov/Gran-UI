@@ -53,8 +53,8 @@ namespace gran::rhi::dx11
         desc.BufferCount = 2;
         desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         if (!_swapchain)
-            GRAN_DX11_CHECK(dxgi::createWindowChain(dxgi::WindowChainRequest{_factory.get(), _device.get(),
-                static_cast<HWND>(_options.nativeWindow), desc}, _composition, _swapchain.put()));
+            GRAN_DX11_CHECK(_factory->CreateSwapChainForHwnd(_device.get(),
+                static_cast<HWND>(_options.nativeWindow), &desc, nullptr, nullptr, _swapchain.put()));
         GRAN_DX11_CHECK(_factory->MakeWindowAssociation(static_cast<HWND>(_options.nativeWindow), DXGI_MWA_NO_ALT_ENTER));
         GRAN_DX11_CHECK(_swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(_surface.resource.put())));
         GRAN_DX11_CHECK(_device->CreateRenderTargetView(_surface.resource.get(), nullptr, _surface.target.put()));

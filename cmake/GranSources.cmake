@@ -5,9 +5,9 @@
 
 # Платформенные каталоги src/: собираются только на своей ОС (как PLATFORM_DIRS в Makefile)
 # The platform src/ directories: built only on their OS (as PLATFORM_DIRS in the Makefile)
-set(GRAN_ALL_PLATFORM_DIRS platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dxgi rhi/dx12 rhi/dx11 rhi/vulkan)
+set(GRAN_ALL_PLATFORM_DIRS platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dx12 rhi/dx11 rhi/vulkan)
 if(WIN32)
-    set(GRAN_PLATFORM_DIRS platform/win32 rhi/dxgi rhi/dx12 rhi/dx11)
+    set(GRAN_PLATFORM_DIRS platform/win32 rhi/dx12 rhi/dx11)
 elseif(APPLE)
     set(GRAN_PLATFORM_DIRS platform/cocoa)
 else()

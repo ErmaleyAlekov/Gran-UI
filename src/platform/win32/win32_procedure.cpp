@@ -1,11 +1,26 @@
 #include "gran/platform/win32/win32_window.hpp"
 
+#include <dwmapi.h>
+
 namespace gran::platform::win32
 {
     namespace
     {
-        // Новый размер; при перетаскивании края — синхронная перерисовка за noexcept-барьером
-        // A new size; while dragging the edge — a synchronous repaint behind a noexcept barrier
+        /*
+        ** Новый размер; при перетаскивании края — синхронная перерисовка за noexcept-барьером и ожидание
+        ** композиции DWM (Т-18). Без ожидания мышь давала по несколько WM_SIZE за одно обновление экрана: на каждое —
+        ** пересоздание буферов и Present, до монитора доходил лишь каждый четвёртый кадр. На NVIDIA с аппаратными
+        ** слоями (MPO) окно от такого потока на 1–5 с гасло — только на мониторе, запись экрана этого не видит.
+        ** DwmFlush держит темп «один кадр — одна композиция», как у программ, которые рисуют в своём потоке.
+        ** Ошибку DwmFlush (композиция выключена, сеанс без рабочего стола) не проверяем: тогда ждать нечего.
+        **
+        ** A new size; while dragging the edge — a synchronous repaint behind a noexcept barrier and waiting for the
+        ** DWM composition (T-18). Without the wait the mouse gave several WM_SIZE per screen refresh: for each — buffer
+        ** recreation and Present, only every fourth frame reached the monitor. On NVIDIA with hardware planes (MPO) the
+        ** window went dark for 1–5 s from such a stream — on the monitor only, a screen recording does not see it.
+        ** DwmFlush keeps the "one frame — one composition" pace, as programs drawing on their own thread have.
+        ** A DwmFlush error (composition off, a session without a desktop) is not checked: then there is nothing to wait for.
+        */
         void handleSize(Win32Window& self, LPARAM lParam) noexcept
         {
             Event event;
@@ -25,6 +40,7 @@ namespace gran::platform::win32
             {
                 // Ошибку кадра покажет следующий обычный кадр цикла / The frame error shows up in the next regular loop frame
             }
+            DwmFlush();
         }
 
         // Смена DPI: окно принимает размер, предложенный системой / A DPI change: the window takes the size suggested by the system

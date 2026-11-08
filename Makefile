@@ -119,8 +119,8 @@ ifeq ($(PLATFORM_OS),windows)
     SHELL          := cmd.exe
     .SHELLFLAGS    := /C
     EXE            := .exe
-    PLATFORM_DIRS  := platform/win32 rhi/dxgi rhi/dx12 rhi/dx11
-    SYSTEM_LIBS    := -static -ld3d11 -ld3d12 -ldxgi -ldxguid -ldcomp -ldwmapi -lshcore -limm32 \
+    PLATFORM_DIRS  := platform/win32 rhi/dx12 rhi/dx11
+    SYSTEM_LIBS    := -static -ld3d11 -ld3d12 -ldxgi -ldxguid -ldwmapi -lshcore -limm32 \
                       -luiautomationcore -loleaut32 -lole32 -luuid -luser32 -lgdi32 -lshell32
     native          = $(subst /,\,$(1))
     MKDIR           = if not exist "$(call native,$(1))" mkdir "$(call native,$(1))"
@@ -190,7 +190,7 @@ endif
 
 # Все платформенные каталоги: из общего набора исходников они исключаются
 # All platform directories: they are excluded from the common source set
-ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dxgi rhi/dx12 rhi/dx11 rhi/vulkan
+ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dx12 rhi/dx11 rhi/vulkan
 
 # ---- Вспомогательные функции ------------------------------------------------
 # Рекурсивный поиск файлов средствами самого make (без внешней утилиты find)

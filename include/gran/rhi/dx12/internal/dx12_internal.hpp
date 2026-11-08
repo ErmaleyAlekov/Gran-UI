@@ -88,8 +88,6 @@ namespace gran::rhi::dx12
         ComRef<ID3D12CommandQueue> queue;
         bool tearing = false;
         bool debug = false;
-        // Способ показа окна для журнала (ставит цепочка окна) / The window presenting way for the log (set by the window chain)
-        const char* present = "";
     };
 
     // ---- dx12_device.cpp ----

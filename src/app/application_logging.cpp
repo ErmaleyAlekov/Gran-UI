@@ -51,8 +51,6 @@ namespace gran
                 return;
             info = win.backend->adapterInfo();
             text = info.api + " · " + info.name + " · " + info.driver;
-            if (!info.present.empty())
-                text += " · " + info.present;
             if (info.software)
                 text += " (software)";
             log::write(log::Level::INFO, "gpu", text);

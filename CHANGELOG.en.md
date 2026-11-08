@@ -27,11 +27,11 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   background (`WindowDesc::background`, `WM_ERASEBKGND`), and the strip blends with the background. The measurement is
   `gran_render_tests --hardware --resize-artifacts`: a real mouse and monitor frames through Desktop Duplication (on the
   stand only).
-- Windows, NVIDIA: the window sometimes turned completely black for 1–2 s, especially while dragging. The cause was the
-  combination of a swap chain created directly for the window (HWND) and the monitor hardware planes (MPO). A screen
-  recording does not see it, only the monitor shows it. Now the frame is presented through DirectComposition, as Edge
-  and Windows Terminal do, for D3D12 and D3D11. The old way stays as a fallback and is switched on by `GRAN_PRESENT=hwnd`.
-  The presenting way is written to the GPU log line.
+- Windows, NVIDIA: while the edge was dragged the window sometimes turned completely black for 1–5 s — on the monitor
+  only, a screen recording does not see it. The mouse gave several size changes per screen refresh, and for each the
+  window recreated its buffers and sent a frame. Only every seventh frame reached the monitor, and the NVIDIA hardware
+  planes (MPO) went dark from such a stream. Now while dragging the window waits for the DWM composition after every
+  frame (`DwmFlush`): more than half of the frames reach the screen, and there is no black.
 - The CMake + MSVC build with `-DGRAN_SANITIZE=address` did not link (LNK2038 `annotate_string`): the sanitizer is now
   applied to Beresta as well.
 - MSVC 14.44 (Visual Studio 2022): in release builds markup with a color like `#172033` was rejected by the schema — fixed
