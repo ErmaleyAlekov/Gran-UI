@@ -8,11 +8,18 @@ namespace gran::rhi::dx11
     {
         dx12::ComRef<IDXGIDevice> device;
         dx12::ComRef<IDXGIAdapter> adapter;
+        AdapterInfo info;
 
         if (FAILED(_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(device.put())))
             || FAILED(device->GetAdapter(adapter.put())))
-            return dx12::describeDxgiAdapter(nullptr, "Direct3D 11");
-        return dx12::describeDxgiAdapter(adapter.get(), "Direct3D 11");
+            info = dx12::describeDxgiAdapter(nullptr, "Direct3D 11");
+        else
+            info = dx12::describeDxgiAdapter(adapter.get(), "Direct3D 11");
+        if (_swapchain)
+            info.present = "HWND";
+        if (_composition.attached())
+            info.present = "DirectComposition";
+        return info;
     }
 
     // Причина из устройства D3D11 — тем же описанием, что у D3D12 / The reason from the D3D11 device — with the same description as D3D12

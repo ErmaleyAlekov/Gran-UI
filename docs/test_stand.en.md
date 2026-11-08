@@ -150,6 +150,22 @@ The desktop is GNOME in a Wayland session; the X11 window tests go through XWayl
     - `SetWindowPos` from code instead of the mouse, and growing the window one way, give almost no garbage.
     The test moves the cursor, so it is not part of the regular run — the stand only.
 
+**Manual checks T-16 and T-17 (Windows, NVIDIA): found and fixed**
+
+16. **The window sometimes completely black for 1–2 s — on the monitor only.** A screen recording, screenshots and
+    Desktop Duplication show a normal frame; it was caught with a phone camera. Both stand monitors are connected to
+    NVIDIA (MPO3, 4 planes).
+    - With the hardware planes off (`HKLM\SOFTWARE\Microsoft\Windows\Dwm`, `OverlayTestMode=5`) there is no black.
+    - Did not help: `FLIP_SEQUENTIAL` instead of `FLIP_DISCARD`, D3D11 instead of D3D12.
+    - Edge, Windows Terminal and Explorer do not go dark with the same dragging: they present through DirectComposition.
+    - The fix: the window chain is a composition one (`CreateSwapChainForComposition`) with a DComp visual above the
+      window (`src/rhi/dxgi/window_chain.cpp`). `GRAN_PRESENT=hwnd` brings back the old path for comparison. The GPU log
+      line ends with the presenting way: "· DirectComposition" or "· HWND".
+    - The tool: PresentMon 2.6.0 (`C:\gran\tools\presentmon`) writes the presenting mode of every frame. Manual
+      recording — `C:\gran\pm_manual.cmd --d3d12`, the mouse driver for the gallery — `C:\gran\drag.ps1`.
+    - Along the way: the first run of a freshly built exe waits up to 10 s for the Microsoft Defender cloud check; a
+      repeated run is instant. For the stand — a Defender exclusion for `C:\gran`.
+
 **Observation (the main computer, AMD RX 9070):** `gran_render_tests --d3d12 --hardware` — in the `glass` frame one
 pixel differs from the WARP baseline by 3 with a tolerance of 2 (the blur); it was so before this run as well. The baselines
 are WARP, pixel equality between drivers is not claimed; comparing on AMD needs `--tolerance 3`.

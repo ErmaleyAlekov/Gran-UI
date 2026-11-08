@@ -6,7 +6,7 @@
 # Системные библиотеки платформы (как SYSTEM_LIBS в Makefile)
 # The platform system libraries (as SYSTEM_LIBS in the Makefile)
 if(WIN32)
-    set(GRAN_SYSTEM_LIBS d3d11 d3d12 dxgi dxguid dwmapi shcore imm32 uiautomationcore oleaut32 ole32 uuid
+    set(GRAN_SYSTEM_LIBS d3d11 d3d12 dxgi dxguid dcomp dwmapi shcore imm32 uiautomationcore oleaut32 ole32 uuid
         user32 gdi32 shell32)
 elseif(APPLE)
     set(GRAN_SYSTEM_LIBS "-framework Cocoa" "-framework QuartzCore")

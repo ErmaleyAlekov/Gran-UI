@@ -3,6 +3,7 @@
 
 #include "gran/rhi/dx11/dx11_backend.hpp"
 #include "gran/rhi/dx12/internal/com_ref.hpp"
+#include "gran/rhi/dxgi/window_chain.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 
@@ -98,6 +99,9 @@ namespace gran::rhi::dx11
         ComRef<ID3D11Device> _device;
         ComRef<ID3D11DeviceContext> _context;
         ComRef<ID3D11InfoQueue> _info;
+        // Визуальный элемент DComp (Т-17) держит цепочку и объявлен раньше неё: уничтожается после
+        // The DComp visual (T-17) holds the chain and is declared before it: it is destroyed after
+        dxgi::CompositionTarget _composition;
         ComRef<IDXGISwapChain1> _swapchain;
         Texture _surface;
         Texture _blur[BLUR_LEVELS];
