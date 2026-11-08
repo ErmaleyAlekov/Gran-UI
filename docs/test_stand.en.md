@@ -74,15 +74,56 @@ Live window tests in Windows cannot be run directly from the SSH session: it has
 4. **There was no way to select the graphics card**: D3D12 always took NVIDIA, D3D11 — Intel. Added `GRAN_ADAPTER`.
 5. **Linux GPU tests only checked lavapipe**: added the `--hardware` key.
 
-**Linux (ALT p11)** — not run on the stand: after the reboot from Windows ALT did not answer over SSH (the boot
-stalled, task T-13 in [`tests/manual/tasks/2026-11-08-test-stand.md`](../tests/manual/tasks/2026-11-08-test-stand.md)).
-The Linux code changes of this run (`--hardware`, no replacement of the chosen card by lavapipe with `GRAN_ADAPTER`) were
-checked in WSL Ubuntu: a build without warnings, unit tests 338/338, `gran_linux_tests` on lavapipe passed,
-`GRAN_ADAPTER=zzz --hardware` gives an error listing the devices.
+The Linux code changes of this run (`--hardware`, no replacement of the chosen card by lavapipe with `GRAN_ADAPTER`)
+were checked first in WSL Ubuntu, then on the stand (below).
 
 6. **The Linux backend factory replaced the chosen card by lavapipe** on any GPU error — with `GRAN_ADAPTER` the
    replacement is disabled (found while checking `--hardware` in WSL).
 7. The GCC `-Wformat-truncation` warning in `json_reader_scan.cpp` (the JSON error byte) is removed.
+
+**Linux (ALT p11)**
+
+The desktop is GNOME in a Wayland session; the X11 window tests go through XWayland. The GPU tests use the debug build
+(`make DEBUG=1`), which enables `VK_LAYER_KHRONOS_validation` (confirmed by the Vulkan loader log).
+
+| Check | Result |
+|---|---|
+| Release and debug builds (GCC) | no warnings; release — 2 min 9 s on 12 threads |
+| Unit tests, crash reports | 338/338, passed |
+| `gran_linux_tests --hardware` + snapshots of 21 markups: NVIDIA (proprietary 595), Intel ANV, lavapipe | passed; no validation layer messages; the frames of different drivers differ — the card chosen is really that one |
+| The same on NVK (GRUB entry `gran-nvk`) | backend tests passed; snapshots — see finding 8 |
+| X11 window (`--window`): NVIDIA, NVK, lavapipe | passed |
+| X11 window on Intel | `vkCreateSwapchainKHR` → `VK_ERROR_INITIALIZATION_FAILED` — a platform limitation, see finding 9 |
+| ASan + UBSan (`make DEBUG=1 SANITIZE=address,undefined test`) | 338/338, clean |
+| TSan (`SANITIZE=thread`) | 338/338, no warnings |
+| Valgrind memcheck (`gran_tests`) | 338/338, 0 errors |
+
+**Found on Linux (not engine bugs)**
+
+8. **NVK (Mesa 26.1.8, kernel 6.12.94, RTX 3060): every second process hangs on its first command submission.** After
+   any process that used the card exits, the first submission of the next one never completes: the kernel logs
+   `job timeout, channel N killed`, the program gets `VK_ERROR_DEVICE_LOST` after ~15 s; the process after that works
+   again. It does not depend on the markup, the validation layer or the build kind; the reference `vkcube` fails the
+   same way, and so it does with the NVIDIA Vulkan driver removed from the loader (`VK_DRIVER_FILES`). It is a
+   nouveau/NVK bug. The workaround on the stand is to repeat the failed run; with a repeat all 21 markups rendered
+   without layer messages.
+9. **Intel cannot present to a window while the desktop runs on NVIDIA.** The GNOME compositor (on the proprietary NVIDIA
+   driver) does not accept Intel buffers: `vkcube` on Intel fails the same way both through Wayland and XWayland.
+   Without a window (snapshots, backend tests) Intel works. To check the window on Intel, the monitor is connected to
+   the motherboard output, so that the desktop runs on Intel.
+10. **The proprietary NVIDIA driver is seen by Vulkan twice** (two ICD files in ALT). Harmless: `GRAN_ADAPTER=nvidia`
+    takes the first device.
+11. **Booting ALT after Windows stood for 2 h 25 min.** GRUB and the kernel did their part at once (the kernel started
+    1.5 min after the reboot command). The `plymouth-read-write` service (the boot splash) stopped, and with it the whole
+    system up to `sysinit.target` and SSH. It went on when a keyboard was connected to the stand. All that time the
+    screen showed the last GRUB frame, so the stall looked like waiting in the menu. The cure for the stand is booting
+    without the splash (T-13).
+12. **The clock.** Windows keeps local time in the hardware clock, and its time zone there is Pacific (UTC−8). So ALT
+    starts with the clock 8 h behind until NTP corrects it. This is dangerous for `make`: files "from the future" break
+    rebuilds. The cure is T-13.
+13. **The stand suspends after 15 minutes** without keyboard and mouse input: GNOME in the autologin session does not
+    count SSH work as activity. Long runs are started under `systemd-inhibit --what=sleep:idle`; turning suspend off
+    entirely is T-13.
 
 **Observation (the main computer, AMD RX 9070):** `gran_render_tests --d3d12 --hardware` — in the `glass` frame one
 pixel differs from the WARP baseline by 3 with a tolerance of 2 (the blur); it was so before this run as well. The baselines
