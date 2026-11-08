@@ -8,6 +8,9 @@ namespace linux_tests
 {
     struct Scene;
     void require(bool condition, const char* message);
+    // Ключ --hardware: настоящая видеокарта (выбор — GRAN_ADAPTER) вместо lavapipe.
+    // The --hardware key: a real video card (chosen by GRAN_ADAPTER) instead of lavapipe.
+    bool& hardwareMode();
     void backend();
     void window();
     void input(gran::platform::Window& window);

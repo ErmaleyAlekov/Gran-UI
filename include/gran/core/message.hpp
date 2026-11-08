@@ -144,6 +144,7 @@ namespace gran::i18n
         RES_DUPLICATE_ALIAS,
         RES_TOOL_USAGE,
         SETTINGS_DAMAGED,
+        GPU_ADAPTER_NOT_FOUND,
         COUNT
     };
 }

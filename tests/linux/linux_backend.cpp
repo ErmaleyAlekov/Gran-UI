@@ -8,7 +8,7 @@ namespace linux_tests
     void backend()
     {
         gran::rhi::BackendOptions options;
-        options.backend = gran::rhi::BackendKind::VULKAN; options.forceWarp = true;
+        options.backend = gran::rhi::BackendKind::VULKAN; options.forceWarp = !hardwareMode();
         options.debugLayer = true; options.width = 64; options.height = 48;
         auto renderer = gran::rhi::createPlatformBackend(options);
         Scene scene(*renderer);

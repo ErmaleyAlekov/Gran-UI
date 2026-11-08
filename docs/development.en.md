@@ -123,10 +123,12 @@ column, and path to the element.
 
 Hot reload: `gran_gallery --watch`; API selection: `--d3d11` / `--d3d12`.
 The [API reference](api.en.md) describes node lifetimes; [GPU checks](render_testing.en.md) cover
-both backends and the `make test-render` / CTest commands.
+both backends and the `make test-render` / CTest commands; the [test stand](test_stand.en.md) — Intel + NVIDIA,
+Windows + Linux and the run results.
 
 - Debug build: `make DEBUG=1` or `-DCMAKE_BUILD_TYPE=Debug` (`GRAN_DEBUG=1`).
 - D3D12 debug layer: the `--debug` key for `gran_gallery`, always enabled for `gran_snapshot`; the environment variable `GRAN_GPU_VALIDATION=1` adds GPU-Based Validation. Layer messages go to the engine log.
+- Choosing the video card: `GRAN_ADAPTER=<part of the name>` (case-insensitive: `intel`, `nvidia`, `RTX 3060`) — for D3D12, D3D11 and Vulkan. Without the variable D3D12 and Vulkan take the fastest card, D3D11 — the first in the DXGI list. No suitable card — an error listing the ones found, without a switch to WARP / lavapipe; with `--warp` the variable has no effect.
 - `gran_gallery --exit-after N` closes the window after N seconds — convenient for checks without human involvement.
 - A GPU frame is analyzed in PIX or RenderDoc: all objects have names.
 

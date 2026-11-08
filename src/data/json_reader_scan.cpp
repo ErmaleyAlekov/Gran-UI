@@ -65,7 +65,8 @@ namespace gran::data
             fail(i18n::format(i18n::Message::DATA_JSON_END));
         if (symbol >= 0x20 && symbol < 0x7F)
             fail(i18n::format(i18n::Message::DATA_JSON_UNEXPECTED, {std::string(1, static_cast<char>(symbol))}));
-        std::snprintf(code, sizeof(code), "0x%02X", static_cast<unsigned>(symbol));
+        // peek() отдаёт байт 0…255; маска показывает это GCC (-Wformat-truncation) / peek() returns a byte 0…255; the mask shows it to GCC (-Wformat-truncation)
+        std::snprintf(code, sizeof(code), "0x%02X", static_cast<unsigned>(symbol) & 0xFFu);
         fail(i18n::format(i18n::Message::DATA_JSON_UNEXPECTED, {code}));
     }
 }

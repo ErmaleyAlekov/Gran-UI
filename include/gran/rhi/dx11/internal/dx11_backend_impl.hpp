@@ -77,7 +77,7 @@ namespace gran::rhi::dx11
 
     private:
         void createDevice();
-        HRESULT tryDevice(D3D_DRIVER_TYPE type, UINT flags);
+        HRESULT tryDevice(IDXGIAdapter* adapter, D3D_DRIVER_TYPE type, UINT flags);
         void createPipeline();
         void createStates();
         void createSurface();

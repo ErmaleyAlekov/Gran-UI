@@ -10,6 +10,20 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 
 ## [Unreleased]
 
+### Added
+- The `GRAN_ADAPTER` environment variable — an explicit choice of the video card by a part of its name (D3D12, D3D11, Vulkan);
+  no such card — the `GPU_ADAPTER_NOT_FOUND` error rather than a silent switch to a software adapter.
+- `gran_linux_tests --hardware [--window]` — Linux GPU tests on a real video card (previously lavapipe only).
+- The Intel + NVIDIA, Windows + Linux [test stand](docs/test_stand.en.md): hardware, commands and run results.
+
+### Fixed
+- The CMake + MSVC build with `-DGRAN_SANITIZE=address` did not link (LNK2038 `annotate_string`): the sanitizer is now
+  applied to Beresta as well.
+- MSVC 14.44 (Visual Studio 2022): in release builds markup with a color like `#172033` was rejected by the schema — fixed
+  in Beresta (a workaround for an optimizer bug when compiling the `a|b|c` choice of XSD regular expressions).
+- Linux: on a failure of the card chosen by `GRAN_ADAPTER` the backend no longer replaces it with the software lavapipe.
+- CMake: the `gran_crash_reports` crash probe is not built with a sanitizer (ASan intercepted the deliberate crash, the test hung).
+
 ## [0.1.0] — in preparation
 
 The first release with a version number. Includes everything done up to 2026-11-04, including roadmap stage 1,

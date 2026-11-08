@@ -1,5 +1,7 @@
 #include "gran/rhi/vulkan/internal/vulkan_backend_impl.hpp"
+#include "gran/rhi/adapter_choice.hpp"
 #include <cstring>
+#include <string>
 
 namespace gran::rhi::vk
 {
@@ -48,8 +50,13 @@ namespace gran::rhi::vk
         return true;
     }
 
-    // CPU пробуется последним; forceWarp совместим с прежним API и требует именно CPU.
-    // CPU is tried last; forceWarp preserves the existing API and requires a CPU device.
+    /*
+    ** CPU пробуется последним; forceWarp совместим с прежним API и требует именно CPU.
+    ** GRAN_ADAPTER (без forceWarp) оставляет только устройства с подходящим именем; нет таких — ошибка.
+    **
+    ** CPU is tried last; forceWarp preserves the existing API and requires a CPU device.
+    ** GRAN_ADAPTER (without forceWarp) keeps only the devices with a matching name; none — an error.
+    */
     void VulkanBackend::createDevice()
     {
         unsigned count = 0;
@@ -58,6 +65,7 @@ namespace gran::rhi::vk
         GRAN_CHECK_VK(vkEnumeratePhysicalDevices(_instance.get(), &count, devices.data()));
         const VkPhysicalDeviceType order[] = {VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
             VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU, VK_PHYSICAL_DEVICE_TYPE_OTHER, VK_PHYSICAL_DEVICE_TYPE_CPU};
+        std::string seen;
         for (auto type : order)
         {
             if (_options.forceWarp && type != VK_PHYSICAL_DEVICE_TYPE_CPU) continue;
@@ -65,9 +73,12 @@ namespace gran::rhi::vk
             {
                 VkPhysicalDeviceProperties properties{};
                 vkGetPhysicalDeviceProperties(device, &properties);
-                if (properties.deviceType == type && tryDevice(device)) return;
+                if (properties.deviceType != type) continue;
+                seen += std::string(properties.deviceName) + "; ";
+                if ((_options.forceWarp || adapterAllowed(properties.deviceName)) && tryDevice(device)) return;
             }
         }
+        if (!_options.forceWarp && !requestedAdapter().empty()) adapterNotFound(seen);
         throw GpuException(ErrorCode::GPU, i18n::format(i18n::Message::GPU_NO_ADAPTER, {"Vulkan 1.0 / Mesa lavapipe"}), 0);
     }
 

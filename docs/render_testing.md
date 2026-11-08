@@ -6,6 +6,8 @@
 переиспользование текстуры с двумя кадрами в полёте, diagnostics, XIM/shortcuts, UTF-8 clipboard между
 двумя процессами и wake из фонового потока. Khronos validation (включая synchronization validation
 при доступном SDK/слое) считается источником ошибок. Для CPU требуется Mesa с lavapipe.
+Настоящая видеокарта вместо lavapipe — `bin/gran_linux_tests --hardware [--window]`; выбор карты — `GRAN_ADAPTER`
+(см. [тестовый стенд](test_stand.md)).
 Эталоны WARP остаются Windows-проверкой; междрайверное попиксельное равенство не заявляется.
 
 **Русский** · [English](render_testing.en.md)

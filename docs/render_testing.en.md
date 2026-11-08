@@ -4,7 +4,9 @@ On Linux `make test-render` runs CPU Vulkan/Mesa checks in `tests/linux/`; `make
 a real X11/Vulkan window. CMake uses `GRAN_BUILD_RENDER_TESTS=ON` and, for windows,
 `GRAN_BUILD_WINDOW_TESTS=ON`. Tests cover RGBA readback/orientation, resize/Kawase, bounds,
 texture slot replacement with two frames in flight, validation diagnostics, XIM/shortcuts,
-cross-process UTF-8 clipboard and cross-thread wake. WARP baselines remain Windows checks;
+cross-process UTF-8 clipboard and cross-thread wake. A real video card instead of lavapipe —
+`bin/gran_linux_tests --hardware [--window]`; the card is chosen by `GRAN_ADAPTER` (see the [test stand](test_stand.en.md)).
+WARP baselines remain Windows checks;
 pixel-for-pixel equivalence across drivers is not claimed.
 
 [Русский](render_testing.md) · **English**

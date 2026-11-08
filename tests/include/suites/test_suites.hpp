@@ -68,6 +68,7 @@ namespace suites
     void registerTextUndoTests(test::TestRunner& runner);
     void registerAppUndoTests(test::TestRunner& runner);
     void registerPixelCompareTests(test::TestRunner& runner);
+    void registerAdapterChoiceTests(test::TestRunner& runner);
     void registerWindowFrameTests(test::TestRunner& runner);
     void registerPlatformFrameTests(test::TestRunner& runner);
 

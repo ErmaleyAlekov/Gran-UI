@@ -126,7 +126,8 @@ namespace gran::i18n
             {Message::RES_MISSING_FILE, "the resource file or folder is not found: {0}"},
             {Message::RES_DUPLICATE_ALIAS, "the res:/{0} path occurs in the manifest twice"},
             {Message::RES_TOOL_USAGE, "usage: gran_rcc <manifest.xml> <output.cpp> [--blob <bundle.bin>] [--depfile <output.d>]"},
-            {Message::SETTINGS_DAMAGED, "the settings file is damaged and kept as .bad, the default values are used: {0}"}
+            {Message::SETTINGS_DAMAGED, "the settings file is damaged and kept as .bad, the default values are used: {0}"},
+            {Message::GPU_ADAPTER_NOT_FOUND, "GRAN_ADAPTER=\"{0}\": no suitable video adapter with this name ({1})"}
         };
     }
 

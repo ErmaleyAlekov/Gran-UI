@@ -107,6 +107,14 @@ set(BERESTA_BUILD_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory("${GRAN_BERESTA_DIR}" "${CMAKE_BINARY_DIR}/beresta" EXCLUDE_FROM_ALL)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GranOptions.cmake")
+# Санитайзер — и для «Берёсты»: MSVC ASan размечает std::string/vector (annotate_string), и объекты
+# с разметкой и без неё не компонуются вместе (LNK2038); найдено на MSVC 14.44, стенд 2026-11-08.
+# beresta_static собирается из объектной библиотеки beresta_objects — флаги нужны именно ей.
+# The sanitizer is applied to Beresta too: MSVC ASan annotates std::string/vector (annotate_string), and
+# objects with and without annotations do not link together (LNK2038); found on MSVC 14.44, stand 2026-11-08.
+# beresta_static is built from the beresta_objects object library — that is where the flags are needed.
+gran_apply_sanitizers(beresta_objects)
+gran_apply_sanitizers(beresta_static)
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GranSources.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GranShaders.cmake")
 
@@ -245,8 +253,12 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
 endforeach()
 
 # Проверка отчёта о сбое (как make test-crash): программа падает сама и проверяет отчёты.
+# С санитайзером не собирается: ASan перехватывает намеренный сбой раньше обработчика движка,
+# и проверка ждёт отчёт до таймаута (MSVC ASan, стенд 2026-11-08).
 # The crash report check (as make test-crash): the program crashes itself and checks the reports.
-if(GRAN_BUILD_TESTS)
+# Not built with a sanitizer: ASan intercepts the deliberate crash before the engine handler,
+# and the check waits for the report until the timeout (MSVC ASan, stand 2026-11-08).
+if(GRAN_BUILD_TESTS AND GRAN_SANITIZE STREQUAL "")
     add_executable(gran_crash_probe "${CMAKE_CURRENT_SOURCE_DIR}/tests/crash/crash_probe.cpp")
     target_link_libraries(gran_crash_probe PRIVATE gran)
     gran_apply_compile_options(gran_crash_probe)

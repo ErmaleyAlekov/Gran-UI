@@ -10,16 +10,37 @@ namespace linux_tests
     {
         if (!condition) throw std::runtime_error(message);
     }
+
+    // По умолчанию — lavapipe (CPU): проверка работает на любой машине с Mesa; --hardware — настоящая карта.
+    // By default — lavapipe (CPU): the check works on any machine with Mesa; --hardware — a real card.
+    bool& hardwareMode()
+    {
+        static bool hardware = false;
+        return hardware;
+    }
 }
 
-// GPU-тесты отделены от unit; --window требует X11/XWayland, backend работает без DISPLAY.
-// GPU tests are separate from unit tests; --window requires X11/XWayland, backend runs without DISPLAY.
+/*
+** GPU-тесты отделены от unit; --window требует X11/XWayland, backend работает без DISPLAY.
+** --hardware (в любом месте) — видеокарта вместо lavapipe; какая именно — GRAN_ADAPTER (стенд Intel + NVIDIA).
+**
+** GPU tests are separate from unit tests; --window requires X11/XWayland, backend runs without DISPLAY.
+** --hardware (anywhere) — a video card instead of lavapipe; which one — GRAN_ADAPTER (the Intel + NVIDIA stand).
+*/
 int main(int argc, char* argv[])
 {
     try
     {
-        if (argc > 1 && std::string(argv[1]) == "--clipboard-peer") return linux_tests::clipboardPeer();
-        if (argc > 1 && std::string(argv[1]) == "--window") linux_tests::window();
+        bool window = false;
+        for (int index = 1; index < argc; ++index)
+        {
+            std::string argument = argv[index];
+            if (argument == "--clipboard-peer") return linux_tests::clipboardPeer();
+            if (argument == "--hardware") linux_tests::hardwareMode() = true;
+            else if (argument == "--window") window = true;
+            else throw std::invalid_argument(argument);
+        }
+        if (window) linux_tests::window();
         else linux_tests::backend();
         std::cout << "Linux checks passed\n";
         return 0;

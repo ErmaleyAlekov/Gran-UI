@@ -1,8 +1,10 @@
 #include "gran/rhi/dx12/internal/dx12_internal.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/rhi/adapter_choice.hpp"
 
 #include <cstdlib>
+#include <string>
 
 namespace gran::rhi::dx12
 {
@@ -51,9 +53,14 @@ namespace gran::rhi::dx12
                 && options.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_2;
         }
 
-        // Первый аппаратный адаптер по убыванию производительности, на котором создаётся пригодное устройство
-        // The first hardware adapter by decreasing performance on which a suitable device is created
-        bool pickHardware(DeviceContext& context)
+        /*
+        ** Первый аппаратный адаптер по убыванию производительности, разрешённый GRAN_ADAPTER, на котором
+        ** создаётся пригодное устройство; seen собирает имена просмотренных — для сообщения об ошибке.
+        **
+        ** The first hardware adapter by decreasing performance, allowed by GRAN_ADAPTER, on which a suitable
+        ** device is created; seen collects the names looked at — for the error message.
+        */
+        bool pickHardware(DeviceContext& context, std::string& seen)
         {
             ComRef<IDXGIFactory6> factory6;
 
@@ -67,7 +74,9 @@ namespace gran::rhi::dx12
                     __uuidof(IDXGIAdapter1), reinterpret_cast<void**>(adapter.put())) == DXGI_ERROR_NOT_FOUND)
                     return false;
                 adapter->GetDesc1(&desc);
-                if ((desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+                std::string name = describeDxgiAdapter(adapter.get(), "Direct3D 12").name;
+                seen += name + "; ";
+                if ((desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0 || !adapterAllowed(name))
                     continue;
                 if (SUCCEEDED(D3D12CreateDevice(adapter.get(), D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device),
                     reinterpret_cast<void**>(context.device.put()))) && deviceSuitable(context.device.get()))
@@ -104,7 +113,12 @@ namespace gran::rhi::dx12
         if (context.debug)
             factoryFlags = DXGI_CREATE_FACTORY_DEBUG;
         GRAN_CHECK_HR(CreateDXGIFactory2(factoryFlags, __uuidof(IDXGIFactory4), reinterpret_cast<void**>(context.factory.put())));
-        if (forceWarp || !pickHardware(context))
+        std::string seen;
+        bool hardware = !forceWarp && pickHardware(context, seen);
+        // Запрошенная карта не найдена — ошибка, а не WARP / The requested card is not found — an error, not WARP
+        if (!forceWarp && !hardware && !requestedAdapter().empty())
+            adapterNotFound(seen);
+        if (!hardware)
             pickWarp(context);
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         GRAN_CHECK_HR(context.device->CreateCommandQueue(&queueDesc, __uuidof(ID3D12CommandQueue),

@@ -37,7 +37,7 @@ namespace linux_tests
         gran::rhi::BackendOptions options;
         options.nativeWindow = window->nativeHandle(); options.nativeDisplay = window->nativeDisplay();
         options.width = static_cast<unsigned>(window->pixelSize().width); options.height = static_cast<unsigned>(window->pixelSize().height);
-        options.forceWarp = true; options.debugLayer = true;
+        options.forceWarp = !hardwareMode(); options.debugLayer = true;
         auto renderer = gran::rhi::createPlatformBackend(options);
         Scene scene(*renderer);
         renderer->render(scene.frame); window->show();
