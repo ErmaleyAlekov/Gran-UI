@@ -77,6 +77,8 @@ namespace gran::app
         desc.resizable = spec.resizable;
         desc.titleBar = spec.titleBar;
         desc.darkTitleBar = darkBackground(win.windowStyle);
+        if (win.windowStyle.background.kind == style::PaintKind::COLOR)
+            desc.background = win.windowStyle.background.color;
         ownWindow(win, desc);
         win.window = platform::createWindow(desc);
         restorePlacement(win);

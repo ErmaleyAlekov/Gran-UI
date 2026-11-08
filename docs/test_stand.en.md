@@ -132,6 +132,24 @@ The desktop is GNOME in a Wayland session; the X11 window tests go through XWayl
     steps: Intel D3D12 — 2.8 s, Intel D3D11 — 1.0 s, NVIDIA — 0.4–0.7 s (AMD — up to 0.9 s); after the fix — about
     1 ms. The test is "live resize storm" in `gran_render_tests`; the visual recheck is T-15.
 
+**Manual check T-15 (Windows, Intel and NVIDIA): found and fixed**
+
+15. **While the edge is quickly dragged back and forth, white and black strips show at the growing edge.** After T-14
+    there is no freeze, but DWM shows the window of the new size earlier than the GPU frame of that size arrives, and
+    the grown strip shows the window redirection surface. The window did not paint it (`WM_PAINT` only called
+    `ValidateRect`), hence white and black. Now it is painted with the solid window background, and the strip blends
+    with the background.
+    The measurement is `gran_render_tests --d3d12|--d3d11 --hardware --resize-artifacts` in a session with a desktop.
+    It takes the showcase corner with a real mouse (`SendInput`): 40 steps of 20 pixels 4 ms apart, three times right
+    and left. The backdrop is gray and the monitor frames are captured through Desktop Duplication, so white and black
+    in the strip are only window garbage.
+    Bad frames before: Intel D3D12 — 120 of 376, Intel D3D11 — 88 of 386, NVIDIA D3D12 — 34 of 391, NVIDIA D3D11 —
+    28 of 405. After the fix — 0 everywhere.
+    Two false paths of the measurement, so as not to repeat them:
+    - a GDI screen capture (`BitBlt`) makes DWM build a fresh composition and does not see the intermediate frames;
+    - `SetWindowPos` from code instead of the mouse, and growing the window one way, give almost no garbage.
+    The test moves the cursor, so it is not part of the regular run — the stand only.
+
 **Observation (the main computer, AMD RX 9070):** `gran_render_tests --d3d12 --hardware` — in the `glass` frame one
 pixel differs from the WARP baseline by 3 with a tolerance of 2 (the blur); it was so before this run as well. The baselines
 are WARP, pixel equality between drivers is not claimed; comparing on AMD needs `--tolerance 3`.

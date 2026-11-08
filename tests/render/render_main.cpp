@@ -19,6 +19,8 @@ namespace render_tests
             else if (argument == "--d3d11") options.backend = gran::rhi::BackendKind::D3D11;
             else if (argument == "--d3d12") options.backend = gran::rhi::BackendKind::D3D12;
             else if (argument == "--hardware") options.warp = false;
+            else if (argument == "--resize-artifacts") options.artifacts = true;
+            else if (argument == "--markup" && index + 1 < argc) options.markup = argv[++index];
             else if (argument == "--output" && index + 1 < argc) options.output = argv[++index];
             else if (argument == "--tolerance" && index + 1 < argc) options.tolerance = std::stoul(argv[++index]);
             else throw std::invalid_argument(argument);
@@ -35,6 +37,10 @@ namespace render_tests
         const Case cases[] = {{"primitives", 1}, {"primitives", 1.5f}, {"text_image", 1}, {"glass", 1}};
         unsigned failed = 0;
 
+        // Замер мусора на краях снимает экран — только по запросу и в сеансе с рабочим столом
+        // The edge garbage measurement captures the screen — only on request and in a session with a desktop
+        if (options.artifacts)
+            return static_cast<int>(!runResizeArtifacts(options));
         for (const Case& test : cases)
         {
             try { if (!runCase(test, options)) ++failed; }

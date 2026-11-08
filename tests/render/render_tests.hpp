@@ -15,6 +15,11 @@ namespace render_tests
         gran::rhi::BackendKind backend = gran::rhi::BackendKind::D3D12;
         bool warp = true;
         bool update = false;
+        // --resize-artifacts: только замер мусора на краях при росте окна (Т-15)
+        // --resize-artifacts: only the measurement of edge garbage while the window grows (T-15)
+        bool artifacts = false;
+        // --markup: окно для замера мусора на краях / --markup: the window for the edge garbage measurement
+        std::string markup = "samples/showcase.xml";
         unsigned tolerance = 2;
         std::string output = "scratchpad/render-tests";
     };
@@ -39,6 +44,9 @@ namespace render_tests
     // Серия изменений размера в модальном цикле не должна вешать окно (Т-14).
     // A series of size changes in the modal loop must not freeze the window (T-14).
     bool runResize(const Options& options);
+    // Белые и чёрные полосы на краях во время роста окна, по снимкам экрана (Т-15).
+    // White and black strips at the edges while the window grows, by screen captures (T-15).
+    bool runResizeArtifacts(const Options& options);
 }
 
 #endif

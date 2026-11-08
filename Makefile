@@ -299,7 +299,7 @@ else
 RENDER_TEST_SRC := $(wildcard tests/render/*.cpp)
 RENDER_TEST_BIN := $(BIN_DIR)/gran_render_tests$(EXE)
 .PHONY: test-render update-render-baselines
-$(RENDER_TEST_BIN): $(RENDER_TEST_SRC) tests/render/render_tests.hpp $(LIB_BIN)
+$(RENDER_TEST_BIN): $(RENDER_TEST_SRC) $(wildcard tests/render/*.hpp) $(LIB_BIN)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(RENDER_TEST_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 test-render: $(RENDER_TEST_BIN)
 	$(call native,$(RENDER_TEST_BIN)) --d3d12

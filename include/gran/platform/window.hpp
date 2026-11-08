@@ -1,6 +1,7 @@
 #ifndef GRAN_PLATFORM_WINDOW_HPP
 #define GRAN_PLATFORM_WINDOW_HPP
 
+#include "gran/utils/color.hpp"
 #include "gran/utils/geometry.hpp"
 #include "gran/platform/window_frame.hpp"
 
@@ -128,6 +129,9 @@ namespace gran::platform
         float minHeight = 0.0f;
         bool resizable = true;
         bool darkTitleBar = false;
+        // Сплошной фон окна (sRGB): им ОС закрашивает часть окна, куда кадр GPU ещё не пришёл (Т-15)
+        // The solid window background (sRGB): the OS paints with it the part of the window the GPU frame has not reached yet (T-15)
+        Color background{0.0f, 0.0f, 0.0f, 1.0f};
         TitleBar titleBar = TitleBar::SYSTEM;
         WindowKind kind = WindowKind::NORMAL;
         WindowPosition position = WindowPosition::DEFAULT;

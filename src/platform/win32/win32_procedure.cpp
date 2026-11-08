@@ -79,10 +79,10 @@ namespace gran::platform::win32
 
     /*
     ** Сообщения ОС → события. Закрытие окна решает приложение (WM_CLOSE не уничтожает окно),
-    ** фон не стирается (нет мерцания), курсор ставится только над клиентской областью.
+    ** фон стирается сплошным цветом окна (win32_paint.cpp), курсор ставится только над клиентской областью.
     **
     ** OS messages → events. The application decides on closing (WM_CLOSE does not destroy the window),
-    ** the background is not erased (no flicker), the cursor is set only over the client area.
+    ** the background is erased with the solid window color (win32_paint.cpp), the cursor is set only over the client area.
     */
     LRESULT Win32Window::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) noexcept
     {
@@ -102,13 +102,15 @@ namespace gran::platform::win32
         else if (message == WM_ENTERSIZEMOVE || message == WM_EXITSIZEMOVE)
             sizing = message == WM_ENTERSIZEMOVE;
         else if (message == WM_ERASEBKGND)
+        {
+            paintBackground(*this, reinterpret_cast<HDC>(wParam));
             return 1;
+        }
         else if (message == WM_SETCURSOR && handleSetCursor(*this, wParam, lParam))
             return TRUE;
         else if (message == WM_PAINT)
         {
-            ValidateRect(window, nullptr);
-            push(Event{});
+            handlePaint(*this);
             return 0;
         }
         return DefWindowProcW(window, message, wParam, lParam);

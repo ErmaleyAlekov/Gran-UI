@@ -150,6 +150,14 @@ namespace gran::platform::win32
     void fitClientRect(const Win32Window& window, RECT& frame) noexcept;
     void setInitialSize(Win32Window& window, DWORD style) noexcept;
 
+    // ---- win32_paint.cpp ----
+
+    // WM_ERASEBKGND: клиентская область — сплошным фоном окна / WM_ERASEBKGND: the client area — with the solid window background
+    void paintBackground(const Win32Window& window, HDC dc) noexcept;
+
+    // WM_PAINT: стереть фон (BeginPaint шлёт WM_ERASEBKGND) и попросить кадр / WM_PAINT: erase the background (BeginPaint sends WM_ERASEBKGND) and ask for a frame
+    void handlePaint(Win32Window& window) noexcept;
+
     // ---- win32_owner.cpp ----
 
     // Стиль окна по виду: обычное (WS_OVERLAPPEDWINDOW), диалог и инструментальное — без свёртки и развёртки
