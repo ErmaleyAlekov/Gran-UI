@@ -17,6 +17,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 - The Intel + NVIDIA, Windows + Linux [test stand](docs/test_stand.en.md): hardware, commands and run results.
 
 ### Fixed
+- Windows: after quickly dragging the window edge the window froze for seconds (on Intel UHD 630 — up to 3 s for
+  300 steps), black and white strips flashed at the edges. Every size change event accumulated in the modal loop
+  recreated the swap chain for a size no longer needed; now the size is taken from the current window, and the extra
+  recreations are skipped. The regression test is "live resize storm" in `gran_render_tests`.
 - The CMake + MSVC build with `-DGRAN_SANITIZE=address` did not link (LNK2038 `annotate_string`): the sanitizer is now
   applied to Beresta as well.
 - MSVC 14.44 (Visual Studio 2022): in release builds markup with a color like `#172033` was rejected by the schema — fixed

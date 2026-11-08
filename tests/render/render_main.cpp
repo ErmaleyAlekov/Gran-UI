@@ -42,6 +42,7 @@ namespace render_tests
         }
         if (!options.update && !runReload(options)) ++failed;
         if (!options.update && !runBackend(options)) ++failed;
+        if (!options.update && !runResize(options)) ++failed;
         return static_cast<int>(failed != 0);
     }
 }

@@ -36,6 +36,9 @@ namespace render_tests
     // The live loop checks timer-triggered replacement and recovery from an invalid file.
     bool runReload(const Options& options);
     bool runBackend(const Options& options);
+    // Серия изменений размера в модальном цикле не должна вешать окно (Т-14).
+    // A series of size changes in the modal loop must not freeze the window (T-14).
+    bool runResize(const Options& options);
 }
 
 #endif

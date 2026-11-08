@@ -30,6 +30,29 @@ namespace gran::app
             }
             win.action(name, *win.document.root);
         }
+
+        /*
+        ** Размер цепочки обмена — по нынешнему размеру окна, а не по размеру из события. Пока край окна тянут
+        ** мышью, Windows крутит свой модальный цикл: каждое WM_SIZE уже перерисовано синхронно (LiveResize),
+        ** но его событие остаётся в очереди. После отпускания кнопки цикл получает сотни устаревших RESIZE
+        ** подряд; по размеру из события каждое стоило бы ожидания GPU и ResizeBuffers до уже ненужного
+        ** размера — окно зависало на секунды, по краям мелькал мусор (найдено в ручной проверке Т-14 на
+        ** Intel и NVIDIA). По нынешнему размеру все, кроме первого, пропускаются бэкендом как «тот же размер».
+        **
+        ** The swap chain size follows the current window size, not the size from the event. While the window edge
+        ** is dragged with the mouse, Windows runs its own modal loop: every WM_SIZE is already repainted
+        ** synchronously (LiveResize), but its event stays in the queue. After the button is released the loop gets
+        ** hundreds of stale RESIZE events in a row; by the event size each would cost a GPU wait and ResizeBuffers
+        ** to a size no longer needed — the window froze for seconds and garbage flashed at the edges (found in the
+        ** manual check T-14 on Intel and NVIDIA). By the current size all but the first are skipped by the backend
+        ** as "the same size".
+        */
+        void resizeToWindow(AppWindow& win)
+        {
+            Size pixels = win.window->pixelSize();
+
+            win.backend->resize(static_cast<std::uint32_t>(pixels.width), static_cast<std::uint32_t>(pixels.height));
+        }
     }
 
     // Размер, DPI, перерисовка — графике; закрытие — requestClose; остальное — маршрутизатору ввода
@@ -42,7 +65,7 @@ namespace gran::app
         switch (event.kind)
         {
             case platform::EventKind::CLOSE: requestClose(win); return false;
-            case platform::EventKind::RESIZE: win.backend->resize(event.width, event.height); break;
+            case platform::EventKind::RESIZE: resizeToWindow(win); break;
             case platform::EventKind::DPI_CHANGED: break;
             case platform::EventKind::EXPOSE: return true;
             case platform::EventKind::DRAG_MOVE: case platform::EventKind::DRAG_LEAVE:

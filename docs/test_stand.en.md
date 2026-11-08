@@ -125,6 +125,13 @@ The desktop is GNOME in a Wayland session; the X11 window tests go through XWayl
     count SSH work as activity. Long runs are started under `systemd-inhibit --what=sleep:idle`; turning suspend off
     entirely is T-13.
 
+**Manual check T-14 (Windows, Intel and NVIDIA): found and fixed**
+
+14. **After quickly dragging the edge the window froze for seconds, with black and white strips at the edges.** Every size
+    change event accumulated during the Windows modal loop recreated the swap chain for a stale size. Measured on 300
+    steps: Intel D3D12 — 2.8 s, Intel D3D11 — 1.0 s, NVIDIA — 0.4–0.7 s (AMD — up to 0.9 s); after the fix — about
+    1 ms. The test is "live resize storm" in `gran_render_tests`; the visual recheck is T-15.
+
 **Observation (the main computer, AMD RX 9070):** `gran_render_tests --d3d12 --hardware` — in the `glass` frame one
 pixel differs from the WARP baseline by 3 with a tolerance of 2 (the blur); it was so before this run as well. The baselines
 are WARP, pixel equality between drivers is not claimed; comparing on AMD needs `--tolerance 3`.
