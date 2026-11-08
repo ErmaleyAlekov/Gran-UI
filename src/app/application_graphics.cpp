@@ -17,31 +17,6 @@ namespace gran::app
             return 0.2126f * color.r + 0.7152f * color.g + 0.0722f * color.b < 0.5f;
         }
 
-        /*
-        ** Перерисовка окна во время изменения размера мышью (функтор вместо лямбды). Размер бэкенда
-        ** и компоновка обновляются до синхронного кадра; во время замены документа (COM может
-        ** доставить WM_SIZE внутри неё) частичное состояние не рисуется.
-        **
-        ** Repainting the window while resizing with the mouse (a functor instead of a lambda). The backend size
-        ** and the layout are updated before the synchronous frame; during a document replacement (COM can
-        ** deliver WM_SIZE inside it) a partial state is not rendered.
-        */
-        struct LiveResize
-        {
-            AppWindow* win;
-
-            void operator()() const
-            {
-                if (win->shared.reloading || !win->backend || !win->renderer)
-                    return;
-                Size pixels = win->window->pixelSize();
-
-                win->backend->resize(static_cast<std::uint32_t>(pixels.width), static_cast<std::uint32_t>(pixels.height));
-                ui::markDirty(*win->document.root, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
-                renderFrame(*win);
-            }
-        };
-
         // Бэкенд под текущий размер окна в пикселях / The backend for the current window size in pixels
         void createBackend(AppWindow& win)
         {
@@ -82,7 +57,7 @@ namespace gran::app
         ownWindow(win, desc);
         win.window = platform::createWindow(desc);
         restorePlacement(win);
-        win.window->setLiveResize(LiveResize{&win});
+        win.window->setLiveResize(liveResizeCallback(win));
         win.access.root = win.document.root.get();
         win.window->setAccessTree(&win.access);
         createBackend(win);

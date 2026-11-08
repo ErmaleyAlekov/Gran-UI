@@ -120,6 +120,8 @@ namespace gran::i18n
             {Message::APP_OWNER_NOT_WINDOW, "владелец окна должен быть узлом открытого окна"},
             {Message::TASK_UNKNOWN_ERROR, "фоновая задача завершилась неизвестной ошибкой"},
             {Message::GPU_DEVICE_RECREATED, "устройство GPU потеряно ({0}), графика окна создана заново"},
+            {Message::GPU_LIVE_FRAME_FAILED, "кадр при изменении размера окна не нарисован: {0}"},
+            {Message::GPU_LIVE_FRAME_SLOW, "кадр при изменении размера окна занял {0} мс"},
             {Message::LOG_START, "запуск: {0}"},
             {Message::LOG_PREVIOUS_CRASH, "отчёт о сбое прошлого запуска: {0}"},
             {Message::RES_BAD_BLOB, "блок ресурсов повреждён или не начинается с GRANRES1"},

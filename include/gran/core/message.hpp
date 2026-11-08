@@ -137,6 +137,8 @@ namespace gran::i18n
         APP_OWNER_NOT_WINDOW,
         TASK_UNKNOWN_ERROR,
         GPU_DEVICE_RECREATED,
+        GPU_LIVE_FRAME_FAILED,
+        GPU_LIVE_FRAME_SLOW,
         LOG_START,
         LOG_PREVIOUS_CRASH,
         RES_BAD_BLOB,

@@ -176,6 +176,12 @@ namespace gran::app
     // Пересоздание бэкенда и рендерера после потери устройства / Recreating the backend and the renderer after a device loss
     void recreateGraphics(AppWindow& win);
 
+    // ---- application_live_resize.cpp ----
+
+    // Перерисовка во время изменения размера мышью; ошибки и медленные кадры — в журнал
+    // Repainting while resizing with the mouse; errors and slow frames go to the log
+    std::function<void()> liveResizeCallback(AppWindow& win);
+
     // ---- graphics_diagnostics.cpp ----
 
     // Сообщение отладочного слоя в отладочном режиме — исключение (живые окна тоже проверяются)
