@@ -6,6 +6,12 @@ namespace gran::platform::win32
     // Tree callback exceptions never cross the OS boundary; the safe answer is the client area.
     bool handleFrameMessage(Win32Window& self, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result) noexcept
     {
+        // Системная рамка: только ручка размера внутри клиентской области / The system frame: only the size grip inside the client area
+        if (self.desc.titleBar != TitleBar::CUSTOM && message == WM_NCHITTEST)
+        {
+            result = hitGrip(self, lParam, DefWindowProcW(self.window, message, wParam, lParam));
+            return true;
+        }
         if (self.desc.titleBar != TitleBar::CUSTOM)
             return false;
         result = 0;

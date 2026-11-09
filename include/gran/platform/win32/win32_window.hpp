@@ -57,6 +57,7 @@ namespace gran::platform::win32
         // ---- win32_system.cpp ----
         float scale() const override;
         bool keyboardCuesAlways() const override;
+        void accessAnnounce(const ui::Node& node) override;
         void show() override;
         std::string clipboardText() override;
         void setClipboardText(const std::string& text) override;
@@ -147,6 +148,9 @@ namespace gran::platform::win32
     bool handleFrameMessage(Win32Window& window, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result) noexcept;
     bool translateFrameMouse(Win32Window& window, UINT message, WPARAM wParam, LPARAM lParam, LRESULT& result) noexcept;
     LRESULT hitFrame(Win32Window& window, LPARAM point);
+
+    // Ручка размера окна с системной рамкой: HTBOTTOMRIGHT над ней, иначе ответ системы / The size grip of a system-framed window: HTBOTTOMRIGHT over it, otherwise the system answer
+    LRESULT hitGrip(Win32Window& window, LPARAM point, LRESULT system) noexcept;
     void configureFrame(Win32Window& window) noexcept;
     void fitClientRect(const Win32Window& window, RECT& frame) noexcept;
     void setInitialSize(Win32Window& window, DWORD style) noexcept;

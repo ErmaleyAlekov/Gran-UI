@@ -43,14 +43,14 @@ namespace gran::platform::x11
         XFlush(_native.display);
     }
 
-    // Края custom-окна и drag-роль принадлежат WM; интерактивные потомки остаются клиентскими.
-    // The WM owns custom window edges and drag roles; interactive descendants remain client input.
+    // Края custom-окна, drag-роль и ручка размера (в любом окне) принадлежат WM; интерактивные потомки остаются клиентскими.
+    // The WM owns custom window edges, drag roles and the size grip (in any window); interactive descendants remain client input.
     bool X11Window::frameMouse(const XButtonEvent& event)
     {
-        if (!_custom || event.button != 1) return false;
+        if (event.button != 1) return false;
         long direction = frameEdge(event.x, event.y);
         if (direction >= 0) { moveResize(event, direction); return true; }
-        if (!_frameHit || _frameHit({event.x / _scale, event.y / _scale}) != WindowRole::DRAG) return false;
+        if (!_custom || !_frameHit || _frameHit({event.x / _scale, event.y / _scale}) != WindowRole::DRAG) return false;
         if (_lastButton == 1 && event.time - _lastClick < 400 && std::abs(event.x - _lastX) < 5 && std::abs(event.y - _lastY) < 5)
         { if (isMaximized()) restore(); else maximize(); _lastClick = 0; }
         else { moveResize(event, 8); _lastClick = event.time; _lastButton = 1; _lastX = event.x; _lastY = event.y; }

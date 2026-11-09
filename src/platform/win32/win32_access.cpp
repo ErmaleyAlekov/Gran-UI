@@ -59,6 +59,18 @@ namespace gran::platform::win32
             raiseStateChanges(access);
     }
 
+    // Живая область: диктор перечитает имя узла (LiveSetting = Polite у секции строки состояния) / A live region: the screen reader rereads the node name (LiveSetting = Polite on a status section)
+    void Win32Window::accessAnnounce(const ui::Node& node)
+    {
+        if (!access || access->tree == nullptr || !UiaClientsAreListening())
+            return;
+        UiaElement* element = elementFor(access, &node);
+        if (element == nullptr)
+            return;
+        UiaRaiseAutomationEvent(element, UIA_LiveRegionChangedEventId);
+        element->Release();
+    }
+
     /*
     ** WM_GETOBJECT: на запрос корня UI Automation окно отдаёт элемент корня дерева; прочие
     ** запросы (MSAA, OBJID_CLIENT) — стандартной обработке, она построит прокси сама.

@@ -85,6 +85,9 @@ namespace gran::a11y
         // Кнопка «ещё» панели рисует только стрелку: имя — из каталога / The toolbar "more" button draws only an arrow: the name is from the catalog
         if (node.kind == ui::ElementKind::TOOL_MORE)
             return i18n::format(i18n::Message::TOOLBAR_MORE);
+        // Секция строки состояния читается целиком: «Строка 3, столбец 14» / A status section is read as a whole: "Line 3, column 14"
+        if (node.kind == ui::ElementKind::STATUS_SECTION)
+            return ui::statusText(node);
         if (ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX)
             name = node.content.placeholder;
         // Текст WebView — HTML страницы, а не имя: экранный диктор озвучивал бы разметку

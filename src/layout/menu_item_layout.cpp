@@ -33,11 +33,11 @@ namespace gran::layout::internal
     /*
     ** Разделитель — линия в один пиксель: в горизонтальном родителе (панель) — вертикальная, в вертикальном
     ** (меню) — горизонтальная; длину по другой оси даёт растяжение (alignSelf="stretch" в теме). Кнопка «ещё» —
-    ** квадрат под стрелку высотой в строку текста.
+    ** квадрат под стрелку высотой в строку текста, ручка размера окна — квадрат в кегль.
     **
     ** A separator is a one pixel line: in a horizontal parent (a toolbar) — vertical, in a vertical one
     ** (a menu) — horizontal; the length along the other axis comes from stretching (alignSelf="stretch" in the theme). The "more" button is
-    ** a square for the arrow as high as a text line.
+    ** a square for the arrow as high as a text line, the window size grip is a square of the font size.
     */
     Size toolLeafSize(const ui::Node& node) noexcept
     {
@@ -46,6 +46,8 @@ namespace gran::layout::internal
 
         if (node.kind == ui::ElementKind::TOOL_MORE)
             return Size{std::round(node.computed.fontSize * 1.2f), line};
+        if (node.kind == ui::ElementKind::SIZE_GRIP)
+            return Size{std::round(node.computed.fontSize), std::round(node.computed.fontSize)};
         if (parent != nullptr && parent->computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL))
             return Size{1.0f, 0.0f};
         return Size{0.0f, 1.0f};

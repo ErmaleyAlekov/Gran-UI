@@ -62,6 +62,8 @@
       <xs:enumeration value="minimize"/>
       <xs:enumeration value="maximize"/>
       <xs:enumeration value="close"/>
+      <!-- Ручка изменения размера: тянет правый нижний угол окна / A size grip: drags the bottom-right window corner -->
+      <xs:enumeration value="resize"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -620,6 +622,8 @@
       <xs:element name="ToolBar" type="ToolBarType"/>
       <xs:element name="ToolGroup" type="ToolBarType"/>
       <xs:element name="Separator" type="SeparatorType"/>
+      <xs:element name="StatusBar" type="StatusBarType"/>
+      <xs:element name="StatusSection" type="ToolBarType"/>
       <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
       <xs:element name="Slot" type="SlotType"/>
       <!--
@@ -974,6 +978,24 @@
     <xs:complexContent>
       <xs:extension base="ContainerBase">
         <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Строка состояния окна: секции StatusSection (ширина — width или grow) с любым содержимым, обычно Text с
+    привязками {$переменная}; смена текста секции объявляется дикторам (LiveRegion). sizeGrip="true" — ручка
+    размера окна в конце строки.
+    The window status bar: StatusSection sections (the width — width or grow) with any content, usually a Text with
+    {$variable} bindings; a section text change is announced to screen readers (LiveRegion). sizeGrip="true" — the window
+    size grip at the bar end.
+  -->
+  <xs:complexType name="StatusBarType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:attribute name="sizeGrip" type="xs:boolean" default="false"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>

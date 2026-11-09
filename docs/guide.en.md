@@ -118,7 +118,8 @@ the system menu. Inputs, buttons, WebViews and elements with `onClick` inside a 
 interactive. Edges and corners resize with DPI awareness; maximized content stays within the monitor
 work area. `resizable="false"` disables resizing and maximizing. On Windows 11, hovering over the
 maximize role shows Snap Layouts when enabled in the OS. DWM supplies shadows and rounded corners;
-Windows 10 may retain square corners.
+Windows 10 may retain square corners. `windowRole="resize"` is a size grip: the element drags the bottom-right
+window corner (it works in a window with the system frame too; the status bar `sizeGrip` is built this way).
 
 Command roles work without `onClick` and support keyboard and screen reader input. An explicit
 `accessibleName` overrides the localized command name. When maximized, the maximize role restores
@@ -178,6 +179,7 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `MenuBar` | The window menu bar: `MenuItem` items with submenus | Alt, F10, Alt+letter — [window frame](#window-frame-menus-toolbars-status-bar) |
 | `ToolBar`, `ToolGroup` | A toolbar and a group in it; the tail goes into the "more" menu | `overflowMode` of the children |
 | `Separator` | A separator in a toolbar (vertical) and in a menu (horizontal) | — |
+| `StatusBar`, `StatusSection` | The status bar and its sections; announced to screen readers | `sizeGrip` |
 | `Dialog` | Modal dialog in the window center | `closable` |
 | `ComboBox` | Drop-down list with the selected value | `value`, `placeholder`, `onChange`, `MenuItem` items or `items` |
 | `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
@@ -992,6 +994,22 @@ the `overflowMode` attribute: `asNeeded` (the default), `always` (always in the 
 
 `Separator` fits a `Popup` menu too — there it is horizontal. Accessibility: the toolbar is a UI Automation element of the
 ToolBar type, the separator — Separator, the "more" button — a Button named "More" from the message catalog.
+
+**The status bar** `StatusBar` is a row of `StatusSection` sections (the width — `width` or `grow`) with any content,
+usually text with [bindings](#binding-expressions); a `Separator` between the sections is handy. `sizeGrip="true"`
+adds the window size grip at the end (dots in the bottom-right corner): it can be dragged like the window corner.
+
+```xml
+<StatusBar sizeGrip="true">
+  <StatusSection grow="1"><Text text="{$status}"/></StatusSection>
+  <Separator/>
+  <StatusSection><Text text="Line {$line}, column {$column}"/></StatusSection>
+</StatusBar>
+```
+
+For screen readers a status section is a text (the name is the texts of its descendants) and a "polite" UI Automation live region:
+when its text changes (by a binding or the code), the screen reader reads the new text without moving the focus. Nothing is announced
+on loading a window. The bar is an element of the StatusBar type.
 
 Example of the whole frame — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 

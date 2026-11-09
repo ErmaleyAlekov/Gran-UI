@@ -27,6 +27,10 @@ namespace gran::platform::x11
     */
     long X11Window::frameEdge(int x, int y) const
     {
+        // Ручка размера (windowRole="resize") — правый нижний угол и в окне с рамкой оконного менеджера
+        // A size grip (windowRole="resize") is the bottom-right corner in a window with the window manager frame too
+        if (_resizable && _frameHit && _frameHit({x / _scale, y / _scale}) == WindowRole::RESIZE && !isMaximized())
+            return 4;
         if (!_custom || !_resizable)
             return -1;
         int edge = static_cast<int>(6 * _scale);

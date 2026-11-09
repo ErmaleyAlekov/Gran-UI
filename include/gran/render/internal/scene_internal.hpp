@@ -116,6 +116,9 @@ namespace gran::render::internal
     // Стрелка ComboBox (вниз) или пункта с подменю (вправо) у правого края / The ComboBox arrow (down) or the submenu item arrow (right) at the right edge
     void paintMark(const ui::Node& node, const PaintState& state, SceneContext& context);
 
+    // Ручка размера окна строки состояния: точки к правому нижнему углу (paint_grip.cpp) / The status bar window size grip: dots toward the bottom-right corner (paint_grip.cpp)
+    void paintGrip(const ui::Node& node, const PaintState& state, SceneContext& context);
+
     // ---- paint_state.cpp ----
 
     // Состояние для узла: его transform, непрозрачность / The state for the node: its transform, opacity

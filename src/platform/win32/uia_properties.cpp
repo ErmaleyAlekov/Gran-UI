@@ -11,7 +11,8 @@ namespace gran::platform::win32
                 UIA_ImageControlTypeId, UIA_ButtonControlTypeId, UIA_EditControlTypeId, UIA_CheckBoxControlTypeId,
                 UIA_SliderControlTypeId, UIA_MenuControlTypeId, UIA_MenuItemControlTypeId, UIA_WindowControlTypeId,
                 UIA_ComboBoxControlTypeId, UIA_RadioButtonControlTypeId, UIA_TabControlTypeId, UIA_TabItemControlTypeId,
-                UIA_ProgressBarControlTypeId, UIA_MenuBarControlTypeId, UIA_ToolBarControlTypeId, UIA_SeparatorControlTypeId};
+                UIA_ProgressBarControlTypeId, UIA_MenuBarControlTypeId, UIA_ToolBarControlTypeId, UIA_SeparatorControlTypeId,
+                UIA_StatusBarControlTypeId};
 
             return TYPES[static_cast<std::size_t>(role)];
         }
@@ -70,6 +71,14 @@ namespace gran::platform::win32
             case UIA_IsControlElementPropertyId: return setBool(value, !info.decorative);
             case UIA_IsContentElementPropertyId: return setBool(value, !info.decorative);
             case UIA_IsPasswordPropertyId: return setBool(value, node.content.password);
+            // Секция строки состояния — «вежливая» живая область: диктор читает её смену, не прерывая речь
+            // A status section is a "polite" live region: the screen reader reads its change without interrupting the speech
+            case UIA_LiveSettingPropertyId:
+                value->vt = VT_I4;
+                value->lVal = Off;
+                if (node.kind == ui::ElementKind::STATUS_SECTION)
+                    value->lVal = Polite;
+                return node.kind == ui::ElementKind::STATUS_SECTION;
             default: return false;
         }
     }

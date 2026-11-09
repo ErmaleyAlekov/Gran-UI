@@ -23,26 +23,26 @@ namespace beresta
 namespace gran::ui
 {
     /*
-    ** Вид элемента разметки. Виды до SEPARATOR включительно пишутся в разметке; TAB_BAR и TAB_HEADER
-    ** строит движок (полоса заголовков <Tabs>), TOOL_MORE — кнопку «ещё» панели инструментов; у них только
-    ** стили темы TabBar, TabHeader и ToolBarMore.
+    ** Вид элемента разметки. Виды до STATUS_SECTION включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** строит движок (полоса заголовков <Tabs>), TOOL_MORE — кнопку «ещё» панели инструментов, SIZE_GRIP — ручку
+    ** размера окна в строке состояния; у них только стили темы TabBar, TabHeader, ToolBarMore и SizeGrip.
     **
-    ** The markup element kind. The kinds up to SEPARATOR inclusive are written in the markup; TAB_BAR and TAB_HEADER
-    ** are built by the engine (the <Tabs> header strip), TOOL_MORE — the toolbar "more" button; they have only
-    ** the theme styles TabBar, TabHeader and ToolBarMore.
+    ** The markup element kind. The kinds up to STATUS_SECTION inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** are built by the engine (the <Tabs> header strip), TOOL_MORE — the toolbar "more" button, SIZE_GRIP — the window size
+    ** grip in the status bar; they have only the theme styles TabBar, TabHeader, ToolBarMore and SizeGrip.
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
         DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR,
-        TOOL_BAR, TOOL_GROUP, SEPARATOR, TAB_BAR, TAB_HEADER, TOOL_MORE
+        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, TAB_BAR, TAB_HEADER, TOOL_MORE, SIZE_GRIP
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::SEPARATOR;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::STATUS_SECTION;
 
     // Последний вид вообще: по нему считается число видов (таблицы стилей и имён) / The last kind at all: the kind count is computed from it (the style and name tables)
-    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::TOOL_MORE;
+    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::SIZE_GRIP;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -177,6 +177,12 @@ namespace gran::ui
         // A ToolBar child: the overflowMode and whether it went into the "more" menu now (then hidden by the layout, not by the application)
         OverflowMode overflowMode = OverflowMode::AS_NEEDED;
         bool overflowed = false;
+        // StatusBar: ручка размера окна в конце (sizeGrip="true") / StatusBar: the window size grip at the end (sizeGrip="true")
+        bool sizeGrip = false;
+        // StatusSection: текст, уже объявленный дикторам, и было ли первое чтение (при загрузке не объявляется)
+        // StatusSection: the text already announced to the screen readers and whether the first reading took place (nothing is announced on loading)
+        std::string announced;
+        bool announcedReady = false;
         // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
         // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
@@ -369,6 +375,18 @@ namespace gran::ui
     // Вернуть всех детей из меню «ещё» и скрыть кнопку (замер полной длины панели перед новой раскладкой)
     // Returning all the children from the "more" menu and hiding the button (measuring the full toolbar length before a new layout)
     void unfoldToolBar(Node& bar) noexcept;
+
+    // ---- status_bar.cpp ----
+
+    // Добавить в конец строки состояния ручку размера окна (windowRole="resize") / Appending the window size grip (windowRole="resize") to the status bar end
+    void buildSizeGrip(Node& bar);
+
+    // Текст секции строки состояния для дикторов: тексты видимых потомков через пробел / The status section text for screen readers: the visible descendant texts by spaces
+    std::string statusText(const Node& section);
+
+    // Секции строк состояния, чей текст сменился с прошлого вызова (первый вызов только запоминает)
+    // The status bar sections whose text changed since the previous call (the first call only remembers)
+    void collectStatusChanges(Node& root, std::vector<Node*>& changed);
 
     // ---- menu_shortcut.cpp ----
 

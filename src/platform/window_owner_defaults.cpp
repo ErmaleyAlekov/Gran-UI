@@ -22,4 +22,9 @@ namespace gran::platform
     void Window::setPlacement(const WindowPlacement&)
     {
     }
+
+    // Без провайдера доступности объявлять некому / Without an accessibility provider there is no one to announce to
+    void Window::accessAnnounce(const ui::Node&)
+    {
+    }
 }

@@ -217,6 +217,11 @@ namespace gran::app
     // После кадра: видимые зоны onDrop (с отсечением предков) — окну ОС, если изменились / After a frame: the visible onDrop zones (with the ancestor clipping) go to the OS window if they changed
     void syncDropZones(AppWindow& win);
 
+    // ---- status_announce.cpp ----
+
+    // Секции строк состояния, чей текст сменился, — дикторам (живая область) / The status sections whose text changed go to the screen readers (a live region)
+    void announceStatus(AppWindow& win);
+
     // ---- application_access.cpp ----
 
     // Выполнить запросы клиентов доступности; true — что-то изменилось (нужен кадр) / Perform the accessibility client requests; true — something changed (a frame is needed)

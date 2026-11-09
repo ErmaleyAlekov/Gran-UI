@@ -12,7 +12,8 @@ namespace gran::layout::internal
 
             if (kind == ui::ElementKind::STACK || kind == ui::ElementKind::BOX || kind == ui::ElementKind::TABS
                 || kind == ui::ElementKind::TAB || kind == ui::ElementKind::TAB_BAR || kind == ui::ElementKind::MENU_BAR
-                || kind == ui::ElementKind::TOOL_BAR || kind == ui::ElementKind::TOOL_GROUP || ui::isLayer(node))
+                || kind == ui::ElementKind::TOOL_BAR || kind == ui::ElementKind::TOOL_GROUP || kind == ui::ElementKind::STATUS_BAR
+                || kind == ui::ElementKind::STATUS_SECTION || ui::isLayer(node))
                 return true;
             return node.kind == ui::ElementKind::BUTTON && !node.children.empty();
         }

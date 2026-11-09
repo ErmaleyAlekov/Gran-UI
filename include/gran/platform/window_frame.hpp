@@ -9,9 +9,9 @@ namespace gran::platform
     // The OS title bar is the default; a custom title bar occupies the client area.
     enum class TitleBar : std::uint8_t { SYSTEM, CUSTOM };
 
-    // Роль участка разметки в управлении окном; NONE оставляет обычный ввод.
-    // The role of a markup region in window management; NONE keeps ordinary input.
-    enum class WindowRole : std::uint8_t { NONE, DRAG, MINIMIZE, MAXIMIZE, CLOSE };
+    // Роль участка разметки в управлении окном; NONE оставляет обычный ввод, RESIZE — ручка изменения размера (правый нижний угол).
+    // The role of a markup region in window management; NONE keeps ordinary input, RESIZE is a size grip (the bottom-right corner).
+    enum class WindowRole : std::uint8_t { NONE, DRAG, MINIMIZE, MAXIMIZE, CLOSE, RESIZE };
 
     /*
     ** Вид окна: обычное; диалог — без кнопок свёртки и развёртки, без значка в панели задач;

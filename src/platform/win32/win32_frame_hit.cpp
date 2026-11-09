@@ -52,6 +52,35 @@ namespace gran::platform::win32
             return HTCAPTION;
         if (role == WindowRole::MAXIMIZE && self.desc.resizable)
             return HTMAXBUTTON;
+        if (role == WindowRole::RESIZE && self.desc.resizable && !IsZoomed(self.window))
+            return HTBOTTOMRIGHT;
         return HTCLIENT;
+    }
+
+    /*
+    ** Окно с системной рамкой: клиентская область, над которой ручка размера (windowRole="resize"), отвечает ОС как
+    ** правый нижний угол — ОС сама ставит курсор и ведёт изменение размера. system — ответ DefWindowProc.
+    **
+    ** A window with the system frame: the client area under a size grip (windowRole="resize") answers the OS as
+    ** the bottom-right corner — the OS itself sets the cursor and leads the resizing. system is the DefWindowProc answer.
+    */
+    LRESULT hitGrip(Win32Window& self, LPARAM position, LRESULT system) noexcept
+    {
+        POINT point{GET_X_LPARAM(position), GET_Y_LPARAM(position)};
+
+        if (system != HTCLIENT || !self.frameHitTest || !self.desc.resizable || IsZoomed(self.window)
+            || !ScreenToClient(self.window, &point))
+            return system;
+        float scale = static_cast<float>(GetDpiForWindow(self.window)) / 96.0f;
+        try
+        {
+            if (self.frameHitTest(Vec2{point.x / scale, point.y / scale}) == WindowRole::RESIZE)
+                return HTBOTTOMRIGHT;
+        }
+        catch (...)
+        {
+            // Ошибка дерева не пересекает границу ОС: обычная клиентская область / A tree error does not cross the OS boundary: the ordinary client area
+        }
+        return system;
     }
 }

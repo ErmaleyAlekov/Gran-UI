@@ -58,6 +58,8 @@ namespace gran::render::internal
                 paintImage(node, inner, context);
             else if (kind == ui::ElementKind::ICON)
                 paintIcon(node, inner, context);
+            else if (kind == ui::ElementKind::SIZE_GRIP)
+                paintGrip(node, inner, context);
             // Подпись страницы Tab рисует её заголовок, а не страница / The Tab page label is painted by its header, not by the page
             else if ((node.children.empty() && kind != ui::ElementKind::TAB) || ui::hasSpans(node) || marked)
                 paintText(node, inner, context);

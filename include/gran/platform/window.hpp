@@ -16,6 +16,11 @@ namespace gran::a11y
     struct AccessTree;
 }
 
+namespace gran::ui
+{
+    struct Node;
+}
+
 namespace gran::platform
 {
     /*
@@ -256,6 +261,12 @@ namespace gran::platform
         // Whether the OS asks to underline the access letters always, not only on Alt (Windows: "Underline access keys");
         // no by default (window_defaults.cpp)
         virtual bool keyboardCuesAlways() const;
+
+        // Текст узла сменился не в фокусе (секция строки состояния) — объявить дикторам (живая область UI Automation);
+        // по умолчанию (window_owner_defaults.cpp) — ничего
+        // The node text changed out of focus (a status section) — announce it to the screen readers (a UI Automation live region);
+        // nothing by default (window_owner_defaults.cpp)
+        virtual void accessAnnounce(const ui::Node& node);
 
         // Дерево доступности для вспомогательных технологий ОС (nullptr — отключить) / The accessibility tree for the OS assistive technologies (nullptr — disconnect)
         virtual void setAccessTree(a11y::AccessTree* tree) = 0;

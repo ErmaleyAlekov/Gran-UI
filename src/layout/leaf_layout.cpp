@@ -80,6 +80,7 @@ namespace gran::layout::internal
                 return menuItemSize(node, contentAvailable, pass);
             case ui::ElementKind::SEPARATOR:
             case ui::ElementKind::TOOL_MORE:
+            case ui::ElementKind::SIZE_GRIP:
                 return toolLeafSize(node);
             case ui::ElementKind::INPUT:
                 return inputSize(node);

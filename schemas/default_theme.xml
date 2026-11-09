@@ -96,6 +96,12 @@
       <Focused boxShadow="0 0 0 3 rgba(37, 99, 235, 0.35)"/>
       <Open background="#e4e7ec"/>
     </Style>
+    <!-- Строка состояния: секции с текстом и привязками; ручку размера окна (sizeGrip) движок рисует точками -->
+    <!-- The status bar: sections with text and bindings; the engine draws the window size grip (sizeGrip) as dots -->
+    <Style name="StatusBar" orientation="horizontal" spacing="0" padding="2 4" align="center" background="#f8f9fb"
+           color="#475467" borderWidth="1 0 0 0" borderColor="#e4e7ec" fontSize="12.5"/>
+    <Style name="StatusSection" orientation="horizontal" spacing="6" padding="2 8" align="center" textWrap="nowrap"/>
+    <Style name="SizeGrip" color="#98a2b3" alignSelf="end" cursor="default"/>
     <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
     <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->
     <Style name="ComboBox" basedOn="Input" padding="8 34 8 12" cursor="pointer" textWrap="nowrap" textOverflow="ellipsis"/>

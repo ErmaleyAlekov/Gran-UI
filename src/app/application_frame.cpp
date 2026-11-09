@@ -106,6 +106,7 @@ namespace gran
             checkGraphicsDiagnostics(win);
             syncAfterFrame(win);
             win.window->accessRefresh();
+            announceStatus(win);
             syncWebViews(win);
             syncDropZones(win);
         }

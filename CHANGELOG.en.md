@@ -25,6 +25,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   theme style), when room is short the tail goes into the menu of the "more" button — items with the same commands, `onClick`
   and enabled state; the `overflowMode` attribute (`asNeeded`, `always`, `never`). `Separator` works in menus too.
   UI Automation: the ToolBar and Separator types, the "more" button named from the message catalog.
+- The `<StatusBar>` status bar with `<StatusSection>` sections (plan 2.1): text and bindings in the sections, `sizeGrip="true"` —
+  the window size grip at the bar end. The `windowRole="resize"` window role (drags the bottom-right corner; works in a window
+  with the system frame too). UI Automation: the StatusBar type, a section is a "polite" live region: its text change is announced
+  to screen readers (`Window::accessAnnounce`, the LiveRegionChanged event).
 
 ### Changed
 - Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no

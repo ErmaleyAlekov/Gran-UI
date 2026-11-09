@@ -126,6 +126,8 @@ namespace gran::markup::internal
             ui::syncTabs(*node);
         if (node->kind == ui::ElementKind::TOOL_BAR)
             ui::buildToolBarMore(*node);
+        if (node->kind == ui::ElementKind::STATUS_BAR && node->content.sizeGrip)
+            ui::buildSizeGrip(*node);
         return node;
     }
 }
