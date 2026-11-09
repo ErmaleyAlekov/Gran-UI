@@ -8,6 +8,8 @@
 #  Запуск (PowerShell, из корня проекта):
 #    powershell -ExecutionPolicy Bypass -File tools/release/gitverse_release.ps1 -Tag v0.1.0
 #  Без описания (если Gitverse не принимает текст): добавить -NoNotes. Релиз уже есть — правится описание.
+#  Другой репозиторий («Берёста»): -Repository ermaleyalekov/beresta -Title "Берёста 2.2.1" -NotesFile <файл>.
+#  Описание с разметкой правится только так: веб-редактор Gitverse экранирует Markdown при сохранении.
 #
 #  Creating a Gran UI release on Gitverse through the public API (https://api.gitverse.ru).
 #  It is needed until there is a release build by tag (P.2), and when the Gitverse web form answers
@@ -18,11 +20,15 @@
 #  Run (PowerShell, from the project root):
 #    powershell -ExecutionPolicy Bypass -File tools/release/gitverse_release.ps1 -Tag v0.1.0
 #  Without notes (if Gitverse does not accept the text): add -NoNotes. The release exists — its notes are edited.
+#  Another repository (Beresta): -Repository ermaleyalekov/beresta -Title "Берёста 2.2.1" -NotesFile <file>.
+#  Notes with markup are edited only this way: the Gitverse web editor escapes Markdown on save.
 # ============================================================================
 param(
     [Parameter(Mandatory = $true)][string]$Tag,
     [string]$Repository = "ermaleyalekov/Gran-UI",
     [string]$GitHubRepository = "ErmaleyAlekov/Gran-UI",
+    [string]$Title = "",
+    [string]$NotesFile = "",
     [switch]$NoNotes
 )
 
@@ -54,21 +60,32 @@ function Get-GitverseToken {
 #  Gitverse opens a file by a branch or a commit but not by a tag (/content/<tag>/… is 404), so
 #  the tag is replaced with the hash of its commit from the local git.
 function Convert-LinksForGitverse([string]$notes) {
-    $commit = (git rev-parse "$Tag^{commit}").Trim()
+    # Нет ссылок GitHub этого тега (описание другого проекта) — git не нужен
+    # No GitHub links of this tag (another project's notes) — git is not needed
     $from = "https://github.com/$GitHubRepository/blob/$Tag/"
+    if (-not $notes.Contains($from)) {
+        return $notes
+    }
+    $commit = (git rev-parse "$Tag^{commit}").Trim()
     $to = "https://gitverse.ru/$Repository/content/$commit/"
     return $notes.Replace($from, $to)
 }
 
-# Тело запроса: тег, название «Грань UI X.Y.Z», описание из tools/release/notes-<тег>.md (UTF-8)
-# The request body: the tag, the "Грань UI X.Y.Z" title, the notes from tools/release/notes-<tag>.md (UTF-8)
+# Тело запроса: тег, название (-Title или «Грань UI X.Y.Z»), описание (-NotesFile или tools/release/notes-<тег>.md, UTF-8)
+# The request body: the tag, the title (-Title or "Грань UI X.Y.Z"), the notes (-NotesFile or tools/release/notes-<tag>.md, UTF-8)
 function Get-ReleaseBody {
     $notes = ""
     if (-not $NoNotes) {
-        $path = Join-Path $PSScriptRoot "notes-$Tag.md"
+        $path = $NotesFile
+        if (-not $path) {
+            $path = Join-Path $PSScriptRoot "notes-$Tag.md"
+        }
         $notes = Convert-LinksForGitverse ([IO.File]::ReadAllText($path, [Text.Encoding]::UTF8))
     }
-    $title = "Грань UI " + $Tag.TrimStart("v")
+    $title = $Title
+    if (-not $title) {
+        $title = "Грань UI " + $Tag.TrimStart("v")
+    }
     $json = @{ tag_name = $Tag; name = $title; body = $notes } | ConvertTo-Json -Compress
     # Запятая: иначе PowerShell развернёт массив байтов в список объектов, и тело уйдёт пустым
     # The comma: otherwise PowerShell unrolls the byte array into a list of objects, and the body goes empty
