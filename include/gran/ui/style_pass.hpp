@@ -5,8 +5,9 @@
 
 namespace gran::ui
 {
-    // Число видов элементов / The element kind count
-    constexpr std::size_t ELEMENT_KIND_COUNT = 27;
+    // Число видов элементов — от последнего вида, а не числом руками (UBSan 2026-11-09: число отстало от перечисления)
+    // The element kind count — from the last kind, not a hand-written number (UBSan 2026-11-09: the number lagged behind the enumeration)
+    constexpr std::size_t ELEMENT_KIND_COUNT = static_cast<std::size_t>(LAST_ELEMENT_KIND) + 1;
 
     // Встроенные стили видов элементов (индекс — ElementKind); nullptr — без стиля
     // The built-in element kind styles (the index is ElementKind); nullptr — no style
@@ -16,6 +17,9 @@ namespace gran::ui
         // Стиль темы MenuBarItem — пункт строки меню (у него свой вид, а элемент тот же MenuItem); nullptr — как MenuItem
         // The theme MenuBarItem style — a menu bar item (it has its own look, but the element is the same MenuItem); nullptr — as MenuItem
         const style::StyleRule* menuBarItem = nullptr;
+        // Стиль темы ToolBarButton — кнопка в панели инструментов или её группе; nullptr — как Button
+        // The theme ToolBarButton style — a button in a toolbar or its group; nullptr — as Button
+        const style::StyleRule* toolBarButton = nullptr;
     };
 
     /*

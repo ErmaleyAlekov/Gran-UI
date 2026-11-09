@@ -21,6 +21,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   open from the keyboard. The `Open` style state (an item with an open menu or submenu, a `ComboBox` with an open list),
   the `MenuBar` and `MenuBarItem` theme styles. UI Automation: the MenuBar type, the AccessKey property, the ExpandCollapse
   pattern on items with submenus. The `Alt` key (`Key::ALT`, the name "Alt" in key events). Example — `samples/editor_frame.xml`.
+- The `<ToolBar>` toolbar with `<ToolGroup>` groups and `<Separator>` separators (plan 2.1): flat buttons (the `ToolBarButton`
+  theme style), when room is short the tail goes into the menu of the "more" button — items with the same commands, `onClick`
+  and enabled state; the `overflowMode` attribute (`asNeeded`, `always`, `never`). `Separator` works in menus too.
+  UI Automation: the ToolBar and Separator types, the "more" button named from the message catalog.
 
 ### Changed
 - Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no

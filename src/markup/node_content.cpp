@@ -26,14 +26,15 @@ namespace gran::markup::internal
             {"checked", &C::checked}, {"password", &C::password}, {"readOnly", &C::readOnly}, {"undo", &C::undoable}, {"virtual", &C::virtualize},
             {"closable", &C::closable}, {"draggable", &C::draggable}};
 
-        // Перечисления (fit у Image, direction у Scroll, submitKey у TextArea) и целые числа
-    // The enumerations (fit of Image, direction of Scroll, submitKey of TextArea) and the integers
+        // Перечисления (fit у Image, direction у Scroll, submitKey у TextArea, overflowMode у детей ToolBar) и целые числа
+    // The enumerations (fit of Image, direction of Scroll, submitKey of TextArea, overflowMode of ToolBar children) and the integers
         bool readEnumeration(ui::Node& node, std::string_view name, const std::string& value)
         {
             static const style::Keyword FITS[] = {{"fill", 0}, {"contain", 1}, {"cover", 2}, {"none", 3}};
             static const style::Keyword DIRECTIONS[] = {{"vertical", 0}, {"horizontal", 1}, {"both", 2}};
             static const style::Keyword SUBMITS[] = {{"ctrlEnter", 0}, {"enter", 1}};
             static const style::Keyword ROLES[] = {{"none", 0}, {"drag", 1}, {"minimize", 2}, {"maximize", 3}, {"close", 4}};
+            static const style::Keyword OVERFLOWS[] = {{"asNeeded", 0}, {"always", 1}, {"never", 2}};
 
             if (name == "windowRole")
                 node.content.windowRole = static_cast<platform::WindowRole>(style::parseKeyword(value, ROLES, 5));
@@ -41,6 +42,8 @@ namespace gran::markup::internal
                 node.content.fit = static_cast<ui::ImageFit>(style::parseKeyword(value, FITS, 4));
             else if (name == "direction")
                 node.content.direction = static_cast<ui::ScrollDirection>(style::parseKeyword(value, DIRECTIONS, 3));
+            else if (name == "overflowMode")
+                node.content.overflowMode = static_cast<ui::OverflowMode>(style::parseKeyword(value, OVERFLOWS, 3));
             else if (name == "submitKey")
                 node.content.submitKey = static_cast<ui::SubmitKey>(style::parseKeyword(value, SUBMITS, 2));
             else if (name == "maxLength")

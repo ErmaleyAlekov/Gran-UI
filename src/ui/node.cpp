@@ -27,8 +27,11 @@ namespace gran::ui
     {
         static const char* const NAMES[] = {"Stack", "Box", "Grid", "Canvas", "Scroll", "Text", "Image",
             "Button", "Input", "CheckBox", "Slider", "TextArea", "Span", "Popup", "MenuItem", "WebView",
-            "Dialog", "ComboBox", "RadioButton", "Switch", "ProgressBar", "Tabs", "Tab", "Icon", "MenuBar", "TabBar", "TabHeader"};
+            "Dialog", "ComboBox", "RadioButton", "Switch", "ProgressBar", "Tabs", "Tab", "Icon", "MenuBar",
+            "ToolBar", "ToolGroup", "Separator", "TabBar", "TabHeader", "ToolBarMore"};
 
+        // Имя на каждый вид: новый вид без имени не соберётся / A name per kind: a new kind without a name does not compile
+        static_assert(sizeof(NAMES) / sizeof(NAMES[0]) == static_cast<std::size_t>(LAST_ELEMENT_KIND) + 1, "elementName table");
         return NAMES[static_cast<std::size_t>(kind)];
     }
 

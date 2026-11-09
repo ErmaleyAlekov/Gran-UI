@@ -1,6 +1,7 @@
 #include "gran/layout/internal/layout_internal.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace gran::layout::internal
@@ -27,5 +28,26 @@ namespace gran::layout::internal
                 + node.computed.fontSize * ui::SHORTCUT_GAP;
         Size label = pass.measurer.measureText(node, std::max(0.0f, contentAvailable.width - mark));
         return Size{label.width + mark, label.height};
+    }
+
+    /*
+    ** Разделитель — линия в один пиксель: в горизонтальном родителе (панель) — вертикальная, в вертикальном
+    ** (меню) — горизонтальная; длину по другой оси даёт растяжение (alignSelf="stretch" в теме). Кнопка «ещё» —
+    ** квадрат под стрелку высотой в строку текста.
+    **
+    ** A separator is a one pixel line: in a horizontal parent (a toolbar) — vertical, in a vertical one
+    ** (a menu) — horizontal; the length along the other axis comes from stretching (alignSelf="stretch" in the theme). The "more" button is
+    ** a square for the arrow as high as a text line.
+    */
+    Size toolLeafSize(const ui::Node& node) noexcept
+    {
+        const ui::Node* parent = node.parent;
+        float line = std::round(node.computed.fontSize * node.computed.lineHeight);
+
+        if (node.kind == ui::ElementKind::TOOL_MORE)
+            return Size{std::round(node.computed.fontSize * 1.2f), line};
+        if (parent != nullptr && parent->computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL))
+            return Size{1.0f, 0.0f};
+        return Size{0.0f, 1.0f};
     }
 }

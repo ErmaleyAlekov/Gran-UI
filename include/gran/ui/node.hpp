@@ -23,20 +23,26 @@ namespace beresta
 namespace gran::ui
 {
     /*
-    ** Вид элемента разметки. Виды до MENU_BAR включительно пишутся в разметке; TAB_BAR и TAB_HEADER
-    ** строит движок (полоса заголовков <Tabs>), у них только стили темы TabBar и TabHeader.
+    ** Вид элемента разметки. Виды до SEPARATOR включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** строит движок (полоса заголовков <Tabs>), TOOL_MORE — кнопку «ещё» панели инструментов; у них только
+    ** стили темы TabBar, TabHeader и ToolBarMore.
     **
-    ** The markup element kind. The kinds up to MENU_BAR inclusive are written in the markup; TAB_BAR and TAB_HEADER
-    ** are built by the engine (the <Tabs> header strip), they have only the theme styles TabBar and TabHeader.
+    ** The markup element kind. The kinds up to SEPARATOR inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** are built by the engine (the <Tabs> header strip), TOOL_MORE — the toolbar "more" button; they have only
+    ** the theme styles TabBar, TabHeader and ToolBarMore.
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
-        DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR, TAB_BAR, TAB_HEADER
+        DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR,
+        TOOL_BAR, TOOL_GROUP, SEPARATOR, TAB_BAR, TAB_HEADER, TOOL_MORE
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::MENU_BAR;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::SEPARATOR;
+
+    // Последний вид вообще: по нему считается число видов (таблицы стилей и имён) / The last kind at all: the kind count is computed from it (the style and name tables)
+    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::TOOL_MORE;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -54,6 +60,10 @@ namespace gran::ui
 
     // Направление прокрутки / The scroll direction
     enum class ScrollDirection : std::uint8_t { VERTICAL, HORIZONTAL, BOTH };
+
+    // Ребёнок панели инструментов при нехватке места: уходит в меню «ещё» по надобности, всегда или никогда
+    // A toolbar child when room is short: goes into the "more" menu as needed, always or never
+    enum class OverflowMode : std::uint8_t { AS_NEEDED, ALWAYS, NEVER };
 
     // Флаги «нужно пересчитать» / The "must recompute" flags
     enum DirtyFlag : std::uint8_t
@@ -163,6 +173,10 @@ namespace gran::ui
         // offset in the text label (the underline is drawn under it when the keyboard cues are shown)
         char32_t mnemonic = 0;
         std::size_t mnemonicAt = 0;
+        // Ребёнок ToolBar: режим overflowMode и ушёл ли он сейчас в меню «ещё» (тогда скрыт компоновкой, а не приложением)
+        // A ToolBar child: the overflowMode and whether it went into the "more" menu now (then hidden by the layout, not by the application)
+        OverflowMode overflowMode = OverflowMode::AS_NEEDED;
+        bool overflowed = false;
         // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
         // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
@@ -338,6 +352,23 @@ namespace gran::ui
     // Видимая строка меню окна вне слоёв (первая в порядке обхода; nullptr — нет)
     // The visible window menu bar outside the layers (the first in the walk order; nullptr — none)
     Node* menuBarOf(Node& root);
+
+    // ---- tool_bar.cpp, tool_bar_sync.cpp ----
+
+    // Кнопка «ещё» панели инструментов (nullptr — не панель или кнопки нет) / The toolbar "more" button (nullptr — not a toolbar or no button)
+    Node* toolBarMore(Node& bar) noexcept;
+
+    // Добавить в конец панели кнопку «ещё» с меню из пунктов-зеркал всех детей панели (построитель разметки)
+    // Appending to the toolbar end the "more" button with a menu of mirror items of all the toolbar children (the markup builder)
+    void buildToolBarMore(Node& bar);
+
+    // Видимость пунктов-зеркал — по детям панели, ушедшим в меню (после компоновки панели)
+    // The mirror item visibility — by the toolbar children that went into the menu (after the toolbar layout)
+    void syncOverflowMenu(Node& bar);
+
+    // Вернуть всех детей из меню «ещё» и скрыть кнопку (замер полной длины панели перед новой раскладкой)
+    // Returning all the children from the "more" menu and hiding the button (measuring the full toolbar length before a new layout)
+    void unfoldToolBar(Node& bar) noexcept;
 
     // ---- menu_shortcut.cpp ----
 

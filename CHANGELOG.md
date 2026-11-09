@@ -21,6 +21,10 @@
   Состояние стиля `Open` (пункт с открытым меню или подменю, `ComboBox` с открытым списком), стили темы `MenuBar` и
   `MenuBarItem`. UI Automation: тип MenuBar, свойство AccessKey, шаблон ExpandCollapse у пунктов с подменю.
   Клавиша `Alt` (`Key::ALT`, имя «Alt» в событиях клавиш). Пример — `samples/editor_frame.xml`.
+- Панель инструментов `<ToolBar>` с группами `<ToolGroup>` и разделителями `<Separator>` (план 2.1): плоские кнопки
+  (стиль темы `ToolBarButton`), при нехватке места хвост уходит в меню кнопки «ещё» — пункты с теми же командами,
+  `onClick` и включённостью; атрибут `overflowMode` (`asNeeded`, `always`, `never`). `Separator` работает и в меню.
+  UI Automation: типы ToolBar и Separator, кнопка «ещё» с именем из каталога сообщений.
 
 ### Изменено
 - Windows: Alt+буква и одиночный Alt больше не уходят в системную обработку меню окна — нет звукового сигнала

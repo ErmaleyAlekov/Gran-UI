@@ -19,6 +19,7 @@ namespace gran::markup
         for (std::size_t kind = 0; kind < ui::ELEMENT_KIND_COUNT; ++kind)
             theme->kinds.rules[kind] = theme->document.styles.find(ui::elementName(static_cast<ui::ElementKind>(kind)));
         theme->kinds.menuBarItem = theme->document.styles.find("MenuBarItem");
+        theme->kinds.toolBarButton = theme->document.styles.find("ToolBarButton");
         theme->window.name = "Window";
         theme->window.block = theme->document.window.declared;
         return theme;

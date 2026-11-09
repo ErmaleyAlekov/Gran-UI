@@ -7,16 +7,18 @@ namespace gran::input
     namespace
     {
         /*
-        ** Слой элемента: у ComboBox — его внутренний список, у кнопки — узел по id из popup
-        ** (только Popup или Dialog; неизвестный id — ничего, как onClick без обработчика).
+        ** Слой элемента: у ComboBox — его внутренний список, у кнопки «ещё» панели — её меню, у кнопки — узел по id
+        ** из popup (только Popup или Dialog; неизвестный id — ничего, как onClick без обработчика).
         **
-        ** The control layer: for a ComboBox — its inner list, for a button — the node by the id from popup
-        ** (only a Popup or a Dialog; an unknown id — nothing, as onClick without a handler).
+        ** The control layer: for a ComboBox — its inner list, for the toolbar "more" button — its menu, for a button — the node
+        ** by the id from popup (only a Popup or a Dialog; an unknown id — nothing, as onClick without a handler).
         */
         ui::Node* attachedLayer(RouterState& state, ui::Node& control)
         {
             if (control.kind == ui::ElementKind::COMBO_BOX)
                 return ui::comboList(control);
+            if (control.kind == ui::ElementKind::TOOL_MORE && !control.children.empty())
+                return control.children.front().get();
             if (control.content.popup.empty())
                 return nullptr;
             ui::Node* layer = ui::findNode(*state.root, control.content.popup);

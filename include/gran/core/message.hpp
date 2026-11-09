@@ -147,6 +147,7 @@ namespace gran::i18n
         RES_TOOL_USAGE,
         SETTINGS_DAMAGED,
         GPU_ADAPTER_NOT_FOUND,
+        TOOLBAR_MORE,
         COUNT
     };
 }

@@ -24,6 +24,9 @@ namespace gran::ui
             input.defaults = pass.defaults.rules[static_cast<std::size_t>(node.kind)];
             if (pass.defaults.menuBarItem != nullptr && isMenuBarItem(node))
                 input.defaults = pass.defaults.menuBarItem;
+            if (pass.defaults.toolBarButton != nullptr && node.kind == ElementKind::BUTTON && node.parent != nullptr
+                && (node.parent->kind == ElementKind::TOOL_BAR || node.parent->kind == ElementKind::TOOL_GROUP))
+                input.defaults = pass.defaults.toolBarButton;
             input.rule = node.rule;
             input.inlineBlock = &node.declared;
             input.stateMask = node.stateMask;

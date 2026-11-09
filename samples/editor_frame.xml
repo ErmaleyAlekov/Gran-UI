@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Каркас окна большой программы (план 2.1): строка меню. Alt (нажать и отпустить) или F10 — фокус на строку меню,
+  Каркас окна большой программы (план 2.1): строка меню и панель инструментов (сузьте окно — кнопки, которым не
+  хватает места, уходят в меню «ещё» справа; «Справка» там всегда). Строка меню. Alt (нажать и отпустить) или F10 — фокус на строку меню,
   стрелки влево/вправо — соседний пункт, вниз или Enter — открыть меню; Alt+Ф, Alt+П, Alt+В, Alt+С — сразу открыть
   меню «Файл», «Правка», «Вид», «Справка»; в открытом меню буква пункта выбирает его (подчёркнутые буквы видны,
   пока зажат Alt или меню открыто с клавиатуры). Пока меню открыто, наведение на другой пункт строки переключает его.
   Сочетания Ctrl+N, Ctrl+S и др. работают и без меню. Запуск: gran_gallery samples/editor_frame.xml
 
-  A big program window frame (plan 2.1): the menu bar. Alt (press and release) or F10 — the focus to the menu bar,
+  A big program window frame (plan 2.1): the menu bar and the toolbar (narrow the window — the buttons without room
+  go into the "more" menu on the right; "Справка" is always there). The menu bar. Alt (press and release) or F10 — the focus to the menu bar,
   the left/right arrows — the neighbor item, down or Enter — open the menu; Alt+Ф, Alt+П, Alt+В, Alt+С — open the
   "File", "Edit", "View", "Help" menus at once; in an open menu the item letter chooses it (the underlined letters are shown
   while Alt is held or the menu is open from the keyboard). While a menu is open, hovering another bar item switches it.
@@ -59,6 +61,22 @@
         </Popup>
       </MenuItem>
     </MenuBar>
+    <ToolBar id="tools">
+      <Button command="newDoc" tooltip="Новый документ"><Icon data="M6 2h8l4 4v16H6zM13 3v4h4" width="16" height="16"/></Button>
+      <Button command="openDoc" tooltip="Открыть документ"><Icon data="M3 6h7l2 2h9v12H3z" width="16" height="16"/></Button>
+      <Button command="saveDoc" tooltip="Сохранить документ"><Icon data="M5 3h11l3 3v15H5zM8 3v6h8V3M8 21v-7h8v7" width="16" height="16"/></Button>
+      <Separator/>
+      <ToolGroup>
+        <Button command="undo"/>
+        <Button command="redo"/>
+      </ToolGroup>
+      <Separator/>
+      <Button command="find"/>
+      <Button text="Жирный" onClick="command"/>
+      <Button text="Курсив" onClick="command"/>
+      <Button text="Подчёркнутый" onClick="command"/>
+      <Button text="Справка" onClick="command" overflowMode="always"/>
+    </ToolBar>
     <TextArea id="editor" grow="1" margin="12" placeholder="Текст документа: Alt+Ф — меню «Файл», Ctrl+S — сохранить"/>
     <Text id="status" padding="6 12" color="#667085" background="#f8f9fb">Нажмите Alt или F10, чтобы перейти в меню.</Text>
   </Stack>

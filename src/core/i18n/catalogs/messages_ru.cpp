@@ -129,7 +129,8 @@ namespace gran::i18n
             {Message::RES_DUPLICATE_ALIAS, "путь res:/{0} встречается в манифесте дважды"},
             {Message::RES_TOOL_USAGE, "использование: gran_rcc <манифест.xml> <выход.cpp> [--blob <пакет.bin>] [--depfile <выход.d>]"},
             {Message::SETTINGS_DAMAGED, "файл настроек повреждён и сохранён как .bad, взяты значения по умолчанию: {0}"},
-            {Message::GPU_ADAPTER_NOT_FOUND, "GRAN_ADAPTER=\"{0}\": нет подходящего видеоадаптера с таким именем ({1})"}
+            {Message::GPU_ADAPTER_NOT_FOUND, "GRAN_ADAPTER=\"{0}\": нет подходящего видеоадаптера с таким именем ({1})"},
+            {Message::TOOLBAR_MORE, "Ещё"}
         };
     }
 

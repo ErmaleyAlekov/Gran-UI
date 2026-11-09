@@ -4,33 +4,33 @@
 
 namespace gran::a11y
 {
-    // Встроенные виды — свои роли, остальные контейнеры — группа / The built-in kinds have their roles, the other containers are groups
+    /*
+    ** Встроенные виды — свои роли (таблица), остальные контейнеры — группа. Переключатель — флажок с другим видом
+    ** (как role="switch" поверх checkbox), кнопка «ещё» панели — кнопка.
+    **
+    ** The built-in kinds have their roles (a table), the other containers are groups. A switch is a check box with another look
+    ** (as role="switch" over checkbox), the toolbar "more" button is a button.
+    */
     Role roleOf(const ui::Node& node) noexcept
     {
+        using K = ui::ElementKind;
+        static const struct { K kind; Role role; } ROLES[] = {
+            {K::TEXT, Role::TEXT}, {K::IMAGE, Role::IMAGE}, {K::ICON, Role::IMAGE}, {K::BUTTON, Role::BUTTON},
+            {K::INPUT, Role::EDIT}, {K::TEXT_AREA, Role::EDIT}, {K::CHECKBOX, Role::CHECK_BOX}, {K::SWITCH, Role::CHECK_BOX},
+            {K::RADIO_BUTTON, Role::RADIO_BUTTON}, {K::TABS, Role::TAB}, {K::TAB_HEADER, Role::TAB_ITEM},
+            {K::PROGRESS_BAR, Role::PROGRESS_BAR}, {K::SLIDER, Role::SLIDER}, {K::SCROLL, Role::SCROLL}, {K::POPUP, Role::MENU},
+            {K::MENU_ITEM, Role::MENU_ITEM}, {K::DIALOG, Role::DIALOG}, {K::COMBO_BOX, Role::COMBO_BOX},
+            {K::MENU_BAR, Role::MENU_BAR}, {K::TOOL_BAR, Role::TOOL_BAR}, {K::SEPARATOR, Role::SEPARATOR},
+            {K::TOOL_MORE, Role::BUTTON}};
+
         if (ui::isWindowButton(node))
             return Role::BUTTON;
-        switch (node.kind)
+        for (const auto& entry : ROLES)
         {
-            case ui::ElementKind::TEXT: return Role::TEXT;
-            case ui::ElementKind::IMAGE: case ui::ElementKind::ICON: return Role::IMAGE;
-            case ui::ElementKind::BUTTON: return Role::BUTTON;
-            case ui::ElementKind::INPUT: return Role::EDIT;
-            case ui::ElementKind::TEXT_AREA: return Role::EDIT;
-            // Переключатель — флажок с другим видом (как role="switch" поверх checkbox) / A switch is a check box with another look (as role="switch" over checkbox)
-            case ui::ElementKind::CHECKBOX: case ui::ElementKind::SWITCH: return Role::CHECK_BOX;
-            case ui::ElementKind::RADIO_BUTTON: return Role::RADIO_BUTTON;
-            case ui::ElementKind::TABS: return Role::TAB;
-            case ui::ElementKind::TAB_HEADER: return Role::TAB_ITEM;
-            case ui::ElementKind::PROGRESS_BAR: return Role::PROGRESS_BAR;
-            case ui::ElementKind::SLIDER: return Role::SLIDER;
-            case ui::ElementKind::SCROLL: return Role::SCROLL;
-            case ui::ElementKind::POPUP: return Role::MENU;
-            case ui::ElementKind::MENU_ITEM: return Role::MENU_ITEM;
-            case ui::ElementKind::DIALOG: return Role::DIALOG;
-            case ui::ElementKind::COMBO_BOX: return Role::COMBO_BOX;
-            case ui::ElementKind::MENU_BAR: return Role::MENU_BAR;
-            default: return Role::GROUP;
+            if (entry.kind == node.kind)
+                return entry.role;
         }
+        return Role::GROUP;
     }
 
     /*

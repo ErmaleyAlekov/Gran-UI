@@ -124,6 +124,8 @@ namespace gran::markup::internal
             wrapOptions(*node);
         if (node->kind == ui::ElementKind::TABS)
             ui::syncTabs(*node);
+        if (node->kind == ui::ElementKind::TOOL_BAR)
+            ui::buildToolBarMore(*node);
         return node;
     }
 }

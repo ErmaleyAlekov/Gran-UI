@@ -77,6 +77,25 @@
       <Disabled opacity="0.4"/>
       <Open background="#e0e7ff"/>
     </Style>
+    <!-- Панель инструментов: плоские кнопки (стиль ToolBarButton движок даёт Button в ToolBar и ToolGroup), разделители, «ещё» -->
+    <!-- A toolbar: flat buttons (the engine gives the ToolBarButton style to Button in ToolBar and ToolGroup), separators, "more" -->
+    <Style name="ToolBar" orientation="horizontal" spacing="2" padding="4 6" align="center" background="#ffffff"
+           borderWidth="0 0 1 0" borderColor="#e4e7ec" fontSize="13.5"/>
+    <Style name="ToolGroup" orientation="horizontal" spacing="2" align="center"/>
+    <Style name="Separator" background="#e4e7ec" margin="4" alignSelf="stretch"/>
+    <Style name="ToolBarButton" orientation="horizontal" justify="center" align="center" spacing="6" padding="5 8"
+           borderRadius="6" color="#344054" textWrap="nowrap" cursor="default" transition="background 0.1s ease">
+      <Hover background="#f2f4f7"/>
+      <Pressed background="#e4e7ec"/>
+      <Focused boxShadow="0 0 0 3 rgba(37, 99, 235, 0.35)"/>
+      <Disabled opacity="0.4"/>
+      <Checked background="#e0e7ff" color="#1d4ed8"/>
+    </Style>
+    <Style name="ToolBarMore" padding="5 6" borderRadius="6" color="#344054" cursor="default" transition="background 0.1s ease">
+      <Hover background="#f2f4f7"/>
+      <Focused boxShadow="0 0 0 3 rgba(37, 99, 235, 0.35)"/>
+      <Open background="#e4e7ec"/>
+    </Style>
     <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
     <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->
     <Style name="ComboBox" basedOn="Input" padding="8 34 8 12" cursor="pointer" textWrap="nowrap" textOverflow="ellipsis"/>

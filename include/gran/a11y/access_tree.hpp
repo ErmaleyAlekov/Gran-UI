@@ -23,7 +23,7 @@ namespace gran::a11y
     enum class Role : std::uint8_t
     {
         GROUP, SCROLL, TEXT, IMAGE, BUTTON, EDIT, CHECK_BOX, SLIDER, MENU, MENU_ITEM, DIALOG, COMBO_BOX,
-        RADIO_BUTTON, TAB, TAB_ITEM, PROGRESS_BAR, MENU_BAR
+        RADIO_BUTTON, TAB, TAB_ITEM, PROGRESS_BAR, MENU_BAR, TOOL_BAR, SEPARATOR
     };
 
     // Сведения об узле: роль, имя, значение и состояние / The node facts: the role, the name, the value and the state

@@ -104,6 +104,16 @@ namespace gran::layout::internal
     // Пункт меню: подпись; у пункта с подменю справа ещё место под стрелку / A menu item: the label; an item with a submenu also has room for the arrow on the right
     Size menuItemSize(ui::Node& node, Size contentAvailable, LayoutPass& pass);
 
+    // Разделитель (линия в пиксель поперёк главной оси родителя) и кнопка «ещё» панели (место под стрелку)
+    // A separator (a one pixel line across the parent main axis) and the toolbar "more" button (room for the arrow)
+    Size toolLeafSize(const ui::Node& node) noexcept;
+
+    // ---- tool_bar_layout.cpp ----
+
+    // Панель инструментов перед размещением стеком: кто помещается, кто уходит в меню «ещё»
+    // The toolbar before the stack placement: who fits and who goes into the "more" menu
+    void fitToolBar(ui::Node& bar, Rect content, LayoutPass& pass);
+
     // ---- Stack (flex_*.cpp, stack_*.cpp) ----
 
     // Элемент гибкой строки: размеры по главной оси — рамка без внешних отступов

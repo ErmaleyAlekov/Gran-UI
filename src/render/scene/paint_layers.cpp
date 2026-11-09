@@ -74,6 +74,12 @@ namespace gran::render::internal
             mark.center.x = content.x + content.width + style.padding.right * 0.5f;
             mark.direction = Vec2{0.0f, 1.0f};
         }
+        // Кнопка «ещё» панели: стрелка вниз по центру / The toolbar "more" button: a down arrow in the center
+        if (node.kind == ui::ElementKind::TOOL_MORE)
+        {
+            mark.center.x = content.x + content.width * 0.5f;
+            mark.direction = Vec2{0.0f, 1.0f};
+        }
         emitChevron(mark, state, context);
     }
 }

@@ -21,7 +21,8 @@ namespace gran::input
                 return ui::choiceTabStop(node);
             return kind == ui::ElementKind::BUTTON || kind == ui::ElementKind::CHECKBOX || kind == ui::ElementKind::SWITCH
                 || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
-                || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || ui::isWindowButton(node)
+                || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::TOOL_MORE
+                || ui::isWindowButton(node)
                 || !node.content.selection.empty();
         }
 

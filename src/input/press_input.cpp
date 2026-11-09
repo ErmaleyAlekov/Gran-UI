@@ -17,11 +17,12 @@ namespace gran::input
         // A menu bar item never takes the focus: the "Edit" menu works with the field where the focus was
         if (control != nullptr && ui::isMenuBarItem(*control))
             return true;
-        if (control == nullptr || control->kind != ui::ElementKind::BUTTON)
+        if (control == nullptr || (control->kind != ui::ElementKind::BUTTON && control->kind != ui::ElementKind::TOOL_MORE))
             return false;
         if (state.focus == nullptr || !ui::isTextField(*state.focus))
             return false;
-        return !control->content.command.empty() || !control->content.popup.empty();
+        return control->kind == ui::ElementKind::TOOL_MORE || !control->content.command.empty()
+            || !control->content.popup.empty();
     }
 
     /*

@@ -78,6 +78,9 @@ namespace gran::layout::internal
                 return pass.measurer.measureText(node, contentAvailable.width);
             case ui::ElementKind::MENU_ITEM:
                 return menuItemSize(node, contentAvailable, pass);
+            case ui::ElementKind::SEPARATOR:
+            case ui::ElementKind::TOOL_MORE:
+                return toolLeafSize(node);
             case ui::ElementKind::INPUT:
                 return inputSize(node);
             case ui::ElementKind::CHECKBOX:

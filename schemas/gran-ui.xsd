@@ -46,6 +46,15 @@
       <xs:enumeration value="centerOwner"/>
     </xs:restriction>
   </xs:simpleType>
+  <!-- Ребёнок ToolBar при нехватке места: в меню «ещё» по надобности, всегда или никогда / A ToolBar child when room is short: into the "more" menu as needed, always or never -->
+  <xs:simpleType name="OverflowMode">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="asNeeded"/>
+      <xs:enumeration value="always"/>
+      <xs:enumeration value="never"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:simpleType name="WindowRole">
     <xs:restriction base="xs:string">
       <xs:enumeration value="none"/>
@@ -608,6 +617,9 @@
       <xs:element name="ProgressBar" type="ProgressBarType"/>
       <xs:element name="Tabs" type="TabsType"/>
       <xs:element name="MenuBar" type="MenuBarType"/>
+      <xs:element name="ToolBar" type="ToolBarType"/>
+      <xs:element name="ToolGroup" type="ToolBarType"/>
+      <xs:element name="Separator" type="SeparatorType"/>
       <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
       <xs:element name="Slot" type="SlotType"/>
       <!--
@@ -633,6 +645,7 @@
     <xs:attribute name="visible" type="BindableBoolean"/>
     <xs:attribute name="enabled" type="BindableBoolean"/>
     <xs:attribute name="windowRole" type="WindowRole"/>
+    <xs:attribute name="overflowMode" type="OverflowMode"/>
     <!-- Атрибуты узла, которые хранятся в настройках программы (имена через пробел; нужен id и layout у окна) -->
     <!-- The node attributes kept in the program settings (names separated by spaces; an id and the window layout are needed) -->
     <xs:attribute name="persist" type="PersistList"/>
@@ -949,6 +962,32 @@
     Alt (press and release) or F10 — the focus to the bar, the left/right arrows — the neighbor item, down and Enter —
     open the menu, Alt+letter — open the menu with this access letter at once ("_" before the letter in text), Esc — back.
   -->
+  <!--
+    Панель инструментов (и группа внутри неё — ToolGroup): ряд кнопок (обычно Button command="…"), разделителей
+    Separator и групп. Не хватает места — хвост уходит в меню кнопки «ещё» (её строит движок) пунктами с теми же
+    командами; overflowMode у ребёнка: asNeeded (по умолчанию), always (всегда в меню), never (всегда в панели).
+    A toolbar (and a group inside it — ToolGroup): a row of buttons (usually Button command="…"), Separator separators
+    and groups. When room is short the tail goes into the menu of the "more" button (the engine builds it) as items with the same
+    commands; overflowMode of a child: asNeeded (the default), always (always in the menu), never (always in the bar).
+  -->
+  <xs:complexType name="ToolBarType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Разделитель: линия в пиксель поперёк ряда (в панели — вертикальная, в меню — горизонтальная) / A separator: a one pixel line across the row (vertical in a bar, horizontal in a menu) -->
+  <xs:complexType name="SeparatorType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
   <xs:complexType name="MenuBarType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">

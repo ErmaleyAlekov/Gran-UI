@@ -24,7 +24,7 @@
 16. [Components](#components)
 17. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
 18. [Pop-up Layers](#popup-layers)
-19. [Window frame: the menu bar](#window-frame-the-menu-bar)
+19. [Window frame: menus, toolbars, status bar](#window-frame-menus-toolbars-status-bar)
 20. [Embedded browser: WebView](#embedded-browser-webview)
 21. [Accessibility](#accessibility)
 22. [Platform: windows, files, icons](#platform-windows-files-icons)
@@ -175,7 +175,9 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `Tabs` | Tabs: a header strip and the selected page | `value`, `onChange`, `Tab` pages (`text`, `value`) |
 | `Popup` | Popup layer (hidden until shown) | — |
 | `MenuItem` | Menu item in `Popup` or `MenuBar`; a nested `Popup` is a submenu | `text` (`_` before a letter is the access letter), `onClick`, `command`, `value` (for `ComboBox`) |
-| `MenuBar` | The window menu bar: `MenuItem` items with submenus | Alt, F10, Alt+letter — [window frame](#window-frame-the-menu-bar) |
+| `MenuBar` | The window menu bar: `MenuItem` items with submenus | Alt, F10, Alt+letter — [window frame](#window-frame-menus-toolbars-status-bar) |
+| `ToolBar`, `ToolGroup` | A toolbar and a group in it; the tail goes into the "more" menu | `overflowMode` of the children |
+| `Separator` | A separator in a toolbar (vertical) and in a menu (horizontal) | — |
 | `Dialog` | Modal dialog in the window center | `closable` |
 | `ComboBox` | Drop-down list with the selected value | `value`, `placeholder`, `onChange`, `MenuItem` items or `items` |
 | `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
@@ -922,9 +924,9 @@ app.hideDialog(*app.find("confirm"));   // close (usually in a button handler)
 
 Layers are drawn in the order of the tree: a nested layer (menu in a dialog, submenu) — above its own, so a dialog that opens from another dialog is conveniently declared inside it. Everything together — `samples/dialogs.xml` (`gran_gallery samples/dialogs.xml`).
 
-## Window frame: the menu bar
+## Window frame: menus, toolbars, status bar
 
-The `MenuBar` menu bar is a row of `MenuItem` items, each with a `Popup` menu (or a command, then the item has no menu).
+**The menu bar** `MenuBar` is a row of `MenuItem` items, each with a `Popup` menu (or a command, then the item has no menu).
 A bar item menu opens under it; while one menu is open, hovering a neighbor item switches the menu.
 Clicking a bar item does not take the focus: the "Edit" menu commands work with the field where the cursor was.
 
@@ -967,8 +969,31 @@ the `Open` state (a `ComboBox` with an open list too). In the theme a bar item t
 the bar itself — `MenuBar`.
 
 Accessibility: the bar is a UI Automation element of the MenuBar type, the items have the AccessKey property ("Alt+F" in the bar,
-"O" in a menu), the items with submenus have the ExpandCollapse pattern. Example — `samples/editor_frame.xml`
-(`gran_gallery samples/editor_frame.xml`).
+"O" in a menu), the items with submenus have the ExpandCollapse pattern.
+
+**The toolbar** `ToolBar` is a row of flat buttons (usually `Button command="…"` with an `Icon` or the command label),
+`Separator` separators and `ToolGroup` groups. The toolbar buttons take the `ToolBarButton` theme style and, like
+all command buttons, do not take the focus from an input. When room is short, the toolbar tail goes into the menu of the
+"more" button (the engine builds it, a down arrow at the toolbar end): the menu items run the same commands and `onClick`, the label is
+the button text, and for an icon button — its `tooltip` or `accessibleName`. A group goes into the menu as a whole. The child mode is
+the `overflowMode` attribute: `asNeeded` (the default), `always` (always in the menu), `never` (always in the bar).
+
+```xml
+<ToolBar>
+  <Button command="saveDoc" tooltip="Save"><Icon source="icons/save.svg"/></Button>
+  <Separator/>
+  <ToolGroup>
+    <Button command="undo"/>
+    <Button command="redo"/>
+  </ToolGroup>
+  <Button text="Help" onClick="help" overflowMode="always"/>
+</ToolBar>
+```
+
+`Separator` fits a `Popup` menu too — there it is horizontal. Accessibility: the toolbar is a UI Automation element of the
+ToolBar type, the separator — Separator, the "more" button — a Button named "More" from the message catalog.
+
+Example of the whole frame — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 
 ## Embedded browser: WebView
 
