@@ -2,7 +2,7 @@
 
 Первый выпуск с номером версии: этап 1 плана «Фундамент программ» (события, команды, отмена, живой документ,
 выражения привязки, компоненты, модели данных, окна и программа), семантические версии и гарантии веток выпуска,
-сборка с санитайзерами и первые задачи ручной проверки. Полный список изменений — [CHANGELOG.md](../../CHANGELOG.md#010--2026-11-09).
+сборка с санитайзерами и первые задачи ручной проверки. Полный список изменений — [CHANGELOG.md](https://github.com/ErmaleyAlekov/Gran-UI/blob/v0.1.0/CHANGELOG.md#010--2026-11-09).
 
 **Требования:** «Берёста» 2.2.1 или новее (`$value` в `xs:assert` сложного типа, обход ошибки оптимизатора
 MSVC 14.44). Windows 10 1909+, MinGW-w64 GCC 11+ или MSVC 2022; Linux — GCC 8+, glibc 2.27+, Vulkan 1.0.
@@ -20,7 +20,7 @@ MSVC 14.44). Windows 10 1909+, MinGW-w64 GCC 11+ или MSVC 2022; Linux — GCC
 | Альт p11, Vulkan + `VK_LAYER_KHRONOS_validation` | тесты бэкенда и снимки всех разметок: lavapipe, Intel UHD 630, NVIDIA RTX 3060 | 0 ошибок, 0 сообщений слоя |
 | Альт p11 | `make DEBUG=1 SANITIZE=address,undefined test` | 338/338 |
 
-Ручные проверки: все задачи с пометкой «блокирует выпуск» закрыты ([tests/manual](../../tests/manual/README.md)).
+Ручные проверки: все задачи с пометкой «блокирует выпуск» закрыты ([tests/manual](https://github.com/ErmaleyAlekov/Gran-UI/blob/v0.1.0/tests/manual/README.md)).
 Открыты (не блокируют): Т-3 шаг 5 (своя рамка окна на втором мониторе с другим DPI — второго монитора пока нет), Т-8 (Linux: живое окно —
 частично проверено на стенде в Т-20…Т-24, захват кадра Vulkan в RenderDoc — повтор в Т-25).
 
@@ -36,7 +36,7 @@ MSVC 14.44). Windows 10 1909+, MinGW-w64 GCC 11+ или MSVC 2022; Linux — GCC
 The first release with a version number: roadmap stage 1 "Program Foundation" (events, commands, undo, live document,
 binding expressions, components, data models, windows and the program), semantic versions and release branch
 guarantees, sanitizer builds and the first manual check tasks. The full list of changes is in
-[CHANGELOG.en.md](../../CHANGELOG.en.md#010--2026-11-09).
+[CHANGELOG.en.md](https://github.com/ErmaleyAlekov/Gran-UI/blob/v0.1.0/CHANGELOG.en.md#010--2026-11-09).
 
 **Requirements:** Beresta 2.2.1 or later (`$value` in a complex type `xs:assert`, a workaround for an MSVC 14.44
 optimizer bug). Windows 10 1909+, MinGW-w64 GCC 11+ or MSVC 2022; Linux — GCC 8+,
