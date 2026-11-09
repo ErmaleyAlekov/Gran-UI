@@ -7,7 +7,7 @@
 #
 #  Запуск (PowerShell, из корня проекта):
 #    powershell -ExecutionPolicy Bypass -File tools/release/gitverse_release.ps1 -Tag v0.1.0
-#  Без описания (если Gitverse не принимает текст): добавить -NoNotes.
+#  Без описания (если Gitverse не принимает текст): добавить -NoNotes. Релиз уже есть — правится описание.
 #
 #  Creating a Gran UI release on Gitverse through the public API (https://api.gitverse.ru).
 #  It is needed until there is a release build by tag (P.2), and when the Gitverse web form answers
@@ -17,11 +17,12 @@
 #
 #  Run (PowerShell, from the project root):
 #    powershell -ExecutionPolicy Bypass -File tools/release/gitverse_release.ps1 -Tag v0.1.0
-#  Without notes (if Gitverse does not accept the text): add -NoNotes.
+#  Without notes (if Gitverse does not accept the text): add -NoNotes. The release exists — its notes are edited.
 # ============================================================================
 param(
     [Parameter(Mandatory = $true)][string]$Tag,
     [string]$Repository = "ermaleyalekov/Gran-UI",
+    [string]$GitHubRepository = "ErmaleyAlekov/Gran-UI",
     [switch]$NoNotes
 )
 
@@ -43,13 +44,29 @@ function Get-GitverseToken {
     }
 }
 
+#  Ссылки описания ведут на GitHub (…/blob/<тег>/файл) — так оно годится для релиза GitHub как есть.
+#  Читателю Gitverse GitHub может быть недоступен, поэтому здесь ссылки переводятся на Gitverse.
+#  Gitverse открывает файл по ветке или коммиту, но не по тегу (/content/<тег>/… — 404), поэтому
+#  тег заменяется хэшем его коммита из локального git.
+#
+#  The notes links lead to GitHub (…/blob/<tag>/file) — so the notes fit the GitHub release as they are.
+#  GitHub may be unavailable to a Gitverse reader, so here the links are moved to Gitverse.
+#  Gitverse opens a file by a branch or a commit but not by a tag (/content/<tag>/… is 404), so
+#  the tag is replaced with the hash of its commit from the local git.
+function Convert-LinksForGitverse([string]$notes) {
+    $commit = (git rev-parse "$Tag^{commit}").Trim()
+    $from = "https://github.com/$GitHubRepository/blob/$Tag/"
+    $to = "https://gitverse.ru/$Repository/content/$commit/"
+    return $notes.Replace($from, $to)
+}
+
 # Тело запроса: тег, название «Грань UI X.Y.Z», описание из tools/release/notes-<тег>.md (UTF-8)
 # The request body: the tag, the "Грань UI X.Y.Z" title, the notes from tools/release/notes-<tag>.md (UTF-8)
 function Get-ReleaseBody {
     $notes = ""
     if (-not $NoNotes) {
         $path = Join-Path $PSScriptRoot "notes-$Tag.md"
-        $notes = [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8)
+        $notes = Convert-LinksForGitverse ([IO.File]::ReadAllText($path, [Text.Encoding]::UTF8))
     }
     $title = "Грань UI " + $Tag.TrimStart("v")
     $json = @{ tag_name = $Tag; name = $title; body = $notes } | ConvertTo-Json -Compress
@@ -71,14 +88,37 @@ function Write-HttpError($failure) {
     Write-Host "HTTP $([int]$response.StatusCode): $($failure.ErrorDetails.Message)"
 }
 
+# id релиза по тегу или $null, если релиза ещё нет (404) — тогда он создаётся, иначе обновляется
+# The release id by the tag or $null when there is no release yet (404) — then it is created, otherwise updated
+function Find-ReleaseId($headers, [string]$releases) {
+    try {
+        return (Invoke-RestMethod -Method Get -Uri "$releases/tags/$Tag" -Headers $headers).id
+    }
+    catch {
+        if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 404) {
+            return $null
+        }
+        throw
+    }
+}
+
 $headers = @{
     "Authorization" = "Bearer " + (Get-GitverseToken)
     "Accept"        = "application/vnd.gitverse.object+json;version=1"
 }
+$releases = "https://api.gitverse.ru/repos/$Repository/releases"
 try {
-    $uri = "https://api.gitverse.ru/repos/$Repository/releases"
-    $result = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "application/json; charset=utf-8" -Body (Get-ReleaseBody)
-    Write-Host "Релиз создан / The release is created: id $($result.id)"
+    $id = Find-ReleaseId $headers $releases
+    # Есть релиз — правится описание (повторный запуск безопасен); нет — создаётся новый
+    # A release exists — its notes are edited (a re-run is safe); none — a new one is created
+    if ($id) {
+        $result = Invoke-RestMethod -Method Patch -Uri "$releases/$id" -Headers $headers -ContentType "application/json; charset=utf-8" -Body (Get-ReleaseBody)
+        Write-Host "Релиз обновлён / The release is updated: id $($result.id)"
+    }
+    else {
+        $result = Invoke-RestMethod -Method Post -Uri $releases -Headers $headers -ContentType "application/json; charset=utf-8" -Body (Get-ReleaseBody)
+        Write-Host "Релиз создан / The release is created: id $($result.id)"
+    }
 }
 catch {
     Write-HttpError $_
