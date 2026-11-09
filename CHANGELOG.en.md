@@ -20,6 +20,7 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 
 The first release with a version number. Includes everything done up to 2026-11-09: roadmap stage 1, "Program Foundation", and the fixes
 found by manual checks, including those on the Intel + NVIDIA test stand (Windows and Linux).
+Requires Beresta 2.2.1 or later.
 
 ### Added
 

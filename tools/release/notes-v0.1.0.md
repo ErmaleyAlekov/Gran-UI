@@ -4,8 +4,8 @@
 выражения привязки, компоненты, модели данных, окна и программа), семантические версии и гарантии веток выпуска,
 сборка с санитайзерами и первые задачи ручной проверки. Полный список изменений — [CHANGELOG.md](../../CHANGELOG.md#010--2026-11-09).
 
-**Требования:** «Берёста» не ниже коммита `2e8412c` (после v2.2.0: `$value` в `xs:assert` сложного типа и обход ошибки
-оптимизатора MSVC 14.44). Windows 10 1909+, MinGW-w64 GCC 11+ или MSVC 2022; Linux — GCC 8+, glibc 2.27+, Vulkan 1.0.
+**Требования:** «Берёста» 2.2.1 или новее (`$value` в `xs:assert` сложного типа, обход ошибки оптимизатора
+MSVC 14.44). Windows 10 1909+, MinGW-w64 GCC 11+ или MSVC 2022; Linux — GCC 8+, glibc 2.27+, Vulkan 1.0.
 
 ## Проверено перед выпуском (2026-11-09, коммит выпуска)
 
@@ -38,8 +38,8 @@ binding expressions, components, data models, windows and the program), semantic
 guarantees, sanitizer builds and the first manual check tasks. The full list of changes is in
 [CHANGELOG.en.md](../../CHANGELOG.en.md#010--2026-11-09).
 
-**Requirements:** Beresta at commit `2e8412c` or later (after v2.2.0: `$value` in a complex type `xs:assert` and a
-workaround for an MSVC 14.44 optimizer bug). Windows 10 1909+, MinGW-w64 GCC 11+ or MSVC 2022; Linux — GCC 8+,
+**Requirements:** Beresta 2.2.1 or later (`$value` in a complex type `xs:assert`, a workaround for an MSVC 14.44
+optimizer bug). Windows 10 1909+, MinGW-w64 GCC 11+ or MSVC 2022; Linux — GCC 8+,
 glibc 2.27+, Vulkan 1.0.
 
 **Checked before the release** (2026-11-09): Windows `make test` 343/343, `make test-render` on WARP (D3D12, D3D11),
