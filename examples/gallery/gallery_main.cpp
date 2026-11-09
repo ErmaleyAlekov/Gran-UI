@@ -34,6 +34,29 @@ namespace
         return local.string();
     }
 
+    /*
+    ** Аргумент, который не стал ключом: разметка, если не похож на ключ. Похожий на ключ (начинается с дефиса
+    ** или с длинного тире, которое подставляют текстовые редакторы и просмотрщики Markdown вместо «--»)
+    ** не считается файлом, иначе программа молча откроет файл «--vulkan» и упадёт с непонятной ошибкой.
+    **
+    ** An argument that did not become a key: the markup, unless it looks like a key. One that looks like a key
+    ** (starts with a hyphen or with the en/em dash that text editors and Markdown viewers put instead of "--")
+    ** is not taken as a file, otherwise the program silently opens a "--vulkan" file and fails with an obscure error.
+    */
+    void acceptMarkup(const char* argument, std::string& markup)
+    {
+        // Длинное тире U+2013 и U+2014 в UTF-8 / The en dash U+2013 and the em dash U+2014 in UTF-8
+        const bool dash = std::strncmp(argument, "\xE2\x80\x93", 3) == 0 || std::strncmp(argument, "\xE2\x80\x94", 3) == 0;
+
+        if (argument[0] != '-' && !dash)
+        {
+            markup = argument;
+            return;
+        }
+        std::cerr << "gran_gallery: неизвестный ключ \"" << argument << "\" (ключи пишутся двумя дефисами: --vulkan)\n"
+                  << "gran_gallery: unknown key \"" << argument << "\" (keys are written with two hyphens: --vulkan)\n";
+    }
+
     // Ключи командной строки / The command line keys
     gran::AppOptions parseOptions(int argc, char* argv[], std::string& markup)
     {
@@ -62,7 +85,7 @@ namespace
             else if (std::strcmp(argv[index], "--exit-after") == 0 && index + 1 < argc)
                 options.exitAfter = std::strtod(argv[++index], nullptr);
             else
-                markup = argv[index];
+                acceptMarkup(argv[index], markup);
         }
         return options;
     }

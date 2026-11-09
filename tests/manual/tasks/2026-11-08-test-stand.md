@@ -32,6 +32,9 @@
   3. Windows: часовой пояс «Москва»; в cmd от администратора
      `reg add HKLM\SYSTEM\CurrentControlSet\Control\TimeZoneInformation /v RealTimeIsUniversal /t REG_DWORD /d 1 /f`.
   После этого — одна перезагрузка Windows → Альт без человека у стенда, я проверю время загрузки.
+- **Итог (2026-11-09).** Пользователь: сделано. Проверено по SSH: в командной строке ядра нет `splash`, загрузка
+  до рабочего стола — 42 с (`systemd-analyze`), аппаратные часы в UTC (`RTC in local TZ: no`), время верное.
+  Задача закрыта.
 
 ## Т-14. Глазами: галерея на Intel и на NVIDIA (Windows)
 

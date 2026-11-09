@@ -22,11 +22,12 @@
 
 Ручные проверки: все задачи с пометкой «блокирует выпуск» закрыты ([tests/manual](../../tests/manual/README.md)).
 Открыты (не блокируют): Т-3 шаг 5 (своя рамка окна на втором мониторе с другим DPI — на стенде), Т-8 (Linux: живое окно —
-частично проверено на стенде в Т-20…Т-24, захват кадра Vulkan в RenderDoc — ещё нет), Т-13 (настройка загрузки Альт на стенде).
+частично проверено на стенде в Т-20…Т-24, захват кадра Vulkan в RenderDoc — повтор в Т-25).
 
 **Известное ограничение:** на GNOME (X11/XWayland) при перетаскивании правого края окна со стандартной рамкой мерцает
 полоса — это рамка `mutter-x11-frames`, у всех программ X11 так же; окна со своим заголовком (`titleBar="custom"`)
-её не имеют. Собственный бэкенд Wayland — в плане.
+её не имеют. Собственный бэкенд Wayland — в плане. Перетаскивание файлов из файлового менеджера (`onDrop`) пока
+работает только на Windows: протокол XDND для Linux ещё не сделан.
 
 ---
 
@@ -48,8 +49,9 @@ ASan + UBSan 338/338.
 
 Manual checks: every task marked "blocks the release" is closed. Open (not blocking): T-3 step 5 (custom window frame
 on a second monitor with a different DPI), T-8 (Linux: the live window is partly
-checked on the stand in T-20…T-24, a Vulkan frame capture in RenderDoc is not yet), T-13 (Alt boot setup on the stand).
+checked on the stand in T-20…T-24, a Vulkan frame capture in RenderDoc is repeated in T-25).
 
 **Known limitation:** on GNOME (X11/XWayland) a strip flickers while the right edge of a window with the standard frame
 is dragged — it is the `mutter-x11-frames` frame, the same for every X11 program; windows with their own title bar
-(`titleBar="custom"`) do not have it. A native Wayland backend is planned.
+(`titleBar="custom"`) do not have it. A native Wayland backend is planned. Dropping files from a file manager (`onDrop`)
+works on Windows only for now: the XDND protocol for Linux is not done yet.

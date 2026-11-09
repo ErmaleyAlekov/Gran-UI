@@ -34,6 +34,10 @@ namespace gallery
                 options.filters = {{"Картинки", "*.png;*.jpg;*.jpeg;*.svg"}, {"Все файлы", "*.*"}};
                 options.fileName = "снимок.png";
                 options.defaultExtension = "png";
+                // Сохранение пишет настоящий текстовый файл, поэтому у него свои фильтры
+                // The save writes a real text file, so it has its own filters
+                if (kind == 1)
+                    options = saveSampleOptions();
                 if (kind == 0)
                     paths = application->openFileDialog(options, true, &node);
                 else if (kind == 1)
@@ -42,6 +46,8 @@ namespace gallery
                     paths.push_back(application->folderDialog(options, &node));
                 if (paths.empty() || paths.front().empty())
                     setStatus(*application, "Отменено");
+                else if (kind == 1)
+                    setStatus(*application, saveSample(paths.front()));
                 else
                     setStatus(*application, "Выбрано: " + paths.front() + " (всего " + std::to_string(paths.size()) + ")");
             }

@@ -39,6 +39,16 @@ namespace gallery
     */
     void registerPlatform(gran::Application& application, const std::string& markup);
 
+    // Настройки диалога сохранения образца (gallery_save.cpp) / The sample save dialog options (gallery_save.cpp)
+    gran::FileDialogOptions saveSampleOptions();
+
+    /*
+    ** Записывает образец в файл path (UTF-8) и возвращает текст для строки состояния (gallery_save.cpp).
+    **
+    ** Writes the sample into the path file (UTF-8) and returns the text for the status line (gallery_save.cpp).
+    */
+    std::string saveSample(const std::string& path);
+
     /*
     ** События (gallery_board.cpp, samples/events.xml): moveTask (onDrop колонки) и flipTask (двойной щелчок)
     ** переносят карточки между моделями todo и done; reset/resetBoard — своё событие boardReset; поле pad —

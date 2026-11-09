@@ -10,6 +10,12 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 
 ## [Unreleased]
 
+### Fixed
+- Gallery, `samples/platform.xml`: "Save as…" only showed the chosen path and wrote nothing — now it writes a text file
+  and reports "Saved: path" (found by the T-8 manual check).
+- Gallery: an unknown key (for example, `–vulkan` with an en dash instead of two hyphens) is no longer taken as the markup
+  file name — an "unknown key" message with a hint is printed.
+
 ## [0.1.0] — 2026-11-09
 
 The first release with a version number. Includes everything done up to 2026-11-09: roadmap stage 1, "Program Foundation", and the fixes
