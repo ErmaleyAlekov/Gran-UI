@@ -87,7 +87,7 @@ namespace gran::markup::internal
     void readStates(const beresta::Element& element, style::DeclarationBlock& block, BuildContext& context)
     {
         static const char* const NAMES[style::STATE_COUNT] = {"Hover", "Pressed", "Focused", "Selected", "Disabled",
-            "Checked", "Maximized", "DropTarget", "Dragging"};
+            "Checked", "Maximized", "DropTarget", "Dragging", "Open"};
 
         for (const beresta::Element* child = firstElementChild(element); child != nullptr;
              child = nextElementSibling(*child))

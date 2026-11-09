@@ -13,6 +13,10 @@ namespace gran::input
     */
     static bool keepsEditing(const RouterState& state, const ui::Node* control) noexcept
     {
+        // Пункт строки меню фокус не берёт никогда: меню «Правка» работает с полем, где фокус был
+        // A menu bar item never takes the focus: the "Edit" menu works with the field where the focus was
+        if (control != nullptr && ui::isMenuBarItem(*control))
+            return true;
         if (control == nullptr || control->kind != ui::ElementKind::BUTTON)
             return false;
         if (state.focus == nullptr || !ui::isTextField(*state.focus))

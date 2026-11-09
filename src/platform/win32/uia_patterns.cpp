@@ -26,6 +26,8 @@ namespace gran::platform::win32
             return static_cast<IValueProvider*>(this);
         if (pattern == UIA_RangeValuePatternId && (patterns & a11y::PATTERN_RANGE) != 0)
             return static_cast<IRangeValueProvider*>(this);
+        if (pattern == UIA_ExpandCollapsePatternId && (patterns & a11y::PATTERN_EXPAND) != 0)
+            return static_cast<IExpandCollapseProvider*>(this);
         return nullptr;
     }
 
@@ -35,7 +37,8 @@ namespace gran::platform::win32
         static const struct { const IID* iid; PATTERNID pattern; } PATTERNS[] = {
             {&__uuidof(IInvokeProvider), UIA_InvokePatternId}, {&__uuidof(IToggleProvider), UIA_TogglePatternId},
             {&__uuidof(ISelectionItemProvider), UIA_SelectionItemPatternId},
-            {&__uuidof(IValueProvider), UIA_ValuePatternId}, {&__uuidof(IRangeValueProvider), UIA_RangeValuePatternId}};
+            {&__uuidof(IValueProvider), UIA_ValuePatternId}, {&__uuidof(IRangeValueProvider), UIA_RangeValuePatternId},
+            {&__uuidof(IExpandCollapseProvider), UIA_ExpandCollapsePatternId}};
 
         for (const auto& entry : PATTERNS)
         {

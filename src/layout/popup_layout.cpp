@@ -9,6 +9,9 @@ namespace gran::layout::internal
         // Зазор между якорем-рамкой и слоем; у якоря-точки (контекстное меню) зазора нет / The gap between a frame anchor and the layer; a point anchor (a context menu) has none
         constexpr float ANCHOR_GAP = 4.0f;
 
+        // Меню пункта строки меню — почти вплотную под пунктом, как в настольных программах / A menu bar item menu — almost flush under the item, as in desktop programs
+        constexpr float BAR_GAP = 1.0f;
+
         // Сдвиг рамки внутрь окна (слой больше окна прижимается к левому верхнему углу) / Shifting the frame into the window (a layer larger than the window is pressed to the top-left corner)
         Rect clampToWindow(Rect frame, Size viewport) noexcept
         {
@@ -18,19 +21,18 @@ namespace gran::layout::internal
         }
 
         /*
-        ** Место слоя: под якорем от его левого края; не помещается снизу, а сверху есть место —
-        ** над якорем (как выпадающие списки в браузерах); по горизонтали сдвигается внутрь окна.
+        ** Место слоя: под якорем от его левого края на зазор gap (у якоря-точки зазора нет); не помещается снизу,
+        ** а сверху есть место — над якорем (как выпадающие списки в браузерах); по горизонтали сдвигается внутрь окна.
         **
-        ** The layer place: under the anchor from its left edge; if it does not fit below and there is room
-        ** above — over the anchor (as browser drop-down lists); horizontally it is shifted into the window.
+        ** The layer place: under the anchor from its left edge by the gap (a point anchor has no gap); if it does not fit below
+        ** and there is room above — over the anchor (as browser drop-down lists); horizontally it is shifted into the window.
         */
-        Rect placePopup(const Rect& anchor, Size size, Size viewport) noexcept
+        Rect placePopup(const Rect& anchor, Size size, Size viewport, float gap) noexcept
         {
-            float gap = 0.0f;
             Rect frame{anchor.x, 0.0f, size.width, size.height};
 
-            if (anchor.height > 0.0f)
-                gap = ANCHOR_GAP;
+            if (anchor.height <= 0.0f)
+                gap = 0.0f;
             frame.y = anchor.y + anchor.height + gap;
             if (frame.y + size.height > viewport.height && anchor.y - gap - size.height >= 0.0f)
                 frame.y = anchor.y - gap - size.height;
@@ -59,11 +61,11 @@ namespace gran::layout::internal
         }
 
         /*
-        ** Место слоя по его роли: диалог — по центру окна, подменю — сбоку от пункта, список ComboBox —
-        ** под полем и не уже его (как <select>), прочие — у якоря из showPopup.
+        ** Место слоя по его роли: диалог — по центру окна, меню пункта строки меню — под пунктом, подменю — сбоку
+        ** от пункта, список ComboBox — под полем и не уже его (как <select>), прочие — у якоря из showPopup.
         **
-        ** The layer place by its role: a dialog — in the window center, a submenu — beside the item, a ComboBox list —
-        ** under the field and not narrower than it (as <select>), the others — at the anchor from showPopup.
+        ** The layer place by its role: a dialog — in the window center, a menu bar item menu — under the item, a submenu — beside
+        ** the item, a ComboBox list — under the field and not narrower than it (as <select>), the others — at the anchor from showPopup.
         */
         Rect placeLayer(ui::Node& layer, Size size, Size viewport) noexcept
         {
@@ -72,11 +74,13 @@ namespace gran::layout::internal
             if (layer.kind == ui::ElementKind::DIALOG)
                 return clampToWindow(Rect{std::round((viewport.width - size.width) * 0.5f),
                     std::round((viewport.height - size.height) * 0.5f), size.width, size.height}, viewport);
+            if (owner != nullptr && ui::isMenuBarItem(*owner))
+                return placePopup(owner->layout.frame, size, viewport, BAR_GAP);
             if (owner != nullptr && owner->kind == ui::ElementKind::MENU_ITEM)
                 return placeSide(layer, *owner, size, viewport);
             if (owner != nullptr && owner->kind == ui::ElementKind::COMBO_BOX)
                 size.width = std::fmax(size.width, layer.content.popupAnchor.width);
-            return placePopup(layer.content.popupAnchor, size, viewport);
+            return placePopup(layer.content.popupAnchor, size, viewport, ANCHOR_GAP);
         }
     }
 

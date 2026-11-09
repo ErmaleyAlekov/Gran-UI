@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Каркас окна большой программы (план 2.1): строка меню. Alt (нажать и отпустить) или F10 — фокус на строку меню,
+  стрелки влево/вправо — соседний пункт, вниз или Enter — открыть меню; Alt+Ф, Alt+П, Alt+В, Alt+С — сразу открыть
+  меню «Файл», «Правка», «Вид», «Справка»; в открытом меню буква пункта выбирает его (подчёркнутые буквы видны,
+  пока зажат Alt или меню открыто с клавиатуры). Пока меню открыто, наведение на другой пункт строки переключает его.
+  Сочетания Ctrl+N, Ctrl+S и др. работают и без меню. Запуск: gran_gallery samples/editor_frame.xml
+
+  A big program window frame (plan 2.1): the menu bar. Alt (press and release) or F10 — the focus to the menu bar,
+  the left/right arrows — the neighbor item, down or Enter — open the menu; Alt+Ф, Alt+П, Alt+В, Alt+С — open the
+  "File", "Edit", "View", "Help" menus at once; in an open menu the item letter chooses it (the underlined letters are shown
+  while Alt is held or the menu is open from the keyboard). While a menu is open, hovering another bar item switches it.
+  Ctrl+N, Ctrl+S and others work without the menu too. Run: gran_gallery samples/editor_frame.xml
+-->
+<Window title="Gran UI — каркас окна" width="900" height="560" background="#ffffff">
+  <Resources>
+    <Command id="newDoc" text="_Новый" key="Mod+N" action="command"/>
+    <Command id="openDoc" text="_Открыть…" key="Mod+O" action="command"/>
+    <Command id="saveDoc" text="_Сохранить" key="Mod+S" action="command"/>
+    <Command id="saveAs" text="Сохранить _как…" key="Mod+Shift+S" action="command"/>
+    <Command id="quit" text="_Выход" key="Mod+Q" action="gran:close"/>
+    <Command id="undo" text="_Отменить" key="Mod+Z" action="gran:undo" enabled="false"/>
+    <Command id="redo" text="_Повторить" key="Mod+Y" action="gran:redo" enabled="false"/>
+    <Command id="find" text="_Найти…" key="Mod+F" action="command"/>
+  </Resources>
+  <Stack grow="1">
+    <MenuBar id="menu">
+      <MenuItem text="_Файл">
+        <Popup>
+          <MenuItem command="newDoc"/>
+          <MenuItem command="openDoc"/>
+          <MenuItem command="saveDoc"/>
+          <MenuItem command="saveAs"/>
+          <MenuItem command="quit"/>
+        </Popup>
+      </MenuItem>
+      <MenuItem text="_Правка">
+        <Popup>
+          <MenuItem command="undo"/>
+          <MenuItem command="redo"/>
+          <MenuItem command="find"/>
+        </Popup>
+      </MenuItem>
+      <MenuItem text="_Вид">
+        <Popup>
+          <MenuItem text="_Масштаб">
+            <Popup>
+              <MenuItem text="_Крупнее" onClick="command"/>
+              <MenuItem text="_Мельче" onClick="command"/>
+              <MenuItem text="_Обычный" onClick="command"/>
+            </Popup>
+          </MenuItem>
+          <MenuItem text="_Строка состояния" onClick="command"/>
+        </Popup>
+      </MenuItem>
+      <MenuItem text="_Справка">
+        <Popup>
+          <MenuItem text="_О программе" onClick="command"/>
+        </Popup>
+      </MenuItem>
+    </MenuBar>
+    <TextArea id="editor" grow="1" margin="12" placeholder="Текст документа: Alt+Ф — меню «Файл», Ctrl+S — сохранить"/>
+    <Text id="status" padding="6 12" color="#667085" background="#f8f9fb">Нажмите Alt или F10, чтобы перейти в меню.</Text>
+  </Stack>
+</Window>

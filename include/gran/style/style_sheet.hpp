@@ -15,18 +15,20 @@ namespace gran::style
     ** более раннее (нажатие важнее наведения, отключение важнее всего, кроме отметки;
     ** MAXIMIZED — окно развёрнуто, для кнопок заголовка; DROP_TARGET — над зоной onDrop
     ** несут файлы или узел, который зона примет; DRAGGING — узел сейчас перетаскивают (источник);
-    ** SELECTED — копия записи отмечена моделью выделения списка). Маска — std::uint16_t, бит на состояние.
+    ** SELECTED — копия записи отмечена моделью выделения списка; OPEN — слой элемента открыт: меню пункта строки
+    ** меню или подменю). Маска — std::uint16_t, бит на состояние.
     **
     ** The element states. The order is the priority: a later state overrides
     ** an earlier one (pressing beats hovering, disabling beats everything except checking;
     ** MAXIMIZED — the window is maximized, for the title bar buttons; DROP_TARGET — files
     ** or a node the zone accepts are carried over an onDrop zone; DRAGGING — the node is being dragged now (the source);
-    ** SELECTED — the record copy is marked by the list selection model). The mask is std::uint16_t, a bit per state.
+    ** SELECTED — the record copy is marked by the list selection model; OPEN — the element layer is open: the menu of
+    ** a menu bar item or a submenu). The mask is std::uint16_t, a bit per state.
     */
-    enum class State : std::uint8_t { HOVER, PRESSED, FOCUSED, SELECTED, DISABLED, CHECKED, MAXIMIZED, DROP_TARGET, DRAGGING };
+    enum class State : std::uint8_t { HOVER, PRESSED, FOCUSED, SELECTED, DISABLED, CHECKED, MAXIMIZED, DROP_TARGET, DRAGGING, OPEN };
 
     // Число состояний / The state count
-    constexpr std::size_t STATE_COUNT = 9;
+    constexpr std::size_t STATE_COUNT = 10;
 
     // Бит состояния в маске (cascade.cpp) / The state bit in a mask (cascade.cpp)
     std::uint16_t stateBit(State state) noexcept;

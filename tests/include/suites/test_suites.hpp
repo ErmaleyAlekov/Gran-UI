@@ -36,6 +36,9 @@ namespace suites
     void registerTextAreaTests(test::TestRunner& runner);
     void registerRichTextTests(test::TestRunner& runner);
     void registerPopupTests(test::TestRunner& runner);
+    void registerMenuBarTests(test::TestRunner& runner);
+    void registerMenuAccessTests(test::TestRunner& runner);
+    void registerWin32KeyMenuTests(test::TestRunner& runner);
     void registerDialogTests(test::TestRunner& runner);
     void registerWidgetTests(test::TestRunner& runner);
     void registerEventRoutingTests(test::TestRunner& runner);

@@ -23,4 +23,10 @@ namespace gran::platform
     {
         return false;
     }
+
+    // Подчёркивания — только по Alt и при меню с клавиатуры / The underlines — only on Alt and with menus from the keyboard
+    bool Window::keyboardCuesAlways() const
+    {
+        return false;
+    }
 }

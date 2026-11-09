@@ -37,11 +37,13 @@ namespace gran::platform
     /*
     ** Клавиши, которые различает движок (остальные — UNKNOWN): служебные, латинские буквы A–Z по физическому
     ** положению (Ctrl+C работает и в русской раскладке), цифры верхнего ряда, F1–F12, Insert и клавиша меню.
-    ** Буквы, цифры и F1–F12 идут подряд: код вычисляется сдвигом от A, DIGIT_0 и F1.
+    ** Буквы, цифры и F1–F12 идут подряд: код вычисляется сдвигом от A, DIGIT_0 и F1. ALT — левый или правый Alt
+    ** (не AltGr): нажать и отпустить — строка меню; добавлен в конец, чтобы коды прежних клавиш не сдвинулись.
     **
     ** The keys the engine distinguishes (the others are UNKNOWN): the service keys, the Latin letters A–Z by the physical
     ** position (Ctrl+C works in the Russian layout too), the top row digits, F1–F12, Insert and the menu key.
-    ** The letters, the digits and F1–F12 go in a row: a code is computed as an offset from A, DIGIT_0 and F1.
+    ** The letters, the digits and F1–F12 go in a row: a code is computed as an offset from A, DIGIT_0 and F1. ALT is the left
+    ** or right Alt (not AltGr): press and release — the menu bar; added at the end so the former key codes did not shift.
     */
     enum class Key : std::uint8_t
     {
@@ -49,7 +51,7 @@ namespace gran::platform
         PAGE_UP, PAGE_DOWN, INSERT, CONTEXT_MENU,
         A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
         DIGIT_0, DIGIT_1, DIGIT_2, DIGIT_3, DIGIT_4, DIGIT_5, DIGIT_6, DIGIT_7, DIGIT_8, DIGIT_9,
-        F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12
+        F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, ALT
     };
 
     // Имя клавиши для приложения ("A", "Enter", "ArrowLeft", "F5"; UNKNOWN — "Unidentified"), key_names.cpp
@@ -248,6 +250,12 @@ namespace gran::platform
         // Whether the window manager waits for this frame (then before framePresented its display is worth waiting
         // for — RenderBackend::waitPresented, T-24); no by default
         virtual bool waitsForFrame() const;
+
+        // Просит ли ОС подчёркивать буквы доступа всегда, а не только по Alt (Windows: «Подчёркивать клавиши доступа»);
+        // по умолчанию (window_defaults.cpp) — нет
+        // Whether the OS asks to underline the access letters always, not only on Alt (Windows: "Underline access keys");
+        // no by default (window_defaults.cpp)
+        virtual bool keyboardCuesAlways() const;
 
         // Дерево доступности для вспомогательных технологий ОС (nullptr — отключить) / The accessibility tree for the OS assistive technologies (nullptr — disconnect)
         virtual void setAccessTree(a11y::AccessTree* tree) = 0;

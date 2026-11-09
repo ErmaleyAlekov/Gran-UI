@@ -44,12 +44,10 @@ namespace gran::render
         // Измеритель содержимого (текст и картинки) для компоновки / The content measurer (text and images) for layout
         layout::ContentMeasurer& measurer() noexcept;
 
-        // Кадр дерева со стилем окна; scale — DPI; caret — поле ввода с видимой кареткой, selection — узел
-        // с видимым выделением (оба могут быть nullptr)
-        // A frame of the tree with the window style; scale is the DPI; caret is the input with a visible caret, selection is
-        // the node with a visible selection (both may be nullptr)
+        // Кадр дерева со стилем окна; scale — DPI; marks — каретка, выделение и подчёркивания букв доступа
+        // A frame of the tree with the window style; scale is the DPI; marks — the caret, the selection and the access letter underlines
         rhi::FrameStatus render(const ui::Node& root, const style::ComputedStyle& window, float scale,
-            const ui::Node* caret = nullptr, const ui::Node* selection = nullptr);
+            const FrameMarks& marks = FrameMarks{});
 
     private:
         // ---- renderer_textures.cpp ----

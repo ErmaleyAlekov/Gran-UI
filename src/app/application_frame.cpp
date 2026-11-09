@@ -99,7 +99,8 @@ namespace gran
             revealCaret(win);
             if (caret == nullptr || !ui::isTextField(*caret) || !win.caretVisible)
                 caret = nullptr;
-            if (win.renderer->render(root, win.windowStyle, scale, caret, win.router->selected())
+            if (win.renderer->render(root, win.windowStyle, scale,
+                    render::FrameMarks{caret, win.router->selected(), win.router->mnemonicsShown()})
                 == rhi::FrameStatus::DEVICE_LOST)
                 recreateGraphics(win);
             checkGraphicsDiagnostics(win);

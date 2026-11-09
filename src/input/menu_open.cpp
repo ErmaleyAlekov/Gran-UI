@@ -100,6 +100,8 @@ namespace gran::input
             target = ui::findOption(*layer.parent, layer.parent->content.option);
         if (target == nullptr && state.keyboard)
             target = stepItem(layer, nullptr, 1);
+        // Меню, открытое с клавиатуры, показывает буквы доступа / A menu opened from the keyboard shows the access letters
+        state.keyboardMenus = state.keyboardMenus || state.keyboard;
         if (target != nullptr)
             changeFocus(state, target);
     }

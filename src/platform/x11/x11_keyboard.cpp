@@ -25,6 +25,7 @@ namespace gran::platform::x11
             case XK_End: return Key::END; case XK_Delete: return Key::DELETE_KEY;
             case XK_Page_Up: return Key::PAGE_UP; case XK_Page_Down: return Key::PAGE_DOWN;
             case XK_Insert: return Key::INSERT; case XK_Menu: return Key::CONTEXT_MENU;
+            case XK_Alt_L: case XK_Alt_R: return Key::ALT;
             default: return Key::UNKNOWN;
         }
     }
@@ -62,8 +63,10 @@ namespace gran::platform::x11
         return result;
     }
 
-    // Сначала клавиша, затем символы: обработчик shortcuts может подавить обычное редактирование.
-    // First the key, then characters: shortcut handlers can suppress ordinary editing.
+    // Сначала клавиша, затем символы: обработчик shortcuts может подавить обычное редактирование. Символы с Alt
+    // (без Ctrl) тоже идут — как буквы доступа меню; в поле ввода их не вставляет маршрутизатор.
+    // First the key, then characters: shortcut handlers can suppress ordinary editing. The characters with Alt
+    // (without Ctrl) go too — as the menu access letters; the router does not insert them into an input.
     void X11Window::keyboard(XKeyEvent& native, bool down)
     {
         Event event;
@@ -74,6 +77,6 @@ namespace gran::platform::x11
             event.key = physicalKey(native.keycode);
         event.modifiers = modifiers(native.state);
         _events.push_back(event);
-        if (down && !(native.state & (ControlMask | Mod1Mask))) text(native);
+        if (down && !(native.state & ControlMask)) text(native);
     }
 }

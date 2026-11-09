@@ -218,6 +218,9 @@ namespace gran::render::internal
     // Глифы участков их цветом и кеглем и линии textDecoration / The run glyphs in their color and size and the textDecoration lines
     void paintRunGlyphs(const TextPlace& place, const PaintState& state, SceneContext& context);
 
+    // Подчёркивание буквы доступа пункта меню (content.mnemonicAt) линией цвета текста / The menu item access letter underline (content.mnemonicAt) by a line in the text color
+    void paintMnemonic(const TextPlace& place, const PaintState& state, SceneContext& context);
+
     // ---- paint_backdrop.cpp ----
 
     // Размытая подложка под блоком с backdropBlur; начинает новый сегмент / A blurred backdrop under a box with backdropBlur; starts a new segment

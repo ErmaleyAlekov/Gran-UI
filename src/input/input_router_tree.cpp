@@ -49,6 +49,7 @@ namespace gran::input
         drop(_state.contextMenu, subtree);
         drop(_state.contextTarget, subtree);
         drop(_state.capture, subtree);
+        drop(_state.barReturn, subtree);
         drop(_state.nodeDrag.source, subtree);
         drop(_state.nodeDrag.zone, subtree);
         forgetEvents(_state, subtree);

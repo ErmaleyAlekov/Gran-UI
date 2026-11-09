@@ -1,4 +1,5 @@
 #include "gran/render/internal/scene_internal.hpp"
+#include "gran/utils/utf8.hpp"
 
 #include <algorithm>
 
@@ -78,5 +79,31 @@ namespace gran::render::internal
             fill.from = fill.to;
             ++paint.run;
         }
+    }
+
+    /*
+    ** Буква доступа подчёркивается так же, как участок с textDecoration: underline (тот же отступ и толщина),
+    ** но только под одним символом подписи. Смещение за пределами подписи (её сменили кодом) — ничего.
+    **
+    ** The access letter is underlined the same way as a run with textDecoration: underline (the same offset and thickness),
+    ** but only under one label character. An offset beyond the label (the code changed it) — nothing.
+    */
+    void paintMnemonic(const TextPlace& place, const PaintState& state, SceneContext& context)
+    {
+        const ui::Node& item = place.node;
+        const std::string& label = item.content.text;
+        RangeFill fill;
+        std::size_t next = item.content.mnemonicAt;
+
+        if (place.layout.lines.empty() || next >= label.size())
+            return;
+        decodeUtf8(label, next);
+        float size = item.computed.fontSize;
+        fill.from = item.content.mnemonicAt;
+        fill.to = next;
+        fill.top = place.layout.lines.front().baseline + size * 0.12f;
+        fill.height = std::max(1.0f, size / 14.0f);
+        fill.color = item.computed.color;
+        paintRange(place, fill, state, context);
     }
 }

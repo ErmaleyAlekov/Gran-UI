@@ -40,9 +40,9 @@ namespace gran::render
     ** runs with the already filled atlas and in normal life does not change the generation.
     */
     rhi::FrameStatus Renderer::render(const ui::Node& root, const style::ComputedStyle& window, float scale,
-        const ui::Node* caret, const ui::Node* selection)
+        const FrameMarks& marks)
     {
-        SceneResources resources{_text, _atlas, _ramps, _images, caret, selection};
+        SceneResources resources{_text, _atlas, _ramps, _images, marks.caret, marks.selection, marks.mnemonics};
         rhi::FrameData frame;
 
         for (int attempt = 0; attempt < 2; ++attempt)

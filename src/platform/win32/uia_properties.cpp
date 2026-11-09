@@ -11,7 +11,7 @@ namespace gran::platform::win32
                 UIA_ImageControlTypeId, UIA_ButtonControlTypeId, UIA_EditControlTypeId, UIA_CheckBoxControlTypeId,
                 UIA_SliderControlTypeId, UIA_MenuControlTypeId, UIA_MenuItemControlTypeId, UIA_WindowControlTypeId,
                 UIA_ComboBoxControlTypeId, UIA_RadioButtonControlTypeId, UIA_TabControlTypeId, UIA_TabItemControlTypeId,
-                UIA_ProgressBarControlTypeId};
+                UIA_ProgressBarControlTypeId, UIA_MenuBarControlTypeId};
 
             return TYPES[static_cast<std::size_t>(role)];
         }
@@ -62,6 +62,7 @@ namespace gran::platform::win32
             case UIA_HelpTextPropertyId: return setString(value, info.help);
             case UIA_AutomationIdPropertyId: return setString(value, node.id);
             case UIA_AcceleratorKeyPropertyId: return setString(value, node.content.shortcut);
+            case UIA_AccessKeyPropertyId: return setString(value, info.accessKey);
             case UIA_ControlTypePropertyId: value->vt = VT_I4; value->lVal = controlType(info.role); return true;
             case UIA_IsEnabledPropertyId: return setBool(value, info.enabled);
             case UIA_IsKeyboardFocusablePropertyId: return setBool(value, info.focusable && info.enabled);

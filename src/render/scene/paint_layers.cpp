@@ -64,7 +64,7 @@ namespace gran::render::internal
         Chevron mark{Vec2{content.x + content.width - size, content.y + content.height * 0.5f}, Vec2{1.0f, 0.0f},
             size, colorWithOpacity(style.color, 0.65f)};
 
-        if (node.kind == ui::ElementKind::MENU_ITEM && ui::submenuOf(node) == nullptr)
+        if (node.kind == ui::ElementKind::MENU_ITEM && (ui::submenuOf(node) == nullptr || ui::isMenuBarItem(node)))
         {
             paintShortcut(node, state, context);
             return;

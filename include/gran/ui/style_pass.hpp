@@ -6,13 +6,16 @@
 namespace gran::ui
 {
     // Число видов элементов / The element kind count
-    constexpr std::size_t ELEMENT_KIND_COUNT = 26;
+    constexpr std::size_t ELEMENT_KIND_COUNT = 27;
 
     // Встроенные стили видов элементов (индекс — ElementKind); nullptr — без стиля
     // The built-in element kind styles (the index is ElementKind); nullptr — no style
     struct KindStyles
     {
         const style::StyleRule* rules[ELEMENT_KIND_COUNT] = {};
+        // Стиль темы MenuBarItem — пункт строки меню (у него свой вид, а элемент тот же MenuItem); nullptr — как MenuItem
+        // The theme MenuBarItem style — a menu bar item (it has its own look, but the element is the same MenuItem); nullptr — as MenuItem
+        const style::StyleRule* menuBarItem = nullptr;
     };
 
     /*

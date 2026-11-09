@@ -225,6 +225,15 @@ namespace gran::input
         // Обработчиков вызвано за текущее событие окна: были — нужен кадр (обработчик мог что-то поменять)
         // The handlers called during the current window event: there were some — a frame is needed (a handler might change something)
         std::uint32_t delivered = 0;
+        // Строка меню (menu_bar_*.cpp): Alt нажат один (его отпускание войдёт в строку), Alt зажат, меню открыты
+        // с клавиатуры, видны ли сейчас подчёркивания букв доступа и узел фокуса до входа в строку меню
+        // The menu bar (menu_bar_*.cpp): Alt is pressed alone (its release enters the bar), Alt is held, the menus are open
+        // from the keyboard, whether the access letter underlines are shown now and the focus node before entering the bar
+        bool altArmed = false;
+        bool altHeld = false;
+        bool keyboardMenus = false;
+        bool cuesShown = false;
+        ui::Node* barReturn = nullptr;
     };
 
     /*
@@ -254,6 +263,9 @@ namespace gran::input
         // Узел, выделение которого видно (Text или поле ввода в фокусе), или nullptr
         // The node whose selection is visible (a Text or the focused input), or nullptr
         const ui::Node* selected() const noexcept;
+
+        // Видны ли подчёркивания букв доступа меню (Alt зажат или меню открыты с клавиатуры) / Whether the menu access letter underlines are shown (Alt held or the menus are open from the keyboard)
+        bool mnemonicsShown() const noexcept;
 
         // ---- input_router_tree.cpp ----
 
@@ -555,6 +567,46 @@ namespace gran::input
     // Фокус при открытии: диалог — первый элемент внутри, список ComboBox — выбранный пункт, меню с клавиатуры — первый пункт
     // The focus on opening: a dialog — the first control inside, a ComboBox list — the selected item, a menu from the keyboard — the first item
     void focusOnOpen(RouterState& state, ui::Node& layer);
+
+    // ---- menu_bar_input.cpp ----
+
+    // Состояние Open у пункта меню или ComboBox, чей слой открыт или закрыт / The Open state on a menu item or a ComboBox whose layer opens or closes
+    void markOpen(ui::Node& layer, bool open);
+
+    // Войти в строку меню на пункт item (прежний фокус запоминается); open — сразу открыть его меню (или выполнить пункт без меню)
+    // Entering the menu bar at item (the former focus is remembered); open — open its menu at once (or run an item without a menu)
+    void enterMenuBar(RouterState& state, ui::Node& item, bool open);
+
+    // Выйти из строки меню: её меню закрываются, фокус — туда, где был до входа / Leaving the menu bar: its menus close, the focus goes where it was before entering
+    void leaveMenuBar(RouterState& state);
+
+    // Alt (нажать и отпустить без других клавиш) и F10 — войти в строку меню или выйти; true — клавиша обработана
+    // Alt (press and release without other keys) and F10 — enter the menu bar or leave it; true — the key is handled
+    bool altKey(RouterState& state, const platform::Event& event);
+
+    // Учёт событий для Alt и подсказок до обработки (мышь, потеря фокуса) и после неё (видимость подчёркиваний); true — нужен кадр
+    // Accounting events for Alt and the cues before the handling (the mouse, the focus loss) and after it (the underline visibility); true — a frame is needed
+    bool trackMenuCues(RouterState& state, const platform::Event& event, bool after);
+
+    // ---- menu_bar_keys.cpp ----
+
+    // Клавиши на пункте строки меню без открытого меню: стрелки вбок — сосед, вниз, Enter, пробел — открыть, Esc — выйти
+    // The keys on a menu bar item without an open menu: the side arrows — a neighbor, down, Enter, space — open, Esc — leave
+    bool menuBarKey(RouterState& state, const platform::Event& event);
+
+    // Стрелки вбок в меню пункта строки: соседний пункт строки и его меню; false — не тот случай
+    // The side arrows in the menu of a bar item: the neighbor bar item and its menu; false — not that case
+    bool barSideKey(RouterState& state, ui::Node& menu, platform::Key key);
+
+    // Наведение на другой пункт строки, пока открыто меню строки, переключает меню / Hovering another bar item while a bar menu is open switches the menu
+    void hoverMenuBar(RouterState& state, ui::Node* hover);
+
+    // Символ как буква доступа: пункт открытого меню, пункт строки меню (в строке или с Alt); true — символ поглощён
+    // A character as an access letter: an item of the open menu, a menu bar item (in the bar or with Alt); true — the character is consumed
+    bool mnemonicKey(RouterState& state, const platform::Event& event);
+
+    // Открытое меню пункта строки меню (nullptr — нет) / The open menu of a menu bar item (nullptr — none)
+    ui::Node* openBarMenu(const RouterState& state) noexcept;
 
     // ---- context_menu.cpp ----
 

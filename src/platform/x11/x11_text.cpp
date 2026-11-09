@@ -29,6 +29,7 @@ namespace gran::platform::x11
         while (offset < value.size())
         {
             Event event; event.kind = EventKind::CHARACTER; event.character = decodeUtf8(value, offset);
+            event.modifiers = static_cast<std::uint8_t>(modifiers(native.state) & ~MODIFIER_SHIFT);
             if (event.character >= 32 && event.character != 127) _events.push_back(event);
         }
     }

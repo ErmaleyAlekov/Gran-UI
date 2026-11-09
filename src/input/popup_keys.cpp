@@ -87,6 +87,8 @@ namespace gran::input
         }
         if (popup->kind != ui::ElementKind::POPUP)
             return false;
+        if (barSideKey(state, *popup, event.key))
+            return true;
         if (event.key == platform::Key::LEFT || event.key == platform::Key::RIGHT)
             return submenuKey(state, *popup, event.key);
         if (event.key != platform::Key::UP && event.key != platform::Key::DOWN)

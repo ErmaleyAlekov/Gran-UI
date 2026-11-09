@@ -10,6 +10,16 @@ namespace gran::platform::win32
         return currentScale;
     }
 
+    // Настройка «Подчёркивать клавиши доступа» (специальные возможности → клавиатура) / The "Underline access keys" setting (accessibility → keyboard)
+    bool Win32Window::keyboardCuesAlways() const
+    {
+        BOOL always = FALSE;
+
+        if (!SystemParametersInfoW(SPI_GETKEYBOARDCUES, 0, &always, 0))
+            return false;
+        return always != FALSE;
+    }
+
     // Показ и активация окна / Showing and activating the window
     void Win32Window::show()
     {

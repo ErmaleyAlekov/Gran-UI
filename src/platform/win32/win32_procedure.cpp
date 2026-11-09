@@ -104,6 +104,8 @@ namespace gran::platform::win32
     {
         LRESULT result = 0;
 
+        if (swallowKeyMenu(message, wParam, lParam))
+            return 0;
         if (handleFrameMessage(*this, message, wParam, lParam, result))
             return result;
         if (handleSimple(*this, message) || translateMouse(*this, message, wParam, lParam)

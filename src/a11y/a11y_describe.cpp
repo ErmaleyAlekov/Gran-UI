@@ -1,5 +1,6 @@
 #include "gran/a11y/access_tree.hpp"
 #include "gran/input/input_router.hpp"
+#include "gran/utils/utf8.hpp"
 
 namespace gran::a11y
 {
@@ -27,8 +28,30 @@ namespace gran::a11y
             case ui::ElementKind::MENU_ITEM: return Role::MENU_ITEM;
             case ui::ElementKind::DIALOG: return Role::DIALOG;
             case ui::ElementKind::COMBO_BOX: return Role::COMBO_BOX;
+            case ui::ElementKind::MENU_BAR: return Role::MENU_BAR;
             default: return Role::GROUP;
         }
+    }
+
+    /*
+    ** Клавиша доступа — буква подписи так, как она написана («Ф» из «_Файл»); у пункта строки меню с Alt,
+    ** как её называет Windows («Alt+Ф»).
+    **
+    ** The access key is the label letter as written ("F" from "_File"); for a menu bar item with Alt,
+    ** as Windows names it ("Alt+F").
+    */
+    std::string accessKeyOf(const ui::Node& node)
+    {
+        const std::string& label = node.content.text;
+        std::size_t next = node.content.mnemonicAt;
+
+        if (node.kind != ui::ElementKind::MENU_ITEM || node.content.mnemonic == 0 || next >= label.size())
+            return std::string();
+        decodeUtf8(label, next);
+        std::string letter = label.substr(node.content.mnemonicAt, next - node.content.mnemonicAt);
+        if (ui::isMenuBarItem(node))
+            return "Alt+" + letter;
+        return letter;
     }
 
     /*
@@ -46,6 +69,7 @@ namespace gran::a11y
         info.role = roleOf(node);
         info.name = accessibleName(node);
         info.help = content.tooltip;
+        info.accessKey = accessKeyOf(node);
         info.enabled = !input::disabled(&node);
         info.checked = content.checked;
         info.focusable = isFocusable(node);

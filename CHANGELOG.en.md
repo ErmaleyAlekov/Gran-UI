@@ -14,6 +14,23 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 - Linux: dragging files from file managers (the XDND protocol, version 5) into `onDrop` zones — as on Windows: the
   `DropTarget` state, the "not allowed" cursor outside the zones, local file paths in UTF-8 (`file://`, `%XX` decoded,
   network and other addresses skipped). The `text/uri-list` parser — `include/gran/utils/uri_list.hpp`.
+- The `<MenuBar>` menu bar (plan 2.1): `MenuItem` items with menus under them; Alt (press and release) and F10 — the focus
+  to the bar, the arrows — the neighbor item and its menu, Alt+letter — open a menu at once, a letter in an open menu —
+  choose an item, hovering switches the open menu; clicking the bar does not take the focus. Access letters: `_` before
+  a letter in the `text` of a menu item or a command (`__` is the sign itself), underlined while Alt is held or the menu is
+  open from the keyboard. The `Open` style state (an item with an open menu or submenu, a `ComboBox` with an open list),
+  the `MenuBar` and `MenuBarItem` theme styles. UI Automation: the MenuBar type, the AccessKey property, the ExpandCollapse
+  pattern on items with submenus. The `Alt` key (`Key::ALT`, the name "Alt" in key events). Example — `samples/editor_frame.xml`.
+
+### Changed
+- Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no
+  "invisible" system menu mode where the next keys got lost; Alt+space still opens the system menu. Characters with
+  Alt (`WM_SYSCHAR`, on X11 — characters with Alt held) come as a `CHARACTER` event with the Alt modifier and are not
+  typed into inputs.
+- `Renderer::render` takes the frame marks as one `render::FrameMarks` structure (the caret, the selection, the access
+  letter underlines) instead of two pointers.
+- In menu and menu bar item labels the `_` sign now means the access letter: the label `a_b` is shown as `ab` (for the
+  sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
 - Gallery, `samples/platform.xml`: "Save as…" only showed the chosen path and wrote nothing — now it writes a text file

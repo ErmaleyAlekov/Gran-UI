@@ -74,7 +74,8 @@ namespace gran::platform::win32
     */
     class UiaElement final : public IRawElementProviderSimple, public IRawElementProviderFragment,
                              public IRawElementProviderFragmentRoot, public IInvokeProvider, public IToggleProvider,
-                             public IValueProvider, public IRangeValueProvider, public ISelectionItemProvider
+                             public IValueProvider, public IRangeValueProvider, public ISelectionItemProvider,
+                             public IExpandCollapseProvider
     {
     public:
         // ---- uia_element.cpp ----
@@ -129,6 +130,11 @@ namespace gran::platform::win32
         HRESULT STDMETHODCALLTYPE RemoveFromSelection() override;
         HRESULT STDMETHODCALLTYPE get_IsSelected(BOOL* selected) override;
         HRESULT STDMETHODCALLTYPE get_SelectionContainer(IRawElementProviderSimple** container) override;
+
+        // ---- uia_expand.cpp: ExpandCollapse (пункт меню с подменю) / ExpandCollapse (a menu item with a submenu) ----
+        HRESULT STDMETHODCALLTYPE Expand() override;
+        HRESULT STDMETHODCALLTYPE Collapse() override;
+        HRESULT STDMETHODCALLTYPE get_ExpandCollapseState(ExpandCollapseState* state) override;
 
         // ---- uia_patterns.cpp ----
 

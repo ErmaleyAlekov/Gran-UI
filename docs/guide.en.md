@@ -24,12 +24,13 @@
 16. [Components](#components)
 17. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
 18. [Pop-up Layers](#popup-layers)
-19. [Embedded browser: WebView](#embedded-browser-webview)
-20. [Accessibility](#accessibility)
-21. [Platform: windows, files, icons](#platform-windows-files-icons)
-22. [Windows and the program](#windows-and-the-program)
-23. [Errors and Message Language](#errors-and-message-language)
-24. [Custom window title bar](#custom-window-title-bar)
+19. [Window frame: the menu bar](#window-frame-the-menu-bar)
+20. [Embedded browser: WebView](#embedded-browser-webview)
+21. [Accessibility](#accessibility)
+22. [Platform: windows, files, icons](#platform-windows-files-icons)
+23. [Windows and the program](#windows-and-the-program)
+24. [Errors and Message Language](#errors-and-message-language)
+25. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -173,7 +174,8 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `ProgressBar` | Progress bar | `min`, `max`, `value` |
 | `Tabs` | Tabs: a header strip and the selected page | `value`, `onChange`, `Tab` pages (`text`, `value`) |
 | `Popup` | Popup layer (hidden until shown) | — |
-| `MenuItem` | Menu item in `Popup`; a nested `Popup` is a submenu | `text`, `onClick`, `value` (for `ComboBox`) |
+| `MenuItem` | Menu item in `Popup` or `MenuBar`; a nested `Popup` is a submenu | `text` (`_` before a letter is the access letter), `onClick`, `command`, `value` (for `ComboBox`) |
+| `MenuBar` | The window menu bar: `MenuItem` items with submenus | Alt, F10, Alt+letter — [window frame](#window-frame-the-menu-bar) |
 | `Dialog` | Modal dialog in the window center | `closable` |
 | `ComboBox` | Drop-down list with the selected value | `value`, `placeholder`, `onChange`, `MenuItem` items or `items` |
 | `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
@@ -237,7 +239,7 @@ Cascade, from weakest to strongest: engine defaults ← built-in theme (`schemas
 <Style name="ghost" basedOn="primary" background="transparent" borderWidth="1"/>
 ```
 
-- States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`, `DropTarget` (files are carried over an `onDrop` zone). State change is smooth if the property
+- States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`, `DropTarget` (files are carried over an `onDrop` zone), `Open` (the layer of a menu item or a `ComboBox` is open). State change is smooth if the property
   has a `transition`; a state can also start an animation: `<Hover animation="wiggle 0.4s"/>`.
 - `basedOn` inherits another style. The default theme sets styles with element names (`Button`, `Input`,
   `TextArea`, `CheckBox`, `Slider`, `RadioButton`, `Switch`, `ProgressBar`, `Tabs`, `TabBar`, `TabHeader`, `Tab`,
@@ -920,6 +922,54 @@ app.hideDialog(*app.find("confirm"));   // close (usually in a button handler)
 
 Layers are drawn in the order of the tree: a nested layer (menu in a dialog, submenu) — above its own, so a dialog that opens from another dialog is conveniently declared inside it. Everything together — `samples/dialogs.xml` (`gran_gallery samples/dialogs.xml`).
 
+## Window frame: the menu bar
+
+The `MenuBar` menu bar is a row of `MenuItem` items, each with a `Popup` menu (or a command, then the item has no menu).
+A bar item menu opens under it; while one menu is open, hovering a neighbor item switches the menu.
+Clicking a bar item does not take the focus: the "Edit" menu commands work with the field where the cursor was.
+
+```xml
+<MenuBar>
+  <MenuItem text="_File">
+    <Popup>
+      <MenuItem command="newDoc"/>                    <!-- <Command id="newDoc" text="_New" key="Mod+N" …/> -->
+      <MenuItem text="_Open…" onClick="open"/>
+      <MenuItem text="_Export">
+        <Popup><MenuItem text="_PDF" onClick="exportPdf"/></Popup>
+      </MenuItem>
+    </Popup>
+  </MenuItem>
+  <MenuItem text="_Edit">…</MenuItem>
+</MenuBar>
+```
+
+**Access letter.** The `_` sign before a label letter (the item `text` or the command `text`) makes it the access letter,
+`__` is the `_` sign itself. It works only in menus and the menu bar: for `ComboBox` items the underscore stays text.
+The letter is underlined while Alt is held or the menu is open from the keyboard (as in Windows).
+
+**Keyboard.**
+
+| Keys | What they do |
+|---|---|
+| Alt (press and release), F10 | the focus to the first menu bar item; once more — back where the focus was |
+| ← / → in the bar | the neighbor item cyclically; in an open menu — the menu of the neighbor item |
+| ↓, Enter, space in the bar | open the item menu (the focus to the first menu item) |
+| Alt+letter | open the menu of the bar item with this letter at once (the letter is not typed into an input) |
+| a letter in an open menu | choose the item with this letter (an item with a submenu — open it) |
+| Esc | close the menu, then leave the bar |
+
+AltGr (the right Alt in European layouts) and Shift+Alt (the layout switch) do not open the menu bar. On Windows
+Alt+letter no longer gives the error beep: the engine handles the window keyboard menu itself (Alt+space
+still opens the window system menu).
+
+**The `Open` state.** While a menu is open, its owner item — a menu bar item or an item with a submenu — has
+the `Open` state (a `ComboBox` with an open list too). In the theme a bar item takes the `MenuBarItem` style,
+the bar itself — `MenuBar`.
+
+Accessibility: the bar is a UI Automation element of the MenuBar type, the items have the AccessKey property ("Alt+F" in the bar,
+"O" in a menu), the items with submenus have the ExpandCollapse pattern. Example — `samples/editor_frame.xml`
+(`gran_gallery samples/editor_frame.xml`).
+
 ## Embedded browser: WebView
 
 Gran UI itself does not contain a browser and does not use it for the interface: the window, text, fields, and lists are drawn
@@ -994,6 +1044,7 @@ Control patterns are what a client can do with the element by itself:
 | Element | UI Automation pattern | What the client does |
 |---|---|---|
 | `Button`, `MenuItem`, any element with `onClick` | Invoke | press (as a click: onClick, a menu, choosing an item) |
+| `MenuItem` with a submenu | ExpandCollapse | expand and collapse the submenu, find out whether it is open |
 | `CheckBox`, `Switch` | Toggle | toggle (the mark and onChange) |
 | `RadioButton`, a tab header | SelectionItem | select (the group neighbors are cleared, onChange) |
 | `Input`, `TextArea`, `ComboBox` | Value | read the text; for a field — replace it (as "select all and paste", with `maxLength` and onChange) |

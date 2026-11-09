@@ -376,7 +376,7 @@ Pointers to style rules require the original document to live longer than the us
 
 `ui::resolveStyles` calculates the cascade; `layout::layoutTree(root, Size, ContentMeasurer&)` places the tree.
 `render::Renderer(RenderBackend&, FontLibrary&, imageDirectory)` provides `measurer()` for layout
-and `render(root, windowStyle, scale, caret, selection)`. The renderer must be destroyed before the backend:
+and `render(root, windowStyle, scale, marks)` (`render::FrameMarks`: the caret, the selection, the menu access letter underlines). The renderer must be destroyed before the backend:
 its destructor returns textures. The backend must be destroyed before the OS window.
 
 `rhi::createPlatformBackend(BackendOptions)` selects the API; `createDx11Backend` and `createDx12Backend`

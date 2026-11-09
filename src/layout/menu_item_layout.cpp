@@ -19,7 +19,8 @@ namespace gran::layout::internal
     {
         float mark = 0.0f;
 
-        if (ui::submenuOf(node) != nullptr)
+        // У пункта строки меню стрелки нет: его меню открывается вниз / A menu bar item has no arrow: its menu opens downward
+        if (ui::submenuOf(node) != nullptr && !ui::isMenuBarItem(node))
             mark = node.computed.fontSize * SUBMENU_MARK;
         if (!node.content.shortcut.empty())
             mark += pass.measurer.measureText(ui::shortcutLabel(node), std::numeric_limits<float>::infinity()).width

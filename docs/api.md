@@ -379,7 +379,7 @@ Win32 `Get/SetWindowPlacement` (`rcNormalPosition`, развёрнутость �
 
 `ui::resolveStyles` вычисляет каскад; `layout::layoutTree(root, Size, ContentMeasurer&)` размещает дерево.
 `render::Renderer(RenderBackend&, FontLibrary&, imageDirectory)` предоставляет `measurer()` для компоновки
-и `render(root, windowStyle, scale, caret, selection)`. Рендерер должен уничтожаться раньше бэкенда:
+и `render(root, windowStyle, scale, marks)` (`render::FrameMarks`: каретка, выделение, подчёркивания букв доступа меню). Рендерер должен уничтожаться раньше бэкенда:
 его деструктор возвращает текстуры. Бэкенд должен уничтожаться раньше окна ОС.
 
 `rhi::createPlatformBackend(BackendOptions)` выбирает API; `createDx11Backend` и `createDx12Backend`

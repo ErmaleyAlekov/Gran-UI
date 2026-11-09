@@ -17,7 +17,13 @@ namespace gran::ui
         }
     }
 
-    // Новая подпись меняет размер узла: нужна компоновка / A new label changes the node size: a layout is needed
+    /*
+    ** Новая подпись меняет размер узла: нужна компоновка. Подпись команды может нести букву доступа («_Сохранить»):
+    ** знак «_» убирается у любого узла, а буква работает у пунктов меню.
+    **
+    ** A new label changes the node size: a layout is needed. The command label may carry an access letter ("_Save"):
+    ** the "_" sign is removed for any node, and the letter works for the menu items.
+    */
     void applyCommand(Node& node, const Command& command)
     {
         std::string shortcut;
@@ -28,6 +34,7 @@ namespace gran::ui
         if (node.content.text.empty() && !command.text.empty() && node.children.empty())
         {
             node.content.text = command.text;
+            takeMnemonic(node);
             markDirty(node, DIRTY_LAYOUT | DIRTY_PAINT);
         }
         if (node.content.shortcut != shortcut)

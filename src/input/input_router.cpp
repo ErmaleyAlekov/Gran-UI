@@ -25,6 +25,7 @@ namespace gran::input
         bool changed = true;
 
         _state.delivered = 0;
+        trackMenuCues(_state, event, false);
         if (event.kind == platform::EventKind::FOCUS_LOST)
         {
             cancelDrag(_state);
@@ -42,6 +43,8 @@ namespace gran::input
             _state.keyboard = false;
         }
         flushEvents(_state);
+        if (trackMenuCues(_state, event, true))
+            changed = true;
         return changed || _state.delivered != 0;
     }
 

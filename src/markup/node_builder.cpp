@@ -75,6 +75,18 @@ namespace gran::markup::internal
             ui::appendChild(combo, std::move(list));
             ui::syncComboBoxes(combo);
         }
+
+        // Пункт меню или строки меню (не ComboBox): только у них «_» в подписи — буква доступа
+        // An item of a menu or a menu bar (not a ComboBox): only for them "_" in the label is the access letter
+        bool inMenu(const beresta::Element& element) noexcept
+        {
+            const beresta::ContainerNode* parent = element.getParent();
+
+            if (parent == nullptr || parent->getType() != beresta::NodeType::ELEMENT)
+                return false;
+            std::string_view name = static_cast<const beresta::Element*>(parent)->getLocalName();
+            return name == "Popup" || name == "MenuBar";
+        }
     }
 
     /*
@@ -106,6 +118,8 @@ namespace gran::markup::internal
         if (!readTagText(element, *node, context))
             buildChildren(element, *node, context);
         readTextBindings(element, *node);
+        if (node->kind == ui::ElementKind::MENU_ITEM && inMenu(element))
+            ui::takeMnemonic(*node);
         if (node->kind == ui::ElementKind::COMBO_BOX)
             wrapOptions(*node);
         if (node->kind == ui::ElementKind::TABS)

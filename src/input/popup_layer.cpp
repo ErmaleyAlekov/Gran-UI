@@ -54,6 +54,7 @@ namespace gran::input
         popup.content.popupAnchor = anchor;
         popup.content.popupPassive = passive;
         popup.visible = true;
+        markOpen(popup, true);
         ui::markDirty(popup, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         if (!passive)
             focusOnOpen(state, popup);
@@ -82,6 +83,7 @@ namespace gran::input
             break;
         }
         popup.visible = false;
+        markOpen(popup, false);
         ui::markDirty(popup, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         if (within(state.hover, popup))
             changeHover(state, nullptr);
@@ -141,6 +143,9 @@ namespace gran::input
         closeMenus(state);
         if (list != nullptr && list->kind == ui::ElementKind::POPUP && list->visible)
             closeLayer(state, *list);
+        // Выбор из меню строки меню: фокус возвращается туда, где был до входа в строку / A choice from a bar menu: the focus returns where it was before entering the bar
+        if (state.focus != nullptr && ui::isMenuBarItem(*state.focus))
+            leaveMenuBar(state);
         if (runContextCommand(state, item))
             return;
         if (combo != nullptr && ui::selectOption(*combo, &item) && !combo->content.onChange.empty())

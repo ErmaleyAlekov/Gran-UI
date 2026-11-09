@@ -3,11 +3,11 @@
 namespace gran::a11y
 {
     /*
-    ** Шаблоны по роли, как у элементов Windows: кнопка и пункт меню нажимаются, флажок и переключатель
+    ** Шаблоны по роли, как у элементов Windows: кнопка и пункт меню нажимаются (пункт с подменю ещё и раскрывается), флажок и переключатель
     ** переключаются, радиокнопка и вкладка выбираются, поле и ComboBox имеют текстовое значение,
     ** ползунок и полоса прогресса — число в диапазоне. Любой другой узел с onClick тоже нажимается.
     **
-    ** The patterns by role, as for Windows controls: a button and a menu item are pressed, a check box and a switch
+    ** The patterns by role, as for Windows controls: a button and a menu item are pressed (an item with a submenu also expands), a check box and a switch
     ** are toggled, a radio button and a tab are selected, an input and a ComboBox have a text value,
     ** a slider and a progress bar have a number in the range. Any other node with onClick is pressed too.
     */
@@ -15,7 +15,11 @@ namespace gran::a11y
     {
         switch (roleOf(node))
         {
-            case Role::BUTTON: case Role::MENU_ITEM: return PATTERN_INVOKE;
+            case Role::MENU_ITEM:
+                if (ui::submenuOf(node) != nullptr)
+                    return PATTERN_INVOKE | PATTERN_EXPAND;
+                return PATTERN_INVOKE;
+            case Role::BUTTON: return PATTERN_INVOKE;
             case Role::CHECK_BOX: return PATTERN_TOGGLE;
             case Role::RADIO_BUTTON: case Role::TAB_ITEM: return PATTERN_SELECT;
             case Role::EDIT: case Role::COMBO_BOX: return PATTERN_TEXT;

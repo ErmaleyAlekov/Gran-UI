@@ -23,7 +23,7 @@ namespace gran::a11y
     enum class Role : std::uint8_t
     {
         GROUP, SCROLL, TEXT, IMAGE, BUTTON, EDIT, CHECK_BOX, SLIDER, MENU, MENU_ITEM, DIALOG, COMBO_BOX,
-        RADIO_BUTTON, TAB, TAB_ITEM, PROGRESS_BAR
+        RADIO_BUTTON, TAB, TAB_ITEM, PROGRESS_BAR, MENU_BAR
     };
 
     // Сведения об узле: роль, имя, значение и состояние / The node facts: the role, the name, the value and the state
@@ -33,6 +33,9 @@ namespace gran::a11y
         std::string name;
         std::string value;
         std::string help;
+        // Клавиша доступа пункта меню: «Alt+Ф» у пункта строки меню, «Ф» в меню; пусто — нет
+        // The menu item access key: "Alt+F" for a menu bar item, "F" in a menu; empty — none
+        std::string accessKey;
         bool focusable = false;
         bool enabled = true;
         bool checked = false;
@@ -62,11 +65,13 @@ namespace gran::a11y
         PATTERN_TOGGLE = 2,
         PATTERN_SELECT = 4,
         PATTERN_TEXT = 8,
-        PATTERN_RANGE = 16
+        PATTERN_RANGE = 16,
+        // Раскрыть и свернуть (пункт с подменю) / Expand and collapse (an item with a submenu)
+        PATTERN_EXPAND = 32
     };
 
     // Действие, которое просит выполнить клиент доступности / The action an accessibility client asks to perform
-    enum class Request : std::uint8_t { FOCUS, INVOKE, TOGGLE, SELECT, SET_TEXT, SET_VALUE };
+    enum class Request : std::uint8_t { FOCUS, INVOKE, TOGGLE, SELECT, SET_TEXT, SET_VALUE, EXPAND, COLLAPSE };
 
     /*
     ** Запрос клиента: вид, узел и данные (текст для SET_TEXT, число для SET_VALUE). Провайдер ОС
@@ -112,6 +117,9 @@ namespace gran::a11y
 
     // Все сведения об узле (пароль не раскрывается) / All the node facts (a password is not disclosed)
     AccessibleInfo describe(const ui::Node& node);
+
+    // Клавиша доступа пункта меню («Alt+Ф», «Ф»; пусто — нет) / The menu item access key ("Alt+F", "F"; empty — none)
+    std::string accessKeyOf(const ui::Node& node);
 
     // Описанный прямоугольник узла в логических координатах окна (с преобразованиями) / The node bounding rectangle in logical window coordinates (with transforms)
     Rect boundsOf(const ui::Node& node) noexcept;

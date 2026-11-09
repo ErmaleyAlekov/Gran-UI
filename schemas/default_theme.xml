@@ -64,6 +64,18 @@
       <Focused background="#eef2ff"/>
       <Disabled opacity="0.4"/>
       <Checked color="#1d4ed8"/>
+      <Open background="#eef2ff"/>
+    </Style>
+    <!-- Строка меню окна и её пункты (стиль MenuBarItem движок даёт пунктам MenuItem внутри MenuBar) -->
+    <!-- The window menu bar and its items (the engine gives the MenuBarItem style to the MenuItem items inside a MenuBar) -->
+    <Style name="MenuBar" orientation="horizontal" spacing="2" padding="3 6" background="#f8f9fb" color="#101828"
+           borderWidth="0 0 1 0" borderColor="#e4e7ec" fontSize="13.5"/>
+    <Style name="MenuBarItem" padding="4 10" borderRadius="6" cursor="default" textWrap="nowrap"
+           transition="background 0.1s ease">
+      <Hover background="#eef2ff"/>
+      <Focused background="#eef2ff"/>
+      <Disabled opacity="0.4"/>
+      <Open background="#e0e7ff"/>
     </Style>
     <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
     <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->

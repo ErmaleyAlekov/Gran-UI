@@ -57,6 +57,28 @@ namespace gran::input
             content.anchor = anchor;
             return false;
         }
+
+        /*
+        ** Раскрыть подменю пункта (у пункта строки меню — закрыв её открытое меню: открыто одно) или свернуть его.
+        ** false — подменю нет или оно уже в нужном состоянии.
+        **
+        ** Expanding the item submenu (for a menu bar item — closing its open menu: one is open) or collapsing it.
+        ** false — there is no submenu or it is already in the needed state.
+        */
+        bool expandItem(RouterState& state, ui::Node& item, bool expand)
+        {
+            ui::Node* submenu = ui::submenuOf(item);
+
+            if (submenu == nullptr || submenu->visible == expand)
+                return false;
+            if (!expand)
+                closeLayer(state, *submenu);
+            else if (ui::isMenuBarItem(item))
+                closeMenus(state);
+            if (expand)
+                openSubmenu(state, item);
+            return true;
+        }
     }
 
     /*
@@ -83,6 +105,8 @@ namespace gran::input
             changeChoice(_state, node);
         else if (request.kind == a11y::Request::SET_TEXT)
             changed = replaceText(_state, node, request.text);
+        else if (request.kind == a11y::Request::EXPAND || request.kind == a11y::Request::COLLAPSE)
+            changed = expandItem(_state, node, request.kind == a11y::Request::EXPAND);
         else
             changed = node.kind == ui::ElementKind::SLIDER && setSliderValue(_state, node, request.value);
         // Фокус и выбор могли поставить уведомления focus/blur в очередь / The focus and the choice might queue focus/blur notifications

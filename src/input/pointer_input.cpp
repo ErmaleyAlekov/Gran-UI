@@ -7,11 +7,11 @@ namespace gran::input
         /*
         ** Движение: новый узел под мышью (pointerLeave/pointerEnter — до pointerMove, как в браузере),
         ** перетаскивание узла; иначе pointerMove цели (узлу захвата или под мышью), затем действия
-        ** по умолчанию — подменю, выделение мышью, значение ползунка.
+        ** по умолчанию — подменю (и меню строки меню), выделение мышью, значение ползунка.
         **
         ** A move: a new node under the mouse (pointerLeave/pointerEnter — before pointerMove, as in a browser),
         ** a node drag; otherwise pointerMove to the target (the capture node or the one under the mouse), then the default
-        ** actions — the submenus, the mouse selection, the slider value.
+        ** actions — the submenus (and the menu bar menus), the mouse selection, the slider value.
         */
         void pointerMove(RouterState& state, const platform::Event& event)
         {
@@ -23,6 +23,7 @@ namespace gran::input
             if (!firePointer(state, ui::EventType::POINTER_MOVE, pointerTarget(state, state.hover), event))
                 return;
             hoverMenus(state, state.hover);
+            hoverMenuBar(state, state.hover);
             dragTextSelection(state, event.position);
             if (state.drag != nullptr)
                 dragSlider(state, *state.drag, ui::windowToNode(*state.drag, event.position).x);

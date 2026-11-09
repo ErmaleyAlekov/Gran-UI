@@ -56,6 +56,7 @@ namespace gran::platform::win32
 
         // ---- win32_system.cpp ----
         float scale() const override;
+        bool keyboardCuesAlways() const override;
         void show() override;
         std::string clipboardText() override;
         void setClipboardText(const std::string& text) override;
@@ -186,6 +187,9 @@ namespace gran::platform::win32
 
     // Нажатые модификаторы (биты Modifier) / The pressed modifiers (Modifier bits)
     std::uint8_t currentModifiers() noexcept;
+
+    // WM_SYSCOMMAND/SC_KEYMENU кроме Alt+пробел: поглотить (нет сигнала и режима системного меню) / WM_SYSCOMMAND/SC_KEYMENU except Alt+space: consume it (no beep and no system menu mode)
+    bool swallowKeyMenu(UINT message, WPARAM wParam, LPARAM lParam) noexcept;
 
     // ---- win32_access.cpp ----
 

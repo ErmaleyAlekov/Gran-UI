@@ -11,6 +11,20 @@
 
 namespace gran::render
 {
+    /*
+    ** Отметки ввода на кадре (объект параметров Renderer::render): поле с видимой кареткой, узел с видимым
+    ** выделением текста (оба могут быть nullptr) и видны ли подчёркивания букв доступа меню.
+    **
+    ** The input marks on the frame (the Renderer::render parameter object): the input with a visible caret, the node with a visible
+    ** text selection (both may be nullptr) and whether the menu access letter underlines are shown.
+    */
+    struct FrameMarks
+    {
+        const ui::Node* caret = nullptr;
+        const ui::Node* selection = nullptr;
+        bool mnemonics = false;
+    };
+
     // Ресурсы, которые сцена наполняет по ходу обхода / The resources the scene fills while walking
     struct SceneResources
     {
@@ -21,6 +35,8 @@ namespace gran::render
         const ui::Node* caret = nullptr;
         // Узел с видимым выделением текста (или nullptr) / The node with a visible text selection (or nullptr)
         const ui::Node* selection = nullptr;
+        // Подчёркивать букву доступа пунктов меню / Underline the access letter of the menu items
+        bool mnemonics = false;
     };
 
     // Результат: экземпляры, отсечения (0 — «без отсечения»), сегменты, цвет фона

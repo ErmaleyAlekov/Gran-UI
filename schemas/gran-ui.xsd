@@ -576,6 +576,8 @@
       <xs:element name="DropTarget" type="StateType" minOccurs="0"/>
       <!-- Узел сейчас перетаскивают (draggable) / The node is being dragged now (draggable) -->
       <xs:element name="Dragging" type="StateType" minOccurs="0"/>
+      <!-- Слой элемента открыт: меню пункта строки меню, подменю / The element layer is open: the menu of a menu bar item, a submenu -->
+      <xs:element name="Open" type="StateType" minOccurs="0"/>
     </xs:sequence>
   </xs:group>
 
@@ -605,6 +607,7 @@
       <xs:element name="Switch" type="CheckBoxType"/>
       <xs:element name="ProgressBar" type="ProgressBarType"/>
       <xs:element name="Tabs" type="TabsType"/>
+      <xs:element name="MenuBar" type="MenuBarType"/>
       <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
       <xs:element name="Slot" type="SlotType"/>
       <!--
@@ -845,7 +848,7 @@
         <xs:assert test="not(@command and @enabled)"/>
         <xs:assert test="@text or @command or text()[normalize-space(.)] or *[not(self::Hover or self::Pressed
                          or self::Focused or self::Selected or self::Disabled or self::Checked or self::Maximized
-                         or self::DropTarget or self::Dragging)]"/>
+                         or self::DropTarget or self::Dragging or self::Open)]"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -912,10 +915,12 @@
   <!--
     Пункт меню: подпись text, действие onClick; выбор закрывает меню. Вложенный <Popup> — подменю:
     открывается сбоку (наведением, стрелкой вправо, Enter), пункт с подменю сам команду не выполняет.
-    value — значение пункта в ComboBox (без него значение — подпись).
+    value — значение пункта в ComboBox (без него значение — подпись). В меню и строке меню «_» перед буквой
+    подписи — буква доступа («_Открыть…»: в открытом меню клавиша О выбирает пункт), «__» — сам знак «_».
     A menu item: the text label, the onClick action; choosing it closes the menu. A nested <Popup> is a submenu:
     it opens at the side (by hovering, the right arrow, Enter), an item with a submenu runs no command itself.
-    value is the item value in a ComboBox (without it the value is the label).
+    value is the item value in a ComboBox (without it the value is the label). In a menu and a menu bar "_" before
+    a label letter is the access letter ("_Open…": in an open menu the O key chooses the item), "__" is the "_" sign itself.
   -->
   <xs:complexType name="MenuItemType" mixed="true">
     <xs:complexContent>
@@ -932,6 +937,26 @@
         <xs:assert test="@text or @command"/>
         <xs:assert test="not(@command and Popup)"/>
         <xs:assert test="not(@command and @enabled)"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Строка меню окна: пункты <MenuItem text="_Файл"> с подменю <Popup> (или с командой — пункт без меню).
+    Alt (нажать и отпустить) или F10 — фокус на строку, стрелки влево/вправо — соседний пункт, вниз и Enter —
+    открыть меню, Alt+буква — сразу открыть меню с этой буквой доступа («_» перед буквой в text), Esc — назад.
+    A window menu bar: the items <MenuItem text="_File"> with a <Popup> submenu (or with a command — an item without a menu).
+    Alt (press and release) or F10 — the focus to the bar, the left/right arrows — the neighbor item, down and Enter —
+    open the menu, Alt+letter — open the menu with this access letter at once ("_" before the letter in text), Esc — back.
+  -->
+  <xs:complexType name="MenuBarType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="MenuItem" type="MenuItemType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>

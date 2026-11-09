@@ -101,11 +101,11 @@ namespace gran::render::internal
     /*
     ** Текст листа: место раскладки — textOrigin (центровка, сдвиг длинного поля), подсказка поля —
     ** полупрозрачная. Порядок: подложки участков, подсветка выделения, глифы (участками — своим
-    ** цветом и кеглем), каретка.
+    ** цветом и кеглем), подчёркивание буквы доступа пункта меню, каретка.
     **
     ** The leaf text: the layout place is textOrigin (centering, the long input shift), the input placeholder
     ** is semi-transparent. The order: the run backgrounds, the selection highlight, the glyphs (by runs — in their
-    ** color and size), the caret.
+    ** color and size), the menu item access letter underline, the caret.
     */
     void paintText(const ui::Node& node, const PaintState& state, SceneContext& context)
     {
@@ -126,6 +126,8 @@ namespace gran::render::internal
             paintRunGlyphs(place, state, context);
         else if (!content.empty())
             paintGlyphs(layout, place.origin, paint, state, context);
+        if (context.resources.mnemonics && node.kind == ui::ElementKind::MENU_ITEM && node.content.mnemonic != 0)
+            paintMnemonic(place, state, context);
         if (context.resources.caret == &node)
             paintTextCaret(place, state, context);
     }

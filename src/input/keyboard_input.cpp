@@ -61,7 +61,7 @@ namespace gran::input
         {
             ui::Node* focus = state.focus;
 
-            if (popupKey(state, event) || focusKey(state, event))
+            if (popupKey(state, event) || menuBarKey(state, event) || focusKey(state, event))
                 return true;
             if (focus == nullptr)
                 return state.selection != nullptr && navigateText(state, *state.selection, event);
@@ -84,12 +84,14 @@ namespace gran::input
 
     /*
     ** Нажатия и символы. keyDown сначала идёт приложению: отменённый — ни встроенной обработки, ни символов
-    ** этой клавиши в поле (как preventDefault у keydown в браузере); затем горячие клавиши команд; keyUp — только приложению.
-    ** Символы идут только в поле ввода в фокусе.
+    ** этой клавиши в поле (как preventDefault у keydown в браузере); затем Alt и F10 (строка меню), горячие клавиши
+    ** команд (выполненная команда гасит и символ своей клавиши); keyUp — приложению и отпусканию Alt. Символ сначала
+    ** пробуется как буква доступа меню, затем идёт в поле ввода в фокусе.
     **
     ** Presses and characters. keyDown goes to the application first: a cancelled one gets neither the built-in handling nor the characters
-    ** of this key in a field (as preventDefault on keydown in a browser); then the command shortcuts; keyUp goes to the application only.
-    ** Characters go only into a focused input.
+    ** of this key in a field (as preventDefault on keydown in a browser); then Alt and F10 (the menu bar), the command shortcuts
+    ** (a command that ran also drops the character of its key); keyUp goes to the application and to the Alt release. A character
+    ** is first tried as a menu access letter, then it goes into the focused input.
     */
     bool handleKeyboard(RouterState& state, const platform::Event& event)
     {
@@ -100,17 +102,24 @@ namespace gran::input
             if (dragKey(state, event))
                 return true;
             state.suppressCharacter = !fireKey(state, event);
-            if (state.suppressCharacter)
+            if (state.suppressCharacter || altKey(state, event) || contextKey(state, event))
                 return true;
-            return contextKey(state, event) || commandKey(state, event) || keyDown(state, event);
+            state.suppressCharacter = commandKey(state, event);
+            return state.suppressCharacter || keyDown(state, event);
         }
         if (event.kind == platform::EventKind::KEY_UP)
+        {
+            // Отпускание Alt учитывается и при отменённом keyUp: иначе Alt остался бы «зажатым»
+            // The Alt release counts even with a cancelled keyUp: otherwise Alt would stay "held"
             fireKey(state, event);
-        if (event.kind != platform::EventKind::CHARACTER || state.focus == nullptr || state.suppressCharacter)
+            return altKey(state, event);
+        }
+        if (event.kind != platform::EventKind::CHARACTER || state.suppressCharacter)
             return false;
-        if (!ui::isTextField(*state.focus) || state.focus->content.readOnly)
-            return false;
-        if ((event.modifiers & platform::MODIFIER_CONTROL) != 0 && (event.modifiers & platform::MODIFIER_ALT) == 0)
+        if (mnemonicKey(state, event))
+            return true;
+        if (state.focus == nullptr || !ui::isTextField(*state.focus) || state.focus->content.readOnly
+            || ((event.modifiers & platform::MODIFIER_CONTROL) != 0 && (event.modifiers & platform::MODIFIER_ALT) == 0))
             return false;
         appendUtf8(text, event.character);
         return internal::typeText(state, *state.focus, text);

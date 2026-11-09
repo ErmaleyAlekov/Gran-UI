@@ -23,20 +23,20 @@ namespace beresta
 namespace gran::ui
 {
     /*
-    ** Вид элемента разметки. Виды до ICON включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** Вид элемента разметки. Виды до MENU_BAR включительно пишутся в разметке; TAB_BAR и TAB_HEADER
     ** строит движок (полоса заголовков <Tabs>), у них только стили темы TabBar и TabHeader.
     **
-    ** The markup element kind. The kinds up to ICON inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** The markup element kind. The kinds up to MENU_BAR inclusive are written in the markup; TAB_BAR and TAB_HEADER
     ** are built by the engine (the <Tabs> header strip), they have only the theme styles TabBar and TabHeader.
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
-        DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, TAB_BAR, TAB_HEADER
+        DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR, TAB_BAR, TAB_HEADER
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::ICON;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::MENU_BAR;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -157,6 +157,12 @@ namespace gran::ui
         // Button, MenuItem: the <Command> id (the action, enabled, the label) and its shortcut label for menus and accessibility
         std::string command;
         std::string shortcut;
+        // MenuItem в меню или строке меню: буква доступа из «_Файл» (свёрнутый регистр, 0 — нет) и её смещение
+        // в байтах подписи text (подчёркивание рисуется под ней, когда видны подсказки клавиатуры)
+        // MenuItem in a menu or a menu bar: the access letter from "_File" (folded case, 0 — none) and its byte
+        // offset in the text label (the underline is drawn under it when the keyboard cues are shown)
+        char32_t mnemonic = 0;
+        std::size_t mnemonicAt = 0;
         // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
         // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
@@ -307,6 +313,31 @@ namespace gran::ui
 
     // Включить или выключить узел (enabled и состояние DISABLED) / Enabling or disabling the node (enabled and the DISABLED state)
     void setEnabled(Node& node, bool enabled);
+
+    // ---- menu_bar.cpp ----
+
+    /*
+    ** Буква доступа из подписи пункта: «_Файл» → подпись «Файл», буква «ф»; «__» — сам знак «_». Без «_»
+    ** перед буквой — ничего не меняется (mnemonic = 0). true — буква найдена.
+    **
+    ** The access letter from the item label: "_File" → the label "File", the letter "f"; "__" is the "_" sign itself.
+    ** Without "_" before a letter nothing changes (mnemonic = 0). true — a letter was found.
+    */
+    bool takeMnemonic(Node& item);
+
+    // Свёртка регистра буквы доступа (Ф и ф, F и f совпадают) / The case folding of an access letter (Ф and ф, F and f match)
+    char32_t foldMnemonic(char32_t symbol);
+
+    // Пункт строки меню: MenuItem, ребёнок MenuBar / A menu bar item: a MenuItem that is a MenuBar child
+    bool isMenuBarItem(const Node& node) noexcept;
+
+    // Первый видимый включённый пункт-ребёнок container с буквой доступа symbol (nullptr — нет)
+    // The first visible enabled item child of container with the access letter symbol (nullptr — none)
+    Node* mnemonicItem(Node& container, char32_t symbol);
+
+    // Видимая строка меню окна вне слоёв (первая в порядке обхода; nullptr — нет)
+    // The visible window menu bar outside the layers (the first in the walk order; nullptr — none)
+    Node* menuBarOf(Node& root);
 
     // ---- menu_shortcut.cpp ----
 
