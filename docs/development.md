@@ -61,7 +61,9 @@ Direct3D 12 без окна, с включённым отладочным сло
 | Vulkan Validation + synchronization validation | `make DEBUG=1`, слой `VK_LAYER_KHRONOS_validation` подключается сам, если установлен |
 
 MinGW санитайзеры не поддерживает — на Windows только MSVC. Любое сообщение санитайзера или отладочного слоя —
-ошибка, а не шум.
+ошибка, а не шум. Исключение — утечки самого драйвера Vulkan (Mesa lavapipe) в тесте окна Linux: они перечислены
+в `tests/linux/lsan_mesa.supp` (`LSAN_OPTIONS=suppressions=tests/linux/lsan_mesa.supp bin/gran_linux_tests --window`),
+а в стеке оставшихся не должно быть ни одного кадра Грани.
 
 ### Ручные проверки
 

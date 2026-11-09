@@ -1024,7 +1024,7 @@ The sample for the whole section is `samples/platform.xml` (`gran_gallery sample
 **File dialogs.** Windows system dialogs, modal over the window of the node `owner` (by default — over the main one).
 On Linux the dialog is shown by the system `zenity` (GTK) or `kdialog` (KDE, Fly) program: the engine runs it as a separate
 process, no new libraries are needed; if neither exists — a `PLATFORM` exception with a hint.
-While the dialog is open, the Linux window is not repainted. File dragging (`onDrop`) does not work on Linux yet. Empty result — the user declined.
+While the dialog is open, the Linux window is not repainted. Empty result — the user declined.
 
 ```cpp
 gran::FileDialogOptions options;
@@ -1037,7 +1037,7 @@ std::string folder = app.folderDialog(options);
 
 Parameter fields: `title`, `folder` (initial folder), `fileName` (suggested name), `filters`, `defaultExtension` (without a dot; added at save if the user did not write it). Paths are in UTF-8.
 
-**File dragging.** The `onDrop="name"` attribute makes the element a drop zone. While files are over it, it has the `DropTarget` state (highlighting in the style), the cursor over the rest of the window shows "not allowed".
+**File dragging.** The `onDrop="name"` attribute makes the element a drop zone. While files are over it, it has the `DropTarget` state (highlighting in the style), the cursor over the rest of the window shows "not allowed". Files are accepted from the Windows Explorer and from Linux file managers (the XDND protocol: Nautilus, Dolphin, Fly and others): only local files (`file://`) arrive, the paths are in UTF-8; network and trash addresses (`smb:`, `trash:`) are skipped.
 
 ```xml
 <Box onDrop="filesDropped" borderWidth="2" borderColor="#c3c8d2" transition="background 0.15s">

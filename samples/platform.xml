@@ -52,7 +52,7 @@
     <Box onDrop="filesDropped" height="96" padding="16" borderRadius="12" borderWidth="2" borderColor="#c3c8d2"
          background="#ffffff" justify="center" align="center" transition="background 0.15s, border-color 0.15s">
       <DropTarget borderColor="#2f6fed" background="#eaf1ff"/>
-      <Text id="dropText" color="#667085">Перетащите сюда файлы из Проводника</Text>
+      <Text id="dropText" color="#667085">Перетащите сюда файлы из Проводника или файлового менеджера</Text>
     </Box>
     <Text id="platformStatus" color="#344054">Готово</Text>
   </Stack>

@@ -10,6 +10,7 @@ namespace suites
     // ---- Ядро и утилиты / Core and utilities ----
     void registerI18nTests(test::TestRunner& runner);
     void registerGeometryTests(test::TestRunner& runner);
+    void registerUriListTests(test::TestRunner& runner);
 
     // ---- Значения стилей / Style values ----
     void registerStyleNumberTests(test::TestRunner& runner);

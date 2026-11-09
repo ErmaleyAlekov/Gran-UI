@@ -61,6 +61,9 @@ are compared pixel by pixel with the previous frame.
 | Vulkan Validation + synchronization validation | `make DEBUG=1`, the `VK_LAYER_KHRONOS_validation` layer is enabled automatically when installed |
 
 MinGW does not support sanitizers — on Windows only MSVC. Any sanitizer or debug layer message is a bug, not noise.
+The exception is leaks of the Vulkan driver itself (Mesa lavapipe) in the Linux window test: they are listed in
+`tests/linux/lsan_mesa.supp` (`LSAN_OPTIONS=suppressions=tests/linux/lsan_mesa.supp bin/gran_linux_tests --window`),
+and the stacks of the remaining ones must not contain a single Gran frame.
 
 ### Manual Checks
 

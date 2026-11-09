@@ -28,8 +28,8 @@ namespace linux_tests
         }
     }
 
-    // Проверка настоящей surface, трёх кадров, clipboard, wake и штатного close.
-    // Test a real surface, three frames, clipboard, wake and normal close.
+    // Проверка настоящей surface, трёх кадров, clipboard, XDND, wake и штатного close.
+    // Test a real surface, three frames, clipboard, XDND, wake and normal close.
     void window()
     {
         gran::platform::WindowDesc desc; desc.width = 96; desc.height = 72; desc.title = "Gran Linux smoke";
@@ -44,6 +44,7 @@ namespace linux_tests
         for (unsigned index = 0; index < 3; ++index) renderer->render(scene.frame);
         window->setClipboardText("Берёста: UTF-8");
         clipboard(*window);
+        drop(*window);
         input(*window);
         gran::platform::Event event;
         checkWake(*window);

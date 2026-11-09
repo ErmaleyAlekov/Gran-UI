@@ -79,6 +79,8 @@ namespace gran::platform::x11
     {
         if (event.type == SelectionRequest) { selectionRequest(event.xselectionrequest); return; }
         if (event.type == SelectionClear) return;
+        // Данные броска XDND, а не буфера обмена / The XDND drop data, not the clipboard
+        if (event.xselection.selection == atom("XdndSelection")) { dndData(event.xselection); return; }
         _clipboardReady = true;
         if (event.xselection.property == None) return;
         Atom type = 0; int format = 0; unsigned long count = 0; unsigned long remaining = 0;

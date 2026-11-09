@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
         {
             std::string argument = argv[index];
             if (argument == "--clipboard-peer") return linux_tests::clipboardPeer();
+            if (argument == "--xdnd-peer" && index + 4 < argc) return linux_tests::dropPeer(argv + index + 1);
             if (argument == "--hardware") linux_tests::hardwareMode() = true;
             else if (argument == "--window") window = true;
             else throw std::invalid_argument(argument);

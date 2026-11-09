@@ -10,6 +10,11 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 
 ## [Unreleased]
 
+### Added
+- Linux: dragging files from file managers (the XDND protocol, version 5) into `onDrop` zones — as on Windows: the
+  `DropTarget` state, the "not allowed" cursor outside the zones, local file paths in UTF-8 (`file://`, `%XX` decoded,
+  network and other addresses skipped). The `text/uri-list` parser — `include/gran/utils/uri_list.hpp`.
+
 ### Fixed
 - Gallery, `samples/platform.xml`: "Save as…" only showed the chosen path and wrote nothing — now it writes a text file
   and reports "Saved: path" (found by the T-8 manual check).

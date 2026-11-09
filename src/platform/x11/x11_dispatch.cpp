@@ -33,8 +33,13 @@ namespace gran::platform::x11
     */
     void X11Window::clientMessage(const XClientMessageEvent& message)
     {
+        // Остальные сообщения — протокол перетаскивания файлов XDND (x11_drop.cpp)
+        // The other messages are the XDND file drag protocol (x11_drop.cpp)
         if (message.message_type != atom("WM_PROTOCOLS"))
+        {
+            dndMessage(message);
             return;
+        }
         Atom protocol = static_cast<Atom>(message.data.l[0]);
         if (protocol == atom("WM_DELETE_WINDOW"))
             push(EventKind::CLOSE);

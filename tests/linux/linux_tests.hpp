@@ -16,6 +16,10 @@ namespace linux_tests
     void input(gran::platform::Window& window);
     void clipboard(gran::platform::Window& window);
     int clipboardPeer();
+    // Перетаскивание файлов по XDND и процесс-источник (linux_drop*.cpp)
+    // Dragging files by XDND and the source process (linux_drop*.cpp)
+    void drop(gran::platform::Window& window);
+    int dropPeer(char** arguments);
     void validate(gran::rhi::RenderBackend& backend, gran::rhi::FrameData frame);
     void textures(gran::rhi::RenderBackend& backend, Scene& scene);
     void compare(gran::rhi::RenderBackend& backend, unsigned x, unsigned y, std::uint32_t color);

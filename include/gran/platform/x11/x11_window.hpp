@@ -23,6 +23,35 @@ namespace gran::platform::x11
         ::Cursor cursor = 0;
     };
 
+    /*
+    ** Состояние приёма перетаскивания файлов по протоколу XDND (x11_drop*.cpp). Один сеанс за раз: новый
+    ** XdndEnter сбрасывает прежний; сообщения от другого источника, чем в XdndEnter, не принимаются.
+    **
+    ** The state of receiving dragged files by the XDND protocol (x11_drop*.cpp). One session at a time: a new
+    ** XdndEnter resets the former one; messages from a source other than in XdndEnter are not accepted.
+    */
+    struct DndState
+    {
+        // Окно-источник текущего перетаскивания; 0 — перетаскивания нет
+        // The source window of the current drag; 0 — no drag
+        ::Window source = 0;
+        // Версия протокола источника (старший байт data.l[1] в XdndEnter)
+        // The source protocol version (the high byte of data.l[1] in XdndEnter)
+        int version = 0;
+        // Источник предлагает список файлов text/uri-list
+        // The source offers a text/uri-list file list
+        bool uriList = false;
+        // Последний ответ XdndStatus принял бросок (точка над зоной)
+        // The last XdndStatus answer accepted the drop (the point over a zone)
+        bool accepted = false;
+        // После XdndDrop ждём SelectionNotify с данными
+        // After XdndDrop we wait for SelectionNotify with the data
+        bool converting = false;
+        // Последняя точка в логических пикселях окна
+        // The last point in window logical pixels
+        Vec2 point;
+    };
+
     // X11 является системной оконной службой; Wayland-сеансы поддерживаются через XWayland.
     // X11 is the system window service; Wayland sessions are supported through XWayland.
     class X11Window final : public platform::Window
@@ -56,7 +85,20 @@ namespace gran::platform::x11
         void setPlacement(const WindowPlacement& placement) override;
         void framePresented() override;
         bool waitsForFrame() const override;
+        void setDropZones(const std::vector<Rect>& zones) override;
+        std::vector<std::string> takeDroppedFiles() override;
     private:
+        // ---- x11_drop*.cpp: приём файлов по XDND / receiving files by XDND ----
+        void dndMessage(const XClientMessageEvent& message);
+        void dndEnter(const XClientMessageEvent& message);
+        bool dndOffersUris(const XClientMessageEvent& message) const;
+        void dndPosition(const XClientMessageEvent& message);
+        bool dndInZone(Vec2 point) const;
+        void dndDrop(const XClientMessageEvent& message);
+        void dndReply(const char* type, long accepted, const char* action);
+        void dndData(const XSelectionEvent& event);
+        void dndEnd(EventKind kind);
+        std::vector<std::string> dndReadPaths(Atom property);
         void applyOwner(const WindowDesc& desc);
         void place(const WindowDesc& desc);
         void create(const WindowDesc& desc);
@@ -123,6 +165,14 @@ namespace gran::platform::x11
         long _syncHigh = 0;
         bool _syncPending = false;
         bool _syncConfigured = false;
+        // Приём файлов (XDND): зоны в логических пикселях, очередь путей (по одному списку на событие DROP),
+        // состояние текущего перетаскивания и выставлен ли уже XdndAware
+        // Receiving files (XDND): the zones in logical pixels, the path queue (one list per DROP event),
+        // the current drag state and whether XdndAware is already set
+        std::vector<Rect> _dropZones;
+        std::deque<std::vector<std::string>> _dropped;
+        DndState _dnd;
+        bool _dndAware = false;
     };
 }
 #endif

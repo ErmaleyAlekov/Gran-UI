@@ -1,0 +1,12 @@
+# Подавления LeakSanitizer для Linux-тестов с Vulkan (LSAN_OPTIONS=suppressions=tests/linux/lsan_mesa.supp).
+# Только чужой код: драйвер lavapipe (Mesa) при первом vkEnumeratePhysicalDevices выделяет глобальное состояние
+# через pthread_once и не освобождает его до выхода (найдено ASan в WSL 2026-11-09). Утечки Грани сюда не вносить.
+# Кроме того, остаются 2 косвенные утечки по 56 байт из потоков самого драйвера: их стек целиком в выгруженном
+# модуле (<unknown module>) и asan_thread_start — по имени не подавить; признак шума — ни одного кадра gran/tests.
+#
+# LeakSanitizer suppressions for the Linux tests with Vulkan (LSAN_OPTIONS=suppressions=tests/linux/lsan_mesa.supp).
+# Foreign code only: the lavapipe driver (Mesa) allocates global state through pthread_once on the first
+# vkEnumeratePhysicalDevices and does not free it until exit (found by ASan in WSL 2026-11-09). Do not put Gran leaks here.
+# Besides, 2 indirect leaks of 56 bytes remain from the driver's own threads: their stack is wholly in the unloaded
+# module (<unknown module>) and asan_thread_start — they cannot be suppressed by name; the noise sign is no gran/tests frame.
+leak:vkEnumeratePhysicalDevices
