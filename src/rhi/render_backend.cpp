@@ -13,4 +13,9 @@ namespace gran::rhi
     {
         return std::string();
     }
+
+    // Бэкенд без ожидания показа: кадр считается показанным сразу / A backend without presentation waiting: the frame counts as shown at once
+    void RenderBackend::waitPresented()
+    {
+    }
 }

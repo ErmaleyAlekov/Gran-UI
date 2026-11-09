@@ -57,6 +57,7 @@ namespace gran::platform::x11
         std::vector<X11Window*>& windows = registry();
 
         windows.erase(std::remove(windows.begin(), windows.end(), this), windows.end());
+        destroySync();
     }
 
     // Input method использует локаль пользователя и возвращает UTF-8, в том числе кириллицу.

@@ -35,6 +35,34 @@ namespace gran::platform::x11
     // ConfigureNotify updates size without a synchronous X-server roundtrip per frame.
     Size X11Window::pixelSize() const { return _pixels; }
 
+    /*
+    ** Пока край окна тянут мышью, оконный менеджер шлёт ConfigureNotify на каждое движение. Из скопившихся
+    ** в очереди берётся только последний: каждый RESIZE стоит ожидания GPU и новой цепочки обмена, а размер
+    ** промежуточных уже устарел (на стенде без слияния окно было чёрным в 238 замерах из 240).
+    **
+    ** While the window edge is dragged with the mouse, the window manager sends ConfigureNotify on every motion.
+    ** Of those queued up only the last one is taken: every RESIZE costs a GPU wait and a new swap chain, and the
+    ** size of the intermediate ones is already stale (on the stand without merging the window was black in 238 of
+    ** 240 samples).
+    */
+    void X11Window::resized(XEvent& event)
+    {
+        XEvent next{};
+        Event resize;
+
+        while (XCheckTypedWindowEvent(_native.display, _native.window, ConfigureNotify, &next))
+            event = next;
+        // Новый размер после запроса синхронизации: следующий кадр можно отдавать менеджеру (x11_sync.cpp)
+        // The new size after a sync request: the next frame may be handed to the manager (x11_sync.cpp)
+        if (_syncPending)
+            _syncConfigured = true;
+        _pixels = {static_cast<float>(event.xconfigure.width), static_cast<float>(event.xconfigure.height)};
+        resize.kind = EventKind::RESIZE;
+        resize.width = event.xconfigure.width;
+        resize.height = event.xconfigure.height;
+        _events.push_back(resize);
+    }
+
     // Короткое событие без дополнительных данных.
     // A simple event without additional data.
     void X11Window::push(EventKind kind)

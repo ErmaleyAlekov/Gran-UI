@@ -47,7 +47,15 @@ namespace gran::rhi::vk
         {
             if (_recreate) resize(_options.width, _options.height);
             beginFrame();
-            if (!acquire()) return FrameStatus::OCCLUDED;
+            // Окно успело сменить размер после resize: цепочка пересоздаётся и кадр повторяется сразу,
+            // иначе он пропадал, а нового кадра без следующего события не было — окно оставалось чёрным
+            // The window changed size after resize: the chain is recreated and the frame is retried at once,
+            // otherwise it was lost and without a next event no new frame came — the window stayed black
+            if (!acquire())
+            {
+                resize(_options.width, _options.height);
+                if (!acquire()) return FrameStatus::OCCLUDED;
+            }
             drawFrame(data);
             submit();
             FrameStatus status = present();

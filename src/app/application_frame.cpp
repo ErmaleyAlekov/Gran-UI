@@ -40,11 +40,20 @@ namespace gran
     {
         namespace
         {
-            // Фокус ввода → дерево доступности; смена — событие для дикторов / The input focus → the accessibility tree; a change is an event for screen readers
-            void syncAccessFocus(AppWindow& win)
+            // После кадра: ответ оконному менеджеру (X11), курсор, фокус ввода → дерево доступности (смена — событие
+            // для дикторов)
+            // After a frame: the answer to the window manager (X11), the cursor, the input focus → the accessibility
+            // tree (a change is an event for screen readers)
+            void syncAfterFrame(AppWindow& win)
             {
                 const ui::Node* focus = win.router->focused();
 
+                // Менеджер ждёт этот кадр: ответ — когда кадр уже в окне (Т-24)
+                // The manager waits for this frame: the answer when the frame is already in the window (T-24)
+                if (win.window->waitsForFrame() && win.backend)
+                    win.backend->waitPresented();
+                win.window->framePresented();
+                win.window->setCursor(win.router->cursor());
                 if (focus == win.access.focus)
                     return;
                 win.access.focus = focus;
@@ -94,8 +103,7 @@ namespace gran
                 == rhi::FrameStatus::DEVICE_LOST)
                 recreateGraphics(win);
             checkGraphicsDiagnostics(win);
-            win.window->setCursor(win.router->cursor());
-            syncAccessFocus(win);
+            syncAfterFrame(win);
             win.window->accessRefresh();
             syncWebViews(win);
             syncDropZones(win);

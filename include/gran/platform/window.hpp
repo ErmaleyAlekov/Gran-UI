@@ -237,6 +237,18 @@ namespace gran::platform
         // Пути файлов самого раннего ещё не забранного события DROP (UTF-8) / The file paths of the earliest DROP event not taken yet (UTF-8)
         virtual std::vector<std::string> takeDroppedFiles();
 
+        // Кадр окна отрисован и отправлен на показ: X11 отвечает оконному менеджеру на запрос синхронизации
+        // смены размера (_NET_WM_SYNC_REQUEST, Т-20); по умолчанию (window_defaults.cpp) ничего не делает
+        // The window frame was drawn and sent for display: X11 answers the window manager resize sync request
+        // (_NET_WM_SYNC_REQUEST, T-20); by default (window_defaults.cpp) it does nothing
+        virtual void framePresented();
+
+        // Ждёт ли оконный менеджер этот кадр (тогда перед framePresented стоит дождаться его показа —
+        // RenderBackend::waitPresented, Т-24); по умолчанию — нет
+        // Whether the window manager waits for this frame (then before framePresented its display is worth waiting
+        // for — RenderBackend::waitPresented, T-24); no by default
+        virtual bool waitsForFrame() const;
+
         // Дерево доступности для вспомогательных технологий ОС (nullptr — отключить) / The accessibility tree for the OS assistive technologies (nullptr — disconnect)
         virtual void setAccessTree(a11y::AccessTree* tree) = 0;
 

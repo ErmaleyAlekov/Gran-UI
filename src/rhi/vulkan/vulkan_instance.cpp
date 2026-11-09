@@ -9,7 +9,10 @@ namespace gran::rhi::vk
     {
         auto app = structure<VkApplicationInfo>(VK_STRUCTURE_TYPE_APPLICATION_INFO);
         app.pApplicationName = "Gran UI";
-        app.apiVersion = VK_API_VERSION_1_0;
+        // 1.1 — для ожидания показа (vulkan_present_wait.cpp); старый загрузчик — 1.0
+        // 1.1 — for presentation waiting (vulkan_present_wait.cpp); an old loader — 1.0
+        _apiVersion = instanceVersion();
+        app.apiVersion = _apiVersion;
         std::vector<const char*> extensions;
         if (_options.nativeWindow != nullptr)
             extensions = {VK_KHR_SURFACE_EXTENSION_NAME, "VK_KHR_xlib_surface"};

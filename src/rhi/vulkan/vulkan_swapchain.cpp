@@ -69,7 +69,17 @@ namespace gran::rhi::vk
         auto info = structure<VkPresentInfoKHR>(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
         info.waitSemaphoreCount = 1; info.pWaitSemaphores = &finished;
         info.swapchainCount = 1; info.pSwapchains = &swapchain; info.pImageIndices = &_swapIndex;
+        // Номер кадра для ожидания показа (vulkan_present_wait.cpp); номера растут и между цепочками
+        // The frame number for presentation waiting (vulkan_present_wait.cpp); numbers grow across chains too
+        std::uint64_t id = _presentId + 1;
+#if defined(VK_KHR_present_id)
+        auto ids = structure<VkPresentIdKHR>(VK_STRUCTURE_TYPE_PRESENT_ID_KHR);
+        ids.swapchainCount = 1; ids.pPresentIds = &id;
+        if (_presentWait) { info.pNext = &ids; _presentId = id; }
+#endif
         VkResult result = vkQueuePresentKHR(_queue, &info);
+        _waitId = 0;
+        if (_presentWait && (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)) _waitId = id;
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) _recreate = true;
         else GRAN_CHECK_VK(result);
         return FrameStatus::PRESENTED;

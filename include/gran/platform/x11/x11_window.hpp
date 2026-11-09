@@ -54,13 +54,20 @@ namespace gran::platform::x11
         void activate() override;
         bool placement(WindowPlacement& placement) const override;
         void setPlacement(const WindowPlacement& placement) override;
+        void framePresented() override;
+        bool waitsForFrame() const override;
     private:
         void applyOwner(const WindowDesc& desc);
         void place(const WindowDesc& desc);
         void create(const WindowDesc& desc);
         void configure(const WindowDesc& desc);
+        unsigned long backgroundPixel(const Color& color) const;
         void inputMethod();
         void dispatch(XEvent& event);
+        void resized(XEvent& event);
+        void clientMessage(const XClientMessageEvent& message);
+        void protocols();
+        void destroySync();
         void mouse(XEvent& event);
         void button(const XButtonEvent& native, Event& event);
         void keyboard(XKeyEvent& event, bool down);
@@ -107,6 +114,15 @@ namespace gran::platform::x11
         unsigned _lastButton = 0;
         int _lastX = 0;
         int _lastY = 0;
+        // Синхронизация смены размера (x11_sync.cpp): счётчик XSync, номер запроса менеджера, ждёт ли он ответа
+        // и пришёл ли после запроса новый размер
+        // Resize synchronization (x11_sync.cpp): the XSync counter, the manager request number, whether it waits
+        // for an answer and whether the new size has come after the request
+        XID _syncCounter = 0;
+        unsigned long _syncLow = 0;
+        long _syncHigh = 0;
+        bool _syncPending = false;
+        bool _syncConfigured = false;
     };
 }
 #endif

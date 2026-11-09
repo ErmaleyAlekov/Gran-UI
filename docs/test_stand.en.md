@@ -170,6 +170,37 @@ The desktop is GNOME in a Wayland session; the X11 window tests go through XWayl
     - Along the way: the first run of a freshly built exe waits up to 10 s for the Microsoft Defender cloud check; a
       repeated run is instant. For the stand — a Defender exclusion for `C:\gran`.
 
+**Manual check 2026-11-09 (Alt, GNOME Wayland, the window through XWayland): found and fixed**
+
+17. **While the window edge is dragged, the window flickers solid black — on Intel and on NVIDIA.** Caught by a phone camera.
+    - Causes: the X11 window was created with a black background and `ForgetGravity`, so on every resize the X server
+      filled the whole window with black until the next GPU frame. A frame for which `vkAcquireNextImageKHR` returned
+      `OUT_OF_DATE` (the window had changed meanwhile) was lost, and without a new event there was no second attempt.
+      Every ConfigureNotify recreated the swap chain.
+    - Fix: the window background is the `<Window background>` color with `NorthWestGravity`
+      (`src/platform/x11/x11_create.cpp`), ConfigureNotify merging (`x11_events.cpp`), a frame retry after the chain is
+      recreated (`src/rhi/vulkan/vulkan_frame.cpp`).
+    - Measurement: an X client changes the gallery window width 3 times, 40 steps of 20 pixels 4 ms apart, and after
+      each step reads 5 window points with `XGetImage`; a black frame is when all 5 are almost black. It was 238 of 240
+      (NVIDIA; the window stayed black after stopping) and 179 of 240 (Intel), now 0 and 0.
+    - T-20: the black was gone, but a background strip flickered at the right edge while dragging — Mutter showed
+      the window of the new size before the frame. Fix — the `_NET_WM_SYNC_REQUEST` synchronization
+      (`src/platform/x11/x11_sync.cpp`). Mutter sends the requests only while dragging with the mouse; the probe sends
+      them itself (240 requests → the counter is 240). By eye — T-21.
+    - T-21: the flicker stayed — the window answered right after `vkQueuePresentKHR`, while a FIFO frame reaches the
+      window at the next screen refresh. Now the answer goes after `vkWaitForPresentKHR`
+      (`src/rhi/vulkan/vulkan_present_wait.cpp`). The probe measures the answer delay (`answer delay`). Two builds
+      compared, three alternating runs: with waiting — NVIDIA 42 ms on average (worst 87–97), Intel 87 (144–145);
+      without it — NVIDIA 36.5 (84–85), Intel 90 (over 200). Waiting is kept for the Intel worst case. The first
+      measurements (21 and 31 ms) did not repeat. By eye — T-22.
+    - T-22…T-24: the right edge flicker stayed. The GNOME screen recording: the strip is pure black, not the window
+      background color. The Gran window is nested in a `mutter-x11-frames` frame (a 32-bit window with the shadow and
+      the title bar); `vkcube` shows the same strip, a window with its own title bar (`samples/custom_window.xml`)
+      does not. The `sync_watch` watcher: 289 resizes — 289 window answers. Conclusion: the rest is the behavior of the
+      GNOME frame for X11 windows, not a Gran bug.
+    - For the window to open on Intel, Intel was made the primary GPU of the GNOME desktop (the udev tag
+      `mutter-device-preferred-primary`); before that `GRAN_ADAPTER=intel` in a window gave `vkCreateSwapchainKHR` = −3.
+
 **Observation (the main computer, AMD RX 9070):** `gran_render_tests --d3d12 --hardware` — in the `glass` frame one
 pixel differs from the WARP baseline by 3 with a tolerance of 2 (the blur); it was so before this run as well. The baselines
 are WARP, pixel equality between drivers is not claimed; comparing on AMD needs `--tolerance 3`.

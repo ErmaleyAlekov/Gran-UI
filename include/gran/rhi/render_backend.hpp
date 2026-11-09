@@ -128,6 +128,12 @@ namespace gran::rhi
         // The device loss reason for the log (called after FrameStatus::DEVICE_LOST, before the backend is
         // destroyed); empty by default
         virtual std::string lostReason() const;
+
+        // Дождаться, пока последний кадр окажется в окне (Vulkan с VK_KHR_present_wait; для ответа оконному
+        // менеджеру X11 во время смены размера, Т-24); по умолчанию ничего не ждёт
+        // Wait until the last frame is in the window (Vulkan with VK_KHR_present_wait; for answering the X11 window
+        // manager during a resize, T-24); waits for nothing by default
+        virtual void waitPresented();
     };
 
     /*

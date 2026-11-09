@@ -12,4 +12,15 @@ namespace gran::platform
     {
         return std::vector<std::string>{};
     }
+
+    // Окну без синхронизации с оконным менеджером отвечать некому / A window without window manager sync has no one to answer
+    void Window::framePresented()
+    {
+    }
+
+    // Никто не ждёт кадра / No one waits for the frame
+    bool Window::waitsForFrame() const
+    {
+        return false;
+    }
 }

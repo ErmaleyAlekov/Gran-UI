@@ -32,6 +32,21 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   window recreated its buffers and sent a frame. Only every seventh frame reached the monitor, and the NVIDIA hardware
   planes (MPO) went dark from such a stream. Now while dragging the window waits for the DWM composition after every
   frame (`DwmFlush`): more than half of the frames reach the screen, and there is no black.
+- Linux (X11/XWayland, Intel and NVIDIA): while the window edge was dragged with the mouse, the window flickered solid
+  black, and on NVIDIA it could stay black after the mouse stopped. Three causes: the X11 window background was black,
+  and on every resize the X server filled the whole window with it; a frame for which `vkAcquireNextImageKHR` returned
+  `OUT_OF_DATE` was lost without a retry; every ConfigureNotify recreated the swap chain. Now the background is the
+  `<Window background>` color, the old content is kept on resize (`NorthWestGravity`), the frame is retried right after
+  the chain is recreated, and of the queued ConfigureNotify events only the last one is taken. Measured on the stand
+  (240 fast resizes): black frames were 238 (NVIDIA) and 179 (Intel), now 0.
+- Linux (X11/XWayland, GNOME): while the right window edge was dragged, a background strip flickered: Mutter showed the
+  window of the new size before the GPU frame. The window now takes part in the `_NET_WM_SYNC_REQUEST` resize
+  synchronization (an XSync counter, answered after a frame of the new size), and the manager waits for the frame.
+  libXext is loaded at run time (`dlopen`), no new build dependencies. The answer goes when the frame is already in the
+  window: Vulkan waits for it to be shown (`VK_KHR_present_wait`, a Vulkan 1.1 instance; at most 100 ms; no extension —
+  as before); on Intel the worst answer to the manager is 145 ms instead of over 200. The remaining flicker at the right
+  edge is the empty inside of the GNOME frame for X11 windows (`mutter-x11-frames`), the same for other X11 programs;
+  windows with their own title bar (`titleBar="custom"`) do not have it.
 - The CMake + MSVC build with `-DGRAN_SANITIZE=address` did not link (LNK2038 `annotate_string`): the sanitizer is now
   applied to Beresta as well.
 - MSVC 14.44 (Visual Studio 2022): in release builds markup with a color like `#172033` was rejected by the schema — fixed

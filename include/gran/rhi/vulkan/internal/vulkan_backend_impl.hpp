@@ -99,6 +99,7 @@ namespace gran::rhi::vk
         // ---- vulkan_adapter.cpp ----
         AdapterInfo adapterInfo() const override;
         std::string lostReason() const override;
+        void waitPresented() override;
         void readPixels(std::vector<std::uint8_t>& rgba, unsigned& width, unsigned& height) override;
     private:
         void createInstance();
@@ -110,6 +111,10 @@ namespace gran::rhi::vk
         void createSurface();
         void createDevice();
         bool tryDevice(VkPhysicalDevice candidate);
+        bool createLogical(VkPhysicalDevice candidate, unsigned family, bool presentWait);
+        std::uint32_t instanceVersion() const;
+        bool hasPresentWait(VkPhysicalDevice candidate) const;
+        bool presentWaitSupported(VkPhysicalDevice candidate) const;
         bool queueFamily(VkPhysicalDevice candidate, unsigned& family);
         void createFrames();
         void createFrame(Frame& frame);
@@ -187,6 +192,15 @@ namespace gran::rhi::vk
         bool _hasFrame = false;
         bool _syncValidation = false;
         bool _debugEnabled = false;
+        // Ожидание показа (vulkan_present_wait.cpp): версия экземпляра, включены ли расширения, vkWaitForPresentKHR,
+        // номер последнего отправленного кадра и номер кадра, который ещё не дождались (0 — нечего ждать)
+        // Waiting for presentation (vulkan_present_wait.cpp): the instance version, whether the extensions are on,
+        // vkWaitForPresentKHR, the number of the last sent frame and the number of the frame not waited for yet (0 — none)
+        std::uint32_t _apiVersion = VK_API_VERSION_1_0;
+        bool _presentWait = false;
+        PFN_vkVoidFunction _waitForPresent = nullptr;
+        std::uint64_t _presentId = 0;
+        std::uint64_t _waitId = 0;
     };
 }
 #define GRAN_CHECK_VK(call) ::gran::rhi::vk::check((call), #call, __FILE__, __LINE__)
