@@ -41,6 +41,9 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   tabs, dragging a title to another edge with the place highlighted, the edge length handles, the cross hides a panel;
   the actions `gran:dockShow`, `gran:dockHide`, `gran:dockToggle`, `gran:dockReset`, the `Application::showDockPanel` method;
   the layout is kept in the window settings by the panel ids without `persist`. UI Automation: a panel is a Pane.
+- Tearing a dockable panel off into a tool window (plan 2.1, 7b): a title dropped into the middle of the host or outside it
+  moves the panel content (the same nodes — the field state is kept) into a window above the main one; closing the window or
+  `gran:dockShow` returns it to the edge. `Application::floatDockPanel`.
 
 ### Changed
 - Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no
@@ -53,6 +56,8 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
+- Rebuilding a node through the live markup (`setMarkupAttribute`, restoring the settings) duplicated the parts the engine
+  builds: the toolbar "more" button, the status bar and splitter handles.
 - `Application::remove` of a `Tab` page left its header in the tab strip — now the header is removed together with the
   page, the choice moves to a remaining tab.
 - Gallery, `samples/platform.xml`: "Save as…" only showed the chosen path and wrote nothing — now it writes a text file

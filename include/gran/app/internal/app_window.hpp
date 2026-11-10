@@ -76,6 +76,11 @@ namespace gran::app
         // The focused field or its history changed: the gran:undo / gran:redo commands of the main stack are recomputed
         void editingChanged() override;
 
+        // ---- application_dock.cpp ----
+
+        // Оторвать панель в отдельное окно (брошена в центр или вне хоста) / Tearing a panel off into a separate window (dropped into the center or outside the host)
+        void floatDockPanel(ui::Node& panel) override;
+
         // ---- app_list_input.cpp ----
 
         // Щелчок и клавиши у списка с выделением — модели выделения его привязки / A click and keys at a list with a selection — to its binding selection model
@@ -118,6 +123,9 @@ namespace gran::app
         bool blocked = false;
         WindowCloseHandler onClosed;
         std::string closeResult;
+        // Окно — оторванная закрепляемая панель: её DockPanel в окне-хозяине (содержимое вернётся туда при закрытии)
+        // The window is a torn-off dockable panel: its DockPanel in the home window (the content returns there on closing)
+        ui::Node* floatingPanel = nullptr;
         // Окну нужен кадр в этом проходе цикла / The window needs a frame in this loop pass
         bool changed = false;
         bool animating = false;
@@ -221,6 +229,23 @@ namespace gran::app
 
     // Секции строк состояния, чей текст сменился, — дикторам (живая область) / The status sections whose text changed go to the screen readers (a live region)
     void announceStatus(AppWindow& win);
+
+    // ---- dock_float.cpp ----
+
+    /*
+    ** Перенести содержимое панели в корень окна float (те же узлы: текст полей и прокрутка сохраняются), панель
+    ** помечается floating и скрывается компоновкой; возврат — returnPanel (перед закрытием окна float).
+    **
+    ** Moving the panel content into the root of the float window (the same nodes: the field texts and the scrolling are kept), the panel
+    ** is marked floating and hidden by the layout; the return is returnPanel (before closing the float window).
+    */
+    void floatPanel(Application::State& state, ui::Node& panel, AppWindow& floatWin);
+
+    // Вернуть содержимое оторванной панели домой; окно не оторванной панели — ничего / Returning the torn-off panel content home; a window of no torn-off panel — nothing
+    void returnPanel(Application::State& state, AppWindow& floatWin);
+
+    // Окно, в которое оторвана панель (nullptr — не оторвана) / The window the panel is torn off into (nullptr — not torn off)
+    AppWindow* floatWindowOf(Application::State& state, const ui::Node& panel) noexcept;
 
     // ---- application_access.cpp ----
 

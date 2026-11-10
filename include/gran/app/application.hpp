@@ -519,6 +519,12 @@ namespace gran
         // Showing or hiding a DockPanel (a shown one becomes the chosen one on its edge; gran:dockShow, gran:dockHide)
         void showDockPanel(ui::Node& panel, bool shown);
 
+        // Оторвать закрепляемую панель в окно-инструмент (содержимое переносится, при закрытии окна возвращается;
+        // gran:dockShow оторванной панели закрывает окно и возвращает её на край)
+        // Tearing a dockable panel off into a tool window (the content moves, it returns when the window closes;
+        // gran:dockShow of a torn-off panel closes the window and returns it to the edge)
+        void floatDockPanel(ui::Node& panel);
+
         // ---- application_values.cpp: значения элементов из кода (onChange не вызывается) ----
         // ---- application_values.cpp: control values from code (onChange is not called) ----
 

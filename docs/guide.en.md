@@ -1082,6 +1082,12 @@ window settings by itself (the window needs `layout` and the host and panels an 
 new panels — the places from the markup, and the saved records of panels that no longer exist are skipped. The host `onChange`
 is called after each layout change. For screen readers a panel is a Pane named by its title, a title is a button.
 
+**Tearing a panel off into a window.** A title dropped into the middle of the host or outside it tears the panel off into a tool window
+above the main window (from code — `app.floatDockPanel(panel)`). The same nodes move into the window, not a copy: the field texts,
+the scrolling and the selection are kept, the `{$…}` bindings and the main window commands keep working. Closing the window
+(the cross, Alt+F4) or `gran:dockShow` returns the content to its former edge, the panel becomes the chosen one there.
+The torn-off state is not kept between runs: after a restart the panel is at its edge.
+
 Example of the whole frame — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 
 ## Embedded browser: WebView

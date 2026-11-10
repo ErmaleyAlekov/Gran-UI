@@ -7,11 +7,11 @@ namespace gran::input
     namespace
     {
         /*
-        ** Край, куда упадёт панель: точка в пятой части хоста у края — этот край (слева и справа важнее), иначе
-        ** никуда (−1). Отрыв в отдельное окно (DOCK_SIDES) — часть 7б плана.
+        ** Край, куда упадёт панель: точка в пятой части хоста у края — этот край (слева и справа важнее); в середине
+        ** хоста или вне его — отрыв в отдельное окно (DOCK_SIDES).
         **
-        ** The edge the panel will drop onto: a point within a fifth of the host at an edge — that edge (left and right matter more), otherwise
-        ** nowhere (−1). Tearing off into a separate window (DOCK_SIDES) is part 7b of the plan.
+        ** The edge the panel will drop onto: a point within a fifth of the host at an edge — that edge (left and right matter more); in the middle
+        ** of the host or outside it — tearing off into a separate window (DOCK_SIDES).
         */
         int dropSideAt(const ui::Node& host, Vec2 point) noexcept
         {
@@ -21,7 +21,7 @@ namespace gran::input
             float y = (local.y - frame.y) / std::fmax(1.0f, frame.height);
 
             if (x < 0.0f || y < 0.0f || x > 1.0f || y > 1.0f)
-                return -1;
+                return static_cast<int>(ui::DOCK_SIDES);
             if (x < 0.2f)
                 return static_cast<int>(ui::DockSide::LEFT);
             if (x > 0.8f)
@@ -30,7 +30,7 @@ namespace gran::input
                 return static_cast<int>(ui::DockSide::TOP);
             if (y > 0.8f)
                 return static_cast<int>(ui::DockSide::BOTTOM);
-            return -1;
+            return static_cast<int>(ui::DOCK_SIDES);
         }
     }
 
@@ -97,8 +97,14 @@ namespace gran::input
         int side = host->content.dock.dropSide;
         host->content.dock.dropSide = -1;
         ui::markDirty(*host, ui::DIRTY_PAINT);
-        if (!state.dockDragging || side < 0 || side >= static_cast<int>(ui::DOCK_SIDES))
+        if (!state.dockDragging || side < 0)
             return;
+        // Брошена в середину или вне хоста — отрыв в окно (его открывает программа) / Dropped into the middle or outside the host — tearing off into a window (the program opens it)
+        if (side == static_cast<int>(ui::DOCK_SIDES))
+        {
+            state.actions->floatDockPanel(*panel);
+            return;
+        }
         panel->content.dock.side = static_cast<ui::DockSide>(side);
         ui::chooseDockPanel(*panel);
         if (!host->content.onChange.empty())

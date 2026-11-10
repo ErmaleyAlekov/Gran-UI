@@ -55,6 +55,10 @@ namespace gran::input
         // Действие с именем name от узла node / The action named name from the node
         virtual void action(const std::string& name, ui::Node& node) = 0;
 
+        // Закрепляемую панель бросили в центр хоста или вне его — оторвать в окно; по умолчанию (action_sink_dock.cpp) — ничего
+        // A dockable panel was dropped into the host center or outside it — tear it off into a window; by default (action_sink_dock.cpp) — nothing
+        virtual void floatDockPanel(ui::Node& panel);
+
         // ---- action_sink.cpp ----
 
         /*

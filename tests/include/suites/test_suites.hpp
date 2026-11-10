@@ -44,6 +44,7 @@ namespace suites
     void registerDocumentTabsTests(test::TestRunner& runner);
     void registerDockTests(test::TestRunner& runner);
     void registerFrameRebuildTests(test::TestRunner& runner);
+    void registerDockFloatTests(test::TestRunner& runner);
     void registerWin32KeyMenuTests(test::TestRunner& runner);
     void registerDialogTests(test::TestRunner& runner);
     void registerWidgetTests(test::TestRunner& runner);

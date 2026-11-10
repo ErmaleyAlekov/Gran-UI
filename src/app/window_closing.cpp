@@ -37,6 +37,9 @@ namespace gran::app
             WindowCloseHandler handler = std::move(win.onClosed);
             std::string result = std::move(win.closeResult);
 
+            // Оторванная панель возвращает содержимое домой до того, как окно снимет привязки своего дерева
+            // A torn-off panel returns its content home before the window drops the bindings of its tree
+            returnPanel(state, win);
             saveState(win);
             win.modal = false;
             updateBlocking(state);
