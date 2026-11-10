@@ -108,6 +108,7 @@ int main(int argc, char* argv[])
         gallery::registerPlatform(application, markup);
         gallery::registerEvents(application);
         gallery::registerProgram(application, markup);
+        gallery::registerTabs(application);
         return application.run();
     }
     catch (const std::exception& error)

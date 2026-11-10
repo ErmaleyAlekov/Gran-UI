@@ -45,7 +45,8 @@ namespace gran::render::internal
         void paintContent(const ui::Node& node, const PaintState& inner, SceneContext& context)
         {
             ui::ElementKind kind = node.kind;
-            bool marked = kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::TOOL_MORE;
+            bool marked = kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::TOOL_MORE
+                || ui::tabClosable(node);
 
             // Текст WebView — HTML страницы для браузера, а не подпись: движок рисует только фон и обводку
             // The WebView text is the page HTML for the browser, not a label: the engine paints only the background and border

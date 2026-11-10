@@ -33,6 +33,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   the `minFirst`/`minSecond` limits, collapsing `collapse`/`collapsed` by a double click or Enter, the handle keys (the arrows,
   Shift, Home, End), the ↔/↕ cursor, `onChange` after a drag; `persist="position collapsed"` keeps the position (the live
   state is written into the markup before saving, `markup::writeLiveAttributes`). UI Automation: the handle is a Thumb with RangeValue.
+- Document tabs (plan 2.1): the `Tabs` attributes `closable` (the cross, the middle button, Ctrl+W and Ctrl+F4 → `onClose`
+  with the page), `reorderable` (reordering the headers by the mouse → `onReorder`), `overflowMenu` (the headers that do not
+  fit go into a menu at the strip end), tabs from a model (`items` + `<ItemTemplate><Tab …/></ItemTemplate>`),
+  Ctrl+Tab and Ctrl+Shift+Tab.
 
 ### Changed
 - Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no
@@ -45,6 +49,8 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
+- `Application::remove` of a `Tab` page left its header in the tab strip — now the header is removed together with the
+  page, the choice moves to a remaining tab.
 - Gallery, `samples/platform.xml`: "Save as…" only showed the chosen path and wrote nothing — now it writes a text file
   and reports "Saved: path" (found by the T-8 manual check).
 - Gallery: an unknown key (for example, `–vulkan` with an en dash instead of two hyphens) is no longer taken as the markup

@@ -74,8 +74,9 @@ namespace gran::layout::internal
             case ui::ElementKind::TEXT:
             case ui::ElementKind::BUTTON:
             case ui::ElementKind::COMBO_BOX:
-            case ui::ElementKind::TAB_HEADER:
                 return pass.measurer.measureText(node, contentAvailable.width);
+            case ui::ElementKind::TAB_HEADER:
+                return tabHeaderSize(node, contentAvailable, pass);
             case ui::ElementKind::MENU_ITEM:
                 return menuItemSize(node, contentAvailable, pass);
             case ui::ElementKind::SEPARATOR:

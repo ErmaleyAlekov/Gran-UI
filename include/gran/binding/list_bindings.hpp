@@ -101,6 +101,11 @@ namespace gran::binding
         */
         void removeNode(ui::Node& node);
 
+        // Вкладки из данных: страница добавлена или удалена — полоса заголовков строится заново (старые заголовки
+        // сначала снимаются со ссылок слушателя) / Tabs from data: a page was added or removed — the header strip is built anew
+        // (the old headers are first dropped from the listener references)
+        void resyncTabs(ui::Node& tabs);
+
         // Запись ближайшего списка, из копии шаблона которой узел / The record of the nearest list whose template copy holds the node
         ItemRef itemOf(const ui::Node& node) const noexcept;
 

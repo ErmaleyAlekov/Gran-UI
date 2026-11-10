@@ -69,6 +69,11 @@ namespace gran::render::internal
             paintShortcut(node, state, context);
             return;
         }
+        if (node.kind == ui::ElementKind::TAB_HEADER)
+        {
+            paintTabClose(node, state, context);
+            return;
+        }
         if (node.kind == ui::ElementKind::COMBO_BOX)
         {
             mark.center.x = content.x + content.width + style.padding.right * 0.5f;

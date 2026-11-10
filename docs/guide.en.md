@@ -181,6 +181,7 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `Separator` | A separator in a toolbar (vertical) and in a menu (horizontal) | — |
 | `StatusBar`, `StatusSection` | The status bar and its sections; announced to screen readers | `sizeGrip` |
 | `Splitter` | Two panes and a draggable handle between them | `position`, `minFirst`, `minSecond`, `collapse`, `fixed`, `collapsed`, `onChange` |
+| `Tabs` (documents) | Closable, reorderable tabs, the tab menu, tabs from a model | `closable`, `reorderable`, `overflowMenu`, `onClose`, `onReorder`, `items` |
 | `Dialog` | Modal dialog in the window center | `closable` |
 | `ComboBox` | Drop-down list with the selected value | `value`, `placeholder`, `onChange`, `MenuItem` items or `items` |
 | `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
@@ -1031,6 +1032,31 @@ The cursor over the handle is a double arrow. `onChange` is called after a drag 
 and collapsing. `persist="position collapsed"` keeps the position and the collapsed state between runs
 (the window needs `layout` and the splitter an `id`). For screen readers the handle is a Thumb element with the RangeValue pattern:
 the number is the first pane length, the limits are `minFirst` and the room minus `minSecond`.
+
+**Document tabs** are the same `Tabs` with editor attributes. `closable="true"` draws a cross on the headers: a click
+on it, the middle mouse button and Ctrl+W (Ctrl+F4) with the focus inside the tabs call `onClose` with the `Tab` page.
+The program closes the tab itself — for example, after asking about unsaved changes — by calling `app.remove(page)` (or
+the `gran:remove` command): the header goes together with the page, the choice moves to the last remaining one.
+`reorderable="true"` allows reordering the headers by the mouse, on the release — `onReorder` with the moved page
+(the order changes in the live tree, not in the markup file). `overflowMenu="true"` moves the headers that do not fit
+into the menu of a button at the strip end. Ctrl+Tab and Ctrl+Shift+Tab switch the tabs cyclically.
+
+```xml
+<Tabs id="docs" closable="true" reorderable="true" overflowMenu="true" onClose="closeTab" onReorder="tabMoved">
+  <Tab text="Document 1.txt"><TextArea/></Tab>
+  <Tab text="Notes.md"><TextArea/></Tab>
+</Tabs>
+<!-- Tabs from a model: a page per record -->
+<Tabs items="openFiles" closable="true" onClose="closeFile">
+  <ItemTemplate><Tab text="{name}" value="{path}"><TextArea text="{body}"/></Tab></ItemTemplate>
+</Tabs>
+```
+
+```cpp
+app.onAction("closeTab", CloseTab{&app});   // void(ui::Node& page): app.remove(page)
+```
+
+For tabs from a model closing is removing the record from the model: the page and its header go by themselves.
 
 Example of the whole frame — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 

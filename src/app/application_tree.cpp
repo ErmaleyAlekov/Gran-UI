@@ -34,8 +34,18 @@ namespace gran
     {
         if (node.parent == nullptr)
             throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::APP_REMOVE_ROOT));
+        // Страница вкладок уходит вместе со своим заголовком, выбор — на соседнюю (закрытие вкладки документа)
+        // A tab page goes together with its header, the choice moves to a neighbor (closing a document tab)
+        ui::Node* header = ui::headerOfPage(node);
+        ui::Node* tabs = nullptr;
+        if (header != nullptr)
+            tabs = node.parent;
         markup::detachMarkup(node);
         _state->lists.removeNode(node);
+        if (header != nullptr)
+            _state->lists.removeNode(*header);
+        if (tabs != nullptr)
+            ui::repairTabSelection(*tabs);
     }
 
     // До run() маршрутизатора нет: фокус ставится при его создании / Before run() there is no router: the focus is set when it is created

@@ -54,6 +54,19 @@ namespace gran::binding
         ui::markDirty(*parent, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
     }
 
+    // Заголовки — дети полосы, первого ребёнка Tabs; syncTabs сохраняет выбранное значение / The headers are the strip children, the first Tabs child; syncTabs keeps the selected value
+    void ListBindings::resyncTabs(ui::Node& tabs)
+    {
+        if (tabs.kind != ui::ElementKind::TABS)
+            return;
+        if (_listener != nullptr && !tabs.children.empty() && tabs.children.front()->kind == ui::ElementKind::TAB_BAR)
+        {
+            for (const std::unique_ptr<ui::Node>& header : tabs.children.front()->children)
+                _listener->nodeRemoving(*header);
+        }
+        ui::syncTabs(tabs);
+    }
+
     // Подъём от узла: первый предок, чей родитель — привязанный контейнер, и есть копия записи
     // Climbing from the node: the first ancestor whose parent is a bound container is the record copy
     ItemRef ListBindings::itemOf(const ui::Node& node) const noexcept

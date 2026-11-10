@@ -22,7 +22,7 @@ namespace gran::layout::internal
     // Алгоритм выбирается видом узла / The algorithm is chosen by the node kind
     Size measureContent(ui::Node& node, Size contentAvailable, LayoutPass& pass)
     {
-        if (node.kind == ui::ElementKind::TOOL_BAR)
+        if (ui::toolBarMore(node) != nullptr)
             ui::unfoldToolBar(node);
         if (isStackLike(node))
             return measureStack(node, contentAvailable, pass);
@@ -44,7 +44,7 @@ namespace gran::layout::internal
         node.layout.contentSize = Size{content.width, content.height};
         // Панель инструментов: сначала решить, кто уйдёт в меню «ещё», затем стек и видимость пунктов-зеркал
         // A toolbar: first decide who goes into the "more" menu, then the stack and the mirror item visibility
-        if (node.kind == ui::ElementKind::TOOL_BAR)
+        if (ui::toolBarMore(node) != nullptr)
             fitToolBar(node, content, pass);
         // Разделитель меряется стеком (полные длины панелей), а размещается по своему положению
         // A splitter is measured as a stack (the full pane lengths) but placed by its own position
@@ -52,7 +52,7 @@ namespace gran::layout::internal
             arrangeSplitter(node, content, pass);
         else if (isStackLike(node))
             arrangeStack(node, content, pass);
-        if (node.kind == ui::ElementKind::TOOL_BAR)
+        if (ui::toolBarMore(node) != nullptr)
             ui::syncOverflowMenu(node);
         else if (node.kind == ui::ElementKind::GRID)
             arrangeGrid(node, content, pass);

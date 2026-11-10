@@ -57,4 +57,16 @@ namespace gran::layout::internal
             return Size{thickness, 0.0f};
         return Size{0.0f, thickness};
     }
+
+    // Крестик не перекрывает подпись: место под него вычитается из ширины переноса и прибавляется к размеру
+    // The cross does not cover the label: its room is taken from the wrap width and added to the size
+    Size tabHeaderSize(ui::Node& node, Size contentAvailable, LayoutPass& pass)
+    {
+        float mark = 0.0f;
+
+        if (ui::tabClosable(node))
+            mark = node.computed.fontSize * ui::TAB_CLOSE_SIZE;
+        Size label = pass.measurer.measureText(node, std::max(0.0f, contentAvailable.width - mark));
+        return Size{label.width + mark, label.height};
+    }
 }

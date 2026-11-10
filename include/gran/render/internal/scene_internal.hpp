@@ -119,6 +119,9 @@ namespace gran::render::internal
     // Ручка размера окна строки состояния: точки к правому нижнему углу (paint_grip.cpp) / The status bar window size grip: dots toward the bottom-right corner (paint_grip.cpp)
     void paintGrip(const ui::Node& node, const PaintState& state, SceneContext& context);
 
+    // Крестик закрытия вкладки документа у правого края заголовка (paint_tab_close.cpp) / The document tab close cross at the header right edge (paint_tab_close.cpp)
+    void paintTabClose(const ui::Node& header, const PaintState& state, SceneContext& context);
+
     // ---- paint_state.cpp ----
 
     // Состояние для узла: его transform, непрозрачность / The state for the node: its transform, opacity

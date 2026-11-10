@@ -693,6 +693,13 @@
     <xs:group ref="UiElement"/>
   </xs:complexType>
 
+  <!-- Шаблон страницы вкладок из данных: ровно один <Tab> / A data tab page template: exactly one <Tab> -->
+  <xs:complexType name="TabTemplateType">
+    <xs:sequence>
+      <xs:element name="Tab" type="TabType"/>
+    </xs:sequence>
+  </xs:complexType>
+
   <!--
     Общая основа контейнеров: к ElementBase добавляет модель «любые элементы интерфейса»
     и список из данных (items="модель" + <ItemTemplate> — только вместе).
@@ -1197,15 +1204,32 @@
     Tabs: the pages <Tab text="label" value="value">…</Tab>, above them — the header strip (the engine builds it).
     value of Tabs is the selected page value (without it and when there is no such page — the first one), onChange is
     the action on choosing another. The page value is value, without it — text; the values do not repeat.
+    Вкладки документов: closable — крестик на заголовке, средняя кнопка, Ctrl+W и Ctrl+F4 вызывают onClose со страницей
+    (закрывает программа: app.remove или gran:remove); reorderable — заголовки переставляются мышью, затем onReorder
+    со сдвинутой страницей; overflowMenu — не поместившиеся заголовки уходят в меню в конце полосы. Страницы из модели —
+    items и <ItemTemplate> с <Tab text="{поле}">; Ctrl+Tab и Ctrl+Shift+Tab — соседняя вкладка.
+    Document tabs: closable — the cross on a header, the middle button, Ctrl+W and Ctrl+F4 call onClose with the page
+    (the program closes it: app.remove or gran:remove); reorderable — the headers are reordered by the mouse, then onReorder
+    with the moved page; overflowMenu — the headers that do not fit go into a menu at the strip end. Pages from a model —
+    items and <ItemTemplate> with <Tab text="{field}">; Ctrl+Tab and Ctrl+Shift+Tab — the neighbor tab.
   -->
   <xs:complexType name="TabsType" mixed="true">
     <xs:complexContent>
       <xs:extension base="ElementBase">
         <xs:sequence>
-          <xs:element name="Tab" type="TabType" maxOccurs="unbounded"/>
+          <xs:element name="Tab" type="TabType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:element name="ItemTemplate" type="TabTemplateType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="value" type="xs:string"/>
         <xs:attribute name="onChange" type="Action"/>
+        <xs:attribute name="items" type="ModelName"/>
+        <xs:attribute name="closable" type="xs:boolean" default="false"/>
+        <xs:attribute name="reorderable" type="xs:boolean" default="false"/>
+        <xs:attribute name="overflowMenu" type="xs:boolean" default="false"/>
+        <xs:attribute name="onClose" type="Action"/>
+        <xs:attribute name="onReorder" type="Action"/>
+        <!-- Страницы — свои или из модели: шаблон только вместе с items / The pages are own ones or from a model: a template only together with items -->
+        <xs:assert test="(Tab and not(@items)) or (@items and ItemTemplate) or (not(@items) and not(ItemTemplate) and Tab)"/>
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="every $t in Tab satisfies count(Tab[(if (@value) then @value else @text)
                          = (if ($t/@value) then $t/@value else $t/@text)]) = 1"/>

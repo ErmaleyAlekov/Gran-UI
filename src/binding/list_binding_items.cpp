@@ -24,6 +24,8 @@ namespace gran::binding
         ui::Node& added = ui::insertChild(_container, position, std::move(copy));
         ui::markDirty(added, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         _owner.bind(added);
+        if (_container.kind == ui::ElementKind::TABS)
+            _owner.resyncTabs(_container);
     }
 
     // Узел удаляет владелец дерева: он снимает вложенные привязки и ссылки ввода / The tree owner removes the node: it drops the nested bindings and the input references
@@ -33,6 +35,9 @@ namespace gran::binding
 
         _items.erase(_items.begin() + static_cast<std::ptrdiff_t>(local));
         _owner.removeNode(*root);
+        // Вкладки из данных: у удалённой страницы был заголовок / Tabs from data: the removed page had a header
+        if (_container.kind == ui::ElementKind::TABS)
+            _owner.resyncTabs(_container);
     }
 
     /*

@@ -61,7 +61,7 @@ namespace gran::input
         {
             ui::Node* focus = state.focus;
 
-            if (popupKey(state, event) || menuBarKey(state, event) || focusKey(state, event))
+            if (popupKey(state, event) || menuBarKey(state, event) || tabsKey(state, event) || focusKey(state, event))
                 return true;
             if (focus == nullptr)
                 return state.selection != nullptr && navigateText(state, *state.selection, event);

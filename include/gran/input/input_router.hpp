@@ -237,6 +237,8 @@ namespace gran::input
         // Место захвата ручки разделителя по главной оси от её начала (splitter_events.cpp)
         // The place the splitter handle was grabbed at, along the main axis from its start (splitter_events.cpp)
         float splitGrab = 0.0f;
+        // Перетаскиваемый заголовок вкладки уже сдвигался (по отпусканию — onReorder) / The dragged tab header has already moved (on the release — onReorder)
+        bool tabMoved = false;
     };
 
     /*
@@ -641,6 +643,32 @@ namespace gran::input
 
     // Конец перетаскивания ползунка или ручки (отпускание кнопки) / The end of dragging a slider or a handle (the button release)
     void endDragControl(RouterState& state);
+
+    // ---- tab_input.cpp ----
+
+    // Запрос закрыть вкладку заголовка: onClose у Tabs со страницей / A request to close the header tab: onClose of Tabs with the page
+    void requestTabClose(RouterState& state, ui::Node& header);
+
+    // Ctrl+Tab, Ctrl+Shift+Tab — соседняя вкладка; Ctrl+W, Ctrl+F4 — закрыть выбранную; true — обработано
+    // Ctrl+Tab, Ctrl+Shift+Tab — the neighbor tab; Ctrl+W, Ctrl+F4 — close the selected one; true — handled
+    bool tabsKey(RouterState& state, const platform::Event& event);
+
+    // Пункт меню вкладок выбирает свою вкладку; false — не пункт меню вкладок / A tab menu item chooses its tab; false — not a tab menu item
+    bool chooseTabMirror(RouterState& state, ui::Node& item);
+
+    // ---- tab_drag.cpp ----
+
+    // Нажатие на заголовок: крестик — закрыть, иначе начать перестановку (reorderable) / A press on a header: the cross — close, otherwise start reordering (reorderable)
+    void pressTab(RouterState& state, ui::Node& header, const platform::Event& event);
+
+    // Перетаскивание заголовка вдоль полосы / Dragging a header along the strip
+    void dragTab(RouterState& state, ui::Node& header, Vec2 point);
+
+    // Конец перетаскивания заголовка: onReorder, если вкладка сдвинулась / The end of a header drag: onReorder if the tab moved
+    void finishTabDrag(RouterState& state, ui::Node& header);
+
+    // Нажатие средней кнопкой: закрыть вкладку под указателем / A middle button press: close the tab under the pointer
+    void middleClick(RouterState& state, ui::Node* hit);
 
     // ---- context_menu.cpp ----
 

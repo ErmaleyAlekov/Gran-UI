@@ -17,11 +17,11 @@ namespace gran::ui
 
         /*
         ** Узел панели → пункты-зеркала меню «ещё»: разделитель — разделитель, группа — зеркала её детей по порядку,
-        ** прочее — пункт с той же подписью, командой и onClick. Подпись, включённость и сочетание команды пункт
+        ** прочее — пункт с той же подписью, командой, onClick и значением (у заголовка вкладки — значение страницы). Подпись, включённость и сочетание команды пункт
         ** получает при привязке команд — так же, как кнопка, и меняется вместе с ней.
         **
         ** A toolbar node → the "more" menu mirror items: a separator — a separator, a group — the mirrors of its children in order,
-        ** the rest — an item with the same label, command and onClick. The command label, enabled state and shortcut come to the item
+        ** the rest — an item with the same label, command, onClick and value (for a tab header — the page value). The command label, enabled state and shortcut come to the item
         ** at the command binding — the same way as to the button, and change together with it.
         */
         void appendMirror(Node& menu, const Node& source)
@@ -42,15 +42,17 @@ namespace gran::ui
             item->content.text = overflowLabel(source);
             item->content.command = source.content.command;
             item->content.onClick = source.content.onClick;
+            item->content.option = source.content.option;
             setEnabled(*item, source.enabled);
             appendChild(menu, std::move(item));
         }
     }
 
-    // Кнопка «ещё» — последний ребёнок панели (её добавляет построитель) / The "more" button is the last toolbar child (the builder adds it)
+    // Кнопка «ещё» — последний ребёнок панели или полосы вкладок с overflowMenu / The "more" button is the last child of a toolbar or of a tab strip with overflowMenu
     Node* toolBarMore(Node& bar) noexcept
     {
-        if (bar.kind != ElementKind::TOOL_BAR || bar.children.empty() || bar.children.back()->kind != ElementKind::TOOL_MORE)
+        if ((bar.kind != ElementKind::TOOL_BAR && bar.kind != ElementKind::TAB_BAR) || bar.children.empty()
+            || bar.children.back()->kind != ElementKind::TOOL_MORE)
             return nullptr;
         return bar.children.back().get();
     }

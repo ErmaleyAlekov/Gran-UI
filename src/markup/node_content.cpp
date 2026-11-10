@@ -116,7 +116,7 @@ namespace gran::markup::internal
             readValue(node, value);
             return true;
         }
-        if (readField(node.content, name, value) || readEventAttribute(node, name, value))
+        if (readTabsAttribute(node, name, value) || readField(node.content, name, value) || readEventAttribute(node, name, value))
             return true;
         return readEnumeration(node, name, value) || readSplitterAttribute(node, name, value);
     }

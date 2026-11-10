@@ -82,6 +82,9 @@ namespace gallery
 
     // Кнопка settingsBar и счётчик запусков в настройках (gallery_settings.cpp) / The settingsBar button and the launch counter in the settings (gallery_settings.cpp)
     void registerSettings(gran::Application& application);
+
+    // Закрытие и перестановка вкладок документов samples/editor_frame.xml (gallery_tabs.cpp) / Closing and reordering the document tabs of samples/editor_frame.xml (gallery_tabs.cpp)
+    void registerTabs(gran::Application& application);
 }
 
 // Пакет ресурсов галереи, созданный gran_rcc из examples/gallery/resources.xml (gen/examples/gallery/resources.cpp)

@@ -192,6 +192,12 @@ namespace gran::markup::internal
     */
     void finishNode(const beresta::Element& element, ui::Node& node);
 
+    // ---- tabs_attributes.cpp ----
+
+    // Атрибуты вкладок документов у Tabs (closable, reorderable, overflowMenu, onClose, onReorder); false — не они
+    // The document tab attributes of Tabs (closable, reorderable, overflowMenu, onClose, onReorder); false — not them
+    bool readTabsAttribute(ui::Node& node, std::string_view name, const std::string& value);
+
     // ---- splitter_attributes.cpp ----
 
     // Атрибуты Splitter (position, minFirst, minSecond, collapse, fixed, collapsed); false — не они

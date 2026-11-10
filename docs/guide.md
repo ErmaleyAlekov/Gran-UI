@@ -181,6 +181,7 @@ Alt+Space открывает системное меню. Поля ввода, �
 | `Separator` | Разделитель в панели (вертикальный) и в меню (горизонтальный) | — |
 | `StatusBar`, `StatusSection` | Строка состояния и её секции; смена текста объявляется дикторам | `sizeGrip` |
 | `Splitter` | Две панели и перетаскиваемая ручка между ними | `position`, `minFirst`, `minSecond`, `collapse`, `fixed`, `collapsed`, `onChange` |
+| `Tabs` (документы) | Закрываемые, переставляемые вкладки, меню вкладок, вкладки из модели | `closable`, `reorderable`, `overflowMenu`, `onClose`, `onReorder`, `items` |
 | `Dialog` | Модальный диалог по центру окна | `closable` |
 | `ComboBox` | Выпадающий список с выбранным значением | `value`, `placeholder`, `onChange`, пункты `MenuItem` или `items` |
 | `WebView` | Страница системного браузера (по желанию, см. [ниже](#встроенный-браузер-webview)) | `source` или HTML в теге, `onMessage` |
@@ -1146,6 +1147,31 @@ ToolBar, разделитель — Separator, кнопка «ещё» — Butto
 шага клавишей и сворачивания. `persist="position collapsed"` сохраняет положение и свёрнутость между запусками
 (нужен `layout` у окна и `id` у разделителя). Для дикторов ручка — элемент типа Thumb с шаблоном RangeValue:
 число — длина первой панели, пределы — `minFirst` и место минус `minSecond`.
+
+**Вкладки документов** — те же `Tabs` с атрибутами редактора. `closable="true"` рисует на заголовках крестик: щелчок
+по нему, средняя кнопка мыши и Ctrl+W (Ctrl+F4), когда фокус внутри вкладок, вызывают `onClose` со страницей `Tab`.
+Закрывает вкладку сама программа — например, спросив о несохранённом, — вызовом `app.remove(страница)` (или
+командой `gran:remove`): заголовок уходит вместе со страницей, выбор переходит на последнюю оставшуюся.
+`reorderable="true"` разрешает переставлять заголовки мышью, по отпусканию — `onReorder` со сдвинутой страницей
+(порядок меняется в живом дереве, а не в файле разметки). `overflowMenu="true"` уводит не поместившиеся заголовки
+в меню кнопки в конце полосы. Ctrl+Tab и Ctrl+Shift+Tab переключают вкладки по кругу.
+
+```xml
+<Tabs id="docs" closable="true" reorderable="true" overflowMenu="true" onClose="closeTab" onReorder="tabMoved">
+  <Tab text="Документ 1.txt"><TextArea/></Tab>
+  <Tab text="Заметки.md"><TextArea/></Tab>
+</Tabs>
+<!-- Вкладки из модели: страница на каждую запись -->
+<Tabs items="openFiles" closable="true" onClose="closeFile">
+  <ItemTemplate><Tab text="{name}" value="{path}"><TextArea text="{body}"/></Tab></ItemTemplate>
+</Tabs>
+```
+
+```cpp
+app.onAction("closeTab", CloseTab{&app});   // void(ui::Node& страница): app.remove(страница)
+```
+
+У вкладок из модели закрытие — удаление записи из модели: страница и её заголовок уходят сами.
 
 Пример всего каркаса — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 

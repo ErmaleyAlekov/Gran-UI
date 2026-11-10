@@ -62,6 +62,9 @@ namespace gran::ui
             if (child->kind == ElementKind::TAB)
                 appendChild(bar, makeHeader(*child));
         }
+        // Меню вкладок при нехватке места — та же кнопка «ещё», что у панели инструментов / The tab menu when room is short — the same "more" button as the toolbar has
+        if (tabs.content.tabs.overflowMenu)
+            buildToolBarMore(bar);
         markDirty(bar, DIRTY_STYLE | DIRTY_LAYOUT | DIRTY_PAINT);
         tabs.content.option.clear();
         if (!selectTab(tabs, value) && !bar.children.empty())

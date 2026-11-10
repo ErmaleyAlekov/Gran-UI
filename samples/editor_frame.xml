@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Каркас окна большой программы (план 2.1): строка меню и панель инструментов (сузьте окно — кнопки, которым не
-  хватает места, уходят в меню «ещё» справа; «Справка» там всегда), строка состояния с ручкой размера окна, разделитель панелей (положение сохраняется между запусками). Строка меню. Alt (нажать и отпустить) или F10 — фокус на строку меню,
+  хватает места, уходят в меню «ещё» справа; «Справка» там всегда), строка состояния с ручкой размера окна, разделитель панелей (положение сохраняется между запусками), вкладки документов (крестик и средняя кнопка
+  закрывают, заголовки переставляются мышью, Ctrl+Tab — следующая, не поместившиеся — в меню справа). Строка меню. Alt (нажать и отпустить) или F10 — фокус на строку меню,
   стрелки влево/вправо — соседний пункт, вниз или Enter — открыть меню; Alt+Ф, Alt+П, Alt+В, Alt+С — сразу открыть
   меню «Файл», «Правка», «Вид», «Справка»; в открытом меню буква пункта выбирает его (подчёркнутые буквы видны,
   пока зажат Alt или меню открыто с клавиатуры). Пока меню открыто, наведение на другой пункт строки переключает его.
   Сочетания Ctrl+N, Ctrl+S и др. работают и без меню. Запуск: gran_gallery samples/editor_frame.xml
 
   A big program window frame (plan 2.1): the menu bar and the toolbar (narrow the window — the buttons without room
-  go into the "more" menu on the right; "Справка" is always there), the status bar with the window size grip, the pane splitter (the position is kept between runs). The menu bar. Alt (press and release) or F10 — the focus to the menu bar,
+  go into the "more" menu on the right; "Справка" is always there), the status bar with the window size grip, the pane splitter (the position is kept between runs), document tabs (the cross and the middle button close,
+  the headers are reordered by the mouse, Ctrl+Tab — the next one, the ones that do not fit — in a menu on the right). The menu bar. Alt (press and release) or F10 — the focus to the menu bar,
   the left/right arrows — the neighbor item, down or Enter — open the menu; Alt+Ф, Alt+П, Alt+В, Alt+С — open the
   "File", "Edit", "View", "Help" menus at once; in an open menu the item letter chooses it (the underlined letters are shown
   while Alt is held or the menu is open from the keyboard). While a menu is open, hovering another bar item switches it.
@@ -83,7 +85,16 @@
         <Text fontWeight="600">Структура</Text>
         <Text color="#667085">Перетащите ручку справа; двойной щелчок по ней сворачивает панель.</Text>
       </Stack>
-      <TextArea id="editor" margin="12" placeholder="Текст документа: Alt+Ф — меню «Файл», Ctrl+S — сохранить"/>
+      <Tabs id="docs" closable="true" reorderable="true" overflowMenu="true" onClose="closeTab" onReorder="tabMoved"
+            margin="8 12 0 12">
+        <Tab text="Документ 1.txt">
+          <TextArea id="editor" grow="1" placeholder="Текст документа: Alt+Ф — меню «Файл», Ctrl+S — сохранить"/>
+        </Tab>
+        <Tab text="Заметки.md"><TextArea grow="1" placeholder="Ctrl+Tab — следующая вкладка, Ctrl+W — закрыть"/></Tab>
+        <Tab text="Список дел.txt"><TextArea grow="1" placeholder="Заголовки можно переставлять мышью"/></Tab>
+        <Tab text="Отчёт за квартал.docx"><TextArea grow="1"/></Tab>
+        <Tab text="Письмо.eml"><TextArea grow="1"/></Tab>
+      </Tabs>
     </Splitter>
     <StatusBar sizeGrip="true">
       <StatusSection grow="1"><Text id="status">Нажмите Alt или F10, чтобы перейти в меню.</Text></StatusSection>

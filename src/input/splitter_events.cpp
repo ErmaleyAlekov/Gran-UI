@@ -26,11 +26,13 @@ namespace gran::input
             state.splitGrab = local.x - handle.layout.frame.x;
     }
 
-    // Ползунок и ручка разделителя тянутся мышью с захватом (state.drag) / A slider and a splitter handle are dragged by the mouse with a capture (state.drag)
+    // Ползунок, ручка разделителя и заголовок вкладки тянутся мышью с захватом (state.drag) / A slider, a splitter handle and a tab header are dragged by the mouse with a capture (state.drag)
     void pressDragControl(RouterState& state, ui::Node& control, const platform::Event& event)
     {
         if (control.kind == ui::ElementKind::SPLITTER_HANDLE)
             pressSplitter(state, control, event);
+        if (control.kind == ui::ElementKind::TAB_HEADER)
+            pressTab(state, control, event);
         if (control.kind != ui::ElementKind::SLIDER)
             return;
         state.drag = &control;
@@ -49,6 +51,8 @@ namespace gran::input
     {
         if (control.kind == ui::ElementKind::SPLITTER_HANDLE)
             dragSplitter(state, control, point);
+        else if (control.kind == ui::ElementKind::TAB_HEADER)
+            dragTab(state, control, point);
         else
             dragSlider(state, control, ui::windowToNode(control, point).x);
     }
@@ -61,5 +65,7 @@ namespace gran::input
         state.drag = nullptr;
         if (control != nullptr && control->kind == ui::ElementKind::SPLITTER_HANDLE && control->parent != nullptr)
             finishSplit(state, *control->parent);
+        if (control != nullptr && control->kind == ui::ElementKind::TAB_HEADER)
+            finishTabDrag(state, *control);
     }
 }

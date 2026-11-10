@@ -146,6 +146,8 @@ namespace gran::input
         // Выбор из меню строки меню: фокус возвращается туда, где был до входа в строку / A choice from a bar menu: the focus returns where it was before entering the bar
         if (state.focus != nullptr && ui::isMenuBarItem(*state.focus))
             leaveMenuBar(state);
+        if (chooseTabMirror(state, item))
+            return;
         if (runContextCommand(state, item))
             return;
         if (combo != nullptr && ui::selectOption(*combo, &item) && !combo->content.onChange.empty())

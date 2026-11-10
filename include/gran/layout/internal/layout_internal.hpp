@@ -108,6 +108,9 @@ namespace gran::layout::internal
     // A separator (a one pixel line across the parent main axis) and the toolbar "more" button (room for the arrow)
     Size toolLeafSize(const ui::Node& node) noexcept;
 
+    // Заголовок вкладки: подпись и, у закрываемых вкладок, место под крестик справа / A tab header: the label and, for closable tabs, room for the cross on the right
+    Size tabHeaderSize(ui::Node& node, Size contentAvailable, LayoutPass& pass);
+
     // ---- tool_bar_layout.cpp ----
 
     // Панель инструментов перед размещением стеком: кто помещается, кто уходит в меню «ещё»

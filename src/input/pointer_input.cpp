@@ -51,6 +51,8 @@ namespace gran::input
                 contextClick(state, event);
             if (event.button == platform::MouseButton::LEFT)
                 pressLeft(state, hit, event);
+            if (event.button == platform::MouseButton::MIDDLE)
+                middleClick(state, hit);
         }
 
         // Отпускание: конец перетаскивания узла или pointerUp; захват снимается; левая кнопка — щелчок (releaseLeft)

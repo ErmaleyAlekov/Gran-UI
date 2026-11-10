@@ -81,6 +81,25 @@ namespace gran::ui
     ** the second pane length; negative — in half), the pane limits, which one collapses and whether it is collapsed, the room for the panes
     ** at the last layout (to convert a length into the position).
     */
+    /*
+    ** Вкладки документов (Tabs): крестик закрытия и запрос onClose (узел — страница), перестановка заголовков
+    ** мышью и onReorder (узел — сдвинутая страница), меню всех вкладок в конце полосы при нехватке места.
+    **
+    ** Document tabs (Tabs): the close cross and the onClose request (the node is the page), reordering the headers
+    ** by the mouse and onReorder (the node is the moved page), a menu of all tabs at the strip end when room is short.
+    */
+    struct TabsState
+    {
+        bool closable = false;
+        bool reorderable = false;
+        bool overflowMenu = false;
+        std::string onClose;
+        std::string onReorder;
+    };
+
+    // Место под крестик закрытия вкладки справа в заголовке — в кеглях / The room for the tab close cross at the header right — in font sizes
+    constexpr float TAB_CLOSE_SIZE = 1.6f;
+
     struct SplitterState
     {
         float position = -1.0f;
@@ -213,6 +232,8 @@ namespace gran::ui
         bool announcedReady = false;
         // Splitter: положение, пределы и сворачивание / Splitter: the position, the limits and the collapsing
         SplitterState split;
+        // Tabs: закрытие, перестановка, меню вкладок / Tabs: closing, reordering, the tab menu
+        TabsState tabs;
         // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
         // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
@@ -405,6 +426,26 @@ namespace gran::ui
     // Вернуть всех детей из меню «ещё» и скрыть кнопку (замер полной длины панели перед новой раскладкой)
     // Returning all the children from the "more" menu and hiding the button (measuring the full toolbar length before a new layout)
     void unfoldToolBar(Node& bar) noexcept;
+
+    // ---- tabs_edit.cpp ----
+
+    // Номер заголовка в полосе (= номер страницы среди детей Tab) / The header number in the strip (= the page number among the Tab children)
+    std::size_t headerNumber(const Node& header) noexcept;
+
+    // Страница заголовка (nullptr — заголовок не из полосы Tabs) / The header page (nullptr — the header is not from a Tabs strip)
+    Node* pageOf(Node& header) noexcept;
+
+    // Заголовок страницы Tab (nullptr — нет) / The header of a Tab page (nullptr — none)
+    Node* headerOfPage(Node& page) noexcept;
+
+    // Сдвинуть вкладку from на место to: заголовок и страница вместе; true — сдвинулась / Moving the tab from to the place to: the header and the page together; true — it moved
+    bool moveTab(Node& tabs, std::size_t from, std::size_t to);
+
+    // Вкладки узла заголовка закрываемые (крестик рисуется и нажимается) / The header node tabs are closable (the cross is drawn and pressed)
+    bool tabClosable(const Node& header) noexcept;
+
+    // После удаления вкладки: нет выбранной — выбрать соседнюю (по месту прежней) или первую / After removing a tab: no selected one — choose a neighbor (by the former place) or the first one
+    void repairTabSelection(Node& tabs);
 
     // ---- splitter.cpp ----
 
