@@ -102,6 +102,14 @@
            color="#475467" borderWidth="1 0 0 0" borderColor="#e4e7ec" fontSize="12.5"/>
     <Style name="StatusSection" orientation="horizontal" spacing="6" padding="2 8" align="center" textWrap="nowrap"/>
     <Style name="SizeGrip" color="#98a2b3" alignSelf="end" cursor="default"/>
+    <!-- Разделитель панелей: ручка подсвечивается при наведении и в фокусе (стрелки двигают её) -->
+    <!-- The pane splitter: the handle is highlighted on hover and with focus (the arrows move it) -->
+    <Style name="Splitter" orientation="horizontal" spacing="0"/>
+    <Style name="SplitterHandle" background="#e4e7ec" transition="background 0.1s ease">
+      <Hover background="#c7d2fe"/>
+      <Pressed background="#818cf8"/>
+      <Focused background="#93c5fd"/>
+    </Style>
     <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
     <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->
     <Style name="ComboBox" basedOn="Input" padding="8 34 8 12" cursor="pointer" textWrap="nowrap" textOverflow="ellipsis"/>

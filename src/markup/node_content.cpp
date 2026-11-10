@@ -118,6 +118,6 @@ namespace gran::markup::internal
         }
         if (readField(node.content, name, value) || readEventAttribute(node, name, value))
             return true;
-        return readEnumeration(node, name, value);
+        return readEnumeration(node, name, value) || readSplitterAttribute(node, name, value);
     }
 }

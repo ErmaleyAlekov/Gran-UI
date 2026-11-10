@@ -180,6 +180,7 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `ToolBar`, `ToolGroup` | A toolbar and a group in it; the tail goes into the "more" menu | `overflowMode` of the children |
 | `Separator` | A separator in a toolbar (vertical) and in a menu (horizontal) | — |
 | `StatusBar`, `StatusSection` | The status bar and its sections; announced to screen readers | `sizeGrip` |
+| `Splitter` | Two panes and a draggable handle between them | `position`, `minFirst`, `minSecond`, `collapse`, `fixed`, `collapsed`, `onChange` |
 | `Dialog` | Modal dialog in the window center | `closable` |
 | `ComboBox` | Drop-down list with the selected value | `value`, `placeholder`, `onChange`, `MenuItem` items or `items` |
 | `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
@@ -1010,6 +1011,26 @@ adds the window size grip at the end (dots in the bottom-right corner): it can b
 For screen readers a status section is a text (the name is the texts of its descendants) and a "polite" UI Automation live region:
 when its text changes (by a binding or the code), the screen reader reads the new text without moving the focus. Nothing is announced
 on loading a window. The bar is an element of the StatusBar type.
+
+**The splitter** `Splitter` is two panes and a draggable handle between them (the engine builds it). `orientation="horizontal"`
+(the default) puts the panes side by side, `vertical` — one above the other. `position` is the pane length in pixels or a percent
+of the room (`"240"`, `"30%"`); `fixed="second"` — `position` sets the second pane, and its length holds when the window
+is resized. `minFirst` and `minSecond` are the limits. `collapse="first"` (or `second`) allows collapsing the pane by a double click
+on the handle or Enter, `collapsed` — whether it is collapsed now.
+
+```xml
+<Splitter id="split" position="220" minFirst="120" minSecond="240" collapse="first"
+          persist="position collapsed" onChange="splitChanged">
+  <Stack>…a pane…</Stack>
+  <TextArea/>
+</Splitter>
+```
+
+The handle takes the focus (Tab): the arrows move it by 10 pixels (with Shift — by 50), Home and End — to the limits.
+The cursor over the handle is a double arrow. `onChange` is called after a drag (once, on the release), a key step
+and collapsing. `persist="position collapsed"` keeps the position and the collapsed state between runs
+(the window needs `layout` and the splitter an `id`). For screen readers the handle is a Thumb element with the RangeValue pattern:
+the number is the first pane length, the limits are `minFirst` and the room minus `minSecond`.
 
 Example of the whole frame — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 

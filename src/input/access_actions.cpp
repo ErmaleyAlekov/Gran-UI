@@ -58,6 +58,18 @@ namespace gran::input
             return false;
         }
 
+        // Число в диапазоне от клиента: ползунок — значение, ручка разделителя — длина первой панели (и onChange)
+        // A number in the range from a client: a slider — the value, a splitter handle — the first pane length (and onChange)
+        bool setRangeValue(RouterState& state, ui::Node& node, float value)
+        {
+            if (node.kind == ui::ElementKind::SLIDER)
+                return setSliderValue(state, node, value);
+            if (node.kind != ui::ElementKind::SPLITTER_HANDLE || node.parent == nullptr || !setSplit(*node.parent, value))
+                return false;
+            finishSplit(state, *node.parent);
+            return true;
+        }
+
         /*
         ** Раскрыть подменю пункта (у пункта строки меню — закрыв её открытое меню: открыто одно) или свернуть его.
         ** false — подменю нет или оно уже в нужном состоянии.
@@ -108,7 +120,7 @@ namespace gran::input
         else if (request.kind == a11y::Request::EXPAND || request.kind == a11y::Request::COLLAPSE)
             changed = expandItem(_state, node, request.kind == a11y::Request::EXPAND);
         else
-            changed = node.kind == ui::ElementKind::SLIDER && setSliderValue(_state, node, request.value);
+            changed = setRangeValue(_state, node, request.value);
         // Фокус и выбор могли поставить уведомления focus/blur в очередь / The focus and the choice might queue focus/blur notifications
         flushEvents(_state);
         return changed;

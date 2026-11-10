@@ -234,6 +234,9 @@ namespace gran::input
         bool keyboardMenus = false;
         bool cuesShown = false;
         ui::Node* barReturn = nullptr;
+        // Место захвата ручки разделителя по главной оси от её начала (splitter_events.cpp)
+        // The place the splitter handle was grabbed at, along the main axis from its start (splitter_events.cpp)
+        float splitGrab = 0.0f;
     };
 
     /*
@@ -607,6 +610,37 @@ namespace gran::input
 
     // Открытое меню пункта строки меню (nullptr — нет) / The open menu of a menu bar item (nullptr — none)
     ui::Node* openBarMenu(const RouterState& state) noexcept;
+
+    // ---- splitter_input.cpp ----
+
+    // Длина первой панели разделителя в пределах ручки; true — положение изменилось / The splitter first pane length within the handle limits; true — the position changed
+    bool setSplit(ui::Node& splitter, float first);
+
+    // Перетаскивание ручки мышью: точка окна → новая длина первой панели / Dragging the handle by the mouse: the window point → the new first pane length
+    void dragSplitter(RouterState& state, ui::Node& handle, Vec2 point);
+
+    // Клавиши на ручке в фокусе (стрелки, Home, End, Enter); true — обработано / The keys on the focused handle (the arrows, Home, End, Enter); true — handled
+    bool splitterKey(RouterState& state, ui::Node& handle, const platform::Event& event);
+
+    // Свернуть или развернуть панель collapse; true — состояние сменилось / Collapsing or expanding the collapse pane; true — the state changed
+    bool toggleSplit(RouterState& state, ui::Node& splitter);
+
+    // ---- splitter_events.cpp ----
+
+    // Нажатие на ручку: двойной щелчок — свернуть, одиночный — начать перетаскивание / A press on the handle: a double click — collapse, a single one — start dragging
+    void pressSplitter(RouterState& state, ui::Node& handle, const platform::Event& event);
+
+    // Начать перетаскивание ползунка или ручки разделителя (нажатие левой кнопкой) / Starting to drag a slider or a splitter handle (a left button press)
+    void pressDragControl(RouterState& state, ui::Node& control, const platform::Event& event);
+
+    // onChange разделителя (конец перетаскивания, клавиша, сворачивание) / The splitter onChange (the drag end, a key, collapsing)
+    void finishSplit(RouterState& state, ui::Node& splitter);
+
+    // Движение мыши при перетаскивании ползунка или ручки / A mouse move while dragging a slider or a handle
+    void moveDragControl(RouterState& state, ui::Node& control, Vec2 point);
+
+    // Конец перетаскивания ползунка или ручки (отпускание кнопки) / The end of dragging a slider or a handle (the button release)
+    void endDragControl(RouterState& state);
 
     // ---- context_menu.cpp ----
 

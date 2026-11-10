@@ -114,6 +114,11 @@ namespace gran::layout::internal
     // The toolbar before the stack placement: who fits and who goes into the "more" menu
     void fitToolBar(ui::Node& bar, Rect content, LayoutPass& pass);
 
+    // ---- splitter_layout.cpp ----
+
+    // Разделитель: первая панель, ручка, вторая панель по положению и пределам / A splitter: the first pane, the handle, the second pane by the position and the limits
+    void arrangeSplitter(ui::Node& splitter, Rect content, LayoutPass& pass);
+
     // ---- Stack (flex_*.cpp, stack_*.cpp) ----
 
     // Элемент гибкой строки: размеры по главной оси — рамка без внешних отступов

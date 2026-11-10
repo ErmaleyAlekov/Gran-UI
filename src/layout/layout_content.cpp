@@ -13,7 +13,7 @@ namespace gran::layout::internal
             if (kind == ui::ElementKind::STACK || kind == ui::ElementKind::BOX || kind == ui::ElementKind::TABS
                 || kind == ui::ElementKind::TAB || kind == ui::ElementKind::TAB_BAR || kind == ui::ElementKind::MENU_BAR
                 || kind == ui::ElementKind::TOOL_BAR || kind == ui::ElementKind::TOOL_GROUP || kind == ui::ElementKind::STATUS_BAR
-                || kind == ui::ElementKind::STATUS_SECTION || ui::isLayer(node))
+                || kind == ui::ElementKind::STATUS_SECTION || kind == ui::ElementKind::SPLITTER || ui::isLayer(node))
                 return true;
             return node.kind == ui::ElementKind::BUTTON && !node.children.empty();
         }
@@ -46,7 +46,11 @@ namespace gran::layout::internal
         // A toolbar: first decide who goes into the "more" menu, then the stack and the mirror item visibility
         if (node.kind == ui::ElementKind::TOOL_BAR)
             fitToolBar(node, content, pass);
-        if (isStackLike(node))
+        // Разделитель меряется стеком (полные длины панелей), а размещается по своему положению
+        // A splitter is measured as a stack (the full pane lengths) but placed by its own position
+        if (node.kind == ui::ElementKind::SPLITTER)
+            arrangeSplitter(node, content, pass);
+        else if (isStackLike(node))
             arrangeStack(node, content, pass);
         if (node.kind == ui::ElementKind::TOOL_BAR)
             ui::syncOverflowMenu(node);

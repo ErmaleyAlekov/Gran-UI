@@ -204,3 +204,10 @@ The desktop is GNOME in a Wayland session; the X11 window tests go through XWayl
 **Observation (the main computer, AMD RX 9070):** `gran_render_tests --d3d12 --hardware` — in the `glass` frame one
 pixel differs from the WARP baseline by 3 with a tolerance of 2 (the blur); it was so before this run as well. The baselines
 are WARP, pixel equality between drivers is not claimed; comparing on AMD needs `--tolerance 3`.
+
+### 2026-11-10 — Linux, 0.2.0 development (the menu bar, toolbars, XDND)
+
+ALT p11, the main tree 8c7e873: the release and debug builds without warnings, the unit tests 356/356, the crash reports;
+the X11 window test (`gran_linux_tests --window`, including file dragging by XDND with a source process) on NVIDIA and
+lavapipe; the backend tests and snapshots of all markups with `VK_LAYER_KHRONOS_validation` on NVIDIA, Intel and lavapipe —
+no layer messages; ASan+UBSan 356/356. Live dragging from Nautilus and the menu bar in GNOME are manual tasks T-26 and T-28.

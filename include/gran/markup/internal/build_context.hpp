@@ -181,6 +181,23 @@ namespace gran::markup::internal
     */
     bool readEventAttribute(ui::Node& node, std::string_view name, const std::string& value);
 
+    // ---- node_finish.cpp ----
+
+    /*
+    ** Достройка узла по виду после детей: буквы доступа пунктов меню, полоса вкладок, кнопка «ещё» панели
+    ** инструментов, ручка размера строки состояния, ручка разделителя.
+    **
+    ** Finishing a node by its kind after the children: the menu item access letters, the tab strip, the toolbar "more" button,
+    ** the status bar size grip, the splitter handle.
+    */
+    void finishNode(const beresta::Element& element, ui::Node& node);
+
+    // ---- splitter_attributes.cpp ----
+
+    // Атрибуты Splitter (position, minFirst, minSecond, collapse, fixed, collapsed); false — не они
+    // The Splitter attributes (position, minFirst, minSecond, collapse, fixed, collapsed); false — not them
+    bool readSplitterAttribute(ui::Node& node, std::string_view name, const std::string& value);
+
     // ---- icon_shape.cpp ----
 
     // Фигура <Icon data viewBox fillRule>; ошибка пути или viewBox — MarkupException с позицией элемента

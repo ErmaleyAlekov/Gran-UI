@@ -1,4 +1,5 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/markup/live_document.hpp"
 
 #include <sstream>
 
@@ -109,7 +110,11 @@ namespace gran::app
         if (!layout.empty() && win.window && win.window->placement(placement))
             win.shared.settings.setWindowPlacement(layout, placement);
         if (!layout.empty() && win.document.root)
+        {
+            // Положение разделителей меняет мышь, а persist читает разметку / The mouse changes the splitter positions, while persist reads the markup
+            markup::writeLiveAttributes(*win.document.root);
             collectPersisted(application, *win.document.root, attributes);
+        }
         for (const PersistedAttribute& attribute : attributes)
             win.shared.settings.setAttribute({layout, attribute.node, attribute.name}, attribute.value);
         for (const data::Variable& variable : win.persistedVariables)

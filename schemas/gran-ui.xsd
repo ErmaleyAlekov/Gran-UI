@@ -624,6 +624,7 @@
       <xs:element name="Separator" type="SeparatorType"/>
       <xs:element name="StatusBar" type="StatusBarType"/>
       <xs:element name="StatusSection" type="ToolBarType"/>
+      <xs:element name="Splitter" type="SplitterType"/>
       <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
       <xs:element name="Slot" type="SlotType"/>
       <!--
@@ -997,6 +998,62 @@
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:attribute name="sizeGrip" type="xs:boolean" default="false"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Положение разделителя: логические пиксели или проценты места («240», «30%») / The splitter position: logical pixels or a percent of the room ("240", "30%") -->
+  <xs:simpleType name="SplitPosition">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]+(\.[0-9]+)?%?"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Какую панель можно свернуть / Which pane can collapse -->
+  <xs:simpleType name="SplitCollapse">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none"/>
+      <xs:enumeration value="first"/>
+      <xs:enumeration value="second"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Чья длина держится при смене размера (position — её длина) / Whose length holds on resizing (position is its length) -->
+  <xs:simpleType name="SplitFixed">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="first"/>
+      <xs:enumeration value="second"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--
+    Разделитель: ровно две панели и перетаскиваемая ручка между ними (её строит движок). orientation="horizontal"
+    (по умолчанию) — панели рядом, vertical — одна над другой. position — длина панели fixed (первой по умолчанию)
+    в пикселях или процентах; minFirst, minSecond — пределы; collapse — какую панель сворачивает двойной щелчок
+    по ручке (или Enter на ней), collapsed — свёрнута ли. onChange — после перетаскивания, клавиши, сворачивания.
+    Сохранение между запусками: persist="position collapsed".
+    A splitter: exactly two panes and a draggable handle between them (the engine builds it). orientation="horizontal"
+    (the default) — the panes side by side, vertical — one above the other. position is the length of the fixed pane (the first by default)
+    in pixels or percents; minFirst, minSecond are the limits; collapse — which pane a double click on the handle collapses
+    (or Enter on it), collapsed — whether it is collapsed. onChange — after a drag, a key, collapsing.
+    Keeping between runs: persist="position collapsed".
+  -->
+  <xs:complexType name="SplitterType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:group ref="UiElement" minOccurs="2" maxOccurs="2"/>
+        </xs:sequence>
+        <xs:attribute name="position" type="SplitPosition"/>
+        <xs:attribute name="minFirst" type="xs:decimal"/>
+        <xs:attribute name="minSecond" type="xs:decimal"/>
+        <xs:attribute name="collapse" type="SplitCollapse" default="none"/>
+        <xs:attribute name="fixed" type="SplitFixed" default="first"/>
+        <xs:attribute name="collapsed" type="xs:boolean" default="false"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+        <xs:assert test="not(@collapsed = 'true') or @collapse != 'none'"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>

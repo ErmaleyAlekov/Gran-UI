@@ -23,26 +23,29 @@ namespace beresta
 namespace gran::ui
 {
     /*
-    ** Вид элемента разметки. Виды до STATUS_SECTION включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** Вид элемента разметки. Виды до SPLITTER включительно пишутся в разметке; TAB_BAR и TAB_HEADER
     ** строит движок (полоса заголовков <Tabs>), TOOL_MORE — кнопку «ещё» панели инструментов, SIZE_GRIP — ручку
-    ** размера окна в строке состояния; у них только стили темы TabBar, TabHeader, ToolBarMore и SizeGrip.
+    ** размера окна в строке состояния, SPLITTER_HANDLE — ручку разделителя; у них только стили темы TabBar,
+    ** TabHeader, ToolBarMore, SizeGrip и SplitterHandle.
     **
-    ** The markup element kind. The kinds up to STATUS_SECTION inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** The markup element kind. The kinds up to SPLITTER inclusive are written in the markup; TAB_BAR and TAB_HEADER
     ** are built by the engine (the <Tabs> header strip), TOOL_MORE — the toolbar "more" button, SIZE_GRIP — the window size
-    ** grip in the status bar; they have only the theme styles TabBar, TabHeader, ToolBarMore and SizeGrip.
+    ** grip in the status bar, SPLITTER_HANDLE — the splitter handle; they have only the theme styles TabBar,
+    ** TabHeader, ToolBarMore, SizeGrip and SplitterHandle.
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
         DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR,
-        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, TAB_BAR, TAB_HEADER, TOOL_MORE, SIZE_GRIP
+        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, SPLITTER, TAB_BAR, TAB_HEADER, TOOL_MORE, SIZE_GRIP,
+        SPLITTER_HANDLE
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::STATUS_SECTION;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::SPLITTER;
 
     // Последний вид вообще: по нему считается число видов (таблицы стилей и имён) / The last kind at all: the kind count is computed from it (the style and name tables)
-    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::SIZE_GRIP;
+    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::SPLITTER_HANDLE;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -64,6 +67,31 @@ namespace gran::ui
     // Ребёнок панели инструментов при нехватке места: уходит в меню «ещё» по надобности, всегда или никогда
     // A toolbar child when room is short: goes into the "more" menu as needed, always or never
     enum class OverflowMode : std::uint8_t { AS_NEEDED, ALWAYS, NEVER };
+
+    // Какую панель разделителя можно свернуть и чья длина держится при смене размера / Which splitter pane can collapse and whose length holds on resizing
+    enum class SplitCollapse : std::uint8_t { NONE, FIRST, SECOND };
+    enum class SplitFixed : std::uint8_t { FIRST, SECOND };
+
+    /*
+    ** Состояние Splitter: положение (длина первой панели в px, при percent — в % от места, при fixed="second" —
+    ** длина второй; отрицательное — пополам), пределы панелей, какая сворачивается и свёрнута ли, место под панели
+    ** на последней компоновке (для перевода длины в положение).
+    **
+    ** The Splitter state: the position (the first pane length in px, with percent — in % of the room, with fixed="second" —
+    ** the second pane length; negative — in half), the pane limits, which one collapses and whether it is collapsed, the room for the panes
+    ** at the last layout (to convert a length into the position).
+    */
+    struct SplitterState
+    {
+        float position = -1.0f;
+        bool percent = false;
+        float minFirst = 0.0f;
+        float minSecond = 0.0f;
+        SplitCollapse collapse = SplitCollapse::NONE;
+        SplitFixed fixed = SplitFixed::FIRST;
+        bool collapsed = false;
+        float room = 0.0f;
+    };
 
     // Флаги «нужно пересчитать» / The "must recompute" flags
     enum DirtyFlag : std::uint8_t
@@ -183,6 +211,8 @@ namespace gran::ui
         // StatusSection: the text already announced to the screen readers and whether the first reading took place (nothing is announced on loading)
         std::string announced;
         bool announcedReady = false;
+        // Splitter: положение, пределы и сворачивание / Splitter: the position, the limits and the collapsing
+        SplitterState split;
         // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
         // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
@@ -375,6 +405,20 @@ namespace gran::ui
     // Вернуть всех детей из меню «ещё» и скрыть кнопку (замер полной длины панели перед новой раскладкой)
     // Returning all the children from the "more" menu and hiding the button (measuring the full toolbar length before a new layout)
     void unfoldToolBar(Node& bar) noexcept;
+
+    // ---- splitter.cpp ----
+
+    // Вставить ручку между двумя панелями разделителя (построитель разметки) / Inserting the handle between the two splitter panes (the markup builder)
+    void buildSplitterHandle(Node& splitter);
+
+    // Панель разделителя: 0 — первая, 1 — вторая (nullptr — разметка без двух панелей) / A splitter pane: 0 — the first, 1 — the second (nullptr — markup without two panes)
+    Node* splitterPane(Node& splitter, std::size_t index) noexcept;
+
+    // Ручка разделителя (средний ребёнок) или nullptr / The splitter handle (the middle child) or nullptr
+    Node* splitterHandle(Node& splitter) noexcept;
+
+    // Панели ручки стоят рядом (горизонтальный разделитель, ручка тянется вбок) / The handle panes stand side by side (a horizontal splitter, the handle moves sideways)
+    bool splitterHorizontal(const Node& handle) noexcept;
 
     // ---- status_bar.cpp ----
 

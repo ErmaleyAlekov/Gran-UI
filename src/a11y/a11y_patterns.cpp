@@ -23,7 +23,7 @@ namespace gran::a11y
             case Role::CHECK_BOX: return PATTERN_TOGGLE;
             case Role::RADIO_BUTTON: case Role::TAB_ITEM: return PATTERN_SELECT;
             case Role::EDIT: case Role::COMBO_BOX: return PATTERN_TEXT;
-            case Role::SLIDER: case Role::PROGRESS_BAR: return PATTERN_RANGE;
+            case Role::SLIDER: case Role::PROGRESS_BAR: case Role::THUMB: return PATTERN_RANGE;
             default: break;
         }
         if (!node.content.onClick.empty())
@@ -37,7 +37,7 @@ namespace gran::a11y
         switch (roleOf(node))
         {
             case Role::BUTTON: case Role::EDIT: case Role::CHECK_BOX: case Role::SLIDER: case Role::MENU_ITEM:
-            case Role::COMBO_BOX: case Role::RADIO_BUTTON: case Role::TAB_ITEM:
+            case Role::COMBO_BOX: case Role::RADIO_BUTTON: case Role::TAB_ITEM: case Role::THUMB:
                 return true;
             default:
                 return false;

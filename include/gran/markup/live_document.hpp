@@ -54,6 +54,17 @@ namespace gran::markup
     */
     void detachMarkup(ui::Node& node);
 
+    // ---- splitter_attributes.cpp ----
+
+    /*
+    ** Записать в DOM живое состояние, которое пользователь меняет без кода: position и collapsed разделителей
+    ** (без перестройки узлов). Перед сохранением persist: настройки читают атрибуты разметки.
+    **
+    ** Writing into the DOM the live state the user changes without code: the splitter position and collapsed
+    ** (without rebuilding the nodes). Before saving persist: the settings read the markup attributes.
+    */
+    void writeLiveAttributes(ui::Node& root);
+
     // ---- live_attributes.cpp ----
 
     // Значение атрибута в разметке узла; nullopt — атрибута нет или узел не из разметки

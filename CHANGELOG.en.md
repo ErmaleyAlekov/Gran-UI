@@ -29,6 +29,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   the window size grip at the bar end. The `windowRole="resize"` window role (drags the bottom-right corner; works in a window
   with the system frame too). UI Automation: the StatusBar type, a section is a "polite" live region: its text change is announced
   to screen readers (`Window::accessAnnounce`, the LiveRegionChanged event).
+- The `<Splitter>` pane splitter (plan 2.1): two panes and a draggable handle; `position` in pixels or percents, `fixed`,
+  the `minFirst`/`minSecond` limits, collapsing `collapse`/`collapsed` by a double click or Enter, the handle keys (the arrows,
+  Shift, Home, End), the ↔/↕ cursor, `onChange` after a drag; `persist="position collapsed"` keeps the position (the live
+  state is written into the markup before saving, `markup::writeLiveAttributes`). UI Automation: the handle is a Thumb with RangeValue.
 
 ### Changed
 - Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no

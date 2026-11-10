@@ -27,11 +27,11 @@ namespace gran::input
 
     /*
     ** Нажатие левой кнопкой: элемент управления становится нажатым и получает фокус (кроме keepsEditing; нажатие мимо
-    ** элементов снимает фокус), ползунок начинает перетаскивание, в поле ввода и Text начинается выделение
+    ** элементов снимает фокус), ползунок и ручка разделителя начинают перетаскивание, в поле ввода и Text начинается выделение
     ** (нажатие мимо текста его снимает). У перетаскиваемого узла текст не выделяется: мышь тянет узел.
     **
     ** A left button press: the control becomes pressed and gets the focus (except keepsEditing; a press outside the controls
-    ** removes the focus), a slider starts dragging, in an input and a Text a selection starts
+    ** removes the focus), a slider and a splitter handle start dragging, in an input and a Text a selection starts
     ** (a press outside the text removes it). A draggable node text is not selected: the mouse drags the node.
     */
     void pressLeft(RouterState& state, ui::Node* hit, const platform::Event& event)
@@ -57,11 +57,8 @@ namespace gran::input
         if (control != nullptr && hit != nullptr && !control->content.selection.empty())
             state.actions->listPress(*control, *hit, event.modifiers);
         armDrag(state, draggable, event.position);
-        if (control != nullptr && control->kind == ui::ElementKind::SLIDER)
-        {
-            state.drag = control;
-            dragSlider(state, *control, ui::windowToNode(*control, event.position).x);
-        }
+        if (control != nullptr)
+            pressDragControl(state, *control, event);
     }
 
     /*
@@ -79,7 +76,7 @@ namespace gran::input
         std::uint32_t version = state.actions->treeVersion();
 
         changePressed(state, nullptr);
-        state.drag = nullptr;
+        endDragControl(state);
         state.selecting = nullptr;
         state.nodeDrag.source = nullptr;
         if (!allowed)

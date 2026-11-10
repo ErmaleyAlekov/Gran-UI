@@ -71,6 +71,8 @@ namespace gran::input
                 return true;
             if (stepChoice(state, *focus, event.key))
                 return true;
+            if (focus->kind == ui::ElementKind::SPLITTER_HANDLE && splitterKey(state, *focus, event))
+                return true;
             if (focus->kind == ui::ElementKind::SLIDER && arrowDirection(event.key) != 0)
                 return stepSlider(state, *focus, arrowDirection(event.key));
             if (event.key == platform::Key::DOWN)

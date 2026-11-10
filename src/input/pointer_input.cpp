@@ -26,7 +26,7 @@ namespace gran::input
             hoverMenuBar(state, state.hover);
             dragTextSelection(state, event.position);
             if (state.drag != nullptr)
-                dragSlider(state, *state.drag, ui::windowToNode(*state.drag, event.position).x);
+                moveDragControl(state, *state.drag, event.position);
         }
 
         /*

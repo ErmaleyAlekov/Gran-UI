@@ -40,6 +40,7 @@ namespace suites
     void registerMenuAccessTests(test::TestRunner& runner);
     void registerToolBarTests(test::TestRunner& runner);
     void registerStatusBarTests(test::TestRunner& runner);
+    void registerSplitterTests(test::TestRunner& runner);
     void registerWin32KeyMenuTests(test::TestRunner& runner);
     void registerDialogTests(test::TestRunner& runner);
     void registerWidgetTests(test::TestRunner& runner);

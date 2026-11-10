@@ -81,6 +81,7 @@ namespace gran::layout::internal
             case ui::ElementKind::SEPARATOR:
             case ui::ElementKind::TOOL_MORE:
             case ui::ElementKind::SIZE_GRIP:
+            case ui::ElementKind::SPLITTER_HANDLE:
                 return toolLeafSize(node);
             case ui::ElementKind::INPUT:
                 return inputSize(node);

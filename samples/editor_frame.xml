@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Каркас окна большой программы (план 2.1): строка меню и панель инструментов (сузьте окно — кнопки, которым не
-  хватает места, уходят в меню «ещё» справа; «Справка» там всегда), строка состояния с ручкой размера окна. Строка меню. Alt (нажать и отпустить) или F10 — фокус на строку меню,
+  хватает места, уходят в меню «ещё» справа; «Справка» там всегда), строка состояния с ручкой размера окна, разделитель панелей (положение сохраняется между запусками). Строка меню. Alt (нажать и отпустить) или F10 — фокус на строку меню,
   стрелки влево/вправо — соседний пункт, вниз или Enter — открыть меню; Alt+Ф, Alt+П, Alt+В, Alt+С — сразу открыть
   меню «Файл», «Правка», «Вид», «Справка»; в открытом меню буква пункта выбирает его (подчёркнутые буквы видны,
   пока зажат Alt или меню открыто с клавиатуры). Пока меню открыто, наведение на другой пункт строки переключает его.
   Сочетания Ctrl+N, Ctrl+S и др. работают и без меню. Запуск: gran_gallery samples/editor_frame.xml
 
   A big program window frame (plan 2.1): the menu bar and the toolbar (narrow the window — the buttons without room
-  go into the "more" menu on the right; "Справка" is always there), the status bar with the window size grip. The menu bar. Alt (press and release) or F10 — the focus to the menu bar,
+  go into the "more" menu on the right; "Справка" is always there), the status bar with the window size grip, the pane splitter (the position is kept between runs). The menu bar. Alt (press and release) or F10 — the focus to the menu bar,
   the left/right arrows — the neighbor item, down or Enter — open the menu; Alt+Ф, Alt+П, Alt+В, Alt+С — open the
   "File", "Edit", "View", "Help" menus at once; in an open menu the item letter chooses it (the underlined letters are shown
   while Alt is held or the menu is open from the keyboard). While a menu is open, hovering another bar item switches it.
   Ctrl+N, Ctrl+S and others work without the menu too. Run: gran_gallery samples/editor_frame.xml
 -->
-<Window title="Gran UI — каркас окна" width="900" height="560" background="#ffffff">
+<Window title="Gran UI — каркас окна" width="900" height="560" background="#ffffff" layout="editorFrame">
   <Resources>
     <Command id="newDoc" text="_Новый" key="Mod+N" action="command"/>
     <Command id="openDoc" text="_Открыть…" key="Mod+O" action="command"/>
@@ -77,7 +77,14 @@
       <Button text="Подчёркнутый" onClick="command"/>
       <Button text="Справка" onClick="command" overflowMode="always"/>
     </ToolBar>
-    <TextArea id="editor" grow="1" margin="12" placeholder="Текст документа: Alt+Ф — меню «Файл», Ctrl+S — сохранить"/>
+    <Splitter id="split" grow="1" position="220" minFirst="120" minSecond="240" collapse="first" persist="position collapsed"
+              onChange="command">
+      <Stack padding="12" spacing="6" background="#fcfcfd">
+        <Text fontWeight="600">Структура</Text>
+        <Text color="#667085">Перетащите ручку справа; двойной щелчок по ней сворачивает панель.</Text>
+      </Stack>
+      <TextArea id="editor" margin="12" placeholder="Текст документа: Alt+Ф — меню «Файл», Ctrl+S — сохранить"/>
+    </Splitter>
     <StatusBar sizeGrip="true">
       <StatusSection grow="1"><Text id="status">Нажмите Alt или F10, чтобы перейти в меню.</Text></StatusSection>
       <Separator/>

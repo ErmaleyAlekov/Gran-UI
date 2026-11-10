@@ -13,7 +13,7 @@ namespace gran::input
                 || kind == ui::ElementKind::RADIO_BUTTON || kind == ui::ElementKind::TAB_HEADER
                 || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
                 || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::TOOL_MORE
-                || !node.content.onClick.empty() || ui::isWindowButton(node) || !node.content.selection.empty();
+                || kind == ui::ElementKind::SPLITTER_HANDLE || !node.content.onClick.empty() || ui::isWindowButton(node) || !node.content.selection.empty();
         }
     }
 
