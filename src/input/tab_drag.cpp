@@ -7,13 +7,7 @@ namespace gran::input
         // Точка окна над крестиком закрытия (место — как в tabHeaderSize и paintTabClose) / A window point over the close cross (the place is as in tabHeaderSize and paintTabClose)
         bool inCloseMark(const ui::Node& header, Vec2 point)
         {
-            if (!ui::tabClosable(header))
-                return false;
-            Vec2 local = ui::windowToNode(header, point);
-            const Rect& frame = header.layout.frame;
-            float right = frame.x + frame.width - header.computed.padding.right - header.computed.borderWidth.right;
-            float mark = header.computed.fontSize * ui::TAB_CLOSE_SIZE;
-            return local.x >= right - mark && local.x <= frame.x + frame.width;
+            return ui::tabClosable(header) && closeMarkHit(header, point);
         }
     }
 

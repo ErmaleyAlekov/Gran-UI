@@ -241,13 +241,13 @@ namespace
 
         event.kind = gran::platform::EventKind::MOUSE_MOVE;
         event.button = gran::platform::MouseButton::LEFT;
-        event.position = {h1->layout.frame.x + h1->layout.frame.width * 0.75, h1->layout.frame.y + h1->layout.frame.height / 2};
+        event.position = {h1->layout.frame.x + h1->layout.frame.width * 0.75f, h1->layout.frame.y + h1->layout.frame.height / 2};
         router.handle(event);
         TEST_ASSERT(bar->children[1]->content.text == u8"Один");
 
         event.kind = gran::platform::EventKind::MOUSE_UP;
         event.button = gran::platform::MouseButton::LEFT;
-        event.position = {h1->layout.frame.x + h1->layout.frame.width * 0.75, h1->layout.frame.y + h1->layout.frame.height / 2};
+        event.position = {h1->layout.frame.x + h1->layout.frame.width * 0.75f, h1->layout.frame.y + h1->layout.frame.height / 2};
         router.handle(event);
         TEST_ASSERT(sink.lastAction == "moved");
     }

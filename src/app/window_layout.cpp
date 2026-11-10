@@ -25,10 +25,11 @@ namespace gran::app
         void collectPersisted(Application& application, const ui::Node& node, std::vector<PersistedAttribute>& found)
         {
             std::optional<std::string> names = application.markupAttribute(node, "persist");
+            std::string all = names.value_or("") + " " + markup::implicitPersist(node);
 
-            if (names && !node.id.empty())
+            if ((names || !markup::implicitPersist(node).empty()) && !node.id.empty())
             {
-                std::istringstream list(*names);
+                std::istringstream list(all);
                 std::string name;
                 while (list >> name)
                     found.push_back(PersistedAttribute{node.id, name, application.markupAttribute(node, name).value_or("")});

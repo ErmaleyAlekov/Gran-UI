@@ -217,7 +217,7 @@
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
-          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit|setVariable|toggleVariable|expand|collapse|toggle)(:.*)?"/>
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit|setVariable|toggleVariable|expand|collapse|toggle|dockShow|dockHide|dockToggle|dockReset)(:.*)?"/>
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
@@ -625,6 +625,7 @@
       <xs:element name="StatusBar" type="StatusBarType"/>
       <xs:element name="StatusSection" type="ToolBarType"/>
       <xs:element name="Splitter" type="SplitterType"/>
+      <xs:element name="DockHost" type="DockHostType"/>
       <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
       <xs:element name="Slot" type="SlotType"/>
       <!--
@@ -1004,6 +1005,66 @@
       <xs:extension base="ContainerBase">
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:attribute name="sizeGrip" type="xs:boolean" default="false"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Край закрепляемой панели / A dockable panel edge -->
+  <xs:simpleType name="DockSide">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="left"/>
+      <xs:enumeration value="right"/>
+      <xs:enumeration value="top"/>
+      <xs:enumeration value="bottom"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Длины краёв «левый правый верхний нижний» (−1 — от первой панели края) / The edge lengths "left right top bottom" (−1 — from the first edge panel) -->
+  <xs:simpleType name="DockSizes">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="-?[0-9]+(\.[0-9]+)?( -?[0-9]+(\.[0-9]+)?){3}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!--
+    Закрепляемые панели: DockHost — панели DockPanel по краям (dock="left|right|top|bottom") и одно содержимое центра
+    (любой элемент). Панели одного края — вкладки с полосой заголовков (её строит движок); заголовок тянется мышью
+    на другой край, крестик скрывает панель (gran:dockShow, gran:dockHide, gran:dockToggle — показать и скрыть из
+    меню «Вид»), ручки краёв меняют длину края. Раскладка (край, выбор, скрытость панелей, длины краёв) сохраняется
+    в настройках окна (layout) по id панелей сама; onChange хоста — после каждой её смены.
+    Dockable panels: DockHost — DockPanel panels at the edges (dock="left|right|top|bottom") and one center content
+    (any element). The panels of one edge are tabs with a title strip (the engine builds it); a title is dragged by the mouse
+    to another edge, the cross hides the panel (gran:dockShow, gran:dockHide, gran:dockToggle — show and hide from
+    the "View" menu), the edge handles change the edge length. The layout (the edge, the choice, the hiddenness of the panels, the edge lengths)
+    is kept in the window settings (layout) by the panel ids by itself; the host onChange — after each change of it.
+  -->
+  <xs:complexType name="DockHostType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="DockPanel" type="DockPanelType" minOccurs="0" maxOccurs="unbounded"/>
+          <xs:group ref="UiElement"/>
+          <xs:element name="DockPanel" type="DockPanelType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="sizes" type="DockSizes"/>
+        <xs:attribute name="onChange" type="Action"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+        <xs:assert test="every $p in DockPanel satisfies not($p/@id) or count(DockPanel[@id = $p/@id]) = 1"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Закрепляемая панель: подпись title, край dock, длина края size, выбрана ли active, скрыта ли hidden / A dockable panel: the title label, the dock edge, the edge length size, whether chosen active, whether hidden hidden -->
+  <xs:complexType name="DockPanelType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ContainerBase">
+        <xs:attribute name="title" type="xs:string" use="required"/>
+        <xs:attribute name="dock" type="DockSide" default="left"/>
+        <xs:attribute name="size" type="xs:decimal"/>
+        <xs:attribute name="active" type="xs:boolean" default="false"/>
+        <xs:attribute name="hidden" type="xs:boolean" default="false"/>
+        <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>

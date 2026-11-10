@@ -75,6 +75,8 @@ namespace gran::markup
 
         if (root.content.split.collapsed)
             collapsed = "true";
+        if ((root.kind == ui::ElementKind::DOCK_PANEL || root.kind == ui::ElementKind::DOCK_HOST) && element != nullptr)
+            internal::writeDockLive(root, *element);
         if (root.kind == ui::ElementKind::SPLITTER && element != nullptr)
         {
             if (root.content.split.position >= 0.0f)
@@ -83,5 +85,11 @@ namespace gran::markup
         }
         for (const std::unique_ptr<ui::Node>& child : root.children)
             writeLiveAttributes(*child);
+    }
+
+    // Раскладка панелей сохраняется сама: программе не нужно перечислять persist у каждой панели / The panel layout is kept by itself: the program need not list persist on every panel
+    std::string implicitPersist(const ui::Node& node)
+    {
+        return internal::dockPersistNames(node);
     }
 }

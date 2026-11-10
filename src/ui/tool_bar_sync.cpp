@@ -66,4 +66,14 @@ namespace gran::ui
         if (more != nullptr)
             more->visible = false;
     }
+
+    // Флаг overflowed отличает скрытие компоновкой (панель, разделитель, док) от скрытия приложением / The overflowed flag tells the hiding by the layout (a toolbar, a splitter, a dock) from the hiding by the application
+    void setLayoutHidden(Node& node, bool hidden) noexcept
+    {
+        if (node.content.overflowed == hidden || (!node.visible && !node.content.overflowed))
+            return;
+        node.content.overflowed = hidden;
+        node.visible = !hidden;
+        node.dirty = static_cast<std::uint8_t>(node.dirty | DIRTY_PAINT);
+    }
 }

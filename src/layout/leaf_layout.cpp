@@ -76,6 +76,7 @@ namespace gran::layout::internal
             case ui::ElementKind::COMBO_BOX:
                 return pass.measurer.measureText(node, contentAvailable.width);
             case ui::ElementKind::TAB_HEADER:
+            case ui::ElementKind::DOCK_TITLE:
                 return tabHeaderSize(node, contentAvailable, pass);
             case ui::ElementKind::MENU_ITEM:
                 return menuItemSize(node, contentAvailable, pass);
@@ -83,6 +84,7 @@ namespace gran::layout::internal
             case ui::ElementKind::TOOL_MORE:
             case ui::ElementKind::SIZE_GRIP:
             case ui::ElementKind::SPLITTER_HANDLE:
+            case ui::ElementKind::DOCK_HANDLE:
                 return toolLeafSize(node);
             case ui::ElementKind::INPUT:
                 return inputSize(node);

@@ -140,6 +140,8 @@ app.on_action("search", on_search)
 | `dispatch(id, type, detail)` → `bool` | `Dispatch` | `dispatch` | `gran_app_dispatch` |
 | `capture_pointer(id)` / `release_pointer(id)` | `CapturePointer` / `ReleasePointer` | `capturePointer` / `releasePointer` | `command("capturePointer", id)` |
 | `run_command(id)` | `RunCommand(id)` | `runCommand(id)` | `command("runCommand", id)` |
+| `show_dock_panel(id, shown)` | `ShowDockPanel(id, shown)` | `showDockPanel(id, shown)` | `command("dockShow" / "dockHide", id)` |
+| `reset_dock_layout(id)` | `ResetDockLayout(id)` | `resetDockLayout(id)` | `command("dockReset", id)` |
 | `set_command_enabled(id, bool)` | `SetCommandEnabled(id, bool)` | `setCommandEnabled(id, bool)` | `command("enableCommand" / "disableCommand", id)` |
 
 Обработчик получает снимок `gran_input_event`: `type`, `target`, `current`, `related` (id узлов),

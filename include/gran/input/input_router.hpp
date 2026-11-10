@@ -239,6 +239,10 @@ namespace gran::input
         float splitGrab = 0.0f;
         // Перетаскиваемый заголовок вкладки уже сдвигался (по отпусканию — onReorder) / The dragged tab header has already moved (on the release — onReorder)
         bool tabMoved = false;
+        // Перетаскивание заголовка закрепляемой панели: точка нажатия и прошёл ли порог (dock_input.cpp)
+        // Dragging a dockable panel title: the press point and whether the threshold was passed (dock_input.cpp)
+        Vec2 dockOrigin;
+        bool dockDragging = false;
     };
 
     /*
@@ -669,6 +673,31 @@ namespace gran::input
 
     // Нажатие средней кнопкой: закрыть вкладку под указателем / A middle button press: close the tab under the pointer
     void middleClick(RouterState& state, ui::Node* hit);
+
+    // ---- dock_input.cpp ----
+
+    // Нажатие на заголовок панели: крестик — скрыть, иначе выбрать и приготовиться тянуть / A press on a panel title: the cross — hide, otherwise choose and get ready to drag
+    void pressDockTitle(RouterState& state, ui::Node& title, const platform::Event& event);
+
+    // Перетаскивание заголовка: подсветка края под указателем / Dragging a title: the highlight of the edge under the pointer
+    void dragDock(RouterState& state, ui::Node& title, Vec2 point);
+
+    // Отпускание заголовка: панель переходит на край под указателем / Releasing a title: the panel moves to the edge under the pointer
+    void finishDockDrag(RouterState& state, ui::Node& title);
+
+    // ---- dock_handle_input.cpp ----
+
+    // Точка над крестиком у правого края заголовка / A point over the cross at the header right edge
+    bool closeMarkHit(const ui::Node& header, Vec2 point);
+
+    // Скрыть или показать закрепляемую панель (onChange хоста) / Hiding or showing a dockable panel (the host onChange)
+    void setDockHidden(RouterState& state, ui::Node& panel, bool hidden);
+
+    // Перетаскивание ручки края: новая длина края / Dragging an edge handle: the new edge length
+    void dragDockHandle(ui::Node& handle, Vec2 point);
+
+    // Enter и пробел на заголовке панели — выбрать её / Enter and space on a panel title — choose it
+    void activateDockTitle(ui::Node& title);
 
     // ---- context_menu.cpp ----
 

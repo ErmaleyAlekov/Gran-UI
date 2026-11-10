@@ -69,7 +69,7 @@ namespace gran::render::internal
             paintShortcut(node, state, context);
             return;
         }
-        if (node.kind == ui::ElementKind::TAB_HEADER)
+        if (node.kind == ui::ElementKind::TAB_HEADER || node.kind == ui::ElementKind::DOCK_TITLE)
         {
             paintTabClose(node, state, context);
             return;

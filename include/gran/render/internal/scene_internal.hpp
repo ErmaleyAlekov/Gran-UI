@@ -122,6 +122,9 @@ namespace gran::render::internal
     // Крестик закрытия вкладки документа у правого края заголовка (paint_tab_close.cpp) / The document tab close cross at the header right edge (paint_tab_close.cpp)
     void paintTabClose(const ui::Node& header, const PaintState& state, SceneContext& context);
 
+    // Подсветка места, куда упадёт перетаскиваемая панель DockHost (paint_dock.cpp) / The highlight of the place the dragged DockHost panel will drop onto (paint_dock.cpp)
+    void paintDockDrop(const ui::Node& host, const PaintState& state, SceneContext& context);
+
     // ---- paint_state.cpp ----
 
     // Состояние для узла: его transform, непрозрачность / The state for the node: its transform, opacity

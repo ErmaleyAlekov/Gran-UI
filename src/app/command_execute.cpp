@@ -70,6 +70,9 @@ namespace gran::app
         else if (command == "appendMarkup") app.appendMarkup(node, argument);
         else if (command == "capturePointer") app.capturePointer(node);
         else if (command == "releasePointer") app.releasePointer(node);
+        else if (command == "dockShow" || command == "dockHide") app.showDockPanel(node, command == "dockShow");
+        else if (command == "dockToggle") app.showDockPanel(node, node.content.dock.hidden);
+        else if (command == "dockReset" && node.kind == ui::ElementKind::DOCK_HOST) ui::resetDockLayout(node);
         else throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::CAPI_COMMAND, {command}));
     }
 }

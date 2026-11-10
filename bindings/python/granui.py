@@ -368,6 +368,17 @@ class Application:
     def release_pointer(self, target):
         self.command("releasePointer", target)
 
+    def show_dock_panel(self, panel_id, shown=True):
+        """Показать или скрыть закрепляемую панель DockPanel. / Show or hide a DockPanel."""
+        if shown:
+            self.command("dockShow", panel_id)
+        else:
+            self.command("dockHide", panel_id)
+
+    def reset_dock_layout(self, host_id):
+        """Вернуть раскладку DockHost из разметки. / Return the DockHost layout from the markup."""
+        self.command("dockReset", host_id)
+
     def run_command(self, command_id):
         """Выполнить <Command id> (выключенная — ничего). / Run a <Command id> (a disabled one does nothing)."""
         self.command("runCommand", command_id)

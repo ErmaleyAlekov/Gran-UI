@@ -46,7 +46,7 @@ namespace gran::render::internal
         {
             ui::ElementKind kind = node.kind;
             bool marked = kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::TOOL_MORE
-                || ui::tabClosable(node);
+                || kind == ui::ElementKind::DOCK_TITLE || ui::tabClosable(node);
 
             // Текст WebView — HTML страницы для браузера, а не подпись: движок рисует только фон и обводку
             // The WebView text is the page HTML for the browser, not a label: the engine paints only the background and border
@@ -87,6 +87,8 @@ namespace gran::render::internal
             paintNode(*child, inner, context);
         if (node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::TEXT_AREA)
             paintScrollbars(node, inner, context);
+        if (node.kind == ui::ElementKind::DOCK_HOST && node.content.dock.dropSide >= 0)
+            paintDockDrop(node, inner, context);
     }
 
 }

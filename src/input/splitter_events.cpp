@@ -33,6 +33,10 @@ namespace gran::input
             pressSplitter(state, control, event);
         if (control.kind == ui::ElementKind::TAB_HEADER)
             pressTab(state, control, event);
+        if (control.kind == ui::ElementKind::DOCK_TITLE)
+            pressDockTitle(state, control, event);
+        if (control.kind == ui::ElementKind::DOCK_HANDLE)
+            state.drag = &control;
         if (control.kind != ui::ElementKind::SLIDER)
             return;
         state.drag = &control;
@@ -53,6 +57,10 @@ namespace gran::input
             dragSplitter(state, control, point);
         else if (control.kind == ui::ElementKind::TAB_HEADER)
             dragTab(state, control, point);
+        else if (control.kind == ui::ElementKind::DOCK_TITLE)
+            dragDock(state, control, point);
+        else if (control.kind == ui::ElementKind::DOCK_HANDLE)
+            dragDockHandle(control, point);
         else
             dragSlider(state, control, ui::windowToNode(control, point).x);
     }
@@ -67,5 +75,11 @@ namespace gran::input
             finishSplit(state, *control->parent);
         if (control != nullptr && control->kind == ui::ElementKind::TAB_HEADER)
             finishTabDrag(state, *control);
+        if (control != nullptr && control->kind == ui::ElementKind::DOCK_TITLE)
+            finishDockDrag(state, *control);
+        // Ручка края: новая длина — onChange хоста / An edge handle: the new length — the host onChange
+        if (control != nullptr && control->kind == ui::ElementKind::DOCK_HANDLE && control->parent != nullptr
+            && !control->parent->content.onChange.empty())
+            state.actions->action(control->parent->content.onChange, *control->parent);
     }
 }

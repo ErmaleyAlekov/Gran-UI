@@ -23,29 +23,29 @@ namespace beresta
 namespace gran::ui
 {
     /*
-    ** Вид элемента разметки. Виды до SPLITTER включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** Вид элемента разметки. Виды до DOCK_PANEL включительно пишутся в разметке; TAB_BAR и TAB_HEADER
     ** строит движок (полоса заголовков <Tabs>), TOOL_MORE — кнопку «ещё» панели инструментов, SIZE_GRIP — ручку
-    ** размера окна в строке состояния, SPLITTER_HANDLE — ручку разделителя; у них только стили темы TabBar,
-    ** TabHeader, ToolBarMore, SizeGrip и SplitterHandle.
+    ** размера окна в строке состояния, SPLITTER_HANDLE — ручку разделителя, DOCK_STRIP, DOCK_TITLE и DOCK_HANDLE —
+    ** полосы заголовков, заголовки и ручки краёв DockHost; у них только стили темы по их именам.
     **
-    ** The markup element kind. The kinds up to SPLITTER inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** The markup element kind. The kinds up to DOCK_PANEL inclusive are written in the markup; TAB_BAR and TAB_HEADER
     ** are built by the engine (the <Tabs> header strip), TOOL_MORE — the toolbar "more" button, SIZE_GRIP — the window size
-    ** grip in the status bar, SPLITTER_HANDLE — the splitter handle; they have only the theme styles TabBar,
-    ** TabHeader, ToolBarMore, SizeGrip and SplitterHandle.
+    ** grip in the status bar, SPLITTER_HANDLE — the splitter handle, DOCK_STRIP, DOCK_TITLE and DOCK_HANDLE — the title
+    ** strips, the titles and the edge handles of a DockHost; they have only the theme styles named after them.
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
         DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR,
-        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, SPLITTER, TAB_BAR, TAB_HEADER, TOOL_MORE, SIZE_GRIP,
-        SPLITTER_HANDLE
+        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, SPLITTER, DOCK_HOST, DOCK_PANEL, TAB_BAR, TAB_HEADER,
+        TOOL_MORE, SIZE_GRIP, SPLITTER_HANDLE, DOCK_STRIP, DOCK_TITLE, DOCK_HANDLE
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::SPLITTER;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::DOCK_PANEL;
 
     // Последний вид вообще: по нему считается число видов (таблицы стилей и имён) / The last kind at all: the kind count is computed from it (the style and name tables)
-    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::SPLITTER_HANDLE;
+    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::DOCK_HANDLE;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -99,6 +99,40 @@ namespace gran::ui
 
     // Место под крестик закрытия вкладки справа в заголовке — в кеглях / The room for the tab close cross at the header right — in font sizes
     constexpr float TAB_CLOSE_SIZE = 1.6f;
+
+    // Край DockHost, к которому прикреплена панель / The DockHost edge a panel is attached to
+    enum class DockSide : std::uint8_t { LEFT, RIGHT, TOP, BOTTOM };
+
+    // Число краёв (полос и ручек у DockHost) / The edge count (the strips and handles of a DockHost)
+    constexpr std::size_t DOCK_SIDES = 4;
+
+    /*
+    ** Закрепляемые панели. DockPanel: край, длина края по умолчанию, выбрана ли на своём крае (панели одного края —
+    ** вкладки), скрыта ли, оторвана ли в отдельное окно. DockHost: длины краёв (отрицательная — от первой панели края),
+    ** край, куда сейчас бросят перетаскиваемую панель (−1 — никуда, DOCK_SIDES — в отдельное окно). DockTitle и
+    ** DockHandle: номер панели среди детей хоста и край.
+    **
+    ** Dockable panels. DockPanel: the edge, the default edge length, whether it is chosen on its edge (the panels of one edge are
+    ** tabs), whether it is hidden, whether it is torn off into a separate window. DockHost: the edge lengths (negative — from the first panel
+    ** of the edge), the edge the dragged panel will be dropped onto now (−1 — nowhere, DOCK_SIDES — into a separate window). DockTitle and
+    ** DockHandle: the panel number among the host children and the edge.
+    */
+    struct DockState
+    {
+        DockSide side = DockSide::LEFT;
+        float size = 240.0f;
+        bool active = false;
+        bool hidden = false;
+        bool floating = false;
+        float sizes[DOCK_SIDES] = {-1.0f, -1.0f, -1.0f, -1.0f};
+        int dropSide = -1;
+        std::size_t panel = 0;
+        // Раскладка из разметки — для сброса (gran:dockReset) / The layout from the markup — for the reset (gran:dockReset)
+        DockSide homeSide = DockSide::LEFT;
+        bool homeActive = false;
+        bool homeHidden = false;
+        float homeSizes[DOCK_SIDES] = {-1.0f, -1.0f, -1.0f, -1.0f};
+    };
 
     struct SplitterState
     {
@@ -234,6 +268,8 @@ namespace gran::ui
         SplitterState split;
         // Tabs: закрытие, перестановка, меню вкладок / Tabs: closing, reordering, the tab menu
         TabsState tabs;
+        // DockHost, DockPanel, DockTitle, DockHandle: раскладка закрепляемых панелей / The dockable panel layout
+        DockState dock;
         // MenuItem, RadioButton, Tab — значение (value; пусто — текст), ComboBox и Tabs — значение выбранного
         // MenuItem, RadioButton, Tab — the value (value; empty — the text), ComboBox and Tabs — the selected value
         std::string option;
@@ -427,6 +463,10 @@ namespace gran::ui
     // Returning all the children from the "more" menu and hiding the button (measuring the full toolbar length before a new layout)
     void unfoldToolBar(Node& bar) noexcept;
 
+    // Скрыть узел компоновкой (флаг overflowed) или вернуть; скрытый приложением (visible="false") не трогается
+    // Hiding a node by the layout (the overflowed flag) or returning it; one hidden by the application (visible="false") is not touched
+    void setLayoutHidden(Node& node, bool hidden) noexcept;
+
     // ---- tabs_edit.cpp ----
 
     // Номер заголовка в полосе (= номер страницы среди детей Tab) / The header number in the strip (= the page number among the Tab children)
@@ -446,6 +486,30 @@ namespace gran::ui
 
     // После удаления вкладки: нет выбранной — выбрать соседнюю (по месту прежней) или первую / After removing a tab: no selected one — choose a neighbor (by the former place) or the first one
     void repairTabSelection(Node& tabs);
+
+    // ---- dock_build.cpp, dock_query.cpp ----
+
+    // Достроить DockHost: полосы заголовков краёв (в каждой — заголовок-зеркало каждой панели) и ручки краёв
+    // Finishing a DockHost: the edge title strips (each has a mirror title of every panel) and the edge handles
+    void buildDockParts(Node& host);
+
+    // Выбрать панель на её крае: прочие панели того же края теряют active / Choosing a panel on its edge: the other panels of the same edge lose active
+    void chooseDockPanel(Node& panel);
+
+    // Вернуть раскладку из разметки: края, выбор, скрытость панелей и длины краёв хоста / Returning the layout from the markup: the edges, the choice, the hiddenness of the panels and the host edge lengths
+    void resetDockLayout(Node& host);
+
+    // Полоса заголовков края (nullptr — хост не достроен) / The edge title strip (nullptr — the host is not finished)
+    Node* dockStrip(Node& host, DockSide side) noexcept;
+
+    // Ручка края / The edge handle
+    Node* dockHandle(Node& host, DockSide side) noexcept;
+
+    // Панель заголовка или ручки: по номеру среди детей хоста (nullptr — нет) / The panel of a title: by the number among the host children (nullptr — none)
+    Node* dockPanelOf(Node& title) noexcept;
+
+    // Содержимое центра хоста: первый ребёнок разметки, не DockPanel (nullptr — нет) / The host center content: the first markup child that is not a DockPanel (nullptr — none)
+    Node* dockCenter(Node& host) noexcept;
 
     // ---- splitter.cpp ----
 

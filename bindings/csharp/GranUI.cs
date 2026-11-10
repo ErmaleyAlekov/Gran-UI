@@ -254,6 +254,8 @@ public sealed partial class Application : IDisposable
     }
     public void CapturePointer(string target) => Command("capturePointer", target);
     public void ReleasePointer(string target) => Command("releasePointer", target);
+    public void ShowDockPanel(string id, bool shown) => Command(shown ? "dockShow" : "dockHide", id);
+    public void ResetDockLayout(string id) => Command("dockReset", id);
     public void RunCommand(string id) => Command("runCommand", id);
     public void SetCommandEnabled(string id, bool enabled) => Command(enabled ? "enableCommand" : "disableCommand", id);
     void RunUndo(IntPtr user, bool redo) {

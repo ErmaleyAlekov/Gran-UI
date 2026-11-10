@@ -12,7 +12,7 @@ namespace gran::platform::win32
                 UIA_SliderControlTypeId, UIA_MenuControlTypeId, UIA_MenuItemControlTypeId, UIA_WindowControlTypeId,
                 UIA_ComboBoxControlTypeId, UIA_RadioButtonControlTypeId, UIA_TabControlTypeId, UIA_TabItemControlTypeId,
                 UIA_ProgressBarControlTypeId, UIA_MenuBarControlTypeId, UIA_ToolBarControlTypeId, UIA_SeparatorControlTypeId,
-                UIA_StatusBarControlTypeId, UIA_ThumbControlTypeId};
+                UIA_StatusBarControlTypeId, UIA_ThumbControlTypeId, UIA_PaneControlTypeId};
 
             return TYPES[static_cast<std::size_t>(role)];
         }

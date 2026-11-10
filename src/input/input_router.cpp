@@ -64,11 +64,14 @@ namespace gran::input
             return platform::CursorShape::NOT_ALLOWED;
         // Ручка разделителя (и при перетаскивании): двусторонняя стрелка поперёк ручки / The splitter handle (and while dragging): a double arrow across the handle
         const ui::Node* handle = _state.hover;
-        if (_state.drag != nullptr && _state.drag->kind == ui::ElementKind::SPLITTER_HANDLE)
+        if (_state.drag != nullptr && (_state.drag->kind == ui::ElementKind::SPLITTER_HANDLE
+            || _state.drag->kind == ui::ElementKind::DOCK_HANDLE))
             handle = _state.drag;
-        if (handle != nullptr && handle->kind == ui::ElementKind::SPLITTER_HANDLE && ui::splitterHorizontal(*handle))
+        bool grip = handle != nullptr
+            && (handle->kind == ui::ElementKind::SPLITTER_HANDLE || handle->kind == ui::ElementKind::DOCK_HANDLE);
+        if (grip && ui::splitterHorizontal(*handle))
             return platform::CursorShape::RESIZE_EW;
-        if (handle != nullptr && handle->kind == ui::ElementKind::SPLITTER_HANDLE)
+        if (grip)
             return platform::CursorShape::RESIZE_NS;
         if (_state.hover == nullptr)
             return platform::CursorShape::ARROW;

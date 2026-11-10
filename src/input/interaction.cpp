@@ -13,7 +13,8 @@ namespace gran::input
                 || kind == ui::ElementKind::RADIO_BUTTON || kind == ui::ElementKind::TAB_HEADER
                 || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
                 || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::TOOL_MORE
-                || kind == ui::ElementKind::SPLITTER_HANDLE || !node.content.onClick.empty() || ui::isWindowButton(node) || !node.content.selection.empty();
+                || kind == ui::ElementKind::SPLITTER_HANDLE || kind == ui::ElementKind::DOCK_TITLE
+                || kind == ui::ElementKind::DOCK_HANDLE || !node.content.onClick.empty() || ui::isWindowButton(node) || !node.content.selection.empty();
         }
     }
 
@@ -81,6 +82,8 @@ namespace gran::input
             return;
         openAttached(state, control);
         changeChoice(state, control);
+        if (control.kind == ui::ElementKind::DOCK_TITLE)
+            activateDockTitle(control);
         if (!control.content.command.empty())
             state.actions->command(control.content.command, control);
         if (!control.content.onClick.empty())

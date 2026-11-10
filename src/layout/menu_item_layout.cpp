@@ -51,8 +51,11 @@ namespace gran::layout::internal
         if (node.kind == ui::ElementKind::SIZE_GRIP)
             return Size{std::round(node.computed.fontSize), std::round(node.computed.fontSize)};
         float thickness = 1.0f;
-        if (node.kind == ui::ElementKind::SPLITTER_HANDLE)
+        if (node.kind == ui::ElementKind::SPLITTER_HANDLE || node.kind == ui::ElementKind::DOCK_HANDLE)
             thickness = std::max(3.0f, std::round(node.computed.fontSize * 0.4f));
+        // Ручка края хоста одинакова по обеим осям: хост берёт нужную / The host edge handle is the same on both axes: the host takes the needed one
+        if (node.kind == ui::ElementKind::DOCK_HANDLE)
+            return Size{thickness, thickness};
         if (parent != nullptr && parent->computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL))
             return Size{thickness, 0.0f};
         return Size{0.0f, thickness};
@@ -64,7 +67,7 @@ namespace gran::layout::internal
     {
         float mark = 0.0f;
 
-        if (ui::tabClosable(node))
+        if (ui::tabClosable(node) || node.kind == ui::ElementKind::DOCK_TITLE)
             mark = node.computed.fontSize * ui::TAB_CLOSE_SIZE;
         Size label = pass.measurer.measureText(node, std::max(0.0f, contentAvailable.width - mark));
         return Size{label.width + mark, label.height};

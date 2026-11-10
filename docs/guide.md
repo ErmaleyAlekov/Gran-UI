@@ -182,6 +182,7 @@ Alt+Space открывает системное меню. Поля ввода, �
 | `StatusBar`, `StatusSection` | Строка состояния и её секции; смена текста объявляется дикторам | `sizeGrip` |
 | `Splitter` | Две панели и перетаскиваемая ручка между ними | `position`, `minFirst`, `minSecond`, `collapse`, `fixed`, `collapsed`, `onChange` |
 | `Tabs` (документы) | Закрываемые, переставляемые вкладки, меню вкладок, вкладки из модели | `closable`, `reorderable`, `overflowMenu`, `onClose`, `onReorder`, `items` |
+| `DockHost`, `DockPanel` | Закрепляемые панели по краям вокруг центра | `title`, `dock`, `size`, `active`, `hidden`, `onChange` |
 | `Dialog` | Модальный диалог по центру окна | `closable` |
 | `ComboBox` | Выпадающий список с выбранным значением | `value`, `placeholder`, `onChange`, пункты `MenuItem` или `items` |
 | `WebView` | Страница системного браузера (по желанию, см. [ниже](#встроенный-браузер-webview)) | `source` или HTML в теге, `onMessage` |
@@ -1172,6 +1173,29 @@ app.onAction("closeTab", CloseTab{&app});   // void(ui::Node& страница):
 ```
 
 У вкладок из модели закрытие — удаление записи из модели: страница и её заголовок уходят сами.
+
+**Закрепляемые панели** `DockHost` — панели `DockPanel` по краям вокруг одного содержимого центра (обычно вкладки
+документов). Края: `dock="left|right|top|bottom"`, верхний и нижний — во всю ширину. Панели одного края — вкладки с
+полосой заголовков: щелчок по заголовку выбирает панель, крестик скрывает её. Заголовок можно перетащить к другому
+краю хоста — край подсвечивается, по отпусканию панель переходит туда. Ручка между краем и центром меняет длину края;
+начальная длина — `size` первой панели края.
+
+```xml
+<DockHost id="dock" onChange="layoutChanged">
+  <Tabs>…документы…</Tabs>
+  <DockPanel id="props" title="Свойства" dock="right" size="220">…</DockPanel>
+  <DockPanel id="output" title="Вывод" dock="bottom" size="140">…</DockPanel>
+  <DockPanel id="problems" title="Ошибки" dock="bottom" hidden="true">…</DockPanel>
+</DockHost>
+<MenuItem text="_Ошибки" onClick="gran:dockToggle:problems"/>   <!-- меню «Вид» -->
+```
+
+Встроенные действия: `gran:dockShow:id`, `gran:dockHide:id`, `gran:dockToggle:id` (панель) и `gran:dockReset:id`
+(хост: раскладка из разметки). Из кода — `app.showDockPanel(панель, true)`, из обёрток и Си — та же команда
+(`app.command("dockShow", "props")`). Раскладка — край, выбранная панель, скрытость и длины краёв — сохраняется в
+настройках окна сама (нужен `layout` у окна и `id` у хоста и панелей); при следующем запуске панели встают на свои места,
+новые панели — на места из разметки, а сохранённые записи панелей, которых больше нет, пропускаются. `onChange` хоста
+вызывается после каждой смены раскладки. Для дикторов панель — Pane с именем-заголовком, заголовок — кнопка.
 
 Пример всего каркаса — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 

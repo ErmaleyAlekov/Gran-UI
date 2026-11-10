@@ -65,6 +65,10 @@ namespace gran::markup
     */
     void writeLiveAttributes(ui::Node& root);
 
+    // Атрибуты, которые сохраняются и без persist (раскладка закрепляемых панелей), через пробел; пусто — нет
+    // The attributes kept even without persist (the dockable panel layout), by spaces; empty — none
+    std::string implicitPersist(const ui::Node& node);
+
     // ---- live_attributes.cpp ----
 
     // Значение атрибута в разметке узла; nullopt — атрибута нет или узел не из разметки

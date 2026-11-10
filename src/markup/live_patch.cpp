@@ -82,8 +82,14 @@ namespace gran::markup
     bool isRuntimeChild(const ui::Node& parent, const ui::Node& child) noexcept
     {
         ui::ElementKind kind = parent.kind;
+        ui::ElementKind own = child.kind;
 
         if (child.domElement != nullptr || !parent.content.items.empty())
+            return false;
+        // Части, которые строит сам построитель (кнопка «ещё», ручки, полосы дока), появятся заново — это не дети программы
+        // The parts the builder builds itself (the "more" button, the handles, the dock strips) will appear anew — these are not program children
+        if (own == ui::ElementKind::TOOL_MORE || own == ui::ElementKind::SIZE_GRIP || own == ui::ElementKind::SPLITTER_HANDLE
+            || own == ui::ElementKind::DOCK_STRIP || own == ui::ElementKind::DOCK_HANDLE)
             return false;
         return kind != ui::ElementKind::TABS && kind != ui::ElementKind::COMBO_BOX && kind != ui::ElementKind::TEXT;
     }

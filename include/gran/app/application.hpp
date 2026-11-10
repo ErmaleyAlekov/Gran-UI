@@ -515,6 +515,10 @@ namespace gran
         */
         void selectTab(ui::Node& tabs, const std::string& value);
 
+        // Показать или скрыть закрепляемую панель DockPanel (показанная становится выбранной на своём крае; gran:dockShow, gran:dockHide)
+        // Showing or hiding a DockPanel (a shown one becomes the chosen one on its edge; gran:dockShow, gran:dockHide)
+        void showDockPanel(ui::Node& panel, bool shown);
+
         // ---- application_values.cpp: значения элементов из кода (onChange не вызывается) ----
         // ---- application_values.cpp: control values from code (onChange is not called) ----
 

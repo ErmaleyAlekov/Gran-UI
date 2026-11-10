@@ -192,6 +192,19 @@ namespace gran::markup::internal
     */
     void finishNode(const beresta::Element& element, ui::Node& node);
 
+    // ---- dock_attributes.cpp ----
+
+    // Атрибуты DockHost (sizes) и DockPanel (title, dock, size, active, hidden); false — не они
+    // The DockHost (sizes) and DockPanel (title, dock, size, active, hidden) attributes; false — not them
+    bool readDockAttribute(ui::Node& node, std::string_view name, const std::string& value);
+
+    // Живая раскладка панели или хоста — в атрибуты его элемента DOM / The live panel or host layout into its DOM element attributes
+    void writeDockLive(const ui::Node& node, beresta::Element& element);
+
+    // Имена атрибутов, сохраняемых без persist (раскладка панелей), через пробел; пусто — нет
+    // The attribute names kept without persist (the panel layout), by spaces; empty — none
+    std::string dockPersistNames(const ui::Node& node);
+
     // ---- tabs_attributes.cpp ----
 
     // Атрибуты вкладок документов у Tabs (closable, reorderable, overflowMenu, onClose, onReorder); false — не они

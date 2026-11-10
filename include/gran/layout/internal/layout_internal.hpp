@@ -122,6 +122,11 @@ namespace gran::layout::internal
     // Разделитель: первая панель, ручка, вторая панель по положению и пределам / A splitter: the first pane, the handle, the second pane by the position and the limits
     void arrangeSplitter(ui::Node& splitter, Rect content, LayoutPass& pass);
 
+    // ---- dock_layout.cpp ----
+
+    // DockHost: края с выбранными панелями, полосы заголовков, ручки, центр / A DockHost: the edges with the chosen panels, the title strips, the handles, the center
+    void arrangeDock(ui::Node& host, Rect content, LayoutPass& pass);
+
     // ---- Stack (flex_*.cpp, stack_*.cpp) ----
 
     // Элемент гибкой строки: размеры по главной оси — рамка без внешних отступов

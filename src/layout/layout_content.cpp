@@ -13,7 +13,8 @@ namespace gran::layout::internal
             if (kind == ui::ElementKind::STACK || kind == ui::ElementKind::BOX || kind == ui::ElementKind::TABS
                 || kind == ui::ElementKind::TAB || kind == ui::ElementKind::TAB_BAR || kind == ui::ElementKind::MENU_BAR
                 || kind == ui::ElementKind::TOOL_BAR || kind == ui::ElementKind::TOOL_GROUP || kind == ui::ElementKind::STATUS_BAR
-                || kind == ui::ElementKind::STATUS_SECTION || kind == ui::ElementKind::SPLITTER || ui::isLayer(node))
+                || kind == ui::ElementKind::STATUS_SECTION || kind == ui::ElementKind::SPLITTER || kind == ui::ElementKind::DOCK_STRIP
+                || kind == ui::ElementKind::DOCK_PANEL || ui::isLayer(node))
                 return true;
             return node.kind == ui::ElementKind::BUTTON && !node.children.empty();
         }
@@ -24,6 +25,9 @@ namespace gran::layout::internal
     {
         if (ui::toolBarMore(node) != nullptr)
             ui::unfoldToolBar(node);
+        // DockHost меряется по центру: края берут место у него при размещении / A DockHost is measured by the center: the edges take room from it at placement
+        if (node.kind == ui::ElementKind::DOCK_HOST && ui::dockCenter(node) != nullptr)
+            return measureNode(*ui::dockCenter(node), contentAvailable, pass);
         if (isStackLike(node))
             return measureStack(node, contentAvailable, pass);
         if (node.kind == ui::ElementKind::GRID)
@@ -50,6 +54,8 @@ namespace gran::layout::internal
         // A splitter is measured as a stack (the full pane lengths) but placed by its own position
         if (node.kind == ui::ElementKind::SPLITTER)
             arrangeSplitter(node, content, pass);
+        else if (node.kind == ui::ElementKind::DOCK_HOST)
+            arrangeDock(node, content, pass);
         else if (isStackLike(node))
             arrangeStack(node, content, pass);
         if (ui::toolBarMore(node) != nullptr)

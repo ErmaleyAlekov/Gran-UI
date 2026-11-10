@@ -37,6 +37,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   with the page), `reorderable` (reordering the headers by the mouse → `onReorder`), `overflowMenu` (the headers that do not
   fit go into a menu at the strip end), tabs from a model (`items` + `<ItemTemplate><Tab …/></ItemTemplate>`),
   Ctrl+Tab and Ctrl+Shift+Tab.
+- Dockable panels `<DockHost>` / `<DockPanel>` (plan 2.1): panels at the edges around a center, the panels of one edge are
+  tabs, dragging a title to another edge with the place highlighted, the edge length handles, the cross hides a panel;
+  the actions `gran:dockShow`, `gran:dockHide`, `gran:dockToggle`, `gran:dockReset`, the `Application::showDockPanel` method;
+  the layout is kept in the window settings by the panel ids without `persist`. UI Automation: a panel is a Pane.
 
 ### Changed
 - Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no

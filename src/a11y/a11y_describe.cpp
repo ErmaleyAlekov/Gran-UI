@@ -22,7 +22,7 @@ namespace gran::a11y
             {K::MENU_ITEM, Role::MENU_ITEM}, {K::DIALOG, Role::DIALOG}, {K::COMBO_BOX, Role::COMBO_BOX},
             {K::MENU_BAR, Role::MENU_BAR}, {K::TOOL_BAR, Role::TOOL_BAR}, {K::SEPARATOR, Role::SEPARATOR},
             {K::TOOL_MORE, Role::BUTTON}, {K::STATUS_BAR, Role::STATUS_BAR}, {K::STATUS_SECTION, Role::TEXT},
-            {K::SPLITTER_HANDLE, Role::THUMB}};
+            {K::SPLITTER_HANDLE, Role::THUMB}, {K::DOCK_PANEL, Role::PANE}, {K::DOCK_TITLE, Role::BUTTON}};
 
         if (ui::isWindowButton(node))
             return Role::BUTTON;

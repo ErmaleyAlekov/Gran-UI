@@ -41,6 +41,9 @@ namespace gran::ui
     // Ось — свойство orientation разделителя (тема: horizontal) / The axis is the splitter orientation property (the theme: horizontal)
     bool splitterHorizontal(const Node& handle) noexcept
     {
+        // Ручка края DockHost: левый и правый края тянутся вбок / A DockHost edge handle: the left and right edges are dragged sideways
+        if (handle.kind == ElementKind::DOCK_HANDLE)
+            return handle.content.dock.side == DockSide::LEFT || handle.content.dock.side == DockSide::RIGHT;
         return handle.parent != nullptr
             && handle.parent->computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL);
     }

@@ -104,6 +104,21 @@
     <Style name="SizeGrip" color="#98a2b3" alignSelf="end" cursor="default"/>
     <!-- Разделитель панелей: ручка подсвечивается при наведении и в фокусе (стрелки двигают её) -->
     <!-- The pane splitter: the handle is highlighted on hover and with focus (the arrows move it) -->
+    <!-- Закрепляемые панели: полоса заголовков края, заголовок (крестик скрывает панель), ручка края, панель -->
+    <!-- Dockable panels: the edge title strip, a title (the cross hides the panel), the edge handle, a panel -->
+    <Style name="DockStrip" orientation="horizontal" spacing="2" padding="2 4" background="#f2f4f7" borderWidth="0 0 1 0"
+           borderColor="#e4e7ec" fontSize="12.5"/>
+    <Style name="DockTitle" padding="4 8" borderRadius="6 6 0 0" color="#475467" cursor="default" textWrap="nowrap"
+           transition="background 0.1s ease">
+      <Hover background="#e4e7ec"/>
+      <Focused boxShadow="0 0 0 3 rgba(37, 99, 235, 0.35)"/>
+      <Checked background="#ffffff" color="#101828"/>
+    </Style>
+    <Style name="DockPanel" background="#ffffff" padding="8" spacing="6"/>
+    <Style name="DockHandle" background="#e4e7ec" transition="background 0.1s ease">
+      <Hover background="#c7d2fe"/>
+      <Pressed background="#818cf8"/>
+    </Style>
     <Style name="Splitter" orientation="horizontal" spacing="0"/>
     <Style name="SplitterHandle" background="#e4e7ec" transition="background 0.1s ease">
       <Hover background="#c7d2fe"/>

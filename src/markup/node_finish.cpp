@@ -32,5 +32,7 @@ namespace gran::markup::internal
             ui::buildSizeGrip(node);
         if (node.kind == ui::ElementKind::SPLITTER)
             ui::buildSplitterHandle(node);
+        if (node.kind == ui::ElementKind::DOCK_HOST)
+            ui::buildDockParts(node);
     }
 }

@@ -182,6 +182,7 @@ in `Grid` outside the tracks — error with line number and path before the wind
 | `StatusBar`, `StatusSection` | The status bar and its sections; announced to screen readers | `sizeGrip` |
 | `Splitter` | Two panes and a draggable handle between them | `position`, `minFirst`, `minSecond`, `collapse`, `fixed`, `collapsed`, `onChange` |
 | `Tabs` (documents) | Closable, reorderable tabs, the tab menu, tabs from a model | `closable`, `reorderable`, `overflowMenu`, `onClose`, `onReorder`, `items` |
+| `DockHost`, `DockPanel` | Dockable panels at the edges around a center | `title`, `dock`, `size`, `active`, `hidden`, `onChange` |
 | `Dialog` | Modal dialog in the window center | `closable` |
 | `ComboBox` | Drop-down list with the selected value | `value`, `placeholder`, `onChange`, `MenuItem` items or `items` |
 | `WebView` | A system browser page (optional, see [below](#embedded-browser-webview)) | `source` or HTML in the tag, `onMessage` |
@@ -1057,6 +1058,29 @@ app.onAction("closeTab", CloseTab{&app});   // void(ui::Node& page): app.remove(
 ```
 
 For tabs from a model closing is removing the record from the model: the page and its header go by themselves.
+
+**Dockable panels** `DockHost` — `DockPanel` panels at the edges around one center content (usually document
+tabs). The edges: `dock="left|right|top|bottom"`, the top and bottom ones take the full width. The panels of one edge are tabs with
+a title strip: a click on a title chooses the panel, the cross hides it. A title can be dragged to another host
+edge — the edge is highlighted, on the release the panel moves there. The handle between an edge and the center changes the edge length;
+the initial length is the `size` of the first panel of the edge.
+
+```xml
+<DockHost id="dock" onChange="layoutChanged">
+  <Tabs>…documents…</Tabs>
+  <DockPanel id="props" title="Properties" dock="right" size="220">…</DockPanel>
+  <DockPanel id="output" title="Output" dock="bottom" size="140">…</DockPanel>
+  <DockPanel id="problems" title="Problems" dock="bottom" hidden="true">…</DockPanel>
+</DockHost>
+<MenuItem text="_Problems" onClick="gran:dockToggle:problems"/>   <!-- the "View" menu -->
+```
+
+The built-in actions: `gran:dockShow:id`, `gran:dockHide:id`, `gran:dockToggle:id` (a panel) and `gran:dockReset:id`
+(a host: the layout from the markup). From code — `app.showDockPanel(panel, true)`, from the wrappers and C — the same command
+(`app.command("dockShow", "props")`). The layout — the edge, the chosen panel, the hiddenness and the edge lengths — is kept in the
+window settings by itself (the window needs `layout` and the host and panels an `id`); on the next run the panels take their places,
+new panels — the places from the markup, and the saved records of panels that no longer exist are skipped. The host `onChange`
+is called after each layout change. For screen readers a panel is a Pane named by its title, a title is a button.
 
 Example of the whole frame — `samples/editor_frame.xml` (`gran_gallery samples/editor_frame.xml`).
 
