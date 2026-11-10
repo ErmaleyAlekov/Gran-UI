@@ -7,7 +7,7 @@
 > **This is a living document.** Here is only what has not been done yet and ideas for the future. The order of tasks, their composition
 > and deadlines **will change** as the engine develops: based on user feedback, what is discovered during implementation, and as new tasks appear. Dates are guidelines, not promises. Done items are moved to the [CHANGELOG](../CHANGELOG.en.md), versioning rules are in [docs/versioning.en.md](versioning.en.md).
 >
-> Updated: 2026-11-09 (version 0.1.0 released; the next one is 0.2.0 with the 2.1 window frame).
+> Updated: 2026-11-10 (the 2.1 window frame is done in main and goes into 0.2.0 together with CI and the release build).
 
 ## Table of Contents
 
@@ -50,7 +50,7 @@ A minor version is released when its main plan item is ready; patch versions as 
 | Version | Target | Main Content |
 |---|---|---|
 | **0.1.0** | released 2026-11-09 | First release with a tag: stage 1 completely, semantic versions, `gran_export.h`, sanitizer builds, the first manual check tasks (P.16), `release/0.1` branch |
-| **0.2.0** | December 2026 | 2.1 Window frame; CI on each commit (P.1) with sanitizers and GPU debug layers (P.16), release build by tag (P.2) |
+| **0.2.0** | December 2026 | 2.1 Window frame (done, waits for the manual checks T-26…T-37); CI on each commit (P.1) with sanitizers and GPU debug layers (P.16), release build by tag (P.2) |
 | **0.3.0** | January 2027 | 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
 | **0.4.0** | January–February 2027 | 2.3 Input fields and forms; fallback content for `<WebView>` without a browser (R.5) |
 | **0.5.0** | February 2027 | 2.4 Feedback (notifications, indicators, wizard) |
@@ -156,14 +156,11 @@ The section is compiled according to the recommendations of the project's lead d
 
 After this stage: accounting systems, admin panels, catalogs, forms.
 
-### 2.1 Window Frame
+### 2.1 Window Frame — done (goes into 0.2.0)
 
-- **Menu Bar:** `<MenuBar>` with `<MenuItem>` items and submenus, opening with Alt and Alt+letter (underlined letter in the label), arrow key navigation, Esc — close. Solve the Alt+letter issue that currently goes to Win32 system processing (sound signal).
-- **Toolbars:** buttons, separators, groups; if space is insufficient — a "more" button with a dropdown list of hidden elements; commands are taken from `<Command>`.
-- **Status Bar** with sections and variable binding.
-- **Splitter:** draggable separator, minimum sizes, collapsing with a double-click, position persistence in settings (`persist`).
-- **Dockable Panels:** attachment to edges, panel tabs, detaching into a separate window and returning, layout saving in a settings file.
-- **Document Tabs:** closing, reordering by dragging, overflow (scrolling or list), tabs from data model.
+The menu bar with access letters, toolbars with the "more" menu, the status bar, the pane splitter, document tabs,
+dockable panels with tearing off into a window, file dragging on Linux — in detail in the [CHANGELOG](../CHANGELOG.en.md),
+the "Unreleased" section, and in the [guide](guide.en.md#window-frame-menus-toolbars-status-bar).
 
 ### 2.2 TreeView and DataGrid
 
@@ -285,10 +282,14 @@ tail during streaming output.
 
 **Lists and Layout.** Virtualization of `Grid`; traversing children of a very long non-virtualized stack without O(n) per pass.
 
-**Popup Layers.** Highlighting the parent menu item of an open submenu; submenu close delay when moving the mouse
+**Window Frame.** Scrolling the tab strip by arrows (now the overflow is a menu); the dock edge length from the keyboard
+at the edge handle; keeping torn-off panels between runs; access letters on buttons and field labels (now — menus only);
+UI Automation events about expanding and collapsing menus; panels of one dock edge side by side (now — as tabs only).
+
+**Popup Layers.** Submenu close delay when moving the mouse
 diagonally; ComboBox width by the longest item; ComboBox label when editing the list model.
 
-**Widgets and Animations.** Tabs from data; `animationPlayState` and pause; restarting animation from code; mixing
+**Widgets and Animations.** `animationPlayState` and pause; restarting animation from code; mixing
 transformations of different forms through matrices (currently — jump); animations in `gran_snapshot` at a specified time.
 
 **Accessibility.** ScrollPattern on Scroll, TextPattern (caret and selection for screen readers), LiveRegion

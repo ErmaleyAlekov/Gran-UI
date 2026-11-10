@@ -211,3 +211,12 @@ ALT p11, the main tree 8c7e873: the release and debug builds without warnings, t
 the X11 window test (`gran_linux_tests --window`, including file dragging by XDND with a source process) on NVIDIA and
 lavapipe; the backend tests and snapshots of all markups with `VK_LAYER_KHRONOS_validation` on NVIDIA, Intel and lavapipe —
 no layer messages; ASan+UBSan 356/356. Live dragging from Nautilus and the menu bar in GNOME are manual tasks T-26 and T-28.
+
+### 2026-11-10 — Linux, the whole 0.2.0 window frame (plan 2.1 complete)
+
+ALT p11, the main tree 22d714d (the splitter, document tabs, dockable panels and tearing them off): the release and debug
+builds without warnings, the unit tests 377/377; the X11 window test with XDND on NVIDIA and lavapipe; the backend tests and
+snapshots with the validation layer on NVIDIA, Intel and lavapipe — 0 differences and layer messages; ASan+UBSan 377/377.
+**Found:** the crash report test sometimes fails on the SEGV case (about 2 of 15): the `.stack` file is empty when the stack
+pointer is closer than 4 KB to the stack top (depends on ASLR) — the write goes in 4096-byte blocks from sp, not by page
+boundaries. The bug is from 0.1.0 and does not belong to the window frame.
