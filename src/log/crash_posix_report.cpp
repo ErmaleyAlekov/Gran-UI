@@ -83,21 +83,33 @@ namespace gran::log::internal
         /*
         ** До 64 КБ стека от sp — в файл .stack. Чтение за концом стека не роняет обработчик: write
         ** с недоступным адресом возвращает EFAULT (память проверяет ядро), и запись просто кончается.
+        ** Куски не пересекают границу страницы 4 КБ (границы отображений ей кратны): первый — от sp до конца
+        ** его страницы, дальше — целые страницы. Иначе при sp ближе 4 КБ к верху стека первый же кусок
+        ** задевал недоступную страницу, write давал EFAULT, и файл оставался пустым (зависело от ASLR).
         **
         ** Up to 64 KB of the stack from sp go into the .stack file. Reading past the stack end does not crash the handler: write
         ** with an unreachable address returns EFAULT (the kernel checks the memory), and the writing simply ends.
+        ** The pieces do not cross a 4 KB page boundary (mapping boundaries are multiples of it): the first one goes from sp to the end
+        ** of its page, then whole pages. Otherwise with sp closer than 4 KB to the stack top the very first piece
+        ** touched an unreachable page, write gave EFAULT, and the file stayed empty (it depended on ASLR).
         */
         void writeStackBytes(const PosixCrash& state, std::time_t seconds, std::uint64_t pointer) noexcept
         {
+            const std::uint64_t page = 4096;
+            const std::uint64_t end = pointer + 16 * page;
             int fd = 0;
-            const char* bytes = reinterpret_cast<const char*>(static_cast<std::uintptr_t>(pointer));
 
             if (pointer == 0 || (fd = openReport(state, seconds, "stack")) < 0)
                 return;
-            for (int page = 0; page < 16; ++page)
+            while (pointer < end)
             {
-                if (::write(fd, bytes + page * 4096, 4096) != 4096)
+                // Длина до конца текущей страницы / The length up to the end of the current page
+                std::size_t length = static_cast<std::size_t>(page - pointer % page);
+                const char* bytes = reinterpret_cast<const char*>(static_cast<std::uintptr_t>(pointer));
+
+                if (::write(fd, bytes, length) != static_cast<ssize_t>(length))
                     break;
+                pointer += length;
             }
             ::close(fd);
         }

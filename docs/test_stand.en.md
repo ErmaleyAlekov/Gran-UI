@@ -219,4 +219,4 @@ builds without warnings, the unit tests 377/377; the X11 window test with XDND o
 snapshots with the validation layer on NVIDIA, Intel and lavapipe — 0 differences and layer messages; ASan+UBSan 377/377.
 **Found:** the crash report test sometimes fails on the SEGV case (about 2 of 15): the `.stack` file is empty when the stack
 pointer is closer than 4 KB to the stack top (depends on ASLR) — the write goes in 4096-byte blocks from sp, not by page
-boundaries. The bug is from 0.1.0 and does not belong to the window frame.
+boundaries. The bug is from 0.1.0 and does not belong to the window frame. Fixed the same day: writing by page boundaries, 30/30 runs.

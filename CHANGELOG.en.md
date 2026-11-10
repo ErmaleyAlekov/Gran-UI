@@ -56,6 +56,8 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
+- Linux: the `.stack` file of the crash report sometimes stayed empty — when the stack pointer was closer than 4 KB to the stack
+  top (it depended on ASLR); now the stack is written by page boundaries, up to the very top.
 - Rebuilding a node through the live markup (`setMarkupAttribute`, restoring the settings) duplicated the parts the engine
   builds: the toolbar "more" button, the status bar and splitter handles.
 - `Application::remove` of a `Tab` page left its header in the tab strip — now the header is removed together with the
