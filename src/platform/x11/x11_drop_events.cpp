@@ -60,6 +60,7 @@ namespace gran::platform::x11
     {
         Time time = CurrentTime;
 
+        logDndDrop(_dnd);
         if (!_dnd.accepted)
         {
             dndReply("XdndFinished", 0, nullptr);

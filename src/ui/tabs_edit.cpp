@@ -83,7 +83,11 @@ namespace gran::ui
             return false;
         moveChild(bar, from, to);
         moveChild(tabs, source, target);
-        markDirty(tabs, DIRTY_LAYOUT | DIRTY_PAINT);
+        // Грязной помечается сама полоса (флаг поднимется к Tabs): у «чистой» полосы того же размера компоновка
+        // взяла бы прошлую раскладку, и заголовки остались бы на старых местах
+        // The strip itself is marked dirty (the flag climbs to Tabs): for a "clean" strip of the same size the layout
+        // would take the previous placement, and the headers would stay at their old places
+        markDirty(bar, DIRTY_LAYOUT | DIRTY_PAINT);
         return true;
     }
 }

@@ -127,6 +127,17 @@ namespace gran::layout::internal
     // DockHost: края с выбранными панелями, полосы заголовков, ручки, центр / A DockHost: the edges with the chosen panels, the title strips, the handles, the center
     void arrangeDock(ui::Node& host, Rect content, LayoutPass& pass);
 
+    // ---- dock_titles.cpp ----
+
+    /*
+    ** Заголовки полосы края: видны заголовки панелей panels, отмечен заголовок chosen. Смена видимости
+    ** сбрасывает кэш раскладки полосы — иначе полоса брала бы прошлую раскладку без нового заголовка.
+    **
+    ** The edge strip titles: the titles of the panels panels are visible, the title of chosen is checked. A visibility change
+    ** resets the strip layout cache — otherwise the strip would take the previous layout without the new title.
+    */
+    void syncDockTitles(ui::Node& strip, const std::vector<ui::Node*>& panels, const ui::Node* chosen);
+
     // ---- Stack (flex_*.cpp, stack_*.cpp) ----
 
     // Элемент гибкой строки: размеры по главной оси — рамка без внешних отступов

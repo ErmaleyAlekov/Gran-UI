@@ -34,12 +34,7 @@ namespace gran::layout::internal
             }
             if (chosen == nullptr && !panels.empty())
                 chosen = panels.front();
-            for (const std::unique_ptr<ui::Node>& title : strip->children)
-            {
-                ui::Node* panel = ui::dockPanelOf(*title);
-                title->visible = std::find(panels.begin(), panels.end(), panel) != panels.end();
-                ui::setChecked(*title, panel == chosen);
-            }
+            syncDockTitles(*strip, panels, chosen);
             return chosen;
         }
 

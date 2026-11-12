@@ -1,5 +1,6 @@
 #include "gran/platform/x11/x11_window.hpp"
 #include <X11/Xatom.h>
+#include <algorithm>
 #include <utility>
 
 namespace gran::platform::x11
@@ -25,6 +26,7 @@ namespace gran::platform::x11
             reinterpret_cast<unsigned char*>(&version), 1);
         XFlush(_native.display);
         _dndAware = true;
+        logDndAware(_native.window, DND_VERSION);
     }
 
     // Самый ранний список путей; пусто — забирать нечего / The earliest path list; empty — nothing to take
@@ -77,7 +79,9 @@ namespace gran::platform::x11
         _dnd = DndState{};
         _dnd.source = static_cast<::Window>(message.data.l[0]);
         _dnd.version = static_cast<int>((static_cast<unsigned long>(message.data.l[1]) >> 24) & 0xFF);
-        _dnd.uriList = dndOffersUris(message);
+        std::vector<Atom> types = dndOfferedTypes(message);
+        _dnd.uriList = std::find(types.begin(), types.end(), atom("text/uri-list")) != types.end();
+        logDndEnter(_native.display, _dnd, types);
     }
 
     /*
@@ -87,27 +91,32 @@ namespace gran::platform::x11
     ** The source data types: up to three are right in data.l[2..4]; more (bit 0 in data.l[1]) are in the
     ** XdndTypeList property of the source window. The property size is limited: a long type list is not needed to find one.
     */
-    bool X11Window::dndOffersUris(const XClientMessageEvent& message) const
+    std::vector<Atom> X11Window::dndOfferedTypes(const XClientMessageEvent& message) const
     {
-        Atom wanted = atom("text/uri-list");
+        std::vector<Atom> types;
         Atom type = 0;
         int format = 0;
         unsigned long count = 0;
         unsigned long remaining = 0;
         unsigned char* bytes = nullptr;
-        bool found = false;
 
         if ((message.data.l[1] & 1) == 0)
-            return static_cast<Atom>(message.data.l[2]) == wanted || static_cast<Atom>(message.data.l[3]) == wanted
-                || static_cast<Atom>(message.data.l[4]) == wanted;
+        {
+            for (int index = 2; index <= 4; ++index)
+            {
+                if (message.data.l[index] != 0)
+                    types.push_back(static_cast<Atom>(message.data.l[index]));
+            }
+            return types;
+        }
         int result = XGetWindowProperty(_native.display, static_cast<::Window>(message.data.l[0]), atom("XdndTypeList"),
             0, 256, False, XA_ATOM, &type, &format, &count, &remaining, &bytes);
         // Xlib отдаёт 32-битные элементы как long / Xlib returns 32-bit items as long
         const unsigned long* atoms = reinterpret_cast<const unsigned long*>(bytes);
         for (unsigned long index = 0; result == Success && format == 32 && atoms != nullptr && index < count; ++index)
-            found = found || atoms[index] == wanted;
+            types.push_back(static_cast<Atom>(atoms[index]));
         if (bytes != nullptr)
             XFree(bytes);
-        return found;
+        return types;
     }
 }

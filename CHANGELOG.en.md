@@ -13,7 +13,9 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ### Added
 - Linux: dragging files from file managers (the XDND protocol, version 5) into `onDrop` zones — as on Windows: the
   `DropTarget` state, the "not allowed" cursor outside the zones, local file paths in UTF-8 (`file://`, `%XX` decoded,
-  network and other addresses skipped). The `text/uri-list` parser — `include/gran/utils/uri_list.hpp`.
+  network and other addresses skipped). The `text/uri-list` parser — `include/gran/utils/uri_list.hpp`. The session steps
+  (the start with the source types, the drop, the data) are written to the log (INFO, category `x11`). **Not working yet:** a drop
+  from Nautilus in GNOME on Wayland (Mutter carries XDND for an XWayland window) — under investigation.
 - The `<MenuBar>` menu bar (plan 2.1): `MenuItem` items with menus under them; Alt (press and release) and F10 — the focus
   to the bar, the arrows — the neighbor item and its menu, Alt+letter — open a menu at once, a letter in an open menu —
   choose an item, hovering switches the open menu; clicking the bar does not take the focus. Access letters: `_` before
@@ -56,6 +58,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
+- Document tabs: reordering by the mouse changed the order in the tree, but the headers stayed at their old places (the strip
+  took the previous placement from the layout cache), and a header hidden in the menu was drawn over the menu bar.
+- Dockable panels: a panel moved to an edge that already has panels showed its content without its title in the strip —
+  it looked like overlapping the neighbouring panel or disappearing.
 - Linux: the `.stack` file of the crash report sometimes stayed empty — when the stack pointer was closer than 4 KB to the stack
   top (it depended on ASLR); now the stack is written by page boundaries, up to the very top.
 - Rebuilding a node through the live markup (`setMarkupAttribute`, restoring the settings) duplicated the parts the engine

@@ -62,6 +62,8 @@
               <MenuItem text="_Свойства" onClick="gran:dockToggle:props"/>
               <MenuItem text="_Вывод" onClick="gran:dockToggle:output"/>
               <MenuItem text="_Ошибки" onClick="gran:dockToggle:problems"/>
+              <Separator/>
+              <MenuItem text="С_бросить раскладку" onClick="gran:dockReset:dock"/>
             </Popup>
           </MenuItem>
         </Popup>

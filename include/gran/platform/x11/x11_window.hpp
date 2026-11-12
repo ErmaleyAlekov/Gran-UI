@@ -52,6 +52,20 @@ namespace gran::platform::x11
         Vec2 point;
     };
 
+    /*
+    ** Строки журнала о сеансе XDND (x11_drop_log.cpp), уровень INFO, категория «x11». Нужны для разбора живых
+    ** файловых менеджеров: в GNOME на Wayland XDND для окна XWayland переводит Mutter, и автотест с X11-источником
+    ** этот путь не видит. На сеанс — 3–4 строки (без каждого XdndPosition).
+    **
+    ** The log lines about an XDND session (x11_drop_log.cpp), level INFO, category "x11". They are needed to analyse live
+    ** file managers: in GNOME on Wayland Mutter translates XDND for an XWayland window, and the autotest with an X11 source
+    ** does not see this path. Per session — 3–4 lines (without each XdndPosition).
+    */
+    void logDndAware(::Window window, long version);
+    void logDndEnter(Display* display, const DndState& state, const std::vector<Atom>& types);
+    void logDndDrop(const DndState& state);
+    void logDndData(Display* display, Atom type, int format, unsigned long bytes, std::size_t paths);
+
     // X11 является системной оконной службой; Wayland-сеансы поддерживаются через XWayland.
     // X11 is the system window service; Wayland sessions are supported through XWayland.
     class X11Window final : public platform::Window
@@ -91,7 +105,7 @@ namespace gran::platform::x11
         // ---- x11_drop*.cpp: приём файлов по XDND / receiving files by XDND ----
         void dndMessage(const XClientMessageEvent& message);
         void dndEnter(const XClientMessageEvent& message);
-        bool dndOffersUris(const XClientMessageEvent& message) const;
+        std::vector<Atom> dndOfferedTypes(const XClientMessageEvent& message) const;
         void dndPosition(const XClientMessageEvent& message);
         bool dndInZone(Vec2 point) const;
         void dndDrop(const XClientMessageEvent& message);

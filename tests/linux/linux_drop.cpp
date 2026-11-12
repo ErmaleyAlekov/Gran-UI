@@ -1,4 +1,5 @@
 #include "linux_tests.hpp"
+#include "gran/log/log.hpp"
 #include <chrono>
 #include <csignal>
 #include <spawn.h>
@@ -68,6 +69,26 @@ namespace linux_tests
                 expected = "1";
             require(runPeer(window, {"/proc/self/exe", "--xdnd-peer", target, x, y, expected}, seen), "xdnd peer answers");
         }
+
+        /*
+        ** Журнал сеанса XDND (x11_drop_log.cpp) записан: в кольце есть начало с «text/uri-list: yes» и упоминания типа
+        ** в списке типов и в строке данных (текст строк зависит от языка, имя типа — нет). По этим строкам разбирают
+        ** живые файловые менеджеры (Т-38), поэтому их пропажа — ошибка.
+        **
+        ** The XDND session log (x11_drop_log.cpp) is written: the ring has the start with "text/uri-list: yes" and mentions
+        ** of the type in the type list and in the data line (the line text depends on the language, the type name does not).
+        ** Live file managers are analysed by these lines (T-38), so losing them is a bug.
+        */
+        bool dropLogged()
+        {
+            static char recent[16384];
+            std::string text(recent, gran::log::copyRecent(recent, sizeof(recent)));
+            std::size_t mentions = 0;
+
+            for (std::size_t at = text.find("text/uri-list"); at != std::string::npos; at = text.find("text/uri-list", at + 1))
+                ++mentions;
+            return text.find("text/uri-list: yes") != std::string::npos && mentions >= 3;
+        }
     }
 
     /*
@@ -87,6 +108,7 @@ namespace linux_tests
         require(inside.moved && inside.dropped, "xdnd drop events");
         std::vector<std::string> paths = window.takeDroppedFiles();
         require(paths.size() == 2 && paths[0] == "/tmp/п a.txt" && paths[1] == "/tmp/b.txt", "xdnd dropped paths");
+        require(dropLogged(), "xdnd session log");
         dropAt(window, gran::Vec2{80, 60}, false, outside);
         require(outside.moved && outside.left && !outside.dropped, "xdnd refused drop events");
         require(window.takeDroppedFiles().empty(), "xdnd refused drop paths");

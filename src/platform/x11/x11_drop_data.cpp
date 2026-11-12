@@ -26,6 +26,8 @@ namespace gran::platform::x11
             return;
         if (event.property != None)
             paths = dndReadPaths(event.property);
+        else
+            logDndData(_native.display, None, 0, 0, 0);
         if (paths.empty())
         {
             dndReply("XdndFinished", 0, nullptr);
@@ -57,6 +59,7 @@ namespace gran::platform::x11
             AnyPropertyType, &type, &format, &count, &remaining, &bytes);
         if (result == Success && type == atom("text/uri-list") && format == 8 && remaining == 0 && bytes != nullptr)
             paths = parseUriList(std::string_view(reinterpret_cast<const char*>(bytes), count));
+        logDndData(_native.display, type, format, count, paths.size());
         if (bytes != nullptr)
             XFree(bytes);
         return paths;
