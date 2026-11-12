@@ -63,7 +63,11 @@ namespace gran::platform::x11
             dndPosition(message);
         else if (message.message_type == atom("XdndDrop"))
             dndDrop(message);
-        else if (message.message_type == atom("XdndLeave"))
+        // Leave после Drop, пока ждём данные, — не отмена: мост Mutter (GNOME на Wayland) шлёт его сразу, как только
+        // кончилось перетаскивание на стороне Wayland. Сеанс кончит SelectionNotify (dndData), иначе данные терялись (Т-38)
+        // A Leave after Drop while the data is awaited is not a cancel: the Mutter bridge (GNOME on Wayland) sends it right
+        // after the drag on the Wayland side has ended. SelectionNotify (dndData) ends the session, otherwise the data was lost (T-38)
+        else if (message.message_type == atom("XdndLeave") && !_dnd.converting)
             dndEnd(EventKind::DRAG_LEAVE);
     }
 

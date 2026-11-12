@@ -91,11 +91,11 @@ namespace linux_tests
 
     /*
     ** Процесс-источник XDND (как файловый менеджер): Enter → Position в точке (x, y) окна-приёмника →
-    ** Status → Drop → Finished. Аргументы: окно, x, y (пиксели устройства), ожидание "1" (принять) или "0".
+    ** Status → Drop, сразу Leave (как мост Mutter) → Finished. Аргументы: окно, x, y (пиксели устройства), ожидание "1" (принять) или "0".
     ** Код 0 — приёмник ответил ожидаемо и в Status, и в Finished.
     **
     ** An XDND source process (as a file manager): Enter → Position at the point (x, y) of the target window →
-    ** Status → Drop → Finished. Arguments: the window, x, y (device pixels), the expectation "1" (accept) or "0".
+    ** Status → Drop, right away Leave (as the Mutter bridge) → Finished. Arguments: the window, x, y (device pixels), the expectation "1" (accept) or "0".
     ** Code 0 — the target answered as expected both in Status and in Finished.
     */
     int dropPeer(char** arguments)
@@ -121,6 +121,11 @@ namespace linux_tests
             static_cast<long>(XInternAtom(peer.display, "XdndActionCopy", False)));
         long accepted = waitReply(peer, "XdndStatus");
         sendToTarget(peer, "XdndDrop", 0, CurrentTime, 0);
+        // Как Mutter (GNOME на Wayland): перетаскивание на стороне Wayland кончилось — XdndLeave сразу после XdndDrop,
+        // не дожидаясь, пока приёмник заберёт данные (Т-38). Приёмник не должен бросать сеанс
+        // As Mutter (GNOME on Wayland): the drag on the Wayland side has ended — XdndLeave right after XdndDrop,
+        // without waiting for the target to take the data (T-38). The target must not drop the session
+        sendToTarget(peer, "XdndLeave", 0, 0, 0);
         long finished = waitReply(peer, "XdndFinished");
         XCloseDisplay(peer.display);
         if (accepted < 0 || finished < 0 || (accepted & 1) != expected || (finished & 1) != expected)
