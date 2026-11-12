@@ -1,0 +1,27 @@
+# Статический анализ Грани UI (дорожная карта, П.8). Группы — ошибки, а не стиль: стиль задают правила проекта.
+# Static analysis of Gran UI (roadmap, P.8). The groups are bugs, not style: the style is set by the project rules.
+#
+# Отключено и почему / Disabled and why:
+#   bugprone-easily-swappable-parameters — подсказка о дизайне API, не ошибка / an API design hint, not a bug
+#   cert-err58-cpp — статические таблицы с std::string ловят исключения при старте / static tables with std::string at startup
+#   bugprone-narrowing-conversions — тысячи float↔int в компоновке; сужения на границах ввода проверяются вручную
+#                                    thousands of float↔int in the layout; narrowing at input boundaries is checked by hand
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  cert-*,
+  -cert-err58-cpp,
+  clang-analyzer-*,
+  concurrency-*,
+  performance-*,
+  misc-redundant-expression,
+  misc-misplaced-const,
+  misc-unconventional-assign-operator,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-slicing
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*/(include|src|tests)/.*'
+# «Берёста» — отдельная библиотека со своим анализом / Beresta is a separate library with its own analysis
+ExcludeHeaderFilterRegex: '.*(beresta|Dom lib C\+\+).*'

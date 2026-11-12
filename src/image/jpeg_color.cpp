@@ -94,7 +94,7 @@ namespace gran::image::internal
             std::uint8_t* row = image.pixels.data() + static_cast<std::size_t>(y) * frame.width * 4;
 
             for (std::uint32_t x = 0; x < frame.width; ++x)
-                writePixel(frame, rgb, x, y, row + x * 4);
+                writePixel(frame, rgb, x, y, row + static_cast<std::size_t>(x) * 4);
         }
     }
 }

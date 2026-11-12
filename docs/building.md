@@ -161,6 +161,23 @@ g++ -std=c++17 -I"Gran-UI/include" -I"beresta/include" main.cpp Gran-UI/bin/libg
 Галерея и снимки принимают `--d3d11`, `--d3d12`, `--warp`; галерея с `--watch` перезагружает XML.
 `make test-render` запускает снимки обоих API на WARP, `make update-render-baselines` обновляет эталоны явно.
 
+### Статический анализ (clang-tidy)
+
+Правила — в [`.clang-tidy`](../.clang-tidy): группы `bugprone`, `cert`, `clang-analyzer` (в том числе
+`optin.core.EnumCastOutOfRange` — приведение числа вне перечисления), `concurrency`, `performance`; что отключено
+и почему — там же в комментарии. Нужна база команд сборки `compile_commands.json`: CMake пишет её сам с
+`-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`.
+
+```bash
+cmake -S . -B build-tidy -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build build-tidy
+run-clang-tidy -p build-tidy -quiet '/(src|examples)/'
+```
+
+clang-tidy не входит в компилятор; без прав администратора его можно поставить из PyPI: `pip install clang-tidy`.
+Проверки аргументов в коде видны анализатору: в Си-интерфейсе `require` — шаблон в заголовке над `[[noreturn]]`
+функцией, иначе после `require(p != nullptr)` он считал бы `p` нулевым.
+
 ## Linux
 
 Сборка использует C++17, «Берёсту», заголовки/loader Vulkan и системный Xlib. Нет SDL, GLFW, Qt, GTK,

@@ -31,6 +31,8 @@ namespace gran::markup::internal
         {
             static const char* const NAMES[] = {"string", "number", "boolean", "color", "paint", "length", "size", "action",
                 "model"};
+            // Номер имени — значение ParamType / The name number is the ParamType value
+            static_assert(sizeof(NAMES) / sizeof(NAMES[0]) == static_cast<std::size_t>(ParamType::MODEL) + 1, "NAMES vs ParamType");
 
             for (std::size_t index = 0; name != nullptr && index < sizeof(NAMES) / sizeof(NAMES[0]); ++index)
             {

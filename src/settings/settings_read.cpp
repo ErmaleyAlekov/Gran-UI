@@ -2,6 +2,7 @@
 
 #include "beresta.hpp"
 
+#include <cmath>
 #include <cstdlib>
 
 namespace gran::generated
@@ -33,6 +34,10 @@ namespace gran::settings::internal
             value.text = element.getTextContent();
             if (type == "number")
                 value.type = ValueType::NUMBER;
+            // Схема отсекает NaN, но не «INF» и «1e999» (strtod даёт ∞): испорченное число читается как 0
+            // The schema cuts off NaN, but not "INF" and "1e999" (strtod gives ∞): a damaged number is read as 0
+            if (value.type == ValueType::NUMBER && !std::isfinite(std::strtod(value.text.c_str(), nullptr)))
+                value.text = "0";
             else if (type == "boolean")
                 value.type = ValueType::BOOLEAN;
             return value;
@@ -58,9 +63,13 @@ namespace gran::settings::internal
             std::string kind(element.getLocalName());
 
             if (kind == "Window")
+                // Схема уже проверила xs:int (размеры — от 1): strtol не переполнится, приведение к int точно
+                // The schema has already checked xs:int (the sizes — from 1): strtol will not overflow, the cast to int is exact
                 model.windows[attributeOf(element, "layout")] = platform::WindowPlacement{
-                    std::atoi(attributeOf(element, "x").c_str()), std::atoi(attributeOf(element, "y").c_str()),
-                    std::atoi(attributeOf(element, "width").c_str()), std::atoi(attributeOf(element, "height").c_str()),
+                    static_cast<int>(std::strtol(attributeOf(element, "x").c_str(), nullptr, 10)),
+                    static_cast<int>(std::strtol(attributeOf(element, "y").c_str(), nullptr, 10)),
+                    static_cast<int>(std::strtol(attributeOf(element, "width").c_str(), nullptr, 10)),
+                    static_cast<int>(std::strtol(attributeOf(element, "height").c_str(), nullptr, 10)),
                     attributeOf(element, "state") == "maximized"};
             else if (kind == "Attribute")
                 model.attributes[AttributeKey{attributeOf(element, "layout"), attributeOf(element, "node"),

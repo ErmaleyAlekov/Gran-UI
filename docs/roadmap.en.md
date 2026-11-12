@@ -84,7 +84,9 @@ Recommendations without which it is hard to use the engine in serious programs. 
 
 **P.7. Sanitizers and Fuzzing** (cross-cutting task C.4). Before 1.0, mandatory: nightly test runs with ASan and UBSan, TSan on a task pool, `post` and data source streams; fuzzers for markup, styles, PNG, JPEG, SVG, TrueType fonts, and JSON; found inputs — into the test suite.
 
-**P.8. Static Analysis.** clang-tidy (groups bugprone, cert, performance, concurrency), MSVC `/analyze`, cppcheck — in CI, no accumulated "debt": new warning — failure.
+**P.8. Static Analysis.** *Started 2026-11-12:* `.clang-tidy` in the repository, the first run triaged (bugs fixed,
+clang-analyzer findings — 0; the rest is noise and deliberate places). Left: CI, MSVC `/analyze`, cppcheck.
+clang-tidy (groups bugprone, cert, performance, concurrency), MSVC `/analyze`, cppcheck — in CI, no accumulated "debt": new warning — failure.
 
 **P.9. Supply Chain Security.** Signed tags (`git tag -s`), SHA-256 and archive release signatures, SBOM in CycloneDX format (engine, Beresta, system libraries), Authenticode signature for exe and dll on Windows, table of supported versions and response times for vulnerability reports in [SECURITY.md](../SECURITY.en.md).
 

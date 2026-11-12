@@ -28,7 +28,7 @@ namespace gran::style
             }
             if (normalized.empty())
                 throwValueError(i18n::Message::STYLE_BAD_GRADIENT, text, sides);
-            return parseKeyword(normalized, SIDES, 12) * 3.14159265f / 180.0f;
+            return parseKeyword(normalized, SIDES) * 3.14159265f / 180.0f;
         }
 
         // Заголовок linear: угол или "to сторона"; true — первый аргумент был заголовком
@@ -92,7 +92,7 @@ namespace gran::style
         Gradient gradient;
         bool header = false;
 
-        gradient.kind = static_cast<GradientKind>(parseKeyword(name, KINDS, 3));
+        gradient.kind = static_cast<GradientKind>(parseKeyword(name, KINDS));
         if (!scanner.readArguments(arguments) || !scanner.atEnd() || arguments.empty())
             throwValueError(i18n::Message::STYLE_BAD_GRADIENT, text, name);
         if (gradient.kind == GradientKind::CONIC)

@@ -581,7 +581,8 @@ namespace gran
         */
         void setVariable(const std::string& name, const std::string& value);
 
-        // Переменная-число и логическая переменная (тип задаётся явно) / A number variable and a boolean variable (the type is set explicitly)
+        // Переменная-число и логическая переменная (тип задаётся явно); ∞ и NaN — GranException INVALID_ARGUMENT
+        // A number variable and a boolean variable (the type is set explicitly); ∞ and NaN — GranException INVALID_ARGUMENT
         void setVariableNumber(const std::string& name, double value);
         void setVariableBoolean(const std::string& name, bool value);
 

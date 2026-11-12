@@ -73,6 +73,18 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 - Gallery: an unknown key (for example, `–vulkan` with an en dash instead of two hyphens) is no longer taken as the markup
   file name — an "unknown key" message with a hint is printed.
 
+### Security
+- Numbers from the markup, styles and the settings file no longer cause undefined behaviour. Hundreds of digits (∞, and in the
+  fractional part — NaN) and values outside the `float` range are now a parse error. Integer attributes and properties (`maxLength`,
+  `rows`, the font weight, `steps(n)`, integer properties) are range-checked before the cast to an integer type: previously
+  `maxLength="99999999999999999999"` passed the schema (`xs:positiveInteger` has no upper bound) and gave UB on the cast to
+  `size_t`. The window size in the settings is `xs:int`; `inf` in settings numbers and `setVariableNumber(∞/NaN)` are rejected
+  (in the C interface — `GRAN_INVALID_ARGUMENT`).
+- The virtual list window bounds the row numbers in `double` before the cast to `size_t`.
+- Static analysis: `.clang-tidy` (bugprone, cert, clang-analyzer with `EnumCastOutOfRange`, concurrency, performance), how to run —
+  `docs/building.en.md`. The C interface argument checks are visible to the analyzer; `static_assert` on the style ↔ platform/text
+  enumeration pairs and name tables; the keyword table size is deduced from the type.
+
 ## [0.1.0] — 2026-11-09
 
 The first release with a version number. Includes everything done up to 2026-11-09: roadmap stage 1, "Program Foundation", and the fixes

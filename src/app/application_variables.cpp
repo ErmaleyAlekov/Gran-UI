@@ -1,6 +1,10 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
 
+#include <cmath>
 #include <locale>
+#include <string>
 #include <sstream>
 #include <utility>
 
@@ -17,11 +21,15 @@ namespace gran
     **
     ** The classic locale: the decimal point is always ".", as XPath requires (std::to_chars for double is missing
     ** in GCC 8 of the Astra 1.7 build). 17 digits — without precision loss; the normalization gives the XPath form ("0.1").
+    ** ∞ и NaN — не значение переменной: текстом «inf»/«nan» они ушли бы в выражения и компоновку.
+    ** ∞ and NaN are not a variable value: as the text "inf"/"nan" they would go into the expressions and the layout.
     */
     void Application::setVariableNumber(const std::string& name, double value)
     {
         std::ostringstream text;
 
+        if (!std::isfinite(value))
+            throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::STYLE_BAD_NUMBER, {std::to_string(value)}));
         text.imbue(std::locale::classic());
         text.precision(17);
         text << value;

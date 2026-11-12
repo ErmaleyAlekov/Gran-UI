@@ -61,6 +61,7 @@ namespace suites
     void registerWebViewTests(test::TestRunner& runner);
     void registerIncrementalLayoutTests(test::TestRunner& runner);
     void registerLayoutCacheTests(test::TestRunner& runner);
+    void registerInputBoundsTests(test::TestRunner& runner);
     void registerTimerQueueTests(test::TestRunner& runner);
     void registerKeyframeTests(test::TestRunner& runner);
     void registerKeyframeAnimatorTests(test::TestRunner& runner);

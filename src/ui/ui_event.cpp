@@ -10,6 +10,10 @@ namespace gran::ui
         const char* const NAMES[] = {"keyDown", "keyUp", "pointerDown", "pointerMove", "pointerUp", "pointerEnter",
             "pointerLeave", "doubleClick", "wheel", "focus", "blur", "contextMenu", "dragStart", "dragEnter", "dragOver",
             "dragLeave", "drop", "dragEnd"};
+
+        // Номер имени — значение EventType (static_cast в eventType): таблица и перечисление меняются вместе
+        // The name number is the EventType value (static_cast in eventType): the table and the enumeration change together
+        static_assert(sizeof(NAMES) / sizeof(NAMES[0]) == static_cast<std::size_t>(EventType::CUSTOM), "NAMES vs EventType");
     }
 
     // Флаг пути; обработчики узла current довызываются / The path flag; the handlers of the current node are still called

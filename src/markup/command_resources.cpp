@@ -28,7 +28,7 @@ namespace gran::markup::internal
 
             if (value == nullptr)
                 return ui::CommandScope::WINDOW;
-            return static_cast<ui::CommandScope>(style::parseKeyword(*value, SCOPES, 3));
+            return static_cast<ui::CommandScope>(style::parseKeyword(*value, SCOPES));
         }
     }
 

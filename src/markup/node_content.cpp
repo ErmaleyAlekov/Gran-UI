@@ -37,19 +37,21 @@ namespace gran::markup::internal
             static const style::Keyword OVERFLOWS[] = {{"asNeeded", 0}, {"always", 1}, {"never", 2}};
 
             if (name == "windowRole")
-                node.content.windowRole = static_cast<platform::WindowRole>(style::parseKeyword(value, ROLES, 6));
+                node.content.windowRole = static_cast<platform::WindowRole>(style::parseKeyword(value, ROLES));
             else if (name == "fit")
-                node.content.fit = static_cast<ui::ImageFit>(style::parseKeyword(value, FITS, 4));
+                node.content.fit = static_cast<ui::ImageFit>(style::parseKeyword(value, FITS));
             else if (name == "direction")
-                node.content.direction = static_cast<ui::ScrollDirection>(style::parseKeyword(value, DIRECTIONS, 3));
+                node.content.direction = static_cast<ui::ScrollDirection>(style::parseKeyword(value, DIRECTIONS));
             else if (name == "overflowMode")
-                node.content.overflowMode = static_cast<ui::OverflowMode>(style::parseKeyword(value, OVERFLOWS, 3));
+                node.content.overflowMode = static_cast<ui::OverflowMode>(style::parseKeyword(value, OVERFLOWS));
             else if (name == "submitKey")
-                node.content.submitKey = static_cast<ui::SubmitKey>(style::parseKeyword(value, SUBMITS, 2));
+                node.content.submitKey = static_cast<ui::SubmitKey>(style::parseKeyword(value, SUBMITS));
+            // xs:positiveInteger в схеме не ограничен сверху: предел ставит разбор (иначе 1e20 → size_t — UB)
+            // xs:positiveInteger in the schema has no upper bound: the parsing sets the limit (otherwise 1e20 → size_t is UB)
             else if (name == "maxLength")
-                node.content.maxLength = static_cast<std::size_t>(style::parseNumber(value));
+                node.content.maxLength = static_cast<std::size_t>(style::parseInteger(value, 1, 1000000000));
             else if (name == "rows" && node.kind == ui::ElementKind::TEXT_AREA)
-                node.content.rows = static_cast<std::size_t>(style::parseNumber(value));
+                node.content.rows = static_cast<std::size_t>(style::parseInteger(value, 1, 10000));
             else
                 return false;
             return true;

@@ -1,5 +1,6 @@
 #include "gran/settings/settings.hpp"
 
+#include <cmath>
 #include <cstdlib>
 
 namespace gran::settings
@@ -23,7 +24,9 @@ namespace gran::settings
         if (found == _model.values.end() || found->second.type != ValueType::NUMBER)
             return fallback;
         double value = std::strtod(found->second.text.c_str(), &end);
-        if (end == found->second.text.c_str())
+        // strtod понимает «inf», «nan» и даёт ∞ на «1e999»: такое из файла настроек — не число
+        // strtod understands "inf", "nan" and gives ∞ on "1e999": such a value from the settings file is not a number
+        if (end == found->second.text.c_str() || !std::isfinite(value))
             return fallback;
         return value;
     }

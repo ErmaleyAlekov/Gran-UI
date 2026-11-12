@@ -2,6 +2,17 @@
 
 namespace gran::input
 {
+    // Курсор стиля переходит в платформу приведением (cursorShape): значения обязаны совпадать
+    // The style cursor passes into the platform by a cast (cursorShape): the values must match
+    static_assert(static_cast<int>(style::Cursor::DEFAULT) == static_cast<int>(platform::CursorShape::ARROW)
+        && static_cast<int>(style::Cursor::POINTER) == static_cast<int>(platform::CursorShape::HAND)
+        && static_cast<int>(style::Cursor::TEXT) == static_cast<int>(platform::CursorShape::TEXT)
+        && static_cast<int>(style::Cursor::MOVE) == static_cast<int>(platform::CursorShape::MOVE)
+        && static_cast<int>(style::Cursor::NOT_ALLOWED) == static_cast<int>(platform::CursorShape::NOT_ALLOWED)
+        && static_cast<int>(style::Cursor::GRAB) == static_cast<int>(platform::CursorShape::GRAB)
+        && static_cast<int>(style::Cursor::EW_RESIZE) == static_cast<int>(platform::CursorShape::RESIZE_EW)
+        && static_cast<int>(style::Cursor::NS_RESIZE) == static_cast<int>(platform::CursorShape::RESIZE_NS), "Cursor");
+
     // Встроенное контекстное меню добавляется в дерево один раз — при создании маршрутизатора
     // The built-in context menu is added to the tree once — when the router is created
     InputRouter::InputRouter(ui::Node& root, ActionSink& actions, platform::Window* window, TextLocator& text)

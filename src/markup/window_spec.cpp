@@ -32,12 +32,12 @@ namespace gran::markup::internal
             static const style::Keyword POSITIONS[] = {{"default", 0}, {"center", 1}, {"centerOwner", 2}};
 
             if (attribute.name == "titleBar")
-                window.titleBar = static_cast<platform::TitleBar>(style::parseKeyword(attribute.value, TITLES, 2));
+                window.titleBar = static_cast<platform::TitleBar>(style::parseKeyword(attribute.value, TITLES));
             else if (attribute.name == "kind")
-                window.kind = static_cast<platform::WindowKind>(style::parseKeyword(attribute.value, KINDS, 3));
+                window.kind = static_cast<platform::WindowKind>(style::parseKeyword(attribute.value, KINDS));
             else if (attribute.name == "position")
                 window.position = static_cast<platform::WindowPosition>(
-                    style::parseKeyword(attribute.value, POSITIONS, 3));
+                    style::parseKeyword(attribute.value, POSITIONS));
             else
                 return false;
             return true;

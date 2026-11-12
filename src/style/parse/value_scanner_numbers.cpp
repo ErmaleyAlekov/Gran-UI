@@ -1,6 +1,7 @@
 #include "gran/style/value_scanner.hpp"
 
 #include <cmath>
+#include <limits>
 
 namespace gran::style
 {
@@ -77,7 +78,15 @@ namespace gran::style
             _position = start;
             return false;
         }
-        value = static_cast<float>(sign * mantissa / scale * std::pow(10.0, readExponent()));
+        double result = sign * mantissa / scale * std::pow(10.0, readExponent());
+        // Сотни цифр дают ∞ или NaN (∞/∞), а сужение за пределы float — неопределённое поведение: такое число — не число
+        // Hundreds of digits give ∞ or NaN (∞/∞), and narrowing beyond the float range is undefined behaviour: such a number is not a number
+        if (!std::isfinite(result) || std::fabs(result) > static_cast<double>(std::numeric_limits<float>::max()))
+        {
+            _position = start;
+            return false;
+        }
+        value = static_cast<float>(result);
         return true;
     }
 }

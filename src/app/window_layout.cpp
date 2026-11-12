@@ -85,6 +85,7 @@ namespace gran::app
         {
             if (!variable.persist || !win.shared.settings.variable(variable.name, value))
                 continue;
+            // Число конечно: «inf» и «1e999» отсеяны при чтении настроек (settings_read.cpp) / The number is finite: "inf" and "1e999" are cut off on reading the settings (settings_read.cpp)
             if (value.type == settings::ValueType::NUMBER)
                 application.setVariableNumber(variable.name, std::strtod(value.text.c_str(), nullptr));
             else if (value.type == settings::ValueType::BOOLEAN)

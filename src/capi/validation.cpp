@@ -5,10 +5,9 @@ namespace gran::capi
 {
     // Ошибка аргумента переводится каталогом ядра.
     // Argument errors are translated by the core catalog.
-    void require(bool condition)
+    void failArgument()
     {
-        if (!condition)
-            throw Failure{GRAN_INVALID_ARGUMENT, i18n::format(i18n::Message::CAPI_ARGUMENT)};
+        throw Failure{GRAN_INVALID_ARGUMENT, i18n::format(i18n::Message::CAPI_ARGUMENT)};
     }
 
     // post проверяет только дескриптор; остальные операции принадлежат потоку UI.

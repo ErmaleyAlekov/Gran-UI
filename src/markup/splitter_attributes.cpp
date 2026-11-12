@@ -53,9 +53,9 @@ namespace gran::markup::internal
         else if (name == "minSecond")
             split.minSecond = style::parseNumber(value);
         else if (name == "collapse")
-            split.collapse = static_cast<ui::SplitCollapse>(style::parseKeyword(value, COLLAPSES, 3));
+            split.collapse = static_cast<ui::SplitCollapse>(style::parseKeyword(value, COLLAPSES));
         else if (name == "fixed")
-            split.fixed = static_cast<ui::SplitFixed>(style::parseKeyword(value, FIXES, 2));
+            split.fixed = static_cast<ui::SplitFixed>(style::parseKeyword(value, FIXES));
         else if (name == "collapsed")
             split.collapsed = value == "true" || value == "1";
         else

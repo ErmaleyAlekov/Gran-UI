@@ -6,6 +6,13 @@
 
 namespace gran::render
 {
+    // Выравнивание стиля переходит в текст приведением (textStyle): значения обязаны совпадать
+    // The style alignment passes into the text by a cast (textStyle): the values must match
+    static_assert(static_cast<int>(style::TextAlign::START) == static_cast<int>(text::TextAlignment::START)
+        && static_cast<int>(style::TextAlign::CENTER) == static_cast<int>(text::TextAlignment::CENTER)
+        && static_cast<int>(style::TextAlign::END) == static_cast<int>(text::TextAlignment::END)
+        && static_cast<int>(style::TextAlign::JUSTIFY) == static_cast<int>(text::TextAlignment::JUSTIFY), "TextAlign");
+
     // Поле ввода и ComboBox без значения показывают подсказку, поле пароля — точки, остальные — свой текст
     // An input and a ComboBox without a value show the placeholder, a password input — dots, the others show their text
     std::string displayedText(const ui::Node& node)

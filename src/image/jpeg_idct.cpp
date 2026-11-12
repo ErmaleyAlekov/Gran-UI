@@ -119,7 +119,7 @@ namespace gran::image::internal
                 std::size_t block = static_cast<std::size_t>(row) * component.blocksWide + column;
 
                 idctBlock(component.coefficients.data() + block * 64, quant,
-                    component.plane.data() + row * 8 * stride + column * 8, stride);
+                    component.plane.data() + static_cast<std::size_t>(row) * 8 * stride + static_cast<std::size_t>(column) * 8, stride);
             }
         }
         component.coefficients.clear();

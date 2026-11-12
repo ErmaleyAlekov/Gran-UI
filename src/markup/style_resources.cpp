@@ -35,7 +35,7 @@ namespace gran::markup::internal
             if (weight != nullptr && *weight == "bold")
                 face.weight = 700;
             else if (weight != nullptr && *weight != "normal")
-                face.weight = static_cast<int>(style::parseNumber(*weight));
+                face.weight = style::parseInteger(*weight, 1, 1000);
             if (italic != nullptr)
                 face.italic = style::parseBoolean(*italic);
             context.document.fonts.push_back(face);

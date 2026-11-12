@@ -88,7 +88,7 @@ namespace gran::style::internal
             if (!parts[index].empty() && (parts[index][0] < 'a' || parts[index][0] > 'z'))
                 values[index] = parseFraction(parts[index]);
             else
-                values[index] = parseKeyword(parts[index], POSITIONS, 5) / 100.0f;
+                values[index] = parseKeyword(parts[index], POSITIONS) / 100.0f;
         }
         return Vec2{values[0], values[1]};
     }

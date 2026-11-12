@@ -97,9 +97,10 @@ namespace gran::log::internal
         {
             const std::uint64_t page = 4096;
             const std::uint64_t end = pointer + 16 * page;
-            int fd = 0;
-
-            if (pointer == 0 || (fd = openReport(state, seconds, "stack")) < 0)
+            if (pointer == 0)
+                return;
+            int fd = openReport(state, seconds, "stack");
+            if (fd < 0)
                 return;
             while (pointer < end)
             {

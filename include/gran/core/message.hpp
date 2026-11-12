@@ -18,6 +18,7 @@ namespace gran::i18n
     {
         // ---- Значения стилей / Style values ----
         STYLE_BAD_NUMBER,
+        STYLE_INTEGER_RANGE,
         STYLE_BAD_COLOR,
         STYLE_BAD_LENGTH,
         STYLE_BAD_LIST_SIZE,

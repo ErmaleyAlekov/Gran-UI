@@ -71,7 +71,25 @@ struct gran_app
 namespace gran::capi
 {
     struct Failure { gran_status status; std::string message; };
-    void require(bool condition);
+
+    // Ошибка аргумента: бросает Failure{GRAN_INVALID_ARGUMENT} / An argument error: throws Failure{GRAN_INVALID_ARGUMENT}
+    [[noreturn]] void failArgument();
+
+    /*
+    ** Проверка аргумента. Шаблон — ради видимого тела: статический анализатор (clang-tidy, П.8) не видит тела
+    ** функций из других файлов и считал, что после require(p != nullptr) выполнение идёт дальше с p == nullptr, —
+    ** сотня ложных «разыменований нуля». С телом в заголовке он видит [[noreturn]] failArgument и путь отсекает.
+    **
+    ** An argument check. A template for the sake of a visible body: the static analyzer (clang-tidy, P.8) does not see the bodies
+    ** of functions from other files and assumed that after require(p != nullptr) the execution goes on with p == nullptr —
+    ** a hundred false "null dereferences". With the body in the header it sees [[noreturn]] failArgument and cuts the path off.
+    */
+    template <typename Condition>
+    void require(const Condition& condition)
+    {
+        if (!condition)
+            failArgument();
+    }
     void checkApp(gran_app* app, bool ownerThread = true);
     const char* text(const char* value) noexcept;
     char* copyString(const std::string& value);

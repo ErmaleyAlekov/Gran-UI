@@ -83,8 +83,13 @@ namespace gran::binding
         double from = std::floor(offset / _extent) - static_cast<double>(OVERSCAN);
         double to = std::ceil((offset + view.size) / _extent) + static_cast<double>(OVERSCAN);
         std::size_t count = _model.size();
-        std::size_t first = std::min(count, static_cast<std::size_t>(std::max(0.0, from)));
-        std::size_t last = std::max(first, std::min(count, static_cast<std::size_t>(std::max(0.0, to))));
+        // Границы — в double до приведения: при крошечной высоте строки offset / _extent огромен, и
+        // static_cast<std::size_t> вне диапазона — UB (NaN std::max превращает в 0)
+        // The bounds are applied in double before the cast: with a tiny row height offset / _extent is huge, and
+        // static_cast<std::size_t> out of range is UB (std::max turns NaN into 0)
+        double limit = static_cast<double>(count);
+        std::size_t first = static_cast<std::size_t>(std::min(limit, std::max(0.0, from)));
+        std::size_t last = std::max(first, static_cast<std::size_t>(std::min(limit, std::max(0.0, to))));
         _capacity = std::max(INITIAL_WINDOW, last - first);
         bool changed = reshapeWindow(first, last);
         if (last >= count)

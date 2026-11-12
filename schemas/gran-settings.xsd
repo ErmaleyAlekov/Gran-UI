@@ -25,6 +25,14 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Размер окна: положительное xs:int — у xs:positiveInteger нет верхней границы, а программа читает его в int
+       The window size: a positive xs:int — xs:positiveInteger has no upper bound, and the program reads it into an int -->
+  <xs:simpleType name="Extent">
+    <xs:restriction base="xs:int">
+      <xs:minInclusive value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Значение: текст элемента; число и логическое проверяются по type / A value: the element text; a number and a boolean are checked by type -->
   <xs:complexType name="TypedValue">
     <xs:simpleContent>
@@ -47,8 +55,8 @@
             <xs:attribute name="layout" type="xs:string" use="required"/>
             <xs:attribute name="x" type="xs:int" use="required"/>
             <xs:attribute name="y" type="xs:int" use="required"/>
-            <xs:attribute name="width" type="xs:positiveInteger" use="required"/>
-            <xs:attribute name="height" type="xs:positiveInteger" use="required"/>
+            <xs:attribute name="width" type="Extent" use="required"/>
+            <xs:attribute name="height" type="Extent" use="required"/>
             <xs:attribute name="state" type="WindowState" default="normal"/>
           </xs:complexType>
         </xs:element>

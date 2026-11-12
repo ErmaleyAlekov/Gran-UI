@@ -35,6 +35,6 @@ namespace gran::style
     {
         static const Keyword BOOLEANS[] = {{"true", 1}, {"false", 0}, {"1", 1}, {"0", 0}};
 
-        return parseKeyword(text, BOOLEANS, 4) == 1;
+        return parseKeyword(text, BOOLEANS) == 1;
     }
 }

@@ -222,3 +222,19 @@ bin/gran_gallery samples/popups.xml --debug
 `gran_snapshot` renders a frame off-screen with the D3D12 debug layer enabled and prints the time of each stage.
 `gran_gallery --debug` opens a live window; debug layer messages go to the console.
 
+### Static Analysis (clang-tidy)
+
+The rules are in [`.clang-tidy`](../.clang-tidy): the `bugprone`, `cert`, `clang-analyzer` groups (including
+`optin.core.EnumCastOutOfRange` — casting a number outside an enumeration), `concurrency`, `performance`; what is disabled
+and why is in a comment there. A compile database `compile_commands.json` is needed: CMake writes it with
+`-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`.
+
+```bash
+cmake -S . -B build-tidy -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build build-tidy
+run-clang-tidy -p build-tidy -quiet '/(src|examples)/'
+```
+
+clang-tidy is not part of the compiler; without administrator rights it can be installed from PyPI: `pip install clang-tidy`.
+The argument checks in the code are visible to the analyzer: in the C interface `require` is a template in a header over a `[[noreturn]]`
+function, otherwise after `require(p != nullptr)` it would consider `p` null.

@@ -1,5 +1,6 @@
 #include "gran/capi/internal/bridge.hpp"
 
+#include <cmath>
 #include <cstdlib>
 
 // Путь или файл по имени программы; повторная загрузка заменяет настройки / A path or the file by the program name; a repeated load replaces the settings
@@ -46,7 +47,8 @@ gran_status gran_settings_set(gran_app* app, const char* name, int32_t type, con
     else if (type == GRAN_SETTING_NUMBER)
     {
         double number = std::strtod(value, &end);
-        gran::capi::require(end != value && *end == '\0');
+        // strtod принимает «inf» и «nan» — в настройки они не пишутся / strtod accepts "inf" and "nan" — they are not written into the settings
+        gran::capi::require(end != value && *end == '\0' && std::isfinite(number));
         settings.setNumber(name, number);
     }
     else

@@ -102,6 +102,25 @@ namespace gran::style
     // The keyword value from the table; the error lists the allowed words
     int parseKeyword(std::string_view text, const Keyword* table, std::size_t count);
 
+    // То же с размером таблицы из её типа: литерал размера не разойдётся с таблицей при правках
+    // The same with the table size from its type: a size literal cannot drift from the table on edits
+    template <std::size_t N>
+    int parseKeyword(std::string_view text, const Keyword (&table)[N])
+    {
+        return parseKeyword(text, table, N);
+    }
+
+    /*
+    ** Целое число без единицы от minimum до maximum включительно (дробь, ∞ и выход за пределы — ошибка). Нужна
+    ** везде, где число из текста потом приводится к целому типу: static_cast числа вне диапазона — неопределённое
+    ** поведение, а отрицательное в std::size_t даёт огромное значение.
+    **
+    ** An integer without a unit from minimum to maximum inclusive (a fraction, ∞ and going beyond the limits are errors). It is needed
+    ** wherever a number from text is later cast to an integer type: a static_cast of a number out of range is undefined
+    ** behaviour, and a negative one in std::size_t gives a huge value.
+    */
+    int parseInteger(std::string_view text, int minimum, int maximum);
+
     // "true" / "false" (и "1" / "0", как xs:boolean) / "true" / "false" (and "1" / "0", as xs:boolean)
     bool parseBoolean(std::string_view text);
 }

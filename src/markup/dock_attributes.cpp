@@ -48,7 +48,7 @@ namespace gran::markup::internal
         else if (name == "title")
             node.content.text = value;
         else if (name == "dock")
-            dock.side = static_cast<ui::DockSide>(style::parseKeyword(value, SIDES, 4));
+            dock.side = static_cast<ui::DockSide>(style::parseKeyword(value, SIDES));
         else if (name == "size")
             dock.size = style::parseNumber(value);
         else if (name == "active")

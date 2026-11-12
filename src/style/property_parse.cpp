@@ -6,23 +6,12 @@
 #include "gran/style/value_scanner.hpp"
 
 #include <cmath>
+#include <limits>
 
 namespace gran::style
 {
-    using internal::throwValueError;
-
     namespace
     {
-        // Целое без дробной части / An integer without a fractional part
-        int parseInteger(std::string_view text)
-        {
-            float value = parseNumber(text);
-
-            if (std::floor(value) != value)
-                throwValueError(i18n::Message::STYLE_BAD_NUMBER, text);
-            return static_cast<int>(value);
-        }
-
         // normal = 400, bold = 700, иначе число 1..1000 / normal = 400, bold = 700, otherwise a number 1..1000
         int parseFontWeight(std::string_view text)
         {
@@ -30,11 +19,9 @@ namespace gran::style
             std::string_view trimmed = trimSpaces(text);
 
             if (!trimmed.empty() && trimmed[0] >= 'a' && trimmed[0] <= 'z')
-                return parseKeyword(trimmed, NAMES, 2);
-            int weight = parseInteger(trimmed);
-            if (weight < 1 || weight > 1000)
-                throwValueError(i18n::Message::STYLE_BAD_NUMBER, text);
-            return weight;
+                return parseKeyword(trimmed, NAMES);
+            // Диапазон проверяется до приведения к int (style::parseInteger) / The range is checked before the cast to int (style::parseInteger)
+            return parseInteger(trimmed, 1, 1000);
         }
 
         // Простые виды: число, целое, логическое, ключевое слово, строка, длина
@@ -47,7 +34,7 @@ namespace gran::style
             switch (info.kind)
             {
                 case ValueKind::NUMBER: return parseNumber(text);
-                case ValueKind::INTEGER: return parseInteger(text);
+                case ValueKind::INTEGER: return parseInteger(text, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
                 case ValueKind::BOOLEAN: return parseBoolean(text);
                 case ValueKind::FONT_WEIGHT: return parseFontWeight(text);
                 case ValueKind::STRING: return std::string(trimSpaces(text));

@@ -15,6 +15,7 @@ namespace gran::i18n
             {Message::CAPI_BUSY, "нельзя уничтожать приложение или повторно входить в run во время его работы"},
             {Message::CAPI_UNKNOWN, "непредвиденная ошибка нативного кода"},
             {Message::STYLE_BAD_NUMBER, "ожидалось число, найдено \"{0}\""},
+            {Message::STYLE_INTEGER_RANGE, "ожидалось целое число от {1} до {2}, найдено \"{0}\""},
             {Message::STYLE_BAD_COLOR, "неверный цвет \"{0}\": ожидалось #rgb, #rrggbb, #rrggbbaa, rgb(), hsl(), имя цвета или $имя"},
             {Message::STYLE_BAD_LENGTH, "неверная длина \"{0}\": ожидалось число пикселей, проценты или auto"},
             {Message::STYLE_BAD_LIST_SIZE, "в значении \"{0}\" должно быть {1}"},

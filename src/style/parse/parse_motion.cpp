@@ -55,11 +55,10 @@ namespace gran::style
             if (!equalsIgnoreCase(name, "steps") || arguments.empty() || arguments.size() > 2)
                 throwValueError(i18n::Message::STYLE_BAD_EASING, text);
             easing.kind = EasingKind::STEPS;
-            easing.steps = static_cast<int>(parseNumber(arguments[0]));
-            if (easing.steps < 1)
-                throwValueError(i18n::Message::STYLE_BAD_EASING, text);
+            // Проверка до приведения: steps(1e30) иначе давал UB в static_cast<int> / The check before the cast: steps(1e30) otherwise gave UB in static_cast<int>
+            easing.steps = parseInteger(arguments[0], 1, 100000);
             if (arguments.size() == 2)
-                easing.jumpStart = parseKeyword(arguments[1], JUMPS, 4) == 1;
+                easing.jumpStart = parseKeyword(arguments[1], JUMPS) == 1;
             return easing;
         }
     }

@@ -15,6 +15,7 @@ namespace gran::i18n
             {Message::CAPI_BUSY, "cannot destroy or re-enter an application while run is active"},
             {Message::CAPI_UNKNOWN, "unexpected native failure"},
             {Message::STYLE_BAD_NUMBER, "expected a number, found \"{0}\""},
+            {Message::STYLE_INTEGER_RANGE, "an integer from {1} to {2} was expected, found \"{0}\""},
             {Message::STYLE_BAD_COLOR, "invalid color \"{0}\": expected #rgb, #rrggbb, #rrggbbaa, rgb(), hsl(), color name, or $name"},
             {Message::STYLE_BAD_LENGTH, "invalid length \"{0}\": expected pixels, percentages, or auto"},
             {Message::STYLE_BAD_LIST_SIZE, "value \"{0}\" must have {1}"},
