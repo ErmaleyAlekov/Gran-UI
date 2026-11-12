@@ -12,22 +12,23 @@
 ## Table of Contents
 
 1. [Direction](#direction)
-2. [Releases](#releases)
-3. [Production Readiness](#production-readiness)
-4. [Architectural Risks](#architectural-risks)
-5. [Stage 2. Controls for Large Programs](#stage-2-controls-for-large-programs)
-6. [Stage 3. Appearance, Printing, Networking](#stage-3-appearance-printing-networking)
-7. [Stage 4. Russian OS](#stage-4-russian-os)
-8. [Stage 5. Interface in Games](#stage-5-interface-in-games)
-9. [Cross-cutting Tasks](#cross-cutting-tasks)
-10. [Follow-ups to Completed Work](#follow-ups-to-completed-work)
-11. [Postponed](#postponed)
-12. [Future Ideas](#future-ideas)
+2. [First Priority: macOS without an Own Mac](#first-priority-macos-without-an-own-mac)
+3. [Releases](#releases)
+4. [Production Readiness](#production-readiness)
+5. [Architectural Risks](#architectural-risks)
+6. [Stage 2. Controls for Large Programs](#stage-2-controls-for-large-programs)
+7. [Stage 3. Appearance, Printing, Networking](#stage-3-appearance-printing-networking)
+8. [Stage 4. Russian OS](#stage-4-russian-os)
+9. [Stage 5. Interface in Games](#stage-5-interface-in-games)
+10. [Cross-cutting Tasks](#cross-cutting-tasks)
+11. [Follow-ups to Completed Work](#follow-ups-to-completed-work)
+12. [Postponed](#postponed)
+13. [Future Ideas](#future-ideas)
 
 ## Direction
 
-The main goal is **desktop applications of any complexity for Windows and Linux**, including Russian OS (Astra Linux,
-Alt, RED OS). The second line is the interface inside games on the same core. There is no intention to repeat everything that exists in Qt: the engine grows from the tasks of real programs.
+The main goal is **an own foundation for desktop programs of any complexity for any order**: Windows, Linux (including
+the Russian OSes — Astra Linux, Alt, RED OS) and macOS; programs are written in C++ or through the Python, C#, Java wrappers. The second line is the interface inside games on the same core. There is no intention to repeat everything that exists in Qt: the engine grows from the tasks of real programs.
 
 Rules for each item in the plan:
 
@@ -41,6 +42,26 @@ Rules for each item in the plan:
 Stage 1 "Program Foundation" is complete (events, commands, undo, live document, binding expressions, components,
 data models, windows, and program) — it is included in version 0.1.0.
 
+## First Priority: macOS without an Own Mac
+
+Decision of 2026-11-12: the macOS preparation is the **first priority**, ahead of the stage 2 items. There is no own Mac yet
+(the purchase comes later), but most of the work can be done and checked right now: the repository is public, and for public
+repositories the standard GitHub Actions runners, including macOS on Apple Silicon, are free. The former remark about expensive
+macOS minutes (a multiplier for a private repository) no longer applies.
+
+| Step | What | How it is checked without a Mac |
+|---|---|---|
+| **M1** | The `platform::` contract (window, event loop, keys with `Mod` = Ctrl/Cmd, IME, clipboard, cursors, fractional scale, precise scrolling) in the architecture docs; a search for Win32/X11 "leaks" in the shared code | code review, Windows/Linux builds |
+| **M2** | A windowless platform for tests (events from the test, the frame from memory), R.1 and C.2 | `make test` on Windows and Linux |
+| **M3** | Building the core on macOS (clang, Makefile and CMake), unit tests with the windowless platform; the `macos.yml` workflow on each push | a macOS runner in CI |
+| **M4** | Shaders for Metal: the same HLSL → dxc → SPIR-V → MSL (SPIRV-Cross at build time, like dxc a tool, not an engine dependency), generated arrays, a `xcrun metal` check | compiling the shaders on the runner |
+| **M5** | An off-screen Metal backend (`src/rhi/metal/`): device, buffers, textures, a render pass, frame readback; snapshots against references with tolerance | always the build; the snapshots only if the runner has a Metal device (first of all a `MTLCreateSystemDefaultDevice` probe in CI: Apple Silicon runners may have no GPU) |
+| **M6** | The Cocoa platform (`src/platform/cocoa/*.mm`): a window with CAMetalLayer, Retina, input, clipboard, cursors | the build and an in-process test (`[NSApp postEvent:]`, the frame by own readback) on the runner |
+
+What cannot be checked without a Mac waits for buying a Mac or renting a cloud Mac at checkpoints: the trackpad and inertia,
+IME (CJK, dead keys), VoiceOver, the font look on Retina, signing and notarizing the `.app`. MoltenVK is not used: it is a
+third-party library (the "no dependencies" rule), and on a runner without a GPU it would not give a live frame either.
+
 ## Releases
 
 How branches are structured and what is guaranteed on a release branch — in [docs/versioning.en.md](versioning.en.md).
@@ -50,8 +71,8 @@ A minor version is released when its main plan item is ready; patch versions as 
 | Version | Target | Main Content |
 |---|---|---|
 | **0.1.0** | released 2026-11-09 | First release with a tag: stage 1 completely, semantic versions, `gran_export.h`, sanitizer builds, the first manual check tasks (P.16), `release/0.1` branch |
-| **0.2.0** | December 2026 | 2.1 Window frame (done, waits for the manual checks T-26…T-37); CI on each commit (P.1) with sanitizers and GPU debug layers (P.16), release build by tag (P.2) |
-| **0.3.0** | January 2027 | 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
+| **0.2.0** | December 2026 | 2.1 Window frame (done, checked by hand); macOS without a Mac — M1–M3 (first priority); CI on each commit (P.1) with sanitizers and GPU debug layers (P.16), release build by tag (P.2) |
+| **0.3.0** | January 2027 | macOS without a Mac — M4–M6; 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
 | **0.4.0** | January–February 2027 | 2.3 Input fields and forms; fallback content for `<WebView>` without a browser (R.5) |
 | **0.5.0** | February 2027 | 2.4 Feedback (notifications, indicators, wizard) |
 | **0.6.0** | March 2027 | 2.5 Text for editing (formatted text editor, code editor, IME) |
@@ -120,7 +141,7 @@ The section is compiled according to the recommendations of the project's lead d
 **What we do:**
 - describe the `platform::` contract (window, event loop, keys, text input, clipboard, cursors, DPI) in the architecture documentation and check it for "leaks" specific to the OS: physical and logical key codes, `Mod` modifier (Ctrl on Windows/Linux, Cmd on macOS), IME protocol (composition string, candidate window position), precise trackpad scrolling, fractional scaling;
 - create a third implementation—a "headless" platform for tests (events are provided from the test, the frame is read from memory): it speeds up interface tests (C.2) and immediately shows where the abstraction holds onto Win32/X11;
-- **when:** contract and headless platform—before 1.0 (together with C.2); the port itself stays in "Future Ideas" until a Mac is available for testing.
+- **when:** the contract and the windowless platform are the first priority (steps M1–M2 of the "First Priority" section); the port — steps M3–M6 there.
 
 ### R.2 Video memory and long sessions
 
@@ -344,7 +365,7 @@ Place in the plan — together with dockable panels (2.1) or a separate item aft
 
 ### macOS
 
-Postponed: no Mac for development and testing. Plan in case of return:
+The steps done without a Mac (M1–M6) are in the ["First Priority"](#first-priority-macos-without-an-own-mac) section; here is the full plan.
 
 - **Graphics** — own Metal backend (`src/rhi/metal/`), not MoltenVK: Metal is available on all supported Macs,
   no third-party library is needed. Shaders — the same HLSL: dxc → SPIR-V → MSL through SPIRV-Cross during build.
