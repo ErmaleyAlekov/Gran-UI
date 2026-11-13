@@ -11,6 +11,12 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- The `platform::` contract (step M1 of the macOS preparation): what the common code expects from an OS window — threads,
+  the event loop, the scale, keys and modifiers, text and IME, the wheel, the clipboard, the window, drag and drop,
+  accessibility, the GPU surface; translating the usual macOS chords into engine events and the result of the Win32/X11
+  "leak" search — `docs/architecture.en.md`. `MODIFIER_META` (Win/Super, the physical Control on macOS),
+  `WHEEL_NOTCH_PIXELS`, `platform::hostOs()`, shortcut labels by macOS signs: `ui::shortcutSymbols` and
+  `ui::shortcutText(shortcut, ShortcutStyle)`.
 - Linux: dragging files from file managers (the XDND protocol, version 5) into `onDrop` zones — as on Windows: the
   `DropTarget` state, the "not allowed" cursor outside the zones, local file paths in UTF-8 (`file://`, `%XX` decoded,
   network and other addresses skipped). The `text/uri-list` parser — `include/gran/utils/uri_list.hpp`. The session steps
@@ -48,6 +54,9 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   `gran:dockShow` returns it to the edge. `Application::floatDockPanel`.
 
 ### Changed
+- `MODIFIER_CONTROL` is "Mod": Ctrl on Windows and Linux, Cmd on macOS (as in Qt). `ui::shortcutText` picks the label
+  look by the build OS. On macOS the settings are in `~/Library/Application Support/<program>`, the log is in
+  `~/Library/Logs/<program>`.
 - Windows: Alt+letter and a single Alt no longer go to the window system menu handling — no error beep and no
   "invisible" system menu mode where the next keys got lost; Alt+space still opens the system menu. Characters with
   Alt (`WM_SYSCHAR`, on X11 — characters with Alt held) come as a `CHARACTER` event with the Alt modifier and are not
@@ -58,6 +67,8 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
+- Windows: the horizontal wheel (wheel tilt, touchpad) scrolled the opposite way — the `WM_MOUSEHWHEEL` sign is now
+  as in X11.
 - Document tabs: reordering by the mouse changed the order in the tree, but the headers stayed at their old places (the strip
   took the previous placement from the layout cache), and a header hidden in the menu was drawn over the menu bar.
 - Dockable panels: a panel moved to an edge that already has panels showed its content without its title in the strip —

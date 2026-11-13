@@ -69,8 +69,8 @@ namespace gran::input
                 releaseLeft(state, hit, event, allowed);
         }
 
-        // Колесо: wheel узлу под мышью, затем ближайшая прокрутка — на 48 логических пикселей за «щелчок»; под диалогом прокрутки нет
-        // The wheel: wheel to the node under the mouse, then the nearest scroll — by 48 logical pixels per "notch"; there is no scrolling under a dialog
+        // Колесо: wheel узлу под мышью, затем ближайшая прокрутка — на WHEEL_NOTCH_PIXELS за «щелчок»; под диалогом прокрутки нет
+        // The wheel: wheel to the node under the mouse, then the nearest scroll — by WHEEL_NOTCH_PIXELS per "notch"; there is no scrolling under a dialog
         void pointerWheel(RouterState& state, const platform::Event& event)
         {
             ui::Node* hit = pickNode(state, event.position);
@@ -80,8 +80,8 @@ namespace gran::input
             ui::Node* scroll = scrollOf(hit);
             if (scroll == nullptr)
                 return;
-            scroll->layout.scrollOffset.x -= event.wheel.x * 48.0f;
-            scroll->layout.scrollOffset.y -= event.wheel.y * 48.0f;
+            scroll->layout.scrollOffset.x -= event.wheel.x * platform::WHEEL_NOTCH_PIXELS;
+            scroll->layout.scrollOffset.y -= event.wheel.y * platform::WHEEL_NOTCH_PIXELS;
             ui::markDirty(*scroll, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         }
     }

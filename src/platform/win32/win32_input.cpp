@@ -37,10 +37,12 @@ namespace gran::platform::win32
 
             ScreenToClient(window.window, &point);
             event.kind = EventKind::MOUSE_WHEEL;
+            // У WM_MOUSEHWHEEL плюс — прокрутка вправо, а по контракту Event плюс по x — к началу строки (как X11)
+            // For WM_MOUSEHWHEEL plus scrolls right, while by the Event contract plus on x is to the line start (as X11)
             if (message == WM_MOUSEWHEEL)
                 event.wheel.y = notches;
             else
-                event.wheel.x = notches;
+                event.wheel.x = -notches;
         }
     }
 

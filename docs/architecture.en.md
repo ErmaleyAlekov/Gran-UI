@@ -69,6 +69,67 @@ The engine draws the interface itself and does not use a browser for this. `<Web
 - macOS — WKWebView, Linux — WebKitGTK: the same `platform::WebView` interface.
 
 
+### The platform contract (`platform::`)
+
+An OS window is the `platform::Window` interface (the Bridge pattern, `include/gran/platform/window.hpp`). Implementations:
+`win32/`, `x11/`, then a windowless one for tests (step M2 of the plan) and `cocoa/` (M6). The common code (`app/`, `input/`,
+`ui/`, `render/` and the other modules) relies only on what is listed below; everything OS-dependent is done by the window
+implementation. Adding a platform means fulfilling this contract — there must be no changes in the common code.
+
+| Area | Contract | Win32 / X11 | Cocoa (plan) |
+|---|---|---|---|
+| Threads | `createWindow` and all window methods — only on the UI thread, which is the main process thread. The only thread-safe method is `wake()` | any single thread; we keep the main one | the main thread is mandatory (AppKit) |
+| Event loop | `pollEvent` without waiting; `waitEvents(timeout)` sleeps until an event, the timeout or `wake()`. The window procedure only queues events; the exception is `setLiveResize` (repainting while resizing), wrapped into a `noexcept` barrier | message queue / `XNextEvent` + `poll` | `nextEventMatchingMask:untilDate:`, waking — a `CFRunLoopSource` |
+| Coordinates and scale | mouse events are in logical pixels of the client area; `scale()` is device pixels per logical pixel, may be fractional (1.25; 1.5); `RESIZE` and `pixelSize()` are in device pixels; moving to a monitor with another scale gives `DPI_CHANGED` | DPI v2 / `Xft.dpi` | a logical pixel is a point, `scale` = `backingScaleFactor` |
+| Keys | `Key` is by the physical position (Ctrl+C works in the Russian layout); auto-repeat — repeated `KEY_DOWN` | virtual codes / keycode | `keyCode` |
+| Modifiers | `MODIFIER_CONTROL` is "Mod", the primary shortcut modifier (as `Qt::ControlModifier`); `MODIFIER_ALT` is Alt/Option; `MODIFIER_META` is Win/Super, the common code does not use it | Ctrl → `CONTROL` | Cmd → `CONTROL`, the physical Control → `META` |
+| Text | a character is `CHARACTER` (UTF-32) after `KEY_DOWN`; chords with Mod give no characters. Dead keys and AltGr are typed by the OS | `WM_CHAR`; AltGr = Ctrl+Alt, the field takes it | `interpretKeyEvents`; if Option typed a character — `KEY_DOWN` without `MODIFIER_ALT` |
+| IME | **not in the code yet** (item 2.5): a `COMPOSITION` event (the composition string and caret), committing — `CHARACTER`, `Window::setTextInputArea(Rect)` — where to show the candidate window | IMM32/TSF, XIM/IBus | `NSTextInputClient` |
+| Wheel | `wheel` is in "notches" (fractions allowed); precise sources (a trackpad) divide pixels by `WHEEL_NOTCH_PIXELS` (48). Plus on y is towards the document start, plus on x — towards the line start | `WHEEL_DELTA` = 120; X11 — buttons 4–7 | `scrollingDeltaX/Y`, with `hasPreciseScrollingDeltas` — divided by 48; the OS gives the inertia |
+| Clicks | `clicks` on `MOUSE_DOWN` is the OS count (a double click by its settings); capturing the mouse until release is the implementation's job | `SetCapture` / an active grab | `clickCount` |
+| Cursors | `CursorShape` (the order is as `style::Cursor`) | system cursors | `NSCursor` |
+| Clipboard | UTF-8 text, synchronously (`clipboardText`, `setClipboardText`) | `CF_UNICODETEXT` / the `CLIPBOARD` owner | `NSPasteboard` |
+| Window | `show()` — after the first frame (no white flash); minimize, maximize, restore, `close()` — by the usual `CLOSE` event; a custom frame (`TitleBar::CUSTOM`) and region roles (`WindowRole`) via `setFrameHitTest`; the owner and modality — the application blocks the input itself, the OS only helps | `EnableWindow` / `_NET_WM_STATE_MODAL` | `zoom:`, `miniaturize:`; a custom frame — `FullSizeContentView` + a transparent title bar |
+| Window place | `WindowPlacement` is in OS coordinates, portable only within the same OS; a place outside all monitors is not applied | `rcNormalPosition` / the X11 root | the frame in screen points (the y axis from the bottom — converted by the implementation) |
+| File drag and drop | `DRAG_MOVE` / `DRAG_LEAVE` / `DROP` + `takeDroppedFiles`; the OS is answered by `setDropZones` without touching the UI tree | OLE `IDropTarget` / XDND | `NSDraggingDestination` |
+| Accessibility | `setAccessTree`, `accessFocusChanged`, `accessRefresh`, `accessAnnounce` over the neutral `a11y/` | UI Automation / (AT-SPI — later) | `NSAccessibility` |
+| GPU surface | `nativeHandle()` (+ `nativeDisplay()` for Vulkan); `rhi/` picks the backend by the OS | `HWND` / `Window` + `Display*` | `CAMetalLayer*` |
+| Frame sync | `waitsForFrame` / `framePresented` — answering the window manager on resize; not needed by default | — / `_NET_WM_SYNC_REQUEST` | not needed (the layer syncs itself) |
+| File dialogs | `showFileDialog` is modal and synchronous, UTF-8 paths | `IFileOpenDialog` / zenity or kdialog | `NSOpenPanel` / `NSSavePanel` `runModal` |
+
+The conventions the user sees are learned by the common code from `platform::hostOs()` (`host.hpp`) — the only `#if` by
+the OS for them: today it is the look of the shortcut labels in menus (`Ctrl+Shift+S` or `⇧⌘S`, `ui::shortcutText`).
+OS calls outside `platform/` and `rhi/` exist only in modules that need them by nature: the log and the crash report (`log/`),
+the settings paths (`settings/`), file mapping (`utils/mapped_file_os.cpp`), the system font search (`text/library/`).
+
+The Cocoa implementation translates the usual macOS chords into the canonical engine events, so text editing in the common
+code is one for all OSes:
+
+| macOS | Engine event | Meaning |
+|---|---|---|
+| Cmd+← / Cmd+→ | Home / End | the line edge |
+| Cmd+↑ / Cmd+↓ | Mod+Home / Mod+End | the text edge |
+| Option+← / Option+→ | Mod+← / Mod+→ | by a word |
+| Option+Backspace / Option+Delete | Mod+Backspace / Mod+Delete | delete a word |
+| Control+Tab, Control+Shift+Tab | Mod+Tab, Mod+Shift+Tab | document tabs (Cmd+Tab is taken by the system) |
+| a lone Option | not sent as `Key::ALT` | macOS has no menu bar by Alt: the menu is the system one |
+
+#### Searching for Win32/X11 "leaks" in the common code (2026-11-13, step M1)
+
+| Finding | Outcome |
+|---|---|
+| Ctrl is hard-wired as the primary modifier in input (`input/`: text editing, commands, tabs, lists) | closed by the contract: `MODIFIER_CONTROL` = Mod, on macOS Cmd goes into it; `MODIFIER_META` added |
+| The shortcut label was always "Ctrl+…" | `ui::shortcutText` picks the look by `hostOs()`; the macOS signs — `ui::shortcutSymbols` |
+| 48 pixels per wheel notch was a number inside `input/`; the Win32 horizontal wheel scrolled the opposite way to X11 | the wheel unit is in the contract (`WHEEL_NOTCH_PIXELS`), the Win32 sign is fixed |
+| The settings and log paths on macOS would land in `~/.config` and `~/.local/state` | `~/Library/Application Support/<program>` and `~/Library/Logs/<program>` (checked by the macOS build, M3) |
+| The POSIX crash report: `gregs[REG_RIP]` registers (glibc), `/proc/self/maps` | will not build on macOS — step M3 (`uc_mcontext->__ss`, the `dyld` image list) |
+| Makefile and CMake stop the build on macOS | step M3 |
+| Modality: Win32 disables the owner, X11 cannot | already neutral: the application blocks the input (`blocked`), the OS only helps |
+| The menu bar by Alt, AltGr as Ctrl+Alt | Windows/Linux conventions; Cocoa fulfils them by the table above |
+| No IME on any platform | the contract extension is described above, the implementation is item 2.5 |
+
+There is no `#if` by the OS in `app/`, `input/`, `ui/`, `render/`, `layout/`, `style/`, `markup/`, `binding/`, `data/`.
+
 ## 3. Markup and Schema
 
 - Root — `<Window>`; resources — `<Resources>`: `<Theme>` (named colors and sizes), `<Style name=…>`

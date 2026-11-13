@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Т-42: горизонтальная прокрутка колесом / T-42: horizontal wheel scrolling -->
+<Window title="Т-42 — горизонтальное колесо" width="640" height="260" background="#10131c" color="#f1f3f9" fontSize="14">
+  <Stack padding="20" spacing="12">
+    <Text>Наклоните колесо вправо или проведите двумя пальцами по тачпаду справа налево: должны показаться большие номера.</Text>
+    <Scroll direction="horizontal" height="110">
+      <Stack orientation="horizontal" spacing="10">
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">1</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">2</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">3</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">4</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">5</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">6</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">7</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">8</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">9</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">10</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">11</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">12</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">13</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">14</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">15</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">16</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">17</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">18</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">19</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">20</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">21</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">22</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">23</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">24</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">25</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">26</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">27</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">28</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#2b3a67" padding="8"><Text fontSize="20" fontWeight="700">29</Text></Box>
+      <Box width="90" height="90" borderRadius="10" background="#3d5a9e" padding="8"><Text fontSize="20" fontWeight="700">30</Text></Box>
+      </Stack>
+    </Scroll>
+  </Stack>
+</Window>

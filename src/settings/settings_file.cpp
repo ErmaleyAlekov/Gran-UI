@@ -36,7 +36,13 @@ namespace gran::settings
         }
     }
 
-    // Windows — %APPDATA%\<программа> (переезжает с профилем), Linux — $XDG_CONFIG_HOME или ~/.config / Windows — %APPDATA%\<program> (roams with the profile), Linux — $XDG_CONFIG_HOME or ~/.config
+    /*
+    ** Windows — %APPDATA%\<программа> (переезжает с профилем), macOS — ~/Library/Application Support/<программа>,
+    ** Linux — $XDG_CONFIG_HOME или ~/.config.
+    **
+    ** Windows — %APPDATA%\<program> (roams with the profile), macOS — ~/Library/Application Support/<program>,
+    ** Linux — $XDG_CONFIG_HOME or ~/.config.
+    */
     std::string defaultPath(const std::string& appName)
     {
         std::filesystem::path base = std::filesystem::temp_directory_path();
@@ -44,6 +50,10 @@ namespace gran::settings
         const wchar_t* roaming = _wgetenv(L"APPDATA");
         if (roaming != nullptr && roaming[0] != L'\0')
             base = std::filesystem::path(roaming);
+#elif defined(__APPLE__)
+        const char* home = std::getenv("HOME");
+        if (home != nullptr && home[0] != '\0')
+            base = std::filesystem::path(home) / "Library" / "Application Support";
 #else
         const char* config = std::getenv("XDG_CONFIG_HOME");
         const char* home = std::getenv("HOME");

@@ -60,19 +60,19 @@ namespace
         gran::ui::Shortcut shortcut;
         shortcut.key = gran::platform::Key::S;
         shortcut.modifiers = gran::platform::MODIFIER_CONTROL | gran::platform::MODIFIER_SHIFT;
-        TEST_ASSERT(gran::ui::shortcutText(shortcut) == "Ctrl+Shift+S");
+        TEST_ASSERT(gran::ui::shortcutText(shortcut, gran::ui::ShortcutStyle::TEXT) == "Ctrl+Shift+S");
 
         shortcut.key = gran::platform::Key::DELETE_KEY;
         shortcut.modifiers = 0;
-        TEST_ASSERT(gran::ui::shortcutText(shortcut) == "Del");
+        TEST_ASSERT(gran::ui::shortcutText(shortcut, gran::ui::ShortcutStyle::TEXT) == "Del");
 
         shortcut.key = gran::platform::Key::F5;
         shortcut.modifiers = gran::platform::MODIFIER_ALT;
-        TEST_ASSERT(gran::ui::shortcutText(shortcut) == "Alt+F5");
+        TEST_ASSERT(gran::ui::shortcutText(shortcut, gran::ui::ShortcutStyle::TEXT) == "Alt+F5");
 
         shortcut.key = gran::platform::Key::LEFT;
         shortcut.modifiers = 0;
-        TEST_ASSERT(gran::ui::shortcutText(shortcut) == "Left");
+        TEST_ASSERT(gran::ui::shortcutText(shortcut, gran::ui::ShortcutStyle::TEXT) == "Left");
     }
 
     void testSameShortcut()

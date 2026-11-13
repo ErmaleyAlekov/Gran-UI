@@ -51,7 +51,7 @@ macOS minutes (a multiplier for a private repository) no longer applies.
 
 | Step | What | How it is checked without a Mac |
 |---|---|---|
-| **M1** | The `platform::` contract (window, event loop, keys with `Mod` = Ctrl/Cmd, IME, clipboard, cursors, fractional scale, precise scrolling) in the architecture docs; a search for Win32/X11 "leaks" in the shared code | code review, Windows/Linux builds |
+| **M1** ✓ | Done 2026-11-13 ([architecture](architecture.en.md#the-platform-contract-platform)): the `platform::` contract (window, event loop, keys with `Mod` = Ctrl/Cmd, IME, clipboard, cursors, fractional scale, precise scrolling) in the architecture docs; a search for Win32/X11 "leaks" in the shared code | code review, Windows/Linux builds |
 | **M2** | A windowless platform for tests (events from the test, the frame from memory), R.1 and C.2 | `make test` on Windows and Linux |
 | **M3** | Building the core on macOS (clang, Makefile and CMake), unit tests with the windowless platform; the `macos.yml` workflow on each push | a macOS runner in CI |
 | **M4** | Shaders for Metal: the same HLSL → dxc → SPIR-V → MSL (SPIRV-Cross at build time, like dxc a tool, not an engine dependency), generated arrays, a `xcrun metal` check | compiling the shaders on the runner |

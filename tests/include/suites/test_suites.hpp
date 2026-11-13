@@ -76,6 +76,7 @@ namespace suites
     void registerResourceTests(test::TestRunner& runner);
     void registerSettingsTests(test::TestRunner& runner);
     void registerShortcutTests(test::TestRunner& runner);
+    void registerShortcutSymbolsTests(test::TestRunner& runner);
     void registerCommandTests(test::TestRunner& runner);
     void registerUndoStackTests(test::TestRunner& runner);
     void registerTextUndoTests(test::TestRunner& runner);

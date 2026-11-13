@@ -111,13 +111,13 @@ GRAN_API gran_status gran_app_command(gran_app* app, const char* command, const 
 
 /* События интерфейса (onPointerDown="имя", on="своё:имя", слушатели). Снимок действителен только внутри
  * callback; size — размер структуры (новые поля добавляются в конец). phase: 1 захват, 2 цель, 3 всплытие.
- * button: 0 левая, 1 правая, 2 средняя; modifiers: 1 Shift, 2 Ctrl, 4 Alt; key — имя клавиши ("A", "Enter", "F5").
+ * button: 0 левая, 1 правая, 2 средняя; modifiers: 1 Shift, 2 Ctrl (Cmd на macOS), 4 Alt, 8 Meta (Win/Super; на macOS — Control); key — имя клавиши ("A", "Enter", "F5").
  * x, y — точка в системе узла current (от его левого верхнего угла); window_x, window_y — в окне (логические
  * пиксели). related — откуда/куда ушли указатель или фокус, источник перетаскивания у зоны, зона у dragEnd.
  * index и related_index == SIZE_MAX — узел не из списка. Возврат callback — флаги GRAN_EVENT_*.
  * UI events (onPointerDown="name", on="custom:name", listeners). The snapshot is valid only inside
  * callback; size is the structure size (new fields are appended). phase: 1 capture, 2 target, 3 bubbling.
- * button: 0 left, 1 right, 2 middle; modifiers: 1 Shift, 2 Ctrl, 4 Alt; key is the key name ("A", "Enter", "F5").
+ * button: 0 left, 1 right, 2 middle; modifiers: 1 Shift, 2 Ctrl (Cmd on macOS), 4 Alt, 8 Meta (Win/Super; Control on macOS); key is the key name ("A", "Enter", "F5").
  * x, y is the point in the current node system (from its top left corner); window_x, window_y — in the window (logical
  * pixels). related is where the pointer or the focus came from/went to, the drag source for a zone, the zone for dragEnd.
  * index and related_index == SIZE_MAX — the node is not from a list. The callback returns GRAN_EVENT_* flags. */

@@ -71,13 +71,23 @@ namespace gran::log
         }
     }
 
-    // Linux: $XDG_STATE_HOME (по умолчанию ~/.local/state)/<программа>/logs; без HOME — /tmp / Linux: $XDG_STATE_HOME (by default ~/.local/state)/<program>/logs; without HOME — /tmp
+    /*
+    ** Linux: $XDG_STATE_HOME (по умолчанию ~/.local/state)/<программа>/logs; macOS: ~/Library/Logs/<программа>
+    ** (там журналы ищет «Консоль»); без HOME — /tmp.
+    **
+    ** Linux: $XDG_STATE_HOME (by default ~/.local/state)/<program>/logs; macOS: ~/Library/Logs/<program>
+    ** (the Console app looks for logs there); without HOME — /tmp.
+    */
     std::string defaultDirectory(const std::string& appName)
     {
         const char* state = std::getenv("XDG_STATE_HOME");
         const char* home = std::getenv("HOME");
         std::filesystem::path base = "/tmp";
 
+#if defined(__APPLE__)
+        if (home != nullptr && home[0] != '\0')
+            return (std::filesystem::path(home) / "Library" / "Logs" / appName).string();
+#endif
         if (state != nullptr && state[0] == '/')
             base = state;
         else if (home != nullptr && home[0] != '\0')

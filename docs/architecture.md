@@ -81,6 +81,67 @@
   появятся всплывающие слои над ней, скругление и прозрачность; ввод тогда пересылает движок.
 - Linux использует `web_view_fallback.cpp` без дополнительных браузерных зависимостей; macOS отложен.
 
+### Контракт платформы (`platform::`)
+
+Окно ОС — интерфейс `platform::Window` (паттерн Bridge, `include/gran/platform/window.hpp`). Реализации: `win32/`,
+`x11/`, затем безоконная для тестов (шаг M2 плана) и `cocoa/` (M6). Общий код (`app/`, `input/`, `ui/`, `render/` и
+остальные модули) опирается только на перечисленное ниже; всё, что зависит от ОС, делает реализация окна. Добавляя
+платформу, достаточно выполнить этот контракт — правок в общем коде быть не должно.
+
+| Область | Контракт | Win32 / X11 | Cocoa (план) |
+|---|---|---|---|
+| Потоки | `createWindow` и все методы окна — только в потоке интерфейса, это главный поток процесса. Единственный потокобезопасный метод — `wake()` | любой один поток; держим главный | обязателен главный поток (AppKit) |
+| Цикл событий | `pollEvent` без ожидания; `waitEvents(timeout)` спит до события, таймаута или `wake()`. Оконная процедура только кладёт события в очередь; исключение — `setLiveResize` (перерисовка во время изменения размера), обёрнут в `noexcept`-барьер | очередь сообщений / `XNextEvent` + `poll` | `nextEventMatchingMask:untilDate:`, пробуждение — `CFRunLoopSource` |
+| Координаты и масштаб | события мыши — в логических пикселях клиентской области; `scale()` — пиксели устройства на логический пиксель, бывает дробным (1,25; 1,5); `RESIZE` и `pixelSize()` — в пикселях устройства; переход на монитор с другим масштабом — `DPI_CHANGED` | DPI v2 / `Xft.dpi` | логический пиксель — пункт, `scale` = `backingScaleFactor` |
+| Клавиши | `Key` — по физическому положению (Ctrl+C работает в русской раскладке); автоповтор — повторные `KEY_DOWN` | виртуальные коды / keycode | `keyCode` |
+| Модификаторы | `MODIFIER_CONTROL` — это «Mod», основной модификатор сочетаний (как `Qt::ControlModifier`); `MODIFIER_ALT` — Alt/Option; `MODIFIER_META` — Win/Super, общий код его не использует | Ctrl → `CONTROL` | Cmd → `CONTROL`, физический Control → `META` |
+| Текст | символ — `CHARACTER` (UTF-32) после `KEY_DOWN`; сочетания с Mod символов не дают. Мёртвые клавиши и AltGr набирает ОС | `WM_CHAR`; AltGr = Ctrl+Alt, поле его забирает | `interpretKeyEvents`; если Option набрал символ — `KEY_DOWN` без `MODIFIER_ALT` |
+| IME | **ещё нет в коде** (пункт 2.5): событие `COMPOSITION` (строка и каретка набора), фиксация — `CHARACTER`, `Window::setTextInputArea(Rect)` — где показывать окно кандидатов | IMM32/TSF, XIM/IBus | `NSTextInputClient` |
+| Колесо | `wheel` — в «щелчках» (дробные допустимы); точные источники (трекпад) делят пиксели на `WHEEL_NOTCH_PIXELS` (48). Плюс по y — к началу документа, плюс по x — к началу строки | `WHEEL_DELTA` = 120; X11 — кнопки 4–7 | `scrollingDeltaX/Y`, при `hasPreciseScrollingDeltas` — делённые на 48; инерцию даёт ОС |
+| Щелчки | `clicks` при `MOUSE_DOWN` — счёт ОС (двойной щелчок по её настройкам); захват мыши до отпускания — забота реализации | `SetCapture` / активный захват | `clickCount` |
+| Курсоры | `CursorShape` (порядок — как `style::Cursor`) | системные курсоры | `NSCursor` |
+| Буфер обмена | текст UTF-8, синхронно (`clipboardText`, `setClipboardText`) | `CF_UNICODETEXT` / владелец `CLIPBOARD` | `NSPasteboard` |
+| Окно | `show()` — после первого кадра (без белой вспышки); свернуть, развернуть, восстановить, `close()` — обычным событием `CLOSE`; своя рамка (`TitleBar::CUSTOM`) и роли участков (`WindowRole`) через `setFrameHitTest`; владелец и модальность — приложение блокирует ввод само, ОС только помогает | `EnableWindow` / `_NET_WM_STATE_MODAL` | `zoom:`, `miniaturize:`; своя рамка — `FullSizeContentView` + прозрачный заголовок |
+| Место окна | `WindowPlacement` — в координатах ОС, переносимо только в той же ОС; место вне всех мониторов не применяется | `rcNormalPosition` / корень X11 | кадр в пунктах экрана (ось y снизу — переводит реализация) |
+| Перетаскивание файлов | `DRAG_MOVE` / `DRAG_LEAVE` / `DROP` + `takeDroppedFiles`; ОС отвечает по `setDropZones`, не трогая дерево UI | OLE `IDropTarget` / XDND | `NSDraggingDestination` |
+| Доступность | `setAccessTree`, `accessFocusChanged`, `accessRefresh`, `accessAnnounce` поверх нейтрального `a11y/` | UI Automation / (AT-SPI — позже) | `NSAccessibility` |
+| Поверхность для GPU | `nativeHandle()` (+ `nativeDisplay()` для Vulkan); бэкенд выбирает `rhi/` по ОС | `HWND` / `Window` + `Display*` | `CAMetalLayer*` |
+| Синхронизация кадра | `waitsForFrame` / `framePresented` — ответ оконному менеджеру на смену размера; по умолчанию не нужен | — / `_NET_WM_SYNC_REQUEST` | не нужен (слой синхронизирует сам) |
+| Диалоги файлов | `showFileDialog` — модальный и синхронный, пути UTF-8 | `IFileOpenDialog` / zenity или kdialog | `NSOpenPanel` / `NSSavePanel` `runModal` |
+
+Соглашения, которые видит пользователь, общий код узнаёт из `platform::hostOs()` (`host.hpp`) — единственного
+`#if` по ОС для них: сейчас это вид подписи сочетаний в меню (`Ctrl+Shift+S` или `⇧⌘S`, `ui::shortcutText`).
+Вызовы ОС вне `platform/` и `rhi/` есть только в модулях, которым они нужны по сути: журнал и отчёт о сбое (`log/`),
+пути настроек (`settings/`), отображение файлов (`utils/mapped_file_os.cpp`), поиск системных шрифтов (`text/library/`).
+
+Привычные сочетания macOS реализация Cocoa переводит в канонические события движка, поэтому правка текста в общем
+коде одна для всех ОС:
+
+| macOS | Событие движка | Смысл |
+|---|---|---|
+| Cmd+← / Cmd+→ | Home / End | край строки |
+| Cmd+↑ / Cmd+↓ | Mod+Home / Mod+End | край текста |
+| Option+← / Option+→ | Mod+← / Mod+→ | на слово |
+| Option+Backspace / Option+Delete | Mod+Backspace / Mod+Delete | удалить слово |
+| Control+Tab, Control+Shift+Tab | Mod+Tab, Mod+Shift+Tab | вкладки документов (Cmd+Tab занят системой) |
+| одиночный Option | не передаётся как `Key::ALT` | строки меню по Alt на macOS нет: меню — системное |
+
+#### Поиск «утечек» Win32/X11 в общем коде (2026-11-13, шаг M1)
+
+| Находка | Итог |
+|---|---|
+| Ctrl зашит основным модификатором во вводе (`input/`: правка текста, команды, вкладки, списки) | закрыто контрактом: `MODIFIER_CONTROL` = Mod, на macOS в него кладётся Cmd; добавлен `MODIFIER_META` |
+| Подпись сочетаний всегда «Ctrl+…» | `ui::shortcutText` выбирает вид по `hostOs()`; знаки macOS — `ui::shortcutSymbols` |
+| 48 пикселей на щелчок колеса — число внутри `input/`; горизонтальное колесо Win32 крутило в обратную сторону относительно X11 | единица колеса — в контракте (`WHEEL_NOTCH_PIXELS`), знак Win32 исправлен |
+| Пути настроек и журнала на macOS попали бы в `~/.config` и `~/.local/state` | `~/Library/Application Support/<программа>` и `~/Library/Logs/<программа>` (проверка — сборкой на macOS, M3) |
+| Отчёт о сбое POSIX: регистры `gregs[REG_RIP]` (glibc), `/proc/self/maps` | на macOS не соберётся — шаг M3 (`uc_mcontext->__ss`, список образов `dyld`) |
+| Makefile и CMake останавливают сборку на macOS | шаг M3 |
+| Модальность: Win32 выключает владельца, X11 не умеет | уже нейтрально: ввод блокирует приложение (`blocked`), ОС только помогает |
+| Строка меню по Alt, AltGr как Ctrl+Alt | соглашения Windows/Linux; Cocoa выполняет их таблицей выше |
+| IME нет ни на одной платформе | расширение контракта описано выше, реализация — пункт 2.5 |
+
+`#if` по ОС в `app/`, `input/`, `ui/`, `render/`, `layout/`, `style/`, `markup/`, `binding/`, `data/` нет.
+
 ## 3. Разметка и схема
 
 - Корень — `<Window>`; ресурсы — `<Resources>`: `<Theme>` (именованные цвета и размеры), `<Style name=…>`

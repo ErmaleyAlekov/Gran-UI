@@ -14,10 +14,10 @@ namespace gran::ui
 
     /*
     ** Сочетание клавиш: клавиша и биты модификаторов (platform::MODIFIER_*). В разметке — "Mod+S",
-    ** "Ctrl+Shift+Z", "F5"; Mod — Ctrl (на macOS станет Cmd).
+    ** "Ctrl+Shift+Z", "F5"; Mod и Ctrl — один бит MODIFIER_CONTROL: Ctrl, а на macOS — Cmd.
     **
     ** A key combination: the key and the modifier bits (platform::MODIFIER_*). In the markup it is "Mod+S",
-    ** "Ctrl+Shift+Z", "F5"; Mod is Ctrl (on macOS it will become Cmd).
+    ** "Ctrl+Shift+Z", "F5"; Mod and Ctrl are the same MODIFIER_CONTROL bit: Ctrl, and Cmd on macOS.
     */
     struct Shortcut
     {
@@ -62,13 +62,26 @@ namespace gran::ui
     // Сочетания через пробел ("Mod+Y Mod+Shift+Z"); false — неверное хотя бы одно / Combinations separated by spaces ("Mod+Y Mod+Shift+Z"); false — at least one is wrong
     bool parseShortcuts(std::string_view list, std::vector<Shortcut>& result);
 
+    // Вид подписи сочетания: TEXT — "Ctrl+Shift+S" (Windows, Linux), SYMBOLS — "⇧⌘S" (macOS)
+    // The shortcut label look: TEXT — "Ctrl+Shift+S" (Windows, Linux), SYMBOLS — "⇧⌘S" (macOS)
+    enum class ShortcutStyle : std::uint8_t { TEXT, SYMBOLS };
+
     // ---- shortcut_label.cpp ----
 
-    // Подпись для меню и доступности: "Ctrl+Shift+S", "Del", "F5" / The label for menus and accessibility: "Ctrl+Shift+S", "Del", "F5"
+    // Подпись для меню и доступности в виде, принятом в ОС сборки (platform::hostOs)
+    // The label for menus and accessibility in the look accepted in the build OS (platform::hostOs)
     std::string shortcutText(Shortcut shortcut);
+
+    // Подпись в заданном виде: "Ctrl+Shift+S", "Del", "F5" или "⇧⌘S", "⌦", "F5" / The label in the given look: "Ctrl+Shift+S", "Del", "F5" or "⇧⌘S", "⌦", "F5"
+    std::string shortcutText(Shortcut shortcut, ShortcutStyle style);
 
     // Та же клавиша с теми же модификаторами / The same key with the same modifiers
     bool sameShortcut(Shortcut left, Shortcut right) noexcept;
+
+    // ---- shortcut_symbols.cpp ----
+
+    // Подпись знаками меню macOS: "⇧⌘S", "⌥⌘←" / The label by macOS menu signs: "⇧⌘S", "⌥⌘←"
+    std::string shortcutSymbols(Shortcut shortcut);
 
     // ---- command_bind.cpp ----
 

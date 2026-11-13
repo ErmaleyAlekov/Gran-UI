@@ -1,4 +1,5 @@
 #include "gran/ui/command.hpp"
+#include "gran/platform/host.hpp"
 
 namespace gran::ui
 {
@@ -23,10 +24,21 @@ namespace gran::ui
         }
     }
 
-    // Порядок модификаторов — Ctrl, Shift, Alt (как в меню Windows: Ctrl+Shift+S) / The modifier order is Ctrl, Shift, Alt (as in the Windows menus: Ctrl+Shift+S)
+    // Вид подписи — по ОС сборки: знаки на macOS, текст в остальных / The label look is by the build OS: signs on macOS, text on the others
     std::string shortcutText(Shortcut shortcut)
     {
+        if (platform::hostOs() == platform::HostOs::MACOS)
+            return shortcutText(shortcut, ShortcutStyle::SYMBOLS);
+        return shortcutText(shortcut, ShortcutStyle::TEXT);
+    }
+
+    // Порядок модификаторов — Ctrl, Shift, Alt (как в меню Windows: Ctrl+Shift+S) / The modifier order is Ctrl, Shift, Alt (as in the Windows menus: Ctrl+Shift+S)
+    std::string shortcutText(Shortcut shortcut, ShortcutStyle style)
+    {
         std::string text;
+
+        if (style == ShortcutStyle::SYMBOLS)
+            return shortcutSymbols(shortcut);
 
         if ((shortcut.modifiers & platform::MODIFIER_CONTROL) != 0)
             text += "Ctrl+";

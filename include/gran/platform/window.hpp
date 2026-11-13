@@ -66,20 +66,44 @@ namespace gran::platform
     // Клавиша со сдвигом offset от первой в ряду (A, DIGIT_0, F1) / The key at offset from the first in a row (A, DIGIT_0, F1)
     Key keyAfter(Key first, unsigned offset) noexcept;
 
-    // Модификаторы клавиатуры (биты) / The keyboard modifiers (bits)
+    /*
+    ** Модификаторы клавиатуры (биты). MODIFIER_CONTROL — это «Mod», основной модификатор сочетаний: Ctrl в Windows
+    ** и Linux, Cmd на macOS (как Qt::ControlModifier). Поэтому Ctrl+C в общем коде на macOS — это Cmd+C без
+    ** единой ветки по ОС. MODIFIER_ALT — Alt, на macOS Option. MODIFIER_META — клавиша Win/Super, а на macOS —
+    ** физический Control; общий код её не использует, сочетания с ней не совпадают с командами.
+    **
+    ** The keyboard modifiers (bits). MODIFIER_CONTROL is "Mod", the primary shortcut modifier: Ctrl on Windows
+    ** and Linux, Cmd on macOS (as Qt::ControlModifier). So Ctrl+C in the common code is Cmd+C on macOS without
+    ** a single branch by the OS. MODIFIER_ALT is Alt, Option on macOS. MODIFIER_META is the Win/Super key, and on macOS
+    ** the physical Control; the common code does not use it, chords with it do not match the commands.
+    */
     enum Modifier : std::uint8_t
     {
         MODIFIER_SHIFT = 1,
         MODIFIER_CONTROL = 2,
-        MODIFIER_ALT = 4
+        MODIFIER_ALT = 4,
+        MODIFIER_META = 8
     };
 
     /*
+    ** Единица колеса — «щелчок» (Win32 WHEEL_DELTA = 120), дробные значения допустимы. Точные источники (трекпад,
+    ** macOS hasPreciseScrollingDeltas, X11 XI2) переводят логические пиксели в щелчки делением на это число.
+    ** Положительное y — содержимое едет вниз (к началу), положительное x — вправо (к началу строки).
+    **
+    ** The wheel unit is a "notch" (Win32 WHEEL_DELTA = 120), fractional values are allowed. Precise sources (a trackpad,
+    ** macOS hasPreciseScrollingDeltas, X11 XI2) turn logical pixels into notches by dividing by this number.
+    ** A positive y moves the content down (to the start), a positive x — right (to the line start).
+    */
+    constexpr float WHEEL_NOTCH_PIXELS = 48.0f;
+
+    /*
     ** Событие окна. Координаты мыши — в логических пикселях клиентской области (уже
-    ** поделены на масштаб DPI); размер при RESIZE — в пикселях устройства.
+    ** поделены на масштаб DPI; на macOS логический пиксель — пункт); размер при RESIZE — в пикселях устройства.
+    ** wheel — в щелчках (WHEEL_NOTCH_PIXELS).
     **
     ** A window event. The mouse coordinates are in logical pixels of the client area (already
-    ** divided by the DPI scale); the size on RESIZE is in device pixels.
+    ** divided by the DPI scale; on macOS a logical pixel is a point); the size on RESIZE is in device pixels.
+    ** wheel is in notches (WHEEL_NOTCH_PIXELS).
     */
     struct Event
     {
@@ -166,14 +190,16 @@ namespace gran::platform
         // Ждать событий не дольше timeout секунд (отрицательное — без предела) / Wait for events at most timeout seconds (negative — no limit)
         virtual void waitEvents(double timeout) = 0;
 
-        // HWND / Window для бэкенда отрисовки / The HWND / Window for the render backend
+        // Поверхность для бэкенда отрисовки: HWND (Win32), Window (X11), CAMetalLayer* (Cocoa)
+        // The surface for the render backend: HWND (Win32), Window (X11), CAMetalLayer* (Cocoa)
         virtual void* nativeHandle() const = 0;
 
         // Соединение с оконной системой для Vulkan; у Windows не требуется.
         // The window system connection for Vulkan; not required on Windows.
         virtual void* nativeDisplay() const;
 
-        // Масштаб DPI (1 — 96 dpi) / The DPI scale (1 — 96 dpi)
+        // Масштаб: пиксели устройства на логический пиксель (1 — 96 dpi; macOS — backingScaleFactor), бывает дробным
+        // The scale: device pixels per logical pixel (1 — 96 dpi; macOS — backingScaleFactor), may be fractional
         virtual float scale() const = 0;
 
         // Размер клиентской области в пикселях устройства / The client area size in device pixels
