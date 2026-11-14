@@ -1,7 +1,7 @@
 #ifndef GRAN_LOG_INTERNAL_CRASH_POSIX_HPP
 #define GRAN_LOG_INTERNAL_CRASH_POSIX_HPP
 
-// Только для файлов Linux (crash_posix*.cpp) / Only for the Linux files (crash_posix*.cpp)
+// Только для файлов Linux и macOS (crash_posix*.cpp) / Only for the Linux and macOS files (crash_posix*.cpp)
 #if !defined(_WIN32)
 
 #include <csignal>
@@ -34,6 +34,28 @@ namespace gran::log::internal
 
     // Отчёт о сигнале: .txt (сигнал, регистры, backtrace, maps, журнал) и .stack (байты стека) / The signal report: .txt (the signal, the registers, backtrace, maps, the log) and .stack (the stack bytes)
     void writeSignalReport(int signal, siginfo_t* info, void* context) noexcept;
+
+    // ---- crash_posix_context.cpp: то, что зависит от ОС и процессора / what depends on the OS and the processor ----
+
+    /*
+    ** Счётчик команд, указатель стека и указатель кадра из контекста сигнала (Linux и macOS, x86-64 и AArch64).
+    ** На других процессорах — нули: отчёт выходит без регистров, но не ломается.
+    **
+    ** The program counter, the stack pointer and the frame pointer from the signal context (Linux and macOS, x86-64
+    ** and AArch64). On other processors — zeros: the report comes out without the registers, but does not break.
+    */
+    struct SignalRegisters
+    {
+        std::uint64_t pc = 0;
+        std::uint64_t sp = 0;
+        std::uint64_t fp = 0;
+    };
+
+    // Регистры из третьего аргумента обработчика SA_SIGINFO / The registers from the third argument of the SA_SIGINFO handler
+    SignalRegisters readRegisters(const void* context) noexcept;
+
+    // Модули процесса с адресами загрузки: Linux — /proc/self/maps, macOS — образы dyld / The process modules with load addresses: Linux — /proc/self/maps, macOS — the dyld images
+    void writeModules(int fd) noexcept;
 
     // ---- crash_posix_format.cpp: вывод без выделений памяти / output without memory allocation ----
 

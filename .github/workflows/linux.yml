@@ -1,0 +1,178 @@
+# ============================================================================
+#  Gran UI на Linux: сборка и проверки на раннерах GitHub Actions при каждом push и pull request.
+#
+#  Задачи:
+#  - Makefile (GCC) на x86_64 и aarch64: библиотека, примеры, модульные тесты, отчёт о сбое, общая библиотека C ABI,
+#    GPU-проверки на программном Vulkan (Mesa lavapipe, без окна);
+#  - CMake (Clang) + ctest с GPU-проверками;
+#  - ядро без окна ОС и GPU (NATIVE=0, Clang) — то же, что собирается на macOS, но на libstdc++;
+#  - санитайзеры: ASan + UBSan и TSan (как ручной прогон в WSL из .claude/rules/human_review.md).
+#  «Берёста» берётся из её публичного репозитория на закреплённом выпуске BERESTA_REF.
+#  Используются только официальные действия GitHub (actions/*).
+# ============================================================================
+#  Gran UI on Linux: the build and checks on GitHub Actions runners on every push and pull request.
+#
+#  Jobs:
+#  - the Makefile (GCC) on x86_64 and aarch64: the library, the examples, the unit tests, the crash report, the C ABI
+#    shared library, the GPU checks on software Vulkan (Mesa lavapipe, without a window);
+#  - CMake (Clang) + ctest with the GPU checks;
+#  - the core without an OS window and GPU (NATIVE=0, Clang) — what macOS builds, but on libstdc++;
+#  - sanitizers: ASan + UBSan and TSan (as the manual WSL run from .claude/rules/human_review.md).
+#  Beresta is taken from its public repository at the pinned BERESTA_REF release.
+#  Only the official GitHub actions (actions/*) are used.
+# ============================================================================
+name: Linux
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Новый push в ту же ветку отменяет устаревший прогон / A new push to the same branch cancels the outdated run
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: true
+
+# Выпуск «Берёсты», с которым проверяется движок (тот же, что в macos.yml и windows.yml)
+# The Beresta release the engine is checked with (the same as in macos.yml and windows.yml)
+env:
+  BERESTA_REF: v2.2.1
+  # Пакеты сборки: X11 и заголовки Vulkan; lavapipe — программный Vulkan для GPU-проверок без видеокарты
+  # The build packages: X11 and the Vulkan headers; lavapipe is software Vulkan for the GPU checks without a video card
+  GRAN_PACKAGES: libx11-dev libvulkan-dev mesa-vulkan-drivers clang
+
+jobs:
+  # ---- Makefile (GCC): обе архитектуры, всё, что собирается на Linux --------------
+  # ---- Makefile (GCC): both architectures, everything that is built on Linux --------------
+  make:
+    name: Linux ${{ matrix.arch }} (Makefile, GCC)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: Пакеты / Packages
+        run: sudo apt-get update -q && sudo apt-get install -y -q $GRAN_PACKAGES
+      - name: «Берёста» / Beresta (libberesta.a)
+        run: make -C beresta -j"$(nproc)" bin/libberesta.a
+      - name: Библиотека, примеры, тесты / The library, the examples, the tests
+        working-directory: gran
+        run: |
+          make BERESTA_DIR=../beresta platform
+          make -j"$(nproc)" BERESTA_DIR=../beresta all
+          make BERESTA_DIR=../beresta test
+      - name: Отчёт о сбое / The crash report (SIGSEGV, terminate, abort)
+        working-directory: gran
+        run: make BERESTA_DIR=../beresta test-crash
+      - name: Общая библиотека C ABI / The C ABI shared library (libgran_c.so)
+        working-directory: gran
+        run: |
+          make BERESTA_DIR=../beresta bindings
+          nm -D --defined-only bin/libgran_c.so | grep -c " gran_"
+      - name: GPU-проверки на lavapipe / GPU checks on lavapipe
+        working-directory: gran
+        run: make BERESTA_DIR=../beresta test-render
+      - name: Отчёты при ошибке / Reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}-make-reports
+          path: gran/bin/crash_check
+          if-no-files-found: ignore
+
+  # ---- CMake (Clang) + ctest c GPU-проверками ----------------------------------
+  # ---- CMake (Clang) + ctest with the GPU checks ----------------------------------
+  cmake:
+    name: Linux x86_64 (CMake, Clang)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: Пакеты / Packages
+        run: sudo apt-get update -q && sudo apt-get install -y -q $GRAN_PACKAGES
+      - name: CMake + ctest
+        run: |
+          cmake -S gran -B build -DCMAKE_CXX_COMPILER=clang++ -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DGRAN_BUILD_RENDER_TESTS=ON
+          cmake --build build -j"$(nproc)"
+          ctest --test-dir build --output-on-failure
+
+  # ---- Ядро без окна ОС и GPU (как на macOS) -----------------------------------
+  # ---- The core without an OS window and GPU (as on macOS) -----------------------------------
+  core:
+    name: Linux core NATIVE=0 (Clang)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: «Берёста» / Beresta (libberesta.a)
+        run: make -C beresta -j"$(nproc)" bin/libberesta.a
+      # Пакетов X11 и Vulkan нет намеренно: сборка без платформы не должна от них зависеть
+      # There are deliberately no X11 and Vulkan packages: the build without the platform must not depend on them
+      - name: Ядро и тесты / The core and the tests
+        working-directory: gran
+        run: make -j"$(nproc)" NATIVE=0 CXX=clang++ BERESTA_DIR=../beresta all test test-crash
+
+  # ---- Санитайзеры -------------------------------------------------------------
+  # ---- Sanitizers -------------------------------------------------------------
+  sanitizers:
+    name: Linux ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ASan + UBSan
+            sanitize: address,undefined
+          - name: TSan
+            sanitize: thread
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: Пакеты / Packages
+        run: sudo apt-get update -q && sudo apt-get install -y -q $GRAN_PACKAGES
+      # Ядра Ubuntu 24.04 дают 32 бита случайности mmap: теневая память санитайзеров тогда не помещается,
+      # TSan падает с «unexpected memory mapping» — уменьшаем до 28 бит только на раннере
+      # The Ubuntu 24.04 kernels give 32 bits of mmap randomness: the sanitizers' shadow memory does not fit then,
+      # TSan fails with "unexpected memory mapping" — it is reduced to 28 bits on the runner only
+      - name: ASLR для санитайзеров / ASLR for the sanitizers
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - name: «Берёста» / Beresta (libberesta.a)
+        run: make -C beresta -j"$(nproc)" bin/libberesta.a
+      - name: Тесты под санитайзером / Tests under the sanitizer
+        working-directory: gran
+        run: make -j"$(nproc)" DEBUG=1 SANITIZE=${{ matrix.sanitize }} BERESTA_DIR=../beresta test

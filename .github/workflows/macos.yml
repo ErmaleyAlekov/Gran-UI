@@ -1,0 +1,119 @@
+# ============================================================================
+#  Gran UI на macOS без своего Mac (шаг M3 плана, docs/roadmap.md): сборка ядра clang'ом и модульные тесты
+#  на раннере GitHub Actions при каждом push и pull request.
+#
+#  Пока нет платформы Cocoa (M6) и бэкенда Metal (M5), на macOS собирается ядро без окна ОС
+#  (NATIVE=0 / GRAN_NATIVE=OFF): безоконная платформа и NullBackend, на которых работают все модульные тесты.
+#  Две задачи: Makefile на родной архитектуре раннера (arm64) — тесты и отчёт о сбое;
+#  CMake — универсальная сборка x86_64 + arm64, тесты обеих архитектур (x86_64 — через Rosetta).
+#  «Берёста» берётся из её публичного репозитория на закреплённом выпуске BERESTA_REF.
+#  Используются только официальные действия GitHub (actions/*).
+# ============================================================================
+#  Gran UI on macOS without an own Mac (plan step M3, docs/roadmap.md): building the core with clang and the unit tests
+#  on a GitHub Actions runner on every push and pull request.
+#
+#  Until the Cocoa platform (M6) and the Metal backend (M5) exist, macOS builds the core without an OS window
+#  (NATIVE=0 / GRAN_NATIVE=OFF): the windowless platform and NullBackend, on which all the unit tests run.
+#  Two jobs: the Makefile on the runner's native architecture (arm64) — the tests and the crash report; CMake — a universal x86_64 + arm64 build, the tests of both architectures (x86_64 — through Rosetta).
+#  Beresta is taken from its public repository at the pinned BERESTA_REF release.
+#  Only the official GitHub actions (actions/*) are used.
+# ============================================================================
+name: macOS
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Новый push в ту же ветку отменяет устаревший прогон / A new push to the same branch cancels the outdated run
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+# Выпуск «Берёсты», с которым проверяется движок; меняется вместе с её обновлением на машине разработчика
+# The Beresta release the engine is checked with; it changes together with its update on the developer machine
+env:
+  BERESTA_REF: v2.2.1
+
+jobs:
+  # ---- Makefile: arm64, GNU make 4 из Homebrew (штатный make macOS — 3.81) ------
+  # ---- Makefile: arm64, GNU make 4 from Homebrew (the stock macOS make is 3.81) ------
+  make:
+    name: macOS arm64 (Makefile)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: GNU make 4 (gmake)
+        run: |
+          brew install make
+          gmake --version | head -1
+          clang++ --version | head -1
+      - name: «Берёста» / Beresta (libberesta.a)
+        run: gmake -C beresta -j"$(sysctl -n hw.ncpu)" bin/libberesta.a
+      - name: Ядро и тесты / The core and the tests
+        working-directory: gran
+        run: |
+          gmake BERESTA_DIR=../beresta platform
+          gmake -j"$(sysctl -n hw.ncpu)" BERESTA_DIR=../beresta all
+          gmake BERESTA_DIR=../beresta test
+      - name: Отчёт о сбое / The crash report (SIGSEGV, terminate, abort)
+        working-directory: gran
+        run: gmake BERESTA_DIR=../beresta test-crash
+      # Отчёты о сбое — для разбора, если проверка не прошла / The crash reports — for analysis if the check failed
+      - name: Отчёты при ошибке / Reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-make-reports
+          path: gran/bin/crash_check
+          if-no-files-found: ignore
+
+  # ---- CMake: универсальный бинарник x86_64 + arm64 ----------------------------
+  # ---- CMake: the universal x86_64 + arm64 binary ----------------------------
+  cmake:
+    name: macOS universal (CMake)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: CMake (universal)
+        run: |
+          cmake -S gran -B build -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+          cmake --build build -j"$(sysctl -n hw.ncpu)"
+          lipo -info build/bin/gran_tests | grep -q 'x86_64 arm64'
+      - name: ctest (arm64)
+        run: ctest --test-dir build --output-on-failure
+      # Тесты запускаются из корня исходников (пути schemas/, samples/), как в ctest
+      # The tests run from the source root (the schemas/, samples/ paths), as in ctest
+      - name: Тесты x86_64 через Rosetta / x86_64 tests through Rosetta
+        working-directory: gran
+        run: |
+          arch -x86_64 ../build/bin/gran_tests
+          arch -x86_64 ../build/bin/gran_crash_probe --check ../build/crash-check-x86_64
+      - name: Отчёты при ошибке / Reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-cmake-reports
+          path: |
+            build/crash-check
+            build/crash-check-x86_64
+            build/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore

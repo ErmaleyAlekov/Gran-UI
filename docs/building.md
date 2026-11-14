@@ -13,6 +13,8 @@
 5. [Шейдеры](#шейдеры)
 6. [Подключение к своей программе](#подключение-к-своей-программе)
 7. [Проверка](#проверка)
+8. [Linux](#linux)
+9. [macOS](#macos)
 
 ## Что нужно
 
@@ -70,6 +72,7 @@ make BERESTA_DIR=../beresta
 | `BERESTA_DIR=путь` | Каталог «Берёсты» (по умолчанию `../Dom lib C++`) |
 | `DEBUG=1` | `-O0 -g`, отладочный слой D3D12 доступен через `--debug` у примеров |
 | `VULKAN=1` | Vulkan на Linux (включён по умолчанию; заголовки Vulkan SDK или системные) |
+| `NATIVE=0` | Ядро без окна ОС и GPU: безоконная платформа и `NullBackend` (Linux без X11; на macOS — по умолчанию, см. [macOS](#macos)) |
 | `WEBVIEW2_SDK=путь` | Браузер для `<WebView>` (Windows): `build/native` пакета NuGet `Microsoft.Web.WebView2`; `WebView2Loader.dll` копируется в `bin/`. После смены — `make re` |
 
 Очистка работает и в CMD/PowerShell, и в Unix-оболочке.
@@ -108,6 +111,7 @@ ctest --test-dir build -C Release
 | `-DGRAN_BERESTA_DIR=путь` | Каталог исходников «Берёсты» |
 | `-DGRAN_BUILD_TESTS=ON` | Собирать модульные тесты (по умолчанию включено) |
 | `-DGRAN_WITH_VULKAN=ON` | Vulkan на Linux (по умолчанию ON) |
+| `-DGRAN_NATIVE=OFF` | Ядро без окна ОС и GPU (Linux без X11; на macOS — по умолчанию) |
 | `-DGRAN_WEBVIEW2_SDK=путь` | Браузер для `<WebView>` (Windows): `build/native` пакета `Microsoft.Web.WebView2`; загрузчик копируется к программам |
 | `-DCMAKE_BUILD_TYPE=Debug` | Отладочная сборка (`GRAN_DEBUG=1`) |
 
@@ -257,3 +261,47 @@ bin/gran_gallery samples/popups.xml --debug
 
 `gran_snapshot` рисует кадр вне экрана с включённым отладочным слоем D3D12 и печатает время этапов.
 `gran_gallery --debug` открывает живое окно; сообщения отладочного слоя уходят в консоль.
+
+## macOS
+
+На macOS пока собирается **ядро без окна ОС**: разметка, стили, компоновка, текст, ввод, привязки, модели,
+программа и все модульные тесты — на безоконной платформе (`AppOptions::headless`, `AppDriver`) и `NullBackend`.
+Своего окна (Cocoa) и графики (Metal) ещё нет — это следующие шаги плана ([дорожная карта](roadmap.md)),
+поэтому на macOS по умолчанию `NATIVE=0` (Makefile) и `GRAN_NATIVE=OFF` (CMake). Вызов окна ОС или бэкенда GPU в такой
+сборке — исключение с понятным текстом, а не ошибка компоновки. Примеры (им всем нужно окно или GPU) и общая библиотека
+Си-интерфейса для обёрток в такой сборке не собираются, инструменты `gran_embed` и `gran_rcc` — собираются.
+
+Нужны Xcode Command Line Tools (`xcode-select --install`: clang и libc++) и GNU make 4+: штатный `make` macOS —
+версии 3.81, Makefile движка ему не подходит и говорит об этом сам.
+
+```bash
+brew install make
+```
+
+```bash
+gmake beresta BERESTA_DIR=../beresta
+```
+
+```bash
+gmake BERESTA_DIR=../beresta all test test-crash
+```
+
+Код собирается для macOS 11.0 и новее (`MACOS_MIN` в Makefile, `CMAKE_OSX_DEPLOYMENT_TARGET` в CMake) — как
+«Берёста». Универсальная сборка Intel + Apple Silicon — через CMake:
+
+```bash
+cmake -S . -B build -DGRAN_BERESTA_DIR=../beresta -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+Отчёт о сбое на macOS — как на Linux (сигналы на своём стеке, backtrace, байты стека), вместо `/proc/self/maps` в
+отчёт идут образы dyld с адресами загрузки (для `atos -l`). Шрифты ищутся в `/System/Library/Fonts`,
+`/Library/Fonts` и `~/Library/Fonts`.
+
+Своего Mac у разработчиков пока нет: каждый push проверяется на раннере GitHub Actions macOS 15
+(`.github/workflows/macos.yml`) — Makefile на arm64 (тесты, отчёт о сбое) и универсальная сборка
+CMake с тестами обеих архитектур (x86_64 — через Rosetta).
+
+`NATIVE=0` работает и на Linux: ядро без X11 и Vulkan — например, для серверной проверки разметки или контейнера CI
+без графических пакетов.

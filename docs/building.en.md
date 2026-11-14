@@ -13,6 +13,8 @@
 5. [Shaders](#shaders)
 6. [Integration with Your Program](#integration-with-your-program)
 7. [Testing](#testing)
+8. [Linux](#linux)
+9. [macOS](#macos)
 
 ## What You Need
 
@@ -68,6 +70,7 @@ The first command builds `libberesta.a` using Beresta's own Makefile, the second
 | `BERESTA_DIR=path` | Beresta directory (default `../Dom lib C++`) |
 | `DEBUG=1` | `-O0 -g`, D3D12 debug layer available via `--debug` in examples |
 | `VULKAN=1` | Linux Vulkan backend (enabled by default; SDK or system Vulkan headers) |
+| `NATIVE=0` | The core without an OS window and GPU: the windowless platform and `NullBackend` (Linux without X11; the default on macOS, see [macOS](#macos)) |
 | `WEBVIEW2_SDK=path` | A browser for `<WebView>` (Windows): `build/native` of the `Microsoft.Web.WebView2` NuGet package; `WebView2Loader.dll` is copied to `bin/`. After a change — `make re` |
 
 Cleaning works in CMD/PowerShell and Unix shell.
@@ -104,6 +107,7 @@ files. With multi-configuration generators, select the configuration using `--co
 | `-DGRAN_BERESTA_DIR=path` | Directory of Beresta sources |
 | `-DGRAN_BUILD_TESTS=ON` | Build unit tests (enabled by default) |
 | `-DGRAN_WITH_VULKAN=ON` | Linux Vulkan backend (ON by default) |
+| `-DGRAN_NATIVE=OFF` | The core without an OS window and GPU (Linux without X11; the default on macOS) |
 | `-DGRAN_WEBVIEW2_SDK=path` | A browser for `<WebView>` (Windows): `build/native` of the `Microsoft.Web.WebView2` package; the loader is copied next to the programs |
 | `-DCMAKE_BUILD_TYPE=Debug` | Debug build (`GRAN_DEBUG=1`) |
 
@@ -238,3 +242,47 @@ run-clang-tidy -p build-tidy -quiet '/(src|examples)/'
 clang-tidy is not part of the compiler; without administrator rights it can be installed from PyPI: `pip install clang-tidy`.
 The argument checks in the code are visible to the analyzer: in the C interface `require` is a template in a header over a `[[noreturn]]`
 function, otherwise after `require(p != nullptr)` it would consider `p` null.
+
+## macOS
+
+On macOS the **core without an OS window** is built for now: the markup, styles, layout, text, input, bindings, models,
+the program and all the unit tests — on the windowless platform (`AppOptions::headless`, `AppDriver`) and `NullBackend`.
+There is no own window (Cocoa) and graphics (Metal) yet — these are the next plan steps ([roadmap](roadmap.en.md)),
+therefore macOS defaults to `NATIVE=0` (Makefile) and `GRAN_NATIVE=OFF` (CMake). Calling an OS window or a GPU backend in
+such a build is an exception with a clear text, not a link error. The examples (all of them need a window or a GPU) and the
+C interface shared library for the bindings are not built in such a build, the `gran_embed` and `gran_rcc` tools are.
+
+You need the Xcode Command Line Tools (`xcode-select --install`: clang and libc++) and GNU make 4+: the stock macOS
+`make` is version 3.81, the engine Makefile does not fit it and says so itself.
+
+```bash
+brew install make
+```
+
+```bash
+gmake beresta BERESTA_DIR=../beresta
+```
+
+```bash
+gmake BERESTA_DIR=../beresta all test test-crash
+```
+
+The code is built for macOS 11.0 and newer (`MACOS_MIN` in the Makefile, `CMAKE_OSX_DEPLOYMENT_TARGET` in CMake) — as
+Beresta. A universal Intel + Apple Silicon build — through CMake:
+
+```bash
+cmake -S . -B build -DGRAN_BERESTA_DIR=../beresta -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+The crash report on macOS is as on Linux (signals on an own stack, backtrace, the stack bytes); instead of
+`/proc/self/maps` the report gets the dyld images with their load addresses (for `atos -l`). Fonts are looked up in
+`/System/Library/Fonts`, `/Library/Fonts` and `~/Library/Fonts`.
+
+The developers have no own Mac yet: every push is checked on a GitHub Actions macOS 15 runner
+(`.github/workflows/macos.yml`) — the Makefile on arm64 (the tests, the crash report) and the universal
+CMake build with the tests of both architectures (x86_64 — through Rosetta).
+
+`NATIVE=0` works on Linux too: the core without X11 and Vulkan — for example, for server-side markup checking or a CI
+container without graphics packages.

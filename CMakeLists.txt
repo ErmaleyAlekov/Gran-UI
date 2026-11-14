@@ -1,6 +1,7 @@
 # ============================================================================
 #  Gran UI — кроссплатформенная сборка CMake (повторяет Makefile)
-#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux (Vulkan/X11); macOS пока не поддерживается.
+#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux (Vulkan/X11); macOS — пока только ядро без окна
+#  (GRAN_NATIVE=OFF: безоконная платформа и NullBackend; Cocoa и Metal — шаги M5–M6).
 #
 #  Цели:
 #    gran                — статическая библиотека движка (libgran.a / gran.lib)
@@ -13,6 +14,8 @@
 #    -DGRAN_BERESTA_DIR=путь   каталог исходников «Берёсты» (по умолчанию ../Dom lib C++);
 #                              она собирается тем же компилятором как подпроект (beresta_static)
 #    -DGRAN_WITH_VULKAN=ON     бэкенд Vulkan (нужен Vulkan SDK)
+#    -DGRAN_NATIVE=OFF         ядро без окна ОС и GPU (Linux без X11; на macOS — по умолчанию)
+#    -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"  macOS: универсальная сборка (не ниже macOS 11.0)
 #    -DGRAN_DXC=путь           компилятор шейдеров dxc
 #    -DGRAN_WEBVIEW2_SDK=путь  build/native из NuGet-пакета Microsoft.Web.WebView2 (Windows): браузер для <WebView>,
 #                              WebView2Loader.dll кладётся в <сборка>/bin
@@ -24,7 +27,8 @@
 #    cmake --build build --target gran_shaders
 # ============================================================================
 #  Gran UI — a cross-platform CMake build (mirrors the Makefile)
-#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux (Vulkan/X11); macOS is currently unsupported.
+#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux (Vulkan/X11); macOS — so far only the core without
+#  windows (GRAN_NATIVE=OFF: the windowless platform and NullBackend; Cocoa and Metal are steps M5–M6).
 #
 #  Targets:
 #    gran                — the engine static library (libgran.a / gran.lib)
@@ -37,12 +41,20 @@
 #    -DGRAN_BERESTA_DIR=path   the Beresta source directory (default ../Dom lib C++);
 #                              it is built by the same compiler as a subproject (beresta_static)
 #    -DGRAN_WITH_VULKAN=ON     the Vulkan backend (needs the Vulkan SDK)
+#    -DGRAN_NATIVE=OFF         the core without an OS window and GPU (Linux without X11; on macOS — the default)
+#    -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"  macOS: a universal build (not lower than macOS 11.0)
 #    -DGRAN_DXC=path           the dxc shader compiler
 #    -DGRAN_WEBVIEW2_SDK=path  build/native of the Microsoft.Web.WebView2 NuGet package (Windows): a browser for <WebView>,
 #                              WebView2Loader.dll goes to <build>/bin
 #    -DCMAKE_BUILD_TYPE=Debug  -O0/-Od, the D3D12 / Vulkan debug layers (GRAN_DEBUG=1)
 # ============================================================================
 cmake_minimum_required(VERSION 3.16)
+
+# macOS: не ниже 11.0, как у «Берёсты» (первая версия с Apple Silicon). Задаётся до project(), иначе не действует;
+# «Берёста» как подпроект берёт то же значение из кэша.
+# macOS: not lower than 11.0, as in Beresta (the first version with Apple Silicon). It is set before project(), otherwise
+# it has no effect; Beresta as a subproject takes the same value from the cache.
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Минимальная версия macOS / The minimum macOS version")
 
 # ---- Версия — из include/gran/gran_version.h (единый источник, docs/versioning.md) -----
 # ---- The version comes from include/gran/gran_version.h (a single source, docs/versioning.md) -----
@@ -75,15 +87,31 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(GRAN_BUILD_TESTS "Собирать модульные тесты / Build the unit tests" ON)
 option(GRAN_BUILD_RENDER_TESTS "GPU-тесты WARP/Vulkan / WARP/Vulkan GPU tests" OFF)
+# Платформа ОС (окна, GPU): на macOS её пока нет (Cocoa — шаг M6, Metal — M5) — там ядро без окна
+# The OS platform (windows, GPU): macOS has none yet (Cocoa — step M6, Metal — M5) — the core without windows there
+set(GRAN_NATIVE_DEFAULT ON)
+if(APPLE)
+    set(GRAN_NATIVE_DEFAULT OFF)
+endif()
+option(GRAN_NATIVE "Платформа ОС и GPU (OFF — только безоконная) / The OS platform and GPU (OFF — windowless only)"
+    ${GRAN_NATIVE_DEFAULT})
+if(APPLE AND GRAN_NATIVE)
+    message(FATAL_ERROR "Gran UI: the macOS platform (Cocoa, Metal) is not ready yet, use -DGRAN_NATIVE=OFF")
+elseif(WIN32 AND NOT GRAN_NATIVE)
+    message(FATAL_ERROR "Gran UI: GRAN_NATIVE=OFF (the build without the OS platform) is for Linux and macOS")
+elseif(NOT WIN32 AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "Gran UI: currently supported platforms are Windows, Linux and macOS")
+endif()
 set(GRAN_VULKAN_DEFAULT OFF)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GRAN_NATIVE)
     set(GRAN_VULKAN_DEFAULT ON)
-elseif(NOT WIN32)
-    message(FATAL_ERROR "Gran UI: currently supported platforms are Windows and Linux")
 endif()
 option(GRAN_WITH_VULKAN "Vulkan Linux backend (SDK headers at build time)" ${GRAN_VULKAN_DEFAULT})
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT GRAN_WITH_VULKAN)
-    message(FATAL_ERROR "Gran UI: Linux requires -DGRAN_WITH_VULKAN=ON")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GRAN_NATIVE AND NOT GRAN_WITH_VULKAN)
+    message(FATAL_ERROR "Gran UI: Linux requires -DGRAN_WITH_VULKAN=ON (or -DGRAN_NATIVE=OFF for the core without windows)")
+endif()
+if(NOT GRAN_NATIVE AND GRAN_WITH_VULKAN)
+    message(FATAL_ERROR "Gran UI: GRAN_NATIVE=OFF builds no GPU backend, GRAN_WITH_VULKAN is not allowed")
 endif()
 if(WIN32 AND GRAN_WITH_VULKAN)
     message(FATAL_ERROR "Gran UI: Vulkan backend currently targets Linux; use Direct3D on Windows")
@@ -170,7 +198,12 @@ set_target_properties(gran PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_IN
 
 # Общий C ABI для тонких языковых обёрток; экспортируются только функции gran.h.
 # A shared C ABI for thin language bindings; only gran.h functions are exported.
-option(GRAN_BUILD_BINDINGS "Build the shared C ABI" ON)
+# Без платформы ОС Си-интерфейс не создал бы ни одного окна: по умолчанию не собирается, явный ON — ошибка (ревью Т-48)
+# Without the OS platform the C interface could not create a single window: not built by default, an explicit ON is an error (review T-48)
+option(GRAN_BUILD_BINDINGS "Build the shared C ABI" ${GRAN_NATIVE})
+if(GRAN_BUILD_BINDINGS AND NOT GRAN_NATIVE)
+    message(FATAL_ERROR "Gran UI: the C ABI (gran_c) needs the OS platform, use -DGRAN_BUILD_BINDINGS=OFF with GRAN_NATIVE=OFF")
+endif()
 if(GRAN_BUILD_BINDINGS)
     file(GLOB GRAN_CAPI_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/capi/*.cpp")
     add_library(gran_c SHARED ${GRAN_CAPI_SOURCES})
@@ -217,7 +250,9 @@ endif()
 file(GLOB GRAN_EXAMPLE_DIRS LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/examples/*")
 foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
     get_filename_component(example "${example_dir}" NAME)
-    if(IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example STREQUAL "chat"))
+    # Без платформы ОС примеры не собираются: всем нужно окно или GPU (ревью Т-48)
+    # Without the OS platform the examples are not built: all of them need a window or a GPU (review T-48)
+    if(GRAN_NATIVE AND IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example STREQUAL "chat"))
         file(GLOB_RECURSE example_sources CONFIGURE_DEPENDS "${example_dir}/*.cpp")
         add_executable(gran_${example} ${example_sources})
         # Заголовки примера подключаются от его корня; свои системные библиотеки — из system_libs.txt
@@ -281,7 +316,7 @@ if(WIN32 AND GRAN_BUILD_RENDER_TESTS)
     endforeach()
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GRAN_BUILD_RENDER_TESTS)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GRAN_NATIVE AND GRAN_BUILD_RENDER_TESTS)
     enable_testing()
     file(GLOB GRAN_LINUX_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/linux/*.cpp")
     add_executable(gran_linux_tests ${GRAN_LINUX_TEST_SOURCES})

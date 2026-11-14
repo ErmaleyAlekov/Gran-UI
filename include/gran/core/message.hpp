@@ -157,6 +157,7 @@ namespace gran::i18n
         APP_DRIVER_NOT_HEADLESS,
         APP_DRIVER_NO_WINDOW,
         APP_DRIVER_DETACHED,
+        PLATFORM_NOT_BUILT,
         COUNT
     };
 }

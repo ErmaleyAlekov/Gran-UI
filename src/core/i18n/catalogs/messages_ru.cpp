@@ -139,7 +139,8 @@ namespace gran::i18n
             {Message::GPU_BAD_FRAME, "неверные данные кадра: {0}"},
             {Message::APP_DRIVER_NOT_HEADLESS, "AppDriver работает только с приложением без окон ОС (AppOptions::headless)"},
             {Message::APP_DRIVER_NO_WINDOW, "AppDriver: нет окна \"{0}\" (окна открываются в start() и шагах цикла)"},
-            {Message::APP_DRIVER_DETACHED, "AppDriver: приложение уже разрушено (объявляйте AppDriver после Application)"}
+            {Message::APP_DRIVER_DETACHED, "AppDriver: приложение уже разрушено (объявляйте AppDriver после Application)"},
+            {Message::PLATFORM_NOT_BUILT, "функция {0} недоступна: библиотека собрана без платформы ОС и GPU (NATIVE=0), работает только AppOptions::headless"}
         };
     }
 

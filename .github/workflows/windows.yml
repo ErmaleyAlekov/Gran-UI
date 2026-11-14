@@ -1,0 +1,134 @@
+# ============================================================================
+#  Gran UI на Windows: сборка и проверки на раннерах GitHub Actions при каждом push и pull request.
+#
+#  Задачи:
+#  - Makefile (MinGW-w64 GCC): библиотека, примеры (и чат), модульные тесты с настоящими HWND, отчёт о сбое,
+#    общая библиотека C ABI;
+#  - CMake + MSVC (x64): то же через ctest, плюс GPU-проверки D3D12 и D3D11 на программном адаптере WARP
+#    со сравнением кадров с эталонами tests/render/baselines.
+#  «Берёста» берётся из её публичного репозитория на закреплённом выпуске BERESTA_REF.
+#  Используются только официальные действия GitHub (actions/*).
+# ============================================================================
+#  Gran UI on Windows: the build and checks on GitHub Actions runners on every push and pull request.
+#
+#  Jobs:
+#  - the Makefile (MinGW-w64 GCC): the library, the examples (and the chat), the unit tests with real HWNDs, the crash
+#    report, the C ABI shared library;
+#  - CMake + MSVC (x64): the same through ctest, plus the D3D12 and D3D11 GPU checks on the WARP software adapter
+#    with the frames compared to the tests/render/baselines references.
+#  Beresta is taken from its public repository at the pinned BERESTA_REF release.
+#  Only the official GitHub actions (actions/*) are used.
+# ============================================================================
+name: Windows
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Новый push в ту же ветку отменяет устаревший прогон / A new push to the same branch cancels the outdated run
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+# Выпуск «Берёсты», с которым проверяется движок (тот же, что в macos.yml и linux.yml)
+# The Beresta release the engine is checked with (the same as in macos.yml and linux.yml)
+env:
+  BERESTA_REF: v2.2.1
+
+jobs:
+  # ---- Makefile + MinGW-w64 ----------------------------------------------------
+  make:
+    name: Windows x64 (Makefile, MinGW)
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      # MinGW-w64 есть в образе раннера не всегда и не всегда в PATH: ищем g++ в известных местах, иначе ставим
+      # из Chocolatey (тоже есть в образе). Найденный каталог bin — в PATH следующих шагов.
+      # MinGW-w64 is not always in the runner image and not always in PATH: g++ is looked up in the known places,
+      # otherwise it is installed from Chocolatey (also in the image). The found bin directory goes to PATH of the next steps.
+      - name: MinGW-w64
+        shell: pwsh
+        run: |
+          $places = @('C:\mingw64\bin', 'C:\ProgramData\mingw64\mingw64\bin', 'C:\msys64\mingw64\bin')
+          $found = $places | Where-Object { Test-Path (Join-Path $_ 'g++.exe') } | Select-Object -First 1
+          if (-not $found) {
+            choco install mingw -y --no-progress
+            $found = $places | Where-Object { Test-Path (Join-Path $_ 'g++.exe') } | Select-Object -First 1
+          }
+          if (-not $found) { throw 'MinGW-w64 g++ not found' }
+          Add-Content -Path $env:GITHUB_PATH -Value $found
+          & (Join-Path $found 'g++.exe') --version | Select-Object -First 1
+      - name: «Берёста» / Beresta (libberesta.a)
+        shell: pwsh
+        run: mingw32-make -C beresta -j $env:NUMBER_OF_PROCESSORS bin/libberesta.a
+      - name: Библиотека, примеры, тесты / The library, the examples, the tests
+        shell: pwsh
+        working-directory: gran
+        run: |
+          mingw32-make BERESTA_DIR=../beresta platform
+          mingw32-make -j $env:NUMBER_OF_PROCESSORS BERESTA_DIR=../beresta all
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          mingw32-make BERESTA_DIR=../beresta test
+      - name: Отчёт о сбое / The crash report (SEH, terminate, abort)
+        shell: pwsh
+        working-directory: gran
+        run: mingw32-make BERESTA_DIR=../beresta test-crash
+      - name: Общая библиотека C ABI / The C ABI shared library (gran_c.dll)
+        shell: pwsh
+        working-directory: gran
+        run: mingw32-make BERESTA_DIR=../beresta bindings
+      - name: Отчёты при ошибке / Reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-make-reports
+          path: gran/bin/crash_check
+          if-no-files-found: ignore
+
+  # ---- CMake + MSVC, GPU-проверки на WARP ---------------------------------------
+  # ---- CMake + MSVC, the GPU checks on WARP ---------------------------------------
+  msvc:
+    name: Windows x64 (CMake, MSVC)
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - uses: actions/checkout@v4
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: CMake + MSVC
+        shell: pwsh
+        run: |
+          cmake -S gran -B build -A x64 -DGRAN_BERESTA_DIR="$env:GITHUB_WORKSPACE/beresta" -DGRAN_BUILD_RENDER_TESTS=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build --config Release --parallel
+      - name: ctest (модульные, отчёт о сбое, WARP) / (unit, crash report, WARP)
+        shell: pwsh
+        run: ctest --test-dir build -C Release --output-on-failure
+      # Кадры GPU-проверок, не совпавшие с эталоном, — для разбора / The GPU check frames that did not match the reference — for analysis
+      - name: Кадры при ошибке / Frames on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msvc-frames
+          path: |
+            build/render-d3d12
+            build/render-d3d11
+            build/crash-check
+            build/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore

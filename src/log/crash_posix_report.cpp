@@ -6,7 +6,6 @@
 #include <ctime>
 #include <execinfo.h>
 #include <fcntl.h>
-#include <ucontext.h>
 #include <unistd.h>
 
 namespace gran::log::internal
@@ -30,54 +29,19 @@ namespace gran::log::internal
             return ::open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
         }
 
-        /*
-        ** Счётчик команд, указатель стека и кадра из контекста сигнала (x86-64 и AArch64; на других
-        ** архитектурах — без регистров). Возвращает указатель стека для дампа байтов.
-        **
-        ** The program counter, the stack and frame pointers from the signal context (x86-64 and AArch64; on other
-        ** architectures — without registers). Returns the stack pointer for the byte dump.
-        */
-        std::uint64_t writeRegisters(int fd, void* context) noexcept
+        // Регистры в отчёт (crash_posix_context.cpp); указатель стека — для дампа байтов / The registers into the report (crash_posix_context.cpp); the stack pointer is for the byte dump
+        std::uint64_t writeRegisters(int fd, const void* context) noexcept
         {
-            const ucontext_t* registers = static_cast<const ucontext_t*>(context);
-            std::uint64_t values[3] = {0, 0, 0};
+            const SignalRegisters registers = readRegisters(context);
 
-#if defined(__x86_64__)
-            values[0] = static_cast<std::uint64_t>(registers->uc_mcontext.gregs[REG_RIP]);
-            values[1] = static_cast<std::uint64_t>(registers->uc_mcontext.gregs[REG_RSP]);
-            values[2] = static_cast<std::uint64_t>(registers->uc_mcontext.gregs[REG_RBP]);
-#elif defined(__aarch64__)
-            values[0] = registers->uc_mcontext.pc;
-            values[1] = registers->uc_mcontext.sp;
-            values[2] = registers->uc_mcontext.regs[29];
-#else
-            (void)registers;
-#endif
             putText(fd, "pc: ");
-            putNumber(fd, values[0], 16);
+            putNumber(fd, registers.pc, 16);
             putText(fd, "\nsp: ");
-            putNumber(fd, values[1], 16);
+            putNumber(fd, registers.sp, 16);
             putText(fd, "\nfp: ");
-            putNumber(fd, values[2], 16);
+            putNumber(fd, registers.fp, 16);
             putText(fd, "\n");
-            return values[1];
-        }
-
-        // Копия /proc/self/maps: по ней адреса backtrace переводятся в «модуль+смещение» для addr2line / A copy of /proc/self/maps: by it the backtrace addresses become "module+offset" for addr2line
-        void copyMaps(int fd) noexcept
-        {
-            char buffer[4096];
-            int maps = ::open("/proc/self/maps", O_RDONLY | O_CLOEXEC);
-            ssize_t count = 0;
-
-            if (maps < 0)
-                return;
-            while ((count = ::read(maps, buffer, sizeof(buffer))) > 0)
-            {
-                if (::write(fd, buffer, static_cast<std::size_t>(count)) != count)
-                    break;
-            }
-            ::close(maps);
+            return registers.sp;
         }
 
         /*
@@ -132,7 +96,11 @@ namespace gran::log::internal
         putText(fd, " ");
         putText(fd, signalName(signal));
         putText(fd, "\naddress: ");
-        putNumber(fd, reinterpret_cast<std::uintptr_t>(info->si_addr), 16);
+        // POSIX не обещает ненулевой info для каждого сигнала: адрес тогда 0 (ревью Т-48) / POSIX does not promise a non-null info for every signal: the address is 0 then (review T-48)
+        if (info != nullptr)
+            putNumber(fd, reinterpret_cast<std::uintptr_t>(info->si_addr), 16);
+        else
+            putNumber(fd, 0, 16);
         putText(fd, "\nmessage: ");
         putText(fd, state.message);
         putText(fd, "\n");
@@ -140,7 +108,7 @@ namespace gran::log::internal
         putText(fd, "\nbacktrace:\n");
         backtrace_symbols_fd(frames, backtrace(frames, 64), fd);
         putText(fd, "\nmaps:\n");
-        copyMaps(fd);
+        writeModules(fd);
         putText(fd, "\nlog:\n");
         recent[copyRecent(recent, sizeof(recent) - 1)] = '\0';
         putText(fd, recent);

@@ -12,6 +12,8 @@
 #    BERESTA_DIR=путь   — каталог «Берёсты» (по умолчанию ../Dom lib C++)
 #    DEBUG=1            — -O0 -g, отладочные слои D3D12 / Vulkan
 #    VULKAN=1           — собрать бэкенд Vulkan (нужен Vulkan SDK: VULKAN_SDK)
+#    NATIVE=0           — ядро без окна ОС и GPU: только безоконная платформа и NullBackend (Linux без X11;
+#                         на macOS — по умолчанию, пока нет Cocoa и Metal)
 #    DXC=путь           — компилятор шейдеров dxc
 #    WEBVIEW2_SDK=путь  — build/native из NuGet-пакета Microsoft.Web.WebView2 (Windows): элемент <WebView>
 #                         получает браузер, рядом с программами кладётся WebView2Loader.dll (после смены — make re)
@@ -29,10 +31,22 @@
 #    BERESTA_DIR=path   — the Beresta directory (default ../Dom lib C++)
 #    DEBUG=1            — -O0 -g, the D3D12 / Vulkan debug layers
 #    VULKAN=1           — build the Vulkan backend (needs the Vulkan SDK: VULKAN_SDK)
+#    NATIVE=0           — the core without an OS window and GPU: only the windowless platform and NullBackend (Linux
+#                         without X11; on macOS — the default until Cocoa and Metal exist)
 #    DXC=path           — the dxc shader compiler
 #    WEBVIEW2_SDK=path  — build/native of the Microsoft.Web.WebView2 NuGet package (Windows): the <WebView> element
 #                         gets a browser, WebView2Loader.dll is put next to the programs (after a change — make re)
 # ============================================================================
+
+# ---- Версия make --------------------------------------------------------------
+# Нужен GNU make 4.0+: функция $(file …) (отметка флагов, system_libs.txt). На macOS штатный make — 3.81
+# (2006 год): там `brew install make` и запуск gmake.
+# ---- The make version --------------------------------------------------------------
+# GNU make 4.0+ is needed: the $(file …) function (the flags stamp, system_libs.txt). The stock macOS make is 3.81
+# (year 2006): there run `brew install make` and use gmake.
+ifneq ($(filter 3.%,$(MAKE_VERSION)),)
+    $(error GNU make 4.0+ is required (this is $(MAKE_VERSION)); on macOS: brew install make, then run gmake)
+endif
 
 # ---- Имена и каталоги -------------------------------------------------------
 # ---- Names and directories -------------------------------------------------------
@@ -53,19 +67,47 @@ TOOL_DIR    := tools
 BERESTA_DIR ?= ../Dom lib C++
 BERESTA_LIB  = "$(BERESTA_DIR)/bin/libberesta.a"
 
-DEBUG       ?= 0
+# ---- Определение ОС ----------------------------------------------------------
+# ---- Detecting the OS ----------------------------------------------------------
+# На Windows явно используется cmd.exe: поведение не зависит от sh.exe в PATH
+# On Windows cmd.exe is used explicitly: the behavior does not depend on sh.exe in PATH
 ifeq ($(OS),Windows_NT)
-VULKAN      ?= 0
+    PLATFORM_OS := windows
 else
+    UNAME_S     := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+        PLATFORM_OS := macos
+    else
+        PLATFORM_OS := linux
+    endif
+endif
+
+DEBUG       ?= 0
+# Платформа ОС (окна, GPU): на macOS её пока нет (Cocoa — шаг M6, Metal — M5), поэтому там NATIVE=0
+# The OS platform (windows, GPU): macOS has none yet (Cocoa — step M6, Metal — M5), therefore NATIVE=0 there
+ifeq ($(PLATFORM_OS),macos)
+NATIVE      ?= 0
+else
+NATIVE      ?= 1
+endif
+# Vulkan по умолчанию — только у платформы Linux / Vulkan by default — only with the Linux platform
+ifeq ($(PLATFORM_OS)-$(NATIVE),linux-1)
 VULKAN      ?= 1
+else
+VULKAN      ?= 0
 endif
 WEBVIEW2_SDK ?=
 WEBVIEW2_ARCH ?= x64
 
 # ---- Компилятор и флаги -------------------------------------------------------
 # ---- The compiler and flags -------------------------------------------------------
+# На macOS g++ — лишь псевдоним clang++: имя пишется честно / On macOS g++ is only an alias of clang++: the name is written honestly
 ifeq ($(origin CXX),default)
-    CXX     := g++
+    ifeq ($(PLATFORM_OS),macos)
+        CXX := clang++
+    else
+        CXX := g++
+    endif
 endif
 CXXFLAGS    := -std=c++17 -Wall -Wextra -Wpedantic -Wshadow
 INCLUDES    := -I$(INC_DIR) -I"$(BERESTA_DIR)/include"
@@ -76,8 +118,19 @@ else
 endif
 # Выпуск: удаляем также отладку из статических библиотек компилятора при компоновке.
 # Release: also remove debug information from the compiler's static libraries at link time.
-ifeq ($(DEBUG),0)
+# Компоновщик macOS (ld64) ключ -s считает устаревшим и пропускает с предупреждением: там отладку убирает strip.
+# The macOS linker (ld64) treats the -s key as obsolete and skips it with a warning: there strip removes debug information.
+ifeq ($(DEBUG)-$(PLATFORM_OS),0-macos)
+else ifeq ($(DEBUG),0)
     LDFLAGS += -s
+endif
+# macOS: не ниже MACOS_MIN, как у «Берёсты» (11.0 — первая с Apple Silicon); иначе ld64 предупреждает
+# о разных версиях объектов libberesta.a и наших
+# macOS: not lower than MACOS_MIN, as in Beresta (11.0 is the first with Apple Silicon); otherwise ld64 warns
+# about different versions of the libberesta.a objects and ours
+MACOS_MIN   ?= 11.0
+ifeq ($(PLATFORM_OS),macos)
+    CXXFLAGS += -mmacosx-version-min=$(MACOS_MIN)
 endif
 # Санитайзеры GCC/Clang: make DEBUG=1 SANITIZE=address,undefined test (thread — отдельно, с address несовместим).
 # Флаги идут в CXXFLAGS, потому что CXXFLAGS участвует и в компоновке. MinGW ASan не поддерживает —
@@ -97,20 +150,6 @@ ifeq ($(VULKAN),1)
     INCLUDES += -I"$(VULKAN_SDK)/Include" -I"$(VULKAN_SDK)/include"
 endif
 ARFLAGS     := rcs
-
-# ---- Определение ОС ----------------------------------------------------------
-# На Windows явно используется cmd.exe: поведение не зависит от sh.exe в PATH
-# On Windows cmd.exe is used explicitly: the behavior does not depend on sh.exe in PATH
-ifeq ($(OS),Windows_NT)
-    PLATFORM_OS := windows
-else
-    UNAME_S     := $(shell uname -s)
-    ifeq ($(UNAME_S),Darwin)
-        PLATFORM_OS := macos
-    else
-        PLATFORM_OS := linux
-    endif
-endif
 
 # ---- Платформенные особенности -------------------------------------------------
 # PLATFORM_DIRS — подкаталоги src/, которые собираются только на этой ОС
@@ -137,10 +176,19 @@ else
     RMFILE          = rm -f "$(1)"
     COPYFILE        = cp "$(1)" "$(2)"
     DXC            ?= dxc
-    ifeq ($(PLATFORM_OS),macos)
-        $(error Gran UI currently supports Windows and Linux)
-        PLATFORM_DIRS := platform/cocoa
-        SYSTEM_LIBS   := -framework Cocoa -framework QuartzCore
+    ifeq ($(NATIVE),0)
+        # Ядро без платформы ОС: заглушки окна, диалогов и бэкенда (src/platform/none/, src/rhi/none/)
+        # The core without the OS platform: the window, dialog and backend stubs (src/platform/none/, src/rhi/none/)
+        PLATFORM_DIRS := platform/none rhi/none
+        # Потоки: на Linux нужен -pthread, на macOS они в libSystem (ключ там лишний)
+        # Threads: Linux needs -pthread, on macOS they are in libSystem (the key is redundant there)
+        ifeq ($(PLATFORM_OS),linux)
+            SYSTEM_LIBS := -pthread
+        else
+            SYSTEM_LIBS :=
+        endif
+    else ifeq ($(PLATFORM_OS),macos)
+        $(error Gran UI: the macOS platform (Cocoa, Metal) is not ready yet, build the core with NATIVE=0)
     else
         PLATFORM_DIRS := platform/x11
         # libvulkan не компонуется: загрузчик открывается через dlopen (vulkan_loader.cpp)
@@ -169,9 +217,18 @@ endif
 ifeq ($(VULKAN),1)
     PLATFORM_DIRS += rhi/vulkan
 endif
-ifeq ($(PLATFORM_OS),linux)
+ifeq ($(PLATFORM_OS),windows)
+    ifeq ($(NATIVE),0)
+        $(error NATIVE=0: the build without the OS platform is for Linux and macOS)
+    endif
+endif
+ifeq ($(PLATFORM_OS)-$(NATIVE),linux-1)
     ifneq ($(VULKAN),1)
-        $(error Gran UI Linux requires VULKAN=1)
+        $(error Gran UI Linux requires VULKAN=1 (or NATIVE=0 for the core without windows))
+    endif
+else ifeq ($(NATIVE),0)
+    ifeq ($(VULKAN),1)
+        $(error NATIVE=0 builds no GPU backend: VULKAN=1 is not allowed)
     endif
 else
     ifeq ($(VULKAN),1)
@@ -190,7 +247,7 @@ endif
 
 # Все платформенные каталоги: из общего набора исходников они исключаются
 # All platform directories: they are excluded from the common source set
-ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 rhi/dx12 rhi/dx11 rhi/vulkan
+ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 platform/none \n                     rhi/dx12 rhi/dx11 rhi/vulkan rhi/none
 
 # ---- Вспомогательные функции ------------------------------------------------
 # Рекурсивный поиск файлов средствами самого make (без внешней утилиты find)
@@ -253,6 +310,13 @@ EXAMPLES      := $(notdir $(patsubst %/,%,$(wildcard $(EXAMPLE_DIR)/*/)))
 ifneq ($(PLATFORM_OS),windows)
     EXAMPLES  := $(filter-out chat,$(EXAMPLES))
 endif
+# NATIVE=0: всем примерам нужно окно ОС или GPU (gallery, editor — окно, snapshot — бэкенд), без платформы они только
+# бросили бы исключение — поэтому не собираются (ревью Т-48). Инструменты gran_embed и gran_rcc собираются.
+# NATIVE=0: every example needs an OS window or a GPU (gallery, editor — a window, snapshot — a backend), without the
+# platform they would only throw — therefore they are not built (review T-48). The gran_embed and gran_rcc tools are built.
+ifeq ($(NATIVE),0)
+    EXAMPLES  :=
+endif
 EXAMPLE_BINS  := $(foreach e,$(EXAMPLES),$(BIN_DIR)/gran_$(e)$(EXE))
 # Объект встроенных ресурсов примера (есть examples/<имя>/resources.xml) / The example embedded resource object (when examples/<name>/resources.xml exists)
 example_resources = $(if $(wildcard $(EXAMPLE_DIR)/$(1)/resources.xml),$(OBJ_DIR)/$(GEN_DIR)/$(EXAMPLE_DIR)/$(1)/resources.o)
@@ -282,7 +346,7 @@ DEPFLAGS      = -MMD -MP -MF $(call dep_of,$@) -MT $@
 
 # GPU-тесты запускаются отдельно; эталоны обновляются только явной целью.
 # GPU tests run separately; baselines update only through an explicit target.
-ifeq ($(PLATFORM_OS),linux)
+ifeq ($(PLATFORM_OS)-$(NATIVE),linux-1)
 RENDER_TEST_SRC := $(wildcard tests/linux/*.cpp)
 RENDER_TEST_BIN := $(BIN_DIR)/gran_linux_tests
 .PHONY: test-render test-window update-render-baselines
@@ -294,6 +358,12 @@ test-window: $(RENDER_TEST_BIN)
 	$(RENDER_TEST_BIN) --window
 update-render-baselines:
 	@echo Gran UI: reference baselines require Windows D3D12 WARP
+	@false
+else ifeq ($(NATIVE),0)
+# Без GPU снимков нет: цель сообщает об этом и завершается ошибкой / Without a GPU there are no snapshots: the target says so and fails
+.PHONY: test-render update-render-baselines
+test-render update-render-baselines:
+	@echo Gran UI: NATIVE=0 has no GPU backend, render tests need the OS platform
 	@false
 else
 RENDER_TEST_SRC := $(wildcard tests/render/*.cpp)
@@ -308,7 +378,7 @@ update-render-baselines: $(RENDER_TEST_BIN)
 	$(call native,$(RENDER_TEST_BIN)) --update
 endif
 
-all: $(LIB_BIN) $(EXAMPLE_BINS) $(WEBVIEW2_DLL)
+all: $(LIB_BIN) $(RCC_BIN) $(EXAMPLE_BINS) $(WEBVIEW2_DLL)
 
 # Языки загружают одну библиотеку; C++-примеры продолжают использовать статическую.
 # Languages load one library; C++ examples continue to use the static library.
@@ -321,7 +391,15 @@ else
 endif
 CAPI_SRC := $(wildcard src/capi/*.cpp)
 .PHONY: bindings
+# В Си-интерфейсе нет безоконного режима: без платформы ОС библиотека для обёрток не создала бы ни одного окна (ревью Т-48)
+# The C interface has no windowless mode: without the OS platform the binding library could not create a single window (review T-48)
+ifeq ($(NATIVE),0)
+bindings:
+	@echo Gran UI: the C ABI gran_c needs the OS platform, it is not built with NATIVE=0
+	@false
+else
 bindings: $(CAPI_BIN) $(WEBVIEW2_DLL)
+endif
 $(CAPI_BIN): $(CAPI_SRC) $(LIB_BIN) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) -DGRAN_CAPI_BUILD=1 -shared $(CAPI_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 
@@ -493,6 +571,7 @@ $(ALL_DIRS):
 # ---- Service targets -----------------------------------------------------------
 platform:
 	@echo OS: $(PLATFORM_OS)
+	@echo Native platform: $(NATIVE)
 	@echo Platform sources: $(PLATFORM_DIRS)
 	@echo Beresta: $(BERESTA_DIR)
 

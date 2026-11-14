@@ -8,8 +8,6 @@
 if(WIN32)
     set(GRAN_SYSTEM_LIBS d3d11 d3d12 dxgi dxguid dwmapi shcore imm32 uiautomationcore oleaut32 ole32 uuid
         user32 gdi32 shell32)
-elseif(APPLE)
-    set(GRAN_SYSTEM_LIBS "-framework Cocoa" "-framework QuartzCore")
 else()
     find_package(Threads REQUIRED)
     set(GRAN_SYSTEM_LIBS ${CMAKE_DL_LIBS} Threads::Threads)

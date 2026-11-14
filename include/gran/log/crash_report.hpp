@@ -21,15 +21,15 @@ namespace gran::log
     /*
     ** Перехват падения процесса. Windows: необработанное исключение SEH, std::terminate, abort, неверный параметр CRT,
     ** чисто виртуальный вызов → минидамп (MiniDumpWriteDump, dbghelp.dll загружается заранее) и текстовый отчёт
-    ** со стеком из потока-помощника (у упавшего потока может не быть стека). Linux: SIGSEGV, SIGBUS, SIGILL, SIGFPE,
-    ** SIGABRT на своём стеке сигналов → текстовый отчёт (сигнал, адрес, регистры, backtrace, /proc/self/maps)
+    ** со стеком из потока-помощника (у упавшего потока может не быть стека). Linux и macOS: SIGSEGV, SIGBUS, SIGILL, SIGFPE,
+    ** SIGABRT на своём стеке сигналов → текстовый отчёт (сигнал, адрес, регистры, backtrace, модули: /proc/self/maps или образы dyld на macOS)
     ** и сырые байты стека в .stack; затем сигнал повторяется (код выхода и core dump как без обработчика).
     ** В отчёт идут последние записи журнала. Повторный вызов — ничего; false — установить не удалось.
     **
     ** Catching a process crash. Windows: an unhandled SEH exception, std::terminate, abort, a CRT invalid parameter,
     ** a pure virtual call → a minidump (MiniDumpWriteDump, dbghelp.dll is loaded in advance) and a text report
-    ** with the stack from a helper thread (the crashed thread may have no stack left). Linux: SIGSEGV, SIGBUS, SIGILL, SIGFPE,
-    ** SIGABRT on an own signal stack → a text report (the signal, the address, the registers, backtrace, /proc/self/maps)
+    ** with the stack from a helper thread (the crashed thread may have no stack left). Linux and macOS: SIGSEGV, SIGBUS, SIGILL, SIGFPE,
+    ** SIGABRT on an own signal stack → a text report (the signal, the address, the registers, backtrace, the modules: /proc/self/maps or the dyld images on macOS)
     ** and the raw stack bytes in .stack; then the signal is repeated (the exit code and the core dump as without the handler).
     ** The latest log records go into the report. A repeated call — nothing; false — it could not be installed.
     */

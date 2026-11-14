@@ -11,6 +11,15 @@
 ## [Не выпущено]
 
 ### Добавлено
+- macOS (шаг M3): сборка ядра clang'ом — Makefile (GNU make 4+, `gmake`) и CMake, в том числе универсальная
+  x86_64 + arm64, не ниже macOS 11.0; все модульные тесты на безоконной платформе. Окна Cocoa и Metal ещё нет, поэтому
+  на macOS по умолчанию `NATIVE=0` / `-DGRAN_NATIVE=OFF` — ядро без окна ОС и GPU (на Linux так собирается ядро без X11
+  и Vulkan); окно ОС, диалог файлов и бэкенд GPU в такой сборке — исключение `PLATFORM_NOT_BUILT`. Отчёт о сбое на macOS:
+  регистры из контекста сигнала и образы dyld вместо `/proc/self/maps`. Проверка на каждый push —
+  `.github/workflows/macos.yml` (раннер macOS 15: arm64 и x86_64 через Rosetta). Описание — `docs/building.md`, «macOS».
+- CI на каждый push: `.github/workflows/linux.yml` (Makefile GCC x86_64 и aarch64 с GPU-проверками на lavapipe,
+  CMake Clang, ядро `NATIVE=0` без пакетов X11/Vulkan, ASan + UBSan, TSan) и `windows.yml` (Makefile MinGW-w64,
+  CMake MSVC с GPU-проверками D3D12/D3D11 на WARP).
 - Тесты интерфейса без окна и видеокарты (шаг M2 подготовки к macOS): окно без ОС `platform::HeadlessWindow`
   (события подаёт тест, буфер обмена общий на процесс, масштаб, перетаскивание файлов, состояние окна для проверок),
   пустой бэкенд `rhi::NullBackend` (`BackendKind::NONE`: кадр принимается и проверяется, но не рисуется),

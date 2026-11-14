@@ -1,11 +1,11 @@
 /*
 ** gran_crash_probe — проверка отчёта о сбое (make test-crash). Режим --check <каталог> запускает саму себя
 ** с --crash <вид> <каталог/вид> для каждого вида падения и проверяет отчёты: текст с заголовком и последней
-** записью журнала; на Windows ещё минидамп с подписью MDMP, на Linux — backtrace, maps и файл .stack.
+** записью журнала; на Windows ещё минидамп с подписью MDMP, на Linux и macOS — backtrace, модули и файл .stack.
 **
 ** gran_crash_probe — the crash report check (make test-crash). The --check <directory> mode runs itself
 ** with --crash <kind> <directory/kind> for every crash kind and checks the reports: a text with the header and the latest
-** log record; on Windows also a minidump with the MDMP signature, on Linux — backtrace, maps and the .stack file.
+** log record; on Windows also a minidump with the MDMP signature, on Linux and macOS — backtrace, the modules and the .stack file.
 */
 #include "gran/log/crash_report.hpp"
 #include "gran/log/log.hpp"

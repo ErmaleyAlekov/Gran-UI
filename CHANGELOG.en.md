@@ -11,6 +11,16 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- macOS (step M3): building the core with clang — the Makefile (GNU make 4+, `gmake`) and CMake, including a universal
+  x86_64 + arm64 build, macOS 11.0 or newer; all the unit tests on the windowless platform. There is no Cocoa window and
+  Metal yet, therefore macOS defaults to `NATIVE=0` / `-DGRAN_NATIVE=OFF` — the core without an OS window and GPU (on Linux
+  this builds the core without X11 and Vulkan); an OS window, a file dialog and a GPU backend in such a build are the
+  `PLATFORM_NOT_BUILT` exception. The crash report on macOS: the registers from the signal context and the dyld images
+  instead of `/proc/self/maps`. A check on every push — `.github/workflows/macos.yml` (a macOS 15 runner: arm64 and x86_64
+  through Rosetta). Description — `docs/building.en.md`, "macOS".
+- CI on every push: `.github/workflows/linux.yml` (the Makefile with GCC on x86_64 and aarch64 with the GPU checks on
+  lavapipe, CMake with Clang, the `NATIVE=0` core without the X11/Vulkan packages, ASan + UBSan, TSan) and `windows.yml`
+  (the Makefile with MinGW-w64, CMake with MSVC with the D3D12/D3D11 GPU checks on WARP).
 - UI tests without a window and a graphics card (step M2 of the macOS preparation): the window without an OS
   `platform::HeadlessWindow` (a test feeds the events, the clipboard is shared by the process, the scale, file drag and drop,
   the window state for checks), the empty backend `rhi::NullBackend` (`BackendKind::NONE`: a frame is accepted and checked
