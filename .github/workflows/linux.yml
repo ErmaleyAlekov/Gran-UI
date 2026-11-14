@@ -44,15 +44,15 @@ env:
   # Общий журнал шагов задачи: при ошибке его строки уходят в аннотации (tools/ci/annotate_log.sh)
   # The common log of the job steps: on failure its lines go to annotations (tools/ci/annotate_log.sh)
   CI_LOG: ci.log
+  # Пакеты сборки: X11 и заголовки Vulkan; lavapipe — программный Vulkan для GPU-проверок без видеокарты
+  # The build packages: X11 and the Vulkan headers; lavapipe is software Vulkan for the GPU checks without a video card
+  GRAN_PACKAGES: libx11-dev libvulkan-dev mesa-vulkan-drivers clang
 
 # bash у GitHub — это `bash -eo pipefail`: упавшая команда перед `| tee` роняет шаг
 # GitHub's bash is `bash -eo pipefail`: a failed command before `| tee` fails the step
 defaults:
   run:
     shell: bash
-  # Пакеты сборки: X11 и заголовки Vulkan; lavapipe — программный Vulkan для GPU-проверок без видеокарты
-  # The build packages: X11 and the Vulkan headers; lavapipe is software Vulkan for the GPU checks without a video card
-  GRAN_PACKAGES: libx11-dev libvulkan-dev mesa-vulkan-drivers clang
 
 jobs:
   # ---- Makefile (GCC): обе архитектуры, всё, что собирается на Linux --------------
