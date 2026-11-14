@@ -1,0 +1,182 @@
+# ============================================================================
+#  Gran UI на Gitverse: сборка и проверки на облачном раннере при каждом push и pull request.
+#
+#  Gitverse читает .gitverse/workflows, если в настройках репозитория выбрано
+#  «Использовать конфигурацию из .gitverse/workflows»; GitHub эту папку не видит.
+#  Облачный раннер Gitverse один — ubuntu-latest (контейнер Linux x86_64, без docker.sock,
+#  30 минут на задачу, артефакты между задачами не передаются). Поэтому проверки разбиты на короткие
+#  задачи, и каждая сама ставит пакеты и собирает «Берёсту» (tools/ci/gitverse_prepare.sh).
+#  Это та же матрица, что linux.yml на GitHub, без aarch64; Windows и macOS — только на GitHub.
+# ============================================================================
+#  Gran UI on Gitverse: the build and checks on the cloud runner on every push and pull request.
+#
+#  Gitverse reads .gitverse/workflows if the repository settings select
+#  "Use the configuration from .gitverse/workflows"; GitHub does not see this folder.
+#  Gitverse has one cloud runner — ubuntu-latest (a Linux x86_64 container, without docker.sock,
+#  30 minutes per job, artifacts are not passed between jobs). So the checks are split into short
+#  jobs, and each one installs the packages and builds Beresta itself (tools/ci/gitverse_prepare.sh).
+#  This is the same matrix as linux.yml on GitHub, without aarch64; Windows and macOS are on GitHub only.
+# ============================================================================
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# Выпуск «Берёсты», с которым проверяется движок (тот же, что в .github/workflows)
+# The Beresta release the engine is checked with (the same as in .github/workflows)
+env:
+  BERESTA_REF: v2.2.1
+
+jobs:
+  # ---- Makefile (GCC): библиотека, примеры, модульные тесты ----------------------
+  # ---- Makefile (GCC): the library, the examples, the unit tests ----------------------
+  make:
+    name: Linux x86_64 (make + тесты / tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: bash gran/tools/ci/gitverse_prepare.sh full beresta
+      - name: Библиотека, примеры, тесты / The library, the examples, the tests
+        shell: bash
+        run: |
+          cd gran
+          make BERESTA_DIR=../beresta platform
+          make -j"$(nproc)" BERESTA_DIR=../beresta all
+          make BERESTA_DIR=../beresta test
+
+  # ---- Отчёт о сбое и общая библиотека C ABI --------------------------------------
+  # ---- The crash report and the C ABI shared library --------------------------------------
+  crash:
+    name: Linux x86_64 (отчёт о сбое, C ABI / crash report, C ABI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: bash gran/tools/ci/gitverse_prepare.sh full beresta
+      - name: Отчёт о сбое / The crash report (SIGSEGV, terminate, abort)
+        shell: bash
+        run: |
+          cd gran
+          make -j"$(nproc)" BERESTA_DIR=../beresta test-crash
+      - name: Общая библиотека C ABI / The C ABI shared library (libgran_c.so)
+        shell: bash
+        run: |
+          cd gran
+          make -j"$(nproc)" BERESTA_DIR=../beresta bindings
+          nm -D --defined-only bin/libgran_c.so | grep -c " gran_"
+
+  # ---- GPU-проверки на программном Vulkan (Mesa lavapipe, без окна) -------------
+  # ---- The GPU checks on software Vulkan (Mesa lavapipe, without a window) -------------
+  render:
+    name: Linux x86_64 (GPU на lavapipe / GPU on lavapipe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: bash gran/tools/ci/gitverse_prepare.sh full beresta
+      - name: GPU-проверки / GPU checks
+        shell: bash
+        run: |
+          cd gran
+          make -j"$(nproc)" BERESTA_DIR=../beresta test-render
+
+  # ---- CMake (Clang) + ctest с GPU-проверками -------------------------------------
+  # ---- CMake (Clang) + ctest with the GPU checks -------------------------------------
+  cmake:
+    name: Linux x86_64 (CMake, Clang)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: |
+          bash gran/tools/ci/gitverse_prepare.sh full beresta
+          if ! command -v cmake > /dev/null; then
+            sudo=""
+            if [ "$(id -u)" != "0" ]; then sudo="sudo"; fi
+            $sudo apt-get install -y -qq --no-install-recommends cmake
+          fi
+      - name: CMake + ctest
+        shell: bash
+        run: |
+          cmake -S gran -B build -DCMAKE_CXX_COMPILER=clang++ -DGRAN_BERESTA_DIR="$PWD/beresta" -DGRAN_BUILD_RENDER_TESTS=ON
+          cmake --build build -j"$(nproc)"
+          ctest --test-dir build --output-on-failure
+
+  # ---- Ядро без окна ОС и GPU (как на macOS), без пакетов X11 и Vulkan ----------
+  # ---- The core without an OS window and GPU (as on macOS), without the X11 and Vulkan packages ----------
+  core:
+    name: Linux core NATIVE=0 (Clang)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: bash gran/tools/ci/gitverse_prepare.sh core beresta
+      - name: Ядро и тесты / The core and the tests
+        shell: bash
+        run: |
+          cd gran
+          make -j"$(nproc)" NATIVE=0 CXX=clang++ BERESTA_DIR=../beresta all test test-crash
+
+  # ---- Санитайзеры: ASan + UBSan и TSan --------------------------------------------
+  # ---- Sanitizers: ASan + UBSan and TSan --------------------------------------------
+  asan:
+    name: Linux ASan + UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: bash gran/tools/ci/gitverse_prepare.sh full beresta
+      - name: Тесты под санитайзером / Tests under the sanitizer
+        shell: bash
+        run: |
+          cd gran
+          make -j"$(nproc)" DEBUG=1 SANITIZE=address,undefined BERESTA_DIR=../beresta test
+
+  tsan:
+    name: Linux TSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: bash gran/tools/ci/gitverse_prepare.sh full beresta
+      # Ядра с 32 битами случайности mmap не оставляют места теневой памяти TSan («unexpected memory mapping»).
+      # В контейнере sysctl может быть запрещён — тогда шаг только предупреждает, а итог покажут сами тесты.
+      # Kernels with 32 bits of mmap randomness leave no room for the TSan shadow memory ("unexpected memory mapping").
+      # In a container sysctl may be forbidden — then the step only warns, and the tests themselves show the result.
+      - name: ASLR для TSan / ASLR for TSan
+        shell: bash
+        run: |
+          sudo=""
+          if [ "$(id -u)" != "0" ]; then sudo="sudo"; fi
+          echo "vm.mmap_rnd_bits: $(cat /proc/sys/vm/mmap_rnd_bits 2>/dev/null)"
+          $sudo sysctl vm.mmap_rnd_bits=28 || echo "warning: sysctl vm.mmap_rnd_bits is not allowed here"
+      - name: Тесты под санитайзером / Tests under the sanitizer
+        shell: bash
+        run: |
+          cd gran
+          make -j"$(nproc)" DEBUG=1 SANITIZE=thread BERESTA_DIR=../beresta test

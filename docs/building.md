@@ -165,6 +165,15 @@ g++ -std=c++17 -I"Gran-UI/include" -I"beresta/include" main.cpp Gran-UI/bin/libg
 Галерея и снимки принимают `--d3d11`, `--d3d12`, `--warp`; галерея с `--watch` перезагружает XML.
 `make test-render` запускает снимки обоих API на WARP, `make update-render-baselines` обновляет эталоны явно.
 
+### Непрерывная интеграция (CI)
+
+Каждый push проверяется в двух местах. GitHub Actions (`.github/workflows`): `linux.yml` — Makefile GCC на x86_64
+и aarch64, CMake Clang, ядро `NATIVE=0`, GPU-проверки на lavapipe, ASan + UBSan и TSan; `windows.yml` — MinGW-w64
+и MSVC с WARP; `macos.yml` — см. [macOS](#macos). Gitverse (`.gitverse/workflows/ci.yml`, в настройках CI/CD
+репозитория выбрана конфигурация из `.gitverse/workflows`): та же матрица Linux x86_64 — облачный раннер Gitverse
+только Linux x86_64 с ограничением 30 минут на задачу, поэтому проверки разбиты на короткие задачи, а пакеты и
+«Берёсту» каждая готовит сама (`tools/ci/gitverse_prepare.sh`).
+
 ### Статический анализ (clang-tidy)
 
 Правила — в [`.clang-tidy`](../.clang-tidy): группы `bugprone`, `cert`, `clang-analyzer` (в том числе

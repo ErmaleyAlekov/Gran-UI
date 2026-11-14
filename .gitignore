@@ -11,6 +11,8 @@
 
 # Исключение: workflow GitHub Actions / Exception: the GitHub Actions workflows
 !/.github/
+# Исключение: workflow Gitverse / Exception: the Gitverse workflows
+!/.gitverse/
 
 # ---- Результаты сборки Makefile / Makefile build results --------------------
 /obj/

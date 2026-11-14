@@ -226,6 +226,15 @@ bin/gran_gallery samples/popups.xml --debug
 `gran_snapshot` renders a frame off-screen with the D3D12 debug layer enabled and prints the time of each stage.
 `gran_gallery --debug` opens a live window; debug layer messages go to the console.
 
+### Continuous Integration (CI)
+
+Every push is checked in two places. GitHub Actions (`.github/workflows`): `linux.yml` — the Makefile with GCC on
+x86_64 and aarch64, CMake with Clang, the `NATIVE=0` core, the GPU checks on lavapipe, ASan + UBSan and TSan;
+`windows.yml` — MinGW-w64 and MSVC with WARP; `macos.yml` — see [macOS](#macos). Gitverse
+(`.gitverse/workflows/ci.yml`, the repository CI/CD settings select the configuration from `.gitverse/workflows`):
+the same Linux x86_64 matrix — the Gitverse cloud runner is Linux x86_64 only with a 30-minute limit per job, so the
+checks are split into short jobs, and each one prepares the packages and Beresta itself (`tools/ci/gitverse_prepare.sh`).
+
 ### Static Analysis (clang-tidy)
 
 The rules are in [`.clang-tidy`](../.clang-tidy): the `bugprone`, `cert`, `clang-analyzer` groups (including
