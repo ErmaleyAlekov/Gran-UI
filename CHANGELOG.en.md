@@ -96,6 +96,8 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
+- macOS: the log and the crash reports — `~/Library/Logs/<program>/logs` and `…/crashes`; earlier the reports of all programs
+  would have gone to the shared `~/Library/Logs/crashes` (found by the first CI run on macOS).
 - An `AppDriver` declared before `Application` touched its state after the application was destroyed (use-after-free).
   Now the "run()" time is kept by the application itself, and driver calls after its destruction throw `GranException` (remark T-44).
 - A repeated `AppDriver::start()` removed the wake target: `post` tasks from other threads did not wake the window.
