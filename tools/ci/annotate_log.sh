@@ -29,5 +29,7 @@ if [ ! -f "$log" ]; then
     emit "no log file: $log"
     exit 0
 fi
-emit "$(grep -a -E 'error:|error [A-Z]+[0-9]+|Error [0-9]|FAIL|undefined reference|Undefined symbols|ld: |Итого|упало|exception|Assertion|runtime error|Sanitizer' "$log" | head -n 80)"
+# После «[FAIL] имя» тестовый каркас печатает строку с причиной — берём и её (-A1)
+# After "[FAIL] name" the test framework prints a line with the reason — it is taken too (-A1)
+emit "$(grep -a -A1 -E 'error:|error [A-Z]+[0-9]+|Error [0-9]|FAIL|undefined reference|Undefined symbols|ld: |Итого|упало|exception|Assertion|runtime error|Sanitizer' "$log" | head -n 80)"
 emit "$(tail -n 60 "$log")"

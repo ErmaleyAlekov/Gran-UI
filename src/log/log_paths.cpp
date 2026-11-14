@@ -72,11 +72,15 @@ namespace gran::log
     }
 
     /*
-    ** Linux: $XDG_STATE_HOME (по умолчанию ~/.local/state)/<программа>/logs; macOS: ~/Library/Logs/<программа>
-    ** (там журналы ищет «Консоль»); без HOME — /tmp.
+    ** Linux: $XDG_STATE_HOME (по умолчанию ~/.local/state)/<программа>/logs; macOS: ~/Library/Logs/<программа>/logs
+    ** (журналы в ~/Library/Logs показывает «Консоль»); без HOME — /tmp. Последний уровень — всегда «logs»: соседний
+    ** «crashes» той же программы строит crashDirectory (раньше на macOS отчёты всех программ шли в общий
+    ** ~/Library/Logs/crashes — найдено первым прогоном CI на macOS).
     **
-    ** Linux: $XDG_STATE_HOME (by default ~/.local/state)/<program>/logs; macOS: ~/Library/Logs/<program>
-    ** (the Console app looks for logs there); without HOME — /tmp.
+    ** Linux: $XDG_STATE_HOME (by default ~/.local/state)/<program>/logs; macOS: ~/Library/Logs/<program>/logs
+    ** (the Console app shows the logs in ~/Library/Logs); without HOME — /tmp. The last level is always "logs": the
+    ** sibling "crashes" of the same program is built by crashDirectory (earlier on macOS the reports of all programs went
+    ** to the shared ~/Library/Logs/crashes — found by the first CI run on macOS).
     */
     std::string defaultDirectory(const std::string& appName)
     {
@@ -86,7 +90,7 @@ namespace gran::log
 
 #if defined(__APPLE__)
         if (home != nullptr && home[0] != '\0')
-            return (std::filesystem::path(home) / "Library" / "Logs" / appName).string();
+            return (std::filesystem::path(home) / "Library" / "Logs" / appName / "logs").string();
 #endif
         if (state != nullptr && state[0] == '/')
             base = state;

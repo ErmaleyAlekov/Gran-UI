@@ -140,7 +140,7 @@ not sent as `Key::ALT` (macOS has no menu bar by Alt: the menu is the system one
 | Ctrl is hard-wired as the primary modifier in input (`input/`: text editing, commands, tabs, lists) | closed by the contract: `MODIFIER_CONTROL` = Mod, on macOS Cmd goes into it; `MODIFIER_META` added |
 | The shortcut label was always "Ctrl+…" | `ui::shortcutText` picks the look by `hostOs()`; the macOS signs — `ui::shortcutSymbols` |
 | 48 pixels per wheel notch was a number inside `input/`; the Win32 horizontal wheel scrolled the opposite way to X11 | the wheel unit is in the contract (`WHEEL_NOTCH_PIXELS`), the Win32 sign is fixed |
-| The settings and log paths on macOS would land in `~/.config` and `~/.local/state` | `~/Library/Application Support/<program>` and `~/Library/Logs/<program>` (checked by the macOS build, M3) |
+| The settings and log paths on macOS would land in `~/.config` and `~/.local/state` | `~/Library/Application Support/<program>` and `~/Library/Logs/<program>/logs` and `…/crashes` (checked by the macOS CI, M3) |
 | The POSIX crash report: `gregs[REG_RIP]` registers (glibc), `/proc/self/maps` | will not build on macOS — step M3 (`uc_mcontext->__ss`, the `dyld` image list) |
 | Makefile and CMake stop the build on macOS | step M3 |
 | Modality: Win32 disables the owner, X11 cannot | already neutral: the application blocks the input (`blocked`), the OS only helps |

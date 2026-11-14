@@ -4,6 +4,7 @@
 #include "gran/app/commands.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/input/input_router.hpp"
+#include "gran/platform/host.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "support/layout_helpers.hpp"
 
@@ -136,7 +137,14 @@ namespace
         f.press(gran::platform::Key::Z, CTRL);
         TEST_ASSERT(f.node("field").content.text.empty());
         TEST_ASSERT(f.node("field").content.caret == 0);
+        // Повтор: Mod+Y — Windows и Linux; на macOS Cmd+Y не повтор (Т-46), там Mod+Shift+Z
+        // Redo: Mod+Y — Windows and Linux; on macOS Cmd+Y is not redo (T-46), there it is Mod+Shift+Z
         f.press(gran::platform::Key::Y, CTRL);
+        if (gran::platform::hostOs() == gran::platform::HostOs::MACOS)
+        {
+            TEST_ASSERT(f.node("field").content.text.empty());
+            f.press(gran::platform::Key::Z, CTRL | SHIFT);
+        }
         TEST_ASSERT(f.node("field").content.text == "abc");
         TEST_ASSERT(f.node("field").content.caret == 3);
         f.press(gran::platform::Key::Z, CTRL);

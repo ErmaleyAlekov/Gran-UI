@@ -152,7 +152,7 @@ Control+Shift+Tab → Mod+Tab, Mod+Shift+Tab (вкладки документо�
 | Ctrl зашит основным модификатором во вводе (`input/`: правка текста, команды, вкладки, списки) | закрыто контрактом: `MODIFIER_CONTROL` = Mod, на macOS в него кладётся Cmd; добавлен `MODIFIER_META` |
 | Подпись сочетаний всегда «Ctrl+…» | `ui::shortcutText` выбирает вид по `hostOs()`; знаки macOS — `ui::shortcutSymbols` |
 | 48 пикселей на щелчок колеса — число внутри `input/`; горизонтальное колесо Win32 крутило в обратную сторону относительно X11 | единица колеса — в контракте (`WHEEL_NOTCH_PIXELS`), знак Win32 исправлен |
-| Пути настроек и журнала на macOS попали бы в `~/.config` и `~/.local/state` | `~/Library/Application Support/<программа>` и `~/Library/Logs/<программа>` (проверка — сборкой на macOS, M3) |
+| Пути настроек и журнала на macOS попали бы в `~/.config` и `~/.local/state` | `~/Library/Application Support/<программа>` и `~/Library/Logs/<программа>/logs` и `…/crashes` (проверено CI на macOS, M3) |
 | Отчёт о сбое POSIX: регистры `gregs[REG_RIP]` (glibc), `/proc/self/maps` | на macOS не соберётся — шаг M3 (`uc_mcontext->__ss`, список образов `dyld`) |
 | Makefile и CMake останавливают сборку на macOS | шаг M3 |
 | Модальность: Win32 выключает владельца, X11 не умеет | уже нейтрально: ввод блокирует приложение (`blocked`), ОС только помогает |

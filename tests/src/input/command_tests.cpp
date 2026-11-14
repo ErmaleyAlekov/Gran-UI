@@ -4,6 +4,7 @@
 #include "gran/app/commands.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/input/input_router.hpp"
+#include "gran/platform/host.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "support/layout_helpers.hpp"
 
@@ -118,13 +119,22 @@ namespace
 
     const std::uint8_t CTRL = gran::platform::MODIFIER_CONTROL;
 
+    // Подпись «Mod+буква» по соглашению ОС: «⌘S» на macOS, «Ctrl+S» на Windows и Linux (первый прогон CI на macOS)
+    // The "Mod+letter" label by the OS convention: "⌘S" on macOS, "Ctrl+S" on Windows and Linux (the first CI run on macOS)
+    std::string modLabel(const std::string& letter)
+    {
+        if (gran::platform::hostOs() == gran::platform::HostOs::MACOS)
+            return "⌘" + letter;
+        return "Ctrl+" + letter;
+    }
+
     void testMarkupBindsCommands()
     {
         Fixture f;
 
         TEST_ASSERT(f.doc.commands.size() == static_cast<std::size_t>(6));
         TEST_ASSERT(f.node("save").content.text == "Сохранить");
-        TEST_ASSERT(f.node("save").content.shortcut == "Ctrl+S");
+        TEST_ASSERT(f.node("save").content.shortcut == modLabel("S"));
         TEST_ASSERT(f.node("item").content.text == "Сохранить");
         TEST_ASSERT(f.doc.commands[2].scope == gran::ui::CommandScope::FOCUS);
         TEST_ASSERT(!f.doc.commands[4].enabled);
@@ -285,7 +295,7 @@ namespace
             <Command id="mine" text="Своя"/></Resources><Box/></Window>)");
         app.openWindowString(R"(<Window><Stack><Button id="tb" command="all"/><Button id="tm" text="m" command="mine"/></Stack></Window>)");
         TEST_ASSERT(app.find("tb")->content.text == "Всё");
-        TEST_ASSERT(app.find("tb")->content.shortcut == "Ctrl+G");
+        TEST_ASSERT(app.find("tb")->content.shortcut == modLabel("G"));
         TEST_ASSERT(app.find("tm")->content.shortcut.empty());
         app.setCommandEnabled("all", false);
         TEST_ASSERT(!app.find("tb")->enabled);
