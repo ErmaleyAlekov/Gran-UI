@@ -38,6 +38,15 @@ concurrency:
 # The Beresta release the engine is checked with; it changes together with its update on the developer machine
 env:
   BERESTA_REF: v2.2.1
+  # Общий журнал шагов задачи: при ошибке его строки уходят в аннотации (tools/ci/annotate_log.sh)
+  # The common log of the job steps: on failure its lines go to annotations (tools/ci/annotate_log.sh)
+  CI_LOG: ci.log
+
+# bash у GitHub — это `bash -eo pipefail`: упавшая команда перед `| tee` роняет шаг
+# GitHub's bash is `bash -eo pipefail`: a failed command before `| tee` fails the step
+defaults:
+  run:
+    shell: bash
 
 jobs:
   # ---- Makefile: arm64, GNU make 4 из Homebrew (штатный make macOS — 3.81) ------
@@ -45,11 +54,12 @@ jobs:
   make:
     name: macOS arm64 (Makefile)
     runs-on: macos-15
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
@@ -60,20 +70,27 @@ jobs:
           gmake --version | head -1
           clang++ --version | head -1
       - name: «Берёста» / Beresta (libberesta.a)
-        run: gmake -C beresta -j"$(sysctl -n hw.ncpu)" bin/libberesta.a
+        timeout-minutes: 25
+        run: gmake -C beresta -j"$(sysctl -n hw.ncpu)" bin/libberesta.a 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Ядро и тесты / The core and the tests
+        timeout-minutes: 25
         working-directory: gran
         run: |
-          gmake BERESTA_DIR=../beresta platform
-          gmake -j"$(sysctl -n hw.ncpu)" BERESTA_DIR=../beresta all
-          gmake BERESTA_DIR=../beresta test
+          { gmake BERESTA_DIR=../beresta platform
+            gmake -j"$(sysctl -n hw.ncpu)" BERESTA_DIR=../beresta all
+            gmake BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Отчёт о сбое / The crash report (SIGSEGV, terminate, abort)
+        timeout-minutes: 25
         working-directory: gran
-        run: gmake BERESTA_DIR=../beresta test-crash
-      # Отчёты о сбое — для разбора, если проверка не прошла / The crash reports — for analysis if the check failed
+        run: gmake BERESTA_DIR=../beresta test-crash 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      # Журнал — в аннотации (их видно без входа в GitHub), отчёты о сбое — в артефакт
+      # The log goes to annotations (visible without signing in to GitHub), the crash reports — to an artifact
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "macOS make"
       - name: Отчёты при ошибке / Reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-make-reports
           path: gran/bin/crash_check
@@ -84,32 +101,39 @@ jobs:
   cmake:
     name: macOS universal (CMake)
     runs-on: macos-15
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
           path: beresta
       - name: CMake (universal)
+        timeout-minutes: 25
         run: |
-          cmake -S gran -B build -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
-          cmake --build build -j"$(sysctl -n hw.ncpu)"
-          lipo -info build/bin/gran_tests | grep -q 'x86_64 arm64'
+          { cmake -S gran -B build -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+            cmake --build build -j"$(sysctl -n hw.ncpu)"
+            lipo -info build/bin/gran_tests | grep 'x86_64 arm64'; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: ctest (arm64)
-        run: ctest --test-dir build --output-on-failure
+        timeout-minutes: 25
+        run: ctest --test-dir build --output-on-failure 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       # Тесты запускаются из корня исходников (пути schemas/, samples/), как в ctest
       # The tests run from the source root (the schemas/, samples/ paths), as in ctest
       - name: Тесты x86_64 через Rosetta / x86_64 tests through Rosetta
+        timeout-minutes: 25
         working-directory: gran
         run: |
-          arch -x86_64 ../build/bin/gran_tests
-          arch -x86_64 ../build/bin/gran_crash_probe --check ../build/crash-check-x86_64
+          { arch -x86_64 ../build/bin/gran_tests
+            arch -x86_64 ../build/bin/gran_crash_probe --check ../build/crash-check-x86_64; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "macOS CMake"
       - name: Отчёты при ошибке / Reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-cmake-reports
           path: |

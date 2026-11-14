@@ -41,6 +41,15 @@ concurrency:
 # The Beresta release the engine is checked with (the same as in macos.yml and windows.yml)
 env:
   BERESTA_REF: v2.2.1
+  # Общий журнал шагов задачи: при ошибке его строки уходят в аннотации (tools/ci/annotate_log.sh)
+  # The common log of the job steps: on failure its lines go to annotations (tools/ci/annotate_log.sh)
+  CI_LOG: ci.log
+
+# bash у GitHub — это `bash -eo pipefail`: упавшая команда перед `| tee` роняет шаг
+# GitHub's bash is `bash -eo pipefail`: a failed command before `| tee` fails the step
+defaults:
+  run:
+    shell: bash
   # Пакеты сборки: X11 и заголовки Vulkan; lavapipe — программный Vulkan для GPU-проверок без видеокарты
   # The build packages: X11 and the Vulkan headers; lavapipe is software Vulkan for the GPU checks without a video card
   GRAN_PACKAGES: libx11-dev libvulkan-dev mesa-vulkan-drivers clang
@@ -59,11 +68,12 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
@@ -71,27 +81,35 @@ jobs:
       - name: Пакеты / Packages
         run: sudo apt-get update -q && sudo apt-get install -y -q $GRAN_PACKAGES
       - name: «Берёста» / Beresta (libberesta.a)
-        run: make -C beresta -j"$(nproc)" bin/libberesta.a
+        timeout-minutes: 25
+        run: make -C beresta -j"$(nproc)" bin/libberesta.a 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Библиотека, примеры, тесты / The library, the examples, the tests
+        timeout-minutes: 25
         working-directory: gran
         run: |
-          make BERESTA_DIR=../beresta platform
-          make -j"$(nproc)" BERESTA_DIR=../beresta all
-          make BERESTA_DIR=../beresta test
+          { make BERESTA_DIR=../beresta platform
+            make -j"$(nproc)" BERESTA_DIR=../beresta all
+            make BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Отчёт о сбое / The crash report (SIGSEGV, terminate, abort)
+        timeout-minutes: 25
         working-directory: gran
-        run: make BERESTA_DIR=../beresta test-crash
+        run: make BERESTA_DIR=../beresta test-crash 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Общая библиотека C ABI / The C ABI shared library (libgran_c.so)
+        timeout-minutes: 25
         working-directory: gran
         run: |
-          make BERESTA_DIR=../beresta bindings
-          nm -D --defined-only bin/libgran_c.so | grep -c " gran_"
+          { make BERESTA_DIR=../beresta bindings
+            nm -D --defined-only bin/libgran_c.so | grep -c " gran_"; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: GPU-проверки на lavapipe / GPU checks on lavapipe
+        timeout-minutes: 25
         working-directory: gran
-        run: make BERESTA_DIR=../beresta test-render
+        run: make BERESTA_DIR=../beresta test-render 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "Linux ${{ matrix.arch }} make"
       - name: Отчёты при ошибке / Reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: linux-${{ matrix.arch }}-make-reports
           path: gran/bin/crash_check
@@ -102,11 +120,12 @@ jobs:
   cmake:
     name: Linux x86_64 (CMake, Clang)
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
@@ -114,32 +133,41 @@ jobs:
       - name: Пакеты / Packages
         run: sudo apt-get update -q && sudo apt-get install -y -q $GRAN_PACKAGES
       - name: CMake + ctest
+        timeout-minutes: 25
         run: |
-          cmake -S gran -B build -DCMAKE_CXX_COMPILER=clang++ -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DGRAN_BUILD_RENDER_TESTS=ON
-          cmake --build build -j"$(nproc)"
-          ctest --test-dir build --output-on-failure
+          { cmake -S gran -B build -DCMAKE_CXX_COMPILER=clang++ -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DGRAN_BUILD_RENDER_TESTS=ON
+            cmake --build build -j"$(nproc)"
+            ctest --test-dir build --output-on-failure; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "Linux CMake"
 
   # ---- Ядро без окна ОС и GPU (как на macOS) -----------------------------------
   # ---- The core without an OS window and GPU (as on macOS) -----------------------------------
   core:
     name: Linux core NATIVE=0 (Clang)
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
           path: beresta
-      - name: «Берёста» / Beresta (libberesta.a)
-        run: make -C beresta -j"$(nproc)" bin/libberesta.a
       # Пакетов X11 и Vulkan нет намеренно: сборка без платформы не должна от них зависеть
       # There are deliberately no X11 and Vulkan packages: the build without the platform must not depend on them
       - name: Ядро и тесты / The core and the tests
+        timeout-minutes: 25
         working-directory: gran
-        run: make -j"$(nproc)" NATIVE=0 CXX=clang++ BERESTA_DIR=../beresta all test test-crash
+        run: |
+          { make -C ../beresta -j"$(nproc)" bin/libberesta.a
+            make -j"$(nproc)" NATIVE=0 CXX=clang++ BERESTA_DIR=../beresta all test test-crash; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "Linux core"
 
   # ---- Санитайзеры -------------------------------------------------------------
   # ---- Sanitizers -------------------------------------------------------------
@@ -154,11 +182,12 @@ jobs:
           - name: TSan
             sanitize: thread
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
@@ -171,8 +200,12 @@ jobs:
       # TSan fails with "unexpected memory mapping" — it is reduced to 28 bits on the runner only
       - name: ASLR для санитайзеров / ASLR for the sanitizers
         run: sudo sysctl vm.mmap_rnd_bits=28
-      - name: «Берёста» / Beresta (libberesta.a)
-        run: make -C beresta -j"$(nproc)" bin/libberesta.a
       - name: Тесты под санитайзером / Tests under the sanitizer
+        timeout-minutes: 25
         working-directory: gran
-        run: make -j"$(nproc)" DEBUG=1 SANITIZE=${{ matrix.sanitize }} BERESTA_DIR=../beresta test
+        run: |
+          { make -C ../beresta -j"$(nproc)" bin/libberesta.a
+            make -j"$(nproc)" DEBUG=1 SANITIZE=${{ matrix.sanitize }} BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "Linux ${{ matrix.name }}"

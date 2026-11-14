@@ -39,17 +39,27 @@ concurrency:
 # The Beresta release the engine is checked with (the same as in macos.yml and linux.yml)
 env:
   BERESTA_REF: v2.2.1
+  # Общий журнал шагов задачи: при ошибке его строки уходят в аннотации (tools/ci/annotate_log.sh)
+  # The common log of the job steps: on failure its lines go to annotations (tools/ci/annotate_log.sh)
+  CI_LOG: ci.log
+
+# bash у GitHub — это `bash -eo pipefail`: упавшая команда перед `| tee` роняет шаг
+# GitHub's bash is `bash -eo pipefail`: a failed command before `| tee` fails the step
+defaults:
+  run:
+    shell: bash
 
 jobs:
   # ---- Makefile + MinGW-w64 ----------------------------------------------------
   make:
     name: Windows x64 (Makefile, MinGW)
     runs-on: windows-2025
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
@@ -71,27 +81,29 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value $found
           & (Join-Path $found 'g++.exe') --version | Select-Object -First 1
       - name: «Берёста» / Beresta (libberesta.a)
-        shell: pwsh
-        run: mingw32-make -C beresta -j $env:NUMBER_OF_PROCESSORS bin/libberesta.a
+        timeout-minutes: 25
+        run: mingw32-make -C beresta -j"$NUMBER_OF_PROCESSORS" bin/libberesta.a 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Библиотека, примеры, тесты / The library, the examples, the tests
-        shell: pwsh
+        timeout-minutes: 25
         working-directory: gran
         run: |
-          mingw32-make BERESTA_DIR=../beresta platform
-          mingw32-make -j $env:NUMBER_OF_PROCESSORS BERESTA_DIR=../beresta all
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mingw32-make BERESTA_DIR=../beresta test
+          { mingw32-make BERESTA_DIR=../beresta platform
+            mingw32-make -j"$NUMBER_OF_PROCESSORS" BERESTA_DIR=../beresta all
+            mingw32-make BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Отчёт о сбое / The crash report (SEH, terminate, abort)
-        shell: pwsh
+        timeout-minutes: 25
         working-directory: gran
-        run: mingw32-make BERESTA_DIR=../beresta test-crash
+        run: mingw32-make BERESTA_DIR=../beresta test-crash 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Общая библиотека C ABI / The C ABI shared library (gran_c.dll)
-        shell: pwsh
+        timeout-minutes: 25
         working-directory: gran
-        run: mingw32-make BERESTA_DIR=../beresta bindings
+        run: mingw32-make BERESTA_DIR=../beresta bindings 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "Windows make"
       - name: Отчёты при ошибке / Reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-make-reports
           path: gran/bin/crash_check
@@ -102,28 +114,31 @@ jobs:
   msvc:
     name: Windows x64 (CMake, MSVC)
     runs-on: windows-2025
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: gran
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
           ref: ${{ env.BERESTA_REF }}
           path: beresta
       - name: CMake + MSVC
-        shell: pwsh
+        timeout-minutes: 25
         run: |
-          cmake -S gran -B build -A x64 -DGRAN_BERESTA_DIR="$env:GITHUB_WORKSPACE/beresta" -DGRAN_BUILD_RENDER_TESTS=ON
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmake --build build --config Release --parallel
+          { cmake -S gran -B build -A x64 -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DGRAN_BUILD_RENDER_TESTS=ON
+            cmake --build build --config Release --parallel; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: ctest (модульные, отчёт о сбое, WARP) / (unit, crash report, WARP)
-        shell: pwsh
-        run: ctest --test-dir build -C Release --output-on-failure
+        timeout-minutes: 25
+        run: ctest --test-dir build -C Release --output-on-failure 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "Windows MSVC"
       # Кадры GPU-проверок, не совпавшие с эталоном, — для разбора / The GPU check frames that did not match the reference — for analysis
       - name: Кадры при ошибке / Frames on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-msvc-frames
           path: |
