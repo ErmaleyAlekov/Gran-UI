@@ -56,4 +56,17 @@ namespace gran::input::internal
         while (to < text.size() && classAt(text, to) == kind)
             to = nextBoundary(text, to);
     }
+
+    // Пробелы — промежутки шагов по словам; перевод строки — нет (isLineBreak) / Spaces are the word step gaps; a line break is not (isLineBreak)
+    bool isWordGap(const std::string& text, std::size_t position) noexcept
+    {
+        return position < text.size() && classAt(text, position) == CLASS_SPACE;
+    }
+
+    // Перевод строки останавливает шаг по слову (замечание Т-46: пустые строки проскакивались насквозь)
+    // A line break stops a word step (remark T-46: empty lines were skipped through)
+    bool isLineBreak(const std::string& text, std::size_t position) noexcept
+    {
+        return position < text.size() && classAt(text, position) == CLASS_NEWLINE;
+    }
 }

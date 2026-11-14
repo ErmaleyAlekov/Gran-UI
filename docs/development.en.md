@@ -49,6 +49,40 @@ Frame validation is done by an off-screen frame: `gran_snapshot <markup.xml> <fr
 Direct3D 12 without a window, with the debug layer enabled, and prints the time of stages. Scene and shader changes
 are compared pixel by pixel with the previous frame.
 
+### UI tests without a window (`AppDriver`)
+
+A whole program — the markup, the layout, the input, the commands, the timers, the background tasks — can be checked without
+a screen and a graphics card. The application is created with windows without an OS (`platform::HeadlessWindow`) and, if there
+is no GPU, with the empty backend (`rhi::NullBackend`); instead of `run()` a test steps through the same loop via
+`gran::AppDriver` and feeds events as a user would:
+
+```cpp
+gran::AppOptions options;
+options.headless = true;                          // windows without an OS
+options.backend = gran::rhi::BackendKind::NONE;   // without a GPU; AUTO — an offscreen frame, readFrame reads it
+gran::Application app(options);
+app.loadString(R"(<Window><Stack><Input id="name"/><Button id="ok" onClick="save">OK</Button></Stack></Window>)");
+app.onAction("save", saveHandler);
+
+gran::AppDriver driver(app);
+driver.start();                                   // the windows and the first frame
+driver.click(*app.find("name"));
+driver.type("hello");
+driver.press(gran::platform::Key::S, gran::platform::MODIFIER_CONTROL);   // Mod+S: Ctrl, Cmd on macOS
+driver.click(*app.find("ok"));                    // the save handler has already run
+```
+
+- `step()` is one loop step without sleeping, `settle()` — steps while frames are drawn; `click`, `hover`, `press`, `type`
+  call `settle()` themselves.
+- `window(i)` / `windowOf(node)` — the windowless window: `resizeTo`, `changeScale`, `dropFiles`, `close`, `frameRole`
+  and the `state()` (the cursor, visibility, maximization, drop zones, accessibility notifications).
+- `answerFileDialog(paths)` — the answer to the next file dialog (a real dialog would stop the test).
+- `readFrame(i, …)` — the frame pixels if the backend draws offscreen (D3D12/WARP, Vulkan/lavapipe);
+  `nullStats(i)` — the empty backend counters (frames, instances, textures).
+- The clipboard of the windowless windows is shared by the process, as the OS one.
+- Declare `AppDriver` after `Application`. The reverse order is not dangerous: the "run()" time is kept by the application,
+  and a driver call after the application is destroyed throws `GranException` (except the destructor and `centerOf`).
+
 ### Sanitizers and Debug Layers
 
 | What | How to run |

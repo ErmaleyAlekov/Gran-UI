@@ -11,6 +11,12 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- UI tests without a window and a graphics card (step M2 of the macOS preparation): the window without an OS
+  `platform::HeadlessWindow` (a test feeds the events, the clipboard is shared by the process, the scale, file drag and drop,
+  the window state for checks), the empty backend `rhi::NullBackend` (`BackendKind::NONE`: a frame is accepted and checked
+  but not drawn), `AppOptions::headless` and the test driver `gran::AppDriver` — a loop step, `click`, `hover`, `press`,
+  `type`, answers to file dialogs, reading an offscreen frame. Described in `docs/development.en.md`, the "UI tests without
+  a window" section.
 - The `platform::` contract (step M1 of the macOS preparation): what the common code expects from an OS window — threads,
   the event loop, the scale, keys and modifiers, text and IME, the wheel, the clipboard, the window, drag and drop,
   accessibility, the GPU surface; translating the usual macOS chords into engine events and the result of the Win32/X11
@@ -54,6 +60,19 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   `gran:dockShow` returns it to the edge. `Application::floatDockPanel`.
 
 ### Changed
+- Input field: Ctrl+← / Ctrl+→ step by words, Ctrl+Backspace / Ctrl+Delete erase a word (on macOS — Option;
+  Cmd+← / Cmd+→ — the line edges, Cmd+↑ / Cmd+↓ — the text edges, Cmd+Backspace — up to the line start). The meaning
+  of the editing chords is chosen by the field by the OS (`input/internal/text_keys.hpp`) and only when it handles the key:
+  the platform no longer translates Option+← into Mod+←, so outside a field such presses do not run `Mod+Left` commands.
+  Alt+arrows in a field on Windows and Linux no longer move the caret (these are command chords, like "Back" in a browser).
+  A line break stops a word step. macOS: Option+↑/↓ — a paragraph, Control+A/E/K — the paragraph edges and erasing to
+  its end; Cmd+Y is a program command, not redo. Ctrl+Enter in a single-line field goes to the commands.
+- The platform contract: the event order (`RESIZE` and `EXPOSE` are not ordered, the size comes from `pixelSize()`;
+  `FOCUS_LOST` cancels the press without a click, the window releases the OS mouse capture).
+- Wrappers and C ABI: the modifier bits by name — `Modifiers.MOD` (Ctrl, Cmd on macOS), `SHIFT`, `ALT`, `META`
+  (Python, C#, Java) and `GRAN_MODIFIER_*` (C).
+- The `Application::run()` loop is split into steps (`app::runLoopStep`): `AppDriver` runs the same step without sleeping.
+  The input unit tests use `HeadlessWindow` instead of 14 identical window stubs.
 - `MODIFIER_CONTROL` is "Mod": Ctrl on Windows and Linux, Cmd on macOS (as in Qt). `ui::shortcutText` picks the label
   look by the build OS. On macOS the settings are in `~/Library/Application Support/<program>`, the log is in
   `~/Library/Logs/<program>`.
@@ -67,6 +86,12 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   sign — `a__b`). `ComboBox` item labels do not change.
 
 ### Fixed
+- An `AppDriver` declared before `Application` touched its state after the application was destroyed (use-after-free).
+  Now the "run()" time is kept by the application itself, and driver calls after its destruction throw `GranException` (remark T-44).
+- A repeated `AppDriver::start()` removed the wake target: `post` tasks from other threads did not wake the window.
+- A focus loss in the middle of a press: the Windows and X11 window releases the OS mouse capture, and releasing the button
+  after it gives no double click.
+- A chord with `MODIFIER_META` (Win/Super, the physical Control on macOS) matched a command without the modifier.
 - Windows: the horizontal wheel (wheel tilt, touchpad) scrolled the opposite way — the `WM_MOUSEHWHEEL` sign is now
   as in X11.
 - Document tabs: reordering by the mouse changed the order in the tree, but the headers stayed at their old places (the strip
@@ -85,6 +110,12 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   file name — an "unknown key" message with a hint is printed.
 
 ### Security
+- Damaged PNG files and fonts (code review T-41): a Huffman code length above 15 and a request for more than 24 bits in
+  `readBits` are a parse error, not a write past the array and an undefined shift; the unpacked PNG row size is computed
+  in 64 bits (32-bit builds). A composite glyph: the whole component record is checked against the glyph end before
+  reading, the nested glyph index against `numGlyphs`, and the number of visited glyphs per outline is limited (a glyph of
+  hundreds of components referring to itself hung the parsing: k⁸ calls). A simple glyph: the instruction length and the
+  contour ends are checked before reading.
 - Numbers from the markup, styles and the settings file no longer cause undefined behaviour. Hundreds of digits (∞, and in the
   fractional part — NaN) and values outside the `float` range are now a parse error. Integer attributes and properties (`maxLength`,
   `rows`, the font weight, `steps(n)`, integer properties) are range-checked before the cast to an integer type: previously

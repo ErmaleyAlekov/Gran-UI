@@ -3,6 +3,7 @@
 #include "gran/input/input_router.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "gran/ui/node.hpp"
+#include "gran/platform/headless/headless_window.hpp"
 #include "support/layout_helpers.hpp"
 #include <cmath>
 #include <functional>
@@ -45,74 +46,6 @@ namespace
         {
             return 1;
         }
-    };
-
-    class WindowStub : public gran::platform::Window
-    {
-    public:
-        bool pollEvent(gran::platform::Event&) override
-        {
-            return false;
-        }
-
-        void waitEvents(double) override
-        {
-        }
-
-        void* nativeHandle() const override
-        {
-            return nullptr;
-        }
-
-        float scale() const override
-        {
-            return 1.0f;
-        }
-
-        gran::Size pixelSize() const override
-        {
-            return {0, 0};
-        }
-
-        void setCursor(gran::platform::CursorShape) override
-        {
-        }
-
-        void show() override
-        {
-        }
-
-        void setLiveResize(std::function<void()>) override
-        {
-        }
-
-        std::string clipboardText() override
-        {
-            return clipboardText_;
-        }
-
-        void setClipboardText(const std::string& text) override
-        {
-            clipboardText_ = text;
-        }
-
-        void setAccessTree(gran::a11y::AccessTree*) override
-        {
-        }
-
-        void accessFocusChanged() override
-        {
-        }
-
-        void accessRefresh() override
-        {
-        }
-
-        void wake() noexcept override
-        {
-        }
-
-        std::string clipboardText_;
     };
 
     void testTextAreaKindAndContent()
@@ -163,7 +96,7 @@ namespace
 
         ActionSinkStub sink;
         TextLocatorStub locator;
-        WindowStub window;
+        gran::platform::HeadlessWindow window;
 
         gran::input::InputRouter router(*doc.root, sink, &window, locator);
 
@@ -212,7 +145,7 @@ namespace
         nodeC->content.text.clear();
         nodeC->content.caret = 0;
         nodeC->content.anchor = 0;
-        window.clipboardText_ = "a\r\nb\rc";
+        window.setClipboardText("a\r\nb\rc");
         router.focus(nodeC);
         event.key = gran::platform::Key::V;
         event.modifiers = gran::platform::MODIFIER_CONTROL;

@@ -200,6 +200,14 @@ public final class Application implements AutoCloseable {
             status(message ? "gran_app_on_message" : "gran_app_on_action",app,utf8(scope,name),function,MemorySegment.NULL);
         }
     }
+    // Биты UiEvent.modifiers. MOD — основной модификатор сочетаний: Ctrl в Windows и Linux, Cmd на macOS
+    // (CONTROL — то же значение). META — Win/Super, на macOS — физический Control.
+    // The UiEvent.modifiers bits. MOD is the primary shortcut modifier: Ctrl on Windows and Linux, Cmd on macOS
+    // (CONTROL is the same value). META is Win/Super, the physical Control on macOS.
+    public static final class Modifiers {
+        public static final int SHIFT = 1, MOD = 2, CONTROL = 2, ALT = 4, META = 8;
+        private Modifiers() {}
+    }
     // Снимок события интерфейса (gran_input_event, 168 байт); методы ставят флаги, которые уходят ядру после возврата.
     // A UI event snapshot (gran_input_event, 168 bytes); the methods set flags that go to the core after the return.
     public static final class UiEvent {

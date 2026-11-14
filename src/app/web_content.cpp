@@ -9,6 +9,10 @@ namespace gran::app
         platform::WebViewOptions options;
 
         slot.created = true;
+        // Без ОС браузеру некуда встать: элемент остаётся подложкой, как в сборке без браузера
+        // Without an OS the browser has nowhere to go: the element stays a placeholder, as in a build without a browser
+        if (win.shared.options.headless)
+            return;
         options.devTools = win.shared.options.debugLayer;
         slot.view = platform::createWebView(*win.window, slot, options);
         if (!slot.view)

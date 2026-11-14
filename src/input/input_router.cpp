@@ -25,10 +25,13 @@ namespace gran::input
     }
 
     /*
-    ** Мышь, затем клавиатура; потеря фокуса окном отпускает нажатие, захват и перетаскивание узла.
+    ** Мышь, затем клавиатура; потеря фокуса окном отменяет нажатие без щелчка: нажатие, захват, перетаскивание
+    ** узла, выделение мышью и счёт щелчков (MOUSE_UP после неё не даёт ни click, ни doubleClick — контракт платформы).
     ** Отложенные уведомления (focus, blur, enter, leave) доставляются в конце; вызванный обработчик — повод для кадра.
     **
-    ** The mouse, then the keyboard; the window losing focus releases the press, the capture and a node drag.
+    ** The mouse, then the keyboard; the window losing focus cancels the press without a click: the press, the capture,
+    ** a node drag, the mouse selection and the click count (a MOUSE_UP after it gives neither click nor doubleClick — the
+    ** platform contract).
     ** The deferred notifications (focus, blur, enter, leave) are delivered at the end; a called handler is a reason for a frame.
     */
     bool InputRouter::handle(const platform::Event& event)
@@ -44,6 +47,7 @@ namespace gran::input
             _state.drag = nullptr;
             _state.selecting = nullptr;
             _state.capture = nullptr;
+            _state.downClicks = 0;
         }
         else
         {

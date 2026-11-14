@@ -5,6 +5,7 @@
 #include "gran/ui/node.hpp"
 #include "support/layout_helpers.hpp"
 #include "gran/a11y/access_tree.hpp"
+#include "gran/platform/headless/headless_window.hpp"
 #include <string>
 
 namespace
@@ -46,74 +47,6 @@ namespace
         }
     };
 
-    class WindowStub : public gran::platform::Window
-    {
-    public:
-        bool pollEvent(gran::platform::Event&) override
-        {
-            return false;
-        }
-
-        void waitEvents(double) override
-        {
-        }
-
-        void* nativeHandle() const override
-        {
-            return nullptr;
-        }
-
-        float scale() const override
-        {
-            return 1.0f;
-        }
-
-        gran::Size pixelSize() const override
-        {
-            return {0, 0};
-        }
-
-        void setCursor(gran::platform::CursorShape) override
-        {
-        }
-
-        void show() override
-        {
-        }
-
-        void setLiveResize(std::function<void()>) override
-        {
-        }
-
-        std::string clipboardText() override
-        {
-            return clipboardText_;
-        }
-
-        void setClipboardText(const std::string& text) override
-        {
-            clipboardText_ = text;
-        }
-
-        void setAccessTree(gran::a11y::AccessTree*) override
-        {
-        }
-
-        void accessFocusChanged() override
-        {
-        }
-
-        void accessRefresh() override
-        {
-        }
-
-        void wake() noexcept override
-        {
-        }
-
-        std::string clipboardText_;
-    };
-
     const char* MARKUP = R"(
         <Window>
             <Stack grow="1">
@@ -141,7 +74,7 @@ namespace
 
         ActionSinkStub sink;
         TextLocatorStub locator;
-        WindowStub window;
+        gran::platform::HeadlessWindow window;
 
         gran::input::InputRouter router(*doc.root, sink, &window, locator);
 

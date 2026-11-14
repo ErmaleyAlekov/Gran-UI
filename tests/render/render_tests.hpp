@@ -47,6 +47,7 @@ namespace render_tests
     // Белые и чёрные полосы на краях во время роста окна, по снимкам экрана (Т-15).
     // White and black strips at the edges while the window grows, by screen captures (T-15).
     bool runResizeArtifacts(const Options& options);
+    bool runHeadless(const Options& options);
 }
 
 #endif

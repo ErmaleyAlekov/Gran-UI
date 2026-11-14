@@ -49,6 +49,40 @@ JSON, chunked, NDJSON, Markdown). В CMake те же тесты запускае
 Direct3D 12 без окна, с включённым отладочным слоем, и печатает время этапов. Изменения сцены и шейдеров
 сверяются с прежним кадром пиксель в пиксель.
 
+### Тесты интерфейса без окна (`AppDriver`)
+
+Программу целиком — разметку, компоновку, ввод, команды, таймеры, фоновые задачи — можно проверять без экрана и
+видеокарты. Приложение создаётся с окнами без ОС (`platform::HeadlessWindow`) и, если GPU нет, с пустым бэкендом
+(`rhi::NullBackend`); вместо `run()` тест шагает по тому же циклу через `gran::AppDriver` и подаёт события, как
+пользователь:
+
+```cpp
+gran::AppOptions options;
+options.headless = true;                          // окна без ОС
+options.backend = gran::rhi::BackendKind::NONE;   // без GPU; AUTO — кадр вне экрана, его читает readFrame
+gran::Application app(options);
+app.loadString(R"(<Window><Stack><Input id="name"/><Button id="ok" onClick="save">OK</Button></Stack></Window>)");
+app.onAction("save", saveHandler);
+
+gran::AppDriver driver(app);
+driver.start();                                   // окна и первый кадр
+driver.click(*app.find("name"));
+driver.type("привет");
+driver.press(gran::platform::Key::S, gran::platform::MODIFIER_CONTROL);   // Mod+S: Ctrl, на macOS — Cmd
+driver.click(*app.find("ok"));                    // обработчик save уже выполнен
+```
+
+- `step()` — один шаг цикла без сна, `settle()` — шаги, пока рисуются кадры; `click`, `hover`, `press`, `type` сами
+  вызывают `settle()`.
+- `window(i)` / `windowOf(узел)` — безоконное окно: `resizeTo`, `changeScale`, `dropFiles`, `close`, `frameRole`
+  и состояние `state()` (курсор, видимость, развёрнутость, зоны сброса, уведомления доступности).
+- `answerFileDialog(пути)` — ответ следующему диалогу файлов (настоящий диалог остановил бы тест).
+- `readFrame(i, …)` — пиксели кадра, если бэкенд рисует вне экрана (D3D12/WARP, Vulkan/lavapipe);
+  `nullStats(i)` — счётчики пустого бэкенда (кадров, экземпляров, текстур).
+- Буфер обмена безоконных окон — общий на процесс, как у ОС.
+- Объявляйте `AppDriver` после `Application`. Обратный порядок не опасен: время «run()» хранит приложение, а вызов
+  водителя после разрушения приложения бросает `GranException` (кроме деструктора и `centerOf`).
+
 ### Санитайзеры и отладочные слои
 
 | Что | Как запустить |

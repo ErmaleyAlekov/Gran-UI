@@ -153,6 +153,10 @@ namespace gran::i18n
         SETTINGS_DAMAGED,
         GPU_ADAPTER_NOT_FOUND,
         TOOLBAR_MORE,
+        GPU_BAD_FRAME,
+        APP_DRIVER_NOT_HEADLESS,
+        APP_DRIVER_NO_WINDOW,
+        APP_DRIVER_DETACHED,
         COUNT
     };
 }

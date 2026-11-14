@@ -146,7 +146,9 @@ app.on_action("search", on_search)
 
 Обработчик получает снимок `gran_input_event`: `type`, `target`, `current`, `related` (id узлов),
 `phase` (1 захват, 2 цель, 3 всплытие), `x`/`y` в системе `current`, `window_x`/`window_y`, `wheel_x`/`wheel_y`,
-`button`, `clicks`, `modifiers` (1 Shift, 2 Ctrl, 4 Alt), `key` («A», «Enter», «F5»), `detail`, `drag_format`,
+`button`, `clicks`, `modifiers` (биты `Modifiers`: 1 `SHIFT`, 2 `MOD` — Ctrl в Windows и Linux, Cmd на macOS,
+псевдоним `CONTROL`; 4 `ALT` — Alt/Option; 8 `META` — Win/Super, на macOS физический Control; в C ABI — `GRAN_MODIFIER_*`),
+`key` («A», «Enter», «F5»), `detail`, `drag_format`,
 `drag_data`, `dropped`, `model`/`index` узла `current` и `related_model`/`related_index` узла `related`
 (перетаскиваемая карточка списка — сразу её запись). Методы снимка `prevent_default()` / `PreventDefault()` /
 `preventDefault()`, `stop_propagation()` и `stop_immediate_propagation()` ставят флаги, которые уходят ядру

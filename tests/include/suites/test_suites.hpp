@@ -77,6 +77,15 @@ namespace suites
     void registerSettingsTests(test::TestRunner& runner);
     void registerShortcutTests(test::TestRunner& runner);
     void registerShortcutSymbolsTests(test::TestRunner& runner);
+    void registerHeadlessWindowTests(test::TestRunner& runner);
+    void registerAppDriverTests(test::TestRunner& runner);
+    void registerDriverFieldTests(test::TestRunner& runner);
+    void registerTextStepTests(test::TestRunner& runner);
+    void registerDriverKeyTests(test::TestRunner& runner);
+    void registerTextKeyTests(test::TestRunner& runner);
+    void registerFontDamageTests(test::TestRunner& runner);
+    void registerInflateLimitTests(test::TestRunner& runner);
+    void registerAppDriverLifeTests(test::TestRunner& runner);
     void registerCommandTests(test::TestRunner& runner);
     void registerUndoStackTests(test::TestRunner& runner);
     void registerTextUndoTests(test::TestRunner& runner);

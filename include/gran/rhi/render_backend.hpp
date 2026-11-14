@@ -152,8 +152,14 @@ namespace gran::rhi
         virtual void readPixels(std::vector<std::uint8_t>& rgba, std::uint32_t& width, std::uint32_t& height) = 0;
     };
 
-    // Выбор API; AUTO выбирает API ОС / API selection; AUTO selects the platform API
-    enum class BackendKind : std::uint8_t { AUTO, D3D11, D3D12, VULKAN };
+    /*
+    ** Выбор API; AUTO выбирает API ОС. NONE — пустой бэкенд без GPU (rhi::NullBackend): кадр не рисуется,
+    ** только принимается; для тестов интерфейса на машинах без видеокарты. Добавлен в конец — коды прежних не сдвинулись.
+    **
+    ** API selection; AUTO selects the platform API. NONE is an empty backend without a GPU (rhi::NullBackend): a frame is not
+    ** drawn, only accepted; for UI tests on machines without a graphics card. Added at the end — the former codes did not shift.
+    */
+    enum class BackendKind : std::uint8_t { AUTO, D3D11, D3D12, VULKAN, NONE };
 
     // Параметры создания бэкенда / The backend creation parameters
     struct BackendOptions

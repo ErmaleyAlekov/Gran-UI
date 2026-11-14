@@ -135,7 +135,9 @@ Event attributes (`onPointerDown`, `onKeyDownCapture`, `onDrop`, `on="custom:nam
 
 The handler receives a snapshot of `gran_input_event`: `type`, `target`, `current`, `related` (node ids),
 `phase` (1 capture, 2 target, 3 bubble), `x`/`y` in the `current` system, `window_x`/`window_y`, `wheel_x`/`wheel_y`,
-`button`, `clicks`, `modifiers` (1 Shift, 2 Ctrl, 4 Alt), `key` ("A", "Enter", "F5"), `detail`, `drag_format`,
+`button`, `clicks`, `modifiers` (the `Modifiers` bits: 1 `SHIFT`, 2 `MOD` — Ctrl on Windows and Linux, Cmd on macOS,
+alias `CONTROL`; 4 `ALT` — Alt/Option; 8 `META` — Win/Super, the physical Control on macOS; in the C ABI — `GRAN_MODIFIER_*`),
+`key` ("A", "Enter", "F5"), `detail`, `drag_format`,
 `drag_data`, `dropped`, `model`/`index` of the `current` node and `related_model`/`related_index` of the `related`
 (node being dragged — immediately its record). Snapshot methods `prevent_default()` / `PreventDefault()` /
 `preventDefault()`, `stop_propagation()` and `stop_immediate_propagation()` set flags that are sent to the core

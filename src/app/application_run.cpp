@@ -120,38 +120,30 @@ namespace gran
     }
 
     /*
-    ** Цикл: новые окна получают графику и первый кадр; события всех окон; общие задачи, таймеры
-    ** и сообщения браузеров; закрытие окон; кадры тем окнам, где что-то изменилось или идёт анимация
-    ** (vsync задаёт темп). Ничего не нарисовано — сон до события ОС или ближайшего срока.
+    ** Шаг цикла: события всех окон; общие задачи, таймеры и сообщения браузеров; закрытие окон;
+    ** новые окна получают графику и первый кадр; кадры тем окнам, где что-то изменилось или идёт анимация
+    ** (vsync задаёт темп). Ничего не нарисовано и wait — сон до события ОС или ближайшего срока.
     ** Закрытие главного окна завершает цикл.
     **
-    ** The loop: new windows get their graphics and the first frame; the events of all the windows; the shared tasks, the timers
-    ** and the browser messages; closing the windows; frames for the windows where something changed or an animation runs
-    ** (vsync sets the pace). Nothing drawn — sleeping until an OS event or the nearest due time.
+    ** A loop step: the events of all the windows; the shared tasks, the timers and the browser messages; closing the windows;
+    ** new windows get their graphics and the first frame; frames for the windows where something changed or an animation runs
+    ** (vsync sets the pace). Nothing drawn and wait — sleeping until an OS event or the nearest due time.
     ** Closing the main window ends the loop.
     */
-    int Application::run()
+    app::LoopStep app::runLoopStep(Application::State& state, bool wait)
     {
-        State& state = *_state;
-
-        if (state.windows.empty())
-            throw GranException(ErrorCode::MARKUP, i18n::format(i18n::Message::APP_NO_MARKUP));
+        pollWindows(state);
+        bool shared = runShared(state);
+        if (state.options.exitAfter > 0.0 && app::now() >= state.options.exitAfter)
+            state.quit = true;
+        app::closeWindows(state);
+        if (state.quit)
+            return LoopStep::QUIT;
         app::openWindows(state);
-        app::RunScope scope(state);
-        while (!state.quit)
-        {
-            pollWindows(state);
-            bool shared = runShared(state);
-            if (state.options.exitAfter > 0.0 && app::now() >= state.options.exitAfter)
-                state.quit = true;
-            app::closeWindows(state);
-            if (state.quit)
-                break;
-            app::openWindows(state);
-            if (!renderWindows(state, shared))
-                state.windows.front()->window->waitEvents(sleepTime(state, app::now()));
-        }
-        app::saveSettings(state);
-        return 0;
+        if (renderWindows(state, shared))
+            return LoopStep::BUSY;
+        if (wait)
+            state.windows.front()->window->waitEvents(sleepTime(state, app::now()));
+        return LoopStep::IDLE;
     }
 }

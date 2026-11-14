@@ -135,7 +135,11 @@ namespace gran::i18n
             {Message::RES_TOOL_USAGE, "использование: gran_rcc <манифест.xml> <выход.cpp> [--blob <пакет.bin>] [--depfile <выход.d>]"},
             {Message::SETTINGS_DAMAGED, "файл настроек повреждён и сохранён как .bad, взяты значения по умолчанию: {0}"},
             {Message::GPU_ADAPTER_NOT_FOUND, "GRAN_ADAPTER=\"{0}\": нет подходящего видеоадаптера с таким именем ({1})"},
-            {Message::TOOLBAR_MORE, "Ещё"}
+            {Message::TOOLBAR_MORE, "Ещё"},
+            {Message::GPU_BAD_FRAME, "неверные данные кадра: {0}"},
+            {Message::APP_DRIVER_NOT_HEADLESS, "AppDriver работает только с приложением без окон ОС (AppOptions::headless)"},
+            {Message::APP_DRIVER_NO_WINDOW, "AppDriver: нет окна \"{0}\" (окна открываются в start() и шагах цикла)"},
+            {Message::APP_DRIVER_DETACHED, "AppDriver: приложение уже разрушено (объявляйте AppDriver после Application)"}
         };
     }
 

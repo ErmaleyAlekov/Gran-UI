@@ -1,5 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/rhi/backend_factory.hpp"
+#include "gran/rhi/null/null_backend.hpp"
+#include "gran/platform/headless/headless_window.hpp"
 #include "gran/core/i18n.hpp"
 #include "gran/log/log.hpp"
 
@@ -31,7 +33,10 @@ namespace gran::app
             options.debugLayer = win.shared.options.debugLayer;
             options.backend = win.shared.options.backend;
             options.forceWarp = win.shared.options.forceWarp;
-            win.backend = rhi::createPlatformBackend(options);
+            if (options.backend == rhi::BackendKind::NONE)
+                win.backend = std::make_unique<rhi::NullBackend>();
+            else
+                win.backend = rhi::createPlatformBackend(options);
             win.renderer = std::make_unique<render::Renderer>(*win.backend, win.shared.fonts,
                 win.document.baseDirectory);
         }
@@ -55,7 +60,10 @@ namespace gran::app
         if (win.windowStyle.background.kind == style::PaintKind::COLOR)
             desc.background = win.windowStyle.background.color;
         ownWindow(win, desc);
-        win.window = platform::createWindow(desc);
+        if (win.shared.options.headless)
+            win.window = std::make_unique<platform::HeadlessWindow>(desc);
+        else
+            win.window = platform::createWindow(desc);
         restorePlacement(win);
         win.window->setLiveResize(liveResizeCallback(win));
         win.access.root = win.document.root.get();

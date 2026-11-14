@@ -9,6 +9,15 @@ namespace GranUI;
 public sealed record Event(string Target, string Model, nuint Index, string Text,
     string Option, string Message, double Value, bool Checked);
 
+// Биты UiEvent.Modifiers. Mod — основной модификатор сочетаний: Ctrl в Windows и Linux, Cmd на macOS
+// (Control — то же значение). Meta — Win/Super, на macOS — физический Control.
+// The UiEvent.Modifiers bits. Mod is the primary shortcut modifier: Ctrl on Windows and Linux, Cmd on macOS
+// (Control is the same value). Meta is Win/Super, the physical Control on macOS.
+public static class Modifiers
+{
+    public const int Shift = 1, Mod = 2, Control = 2, Alt = 4, Meta = 8;
+}
+
 // Снимок события интерфейса; методы ставят флаги, которые уходят ядру после возврата обработчика.
 // A UI event snapshot; the methods set flags that go to the core after the handler returns.
 public sealed class UiEvent

@@ -6,6 +6,7 @@
 #include "gran/app/internal/task_pool.hpp"
 
 #include <cstdint>
+#include <deque>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -16,6 +17,8 @@ namespace gran
 {
     namespace app
     {
+        struct RunScope;
+
         /*
         ** Именованный стек отмены приложения и его наблюдатель (паттерн Observer): после каждой смены
         ** стека включаются и выключаются команды gran:undo[:имя] / gran:redo[:имя] всех окон и вызывается
@@ -99,6 +102,9 @@ namespace gran
         // Таймеры setTimeout/setInterval (только поток интерфейса) / The setTimeout/setInterval timers (the UI thread only)
         app::TimerQueue timers;
         bool quit = false;
+        // Ответы диалогов файлов без ОС (options.headless) по порядку вызовов; пусто — «Отмена»
+        // The file dialog answers without an OS (options.headless) in the call order; empty — "Cancel"
+        std::deque<std::vector<std::string>> dialogAnswers;
         // Невладеющая ссылка для встроенных команд gran:… / A non-owning reference for the built-in gran:… commands
         Application* owner = nullptr;
         // Перезагрузка главного окна: документ ждёт границы цикла, чтобы обработчик не удалил свой узел.
@@ -128,6 +134,17 @@ namespace gran
         // Отчёт о сбое прошлого запуска (application_logging.cpp) / The crash report of the previous run (application_logging.cpp)
         std::string previousCrash;
         std::unique_ptr<app::TaskPool> pool;
+        /*
+        ** Время «run()» у AppDriver (тесты интерфейса). Поле приложения, а не водителя: при любом порядке
+        ** разрушения оно снимается раньше пула и окон, пока живы taskMutex и wakeTarget (как RunScope в run()).
+        **
+        ** The "run()" time of AppDriver (UI tests). A field of the application, not of the driver: in any destruction
+        ** order it is removed before the pool and the windows, while taskMutex and wakeTarget are alive (as RunScope in run()).
+        */
+        std::unique_ptr<app::RunScope> driverScope;
+        // Жетон жизни для AppDriver (weak_ptr у водителя): после разрушения приложения водитель его не трогает
+        // The lifetime token for AppDriver (a weak_ptr in the driver): after the application is destroyed the driver does not touch it
+        std::shared_ptr<const bool> driverToken = std::make_shared<const bool>(true);
     };
 
     namespace app
@@ -327,6 +344,22 @@ namespace gran
         // Закрыть окна с флагом closing (с подчинёнными, onClosed); закрытие главного — выход из run()
         // Close the windows with the closing flag (with the owned ones, onClosed); closing the main one — leaving run()
         void closeWindows(Application::State& state);
+
+        // ---- application_run.cpp ----
+
+        // Итог шага цикла: выход, ничего не нарисовано (можно спать), кадр нарисован / The loop step result: quit, nothing drawn (may sleep), a frame was drawn
+        enum class LoopStep : std::uint8_t { QUIT, IDLE, BUSY };
+
+        /*
+        ** Один шаг цикла run(): события окон, общие задачи и таймеры, закрытие и открытие окон, кадры.
+        ** wait — если ничего не нарисовано, спать до события ОС или ближайшего срока (run); без wait шаг
+        ** возвращается сразу (AppDriver в тестах).
+        **
+        ** One step of the run() loop: the window events, the shared tasks and timers, closing and opening windows, the frames.
+        ** wait — if nothing was drawn, sleep until an OS event or the nearest due time (run); without wait the step
+        ** returns at once (AppDriver in tests).
+        */
+        LoopStep runLoopStep(Application::State& state, bool wait);
 
         // ---- application_tasks.cpp ----
 

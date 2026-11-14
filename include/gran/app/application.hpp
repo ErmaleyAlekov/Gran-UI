@@ -107,6 +107,16 @@ namespace gran
         // Свой файл настроек (UTF-8); пусто — %APPDATA%\<appName>\settings.xml или ~/.config/<appName>/settings.xml
         // A custom settings file (UTF-8); empty — %APPDATA%\<appName>\settings.xml or ~/.config/<appName>/settings.xml
         std::string settingsFile;
+        /*
+        ** Окна без ОС (platform::HeadlessWindow): события подаёт тест через AppDriver, ОС ничего не показывает,
+        ** диалоги файлов отвечают заготовленными путями (AppDriver::answerFileDialog), браузер <WebView> не создаётся.
+        ** Вместе с backend = NONE приложение работает целиком без экрана и видеокарты.
+        **
+        ** Windows without an OS (platform::HeadlessWindow): a test feeds the events via AppDriver, the OS shows nothing,
+        ** the file dialogs answer with prepared paths (AppDriver::answerFileDialog), the <WebView> browser is not created.
+        ** Together with backend = NONE the application works entirely without a screen and a graphics card.
+        */
+        bool headless = false;
     };
 
     /*
@@ -727,6 +737,9 @@ namespace gran
         struct State;
 
     private:
+        // Тестовый «водитель» шагает по циклу и подаёт события (app_driver.hpp) / The test driver steps the loop and feeds events (app_driver.hpp)
+        friend class AppDriver;
+
         std::unique_ptr<State> _state;
     };
 }

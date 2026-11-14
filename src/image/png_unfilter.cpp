@@ -79,7 +79,11 @@ namespace gran::image::internal
         std::size_t stride = length + 1;
         std::size_t step = (channelsOf(header.colorType) * header.depth + 7) / 8;
 
-        if (raw.size() != stride * header.height)
+        // Произведение в 64 битах: в 32-битной сборке stride × height переполнило бы size_t и могло совпасть
+        // с маленьким raw.size()
+        // The product in 64 bits: in a 32-bit build stride × height would overflow size_t and could match
+        // a small raw.size()
+        if (static_cast<std::uint64_t>(raw.size()) != static_cast<std::uint64_t>(stride) * header.height)
             return false;
         for (std::size_t y = 0; y < header.height; ++y)
         {

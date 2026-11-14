@@ -8,6 +8,18 @@ import sys
 
 SIZE_MAX = C.c_size_t(-1).value
 
+
+class Modifiers:
+    """Биты Event.modifiers. MOD — основной модификатор сочетаний: Ctrl в Windows и Linux, Cmd на macOS
+    (CONTROL — то же значение). META — Win/Super, на macOS — физический Control.
+    The Event.modifiers bits. MOD is the primary shortcut modifier: Ctrl on Windows and Linux, Cmd on macOS
+    (CONTROL is the same value). META is Win/Super, the physical Control on macOS."""
+    SHIFT = 1
+    MOD = 2
+    CONTROL = 2
+    ALT = 4
+    META = 8
+
 class _Options(C.Structure):
     _fields_ = [("size", C.c_uint32), ("backend", C.c_int32), ("debug", C.c_int32),
                 ("warp", C.c_int32), ("watch", C.c_int32), ("no_vsync", C.c_int32), ("exit_after", C.c_double)]

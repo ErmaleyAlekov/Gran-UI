@@ -2,6 +2,13 @@
 
 namespace gran::capi
 {
+    // Биты modifiers C ABI копируются из события как есть: значения обязаны совпадать с platform::MODIFIER_*
+    // The C ABI modifiers bits are copied from the event as they are: the values must match platform::MODIFIER_*
+    static_assert(static_cast<int>(GRAN_MODIFIER_SHIFT) == static_cast<int>(platform::MODIFIER_SHIFT), "GRAN_MODIFIER_SHIFT");
+    static_assert(static_cast<int>(GRAN_MODIFIER_MOD) == static_cast<int>(platform::MODIFIER_CONTROL), "GRAN_MODIFIER_MOD");
+    static_assert(static_cast<int>(GRAN_MODIFIER_ALT) == static_cast<int>(platform::MODIFIER_ALT), "GRAN_MODIFIER_ALT");
+    static_assert(static_cast<int>(GRAN_MODIFIER_META) == static_cast<int>(platform::MODIFIER_META), "GRAN_MODIFIER_META");
+
     namespace
     {
         // Копии строк события: переживают удаление узлов самим callback / The event string copies: they survive node removal by the callback itself

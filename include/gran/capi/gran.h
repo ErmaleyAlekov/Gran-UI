@@ -148,6 +148,18 @@ typedef struct gran_input_event {
     int32_t dropped;
 } gran_input_event;
 enum { GRAN_EVENT_PREVENT_DEFAULT = 1, GRAN_EVENT_STOP_PROPAGATION = 2, GRAN_EVENT_STOP_IMMEDIATE = 4 };
+/* Биты modifiers. GRAN_MODIFIER_MOD — основной модификатор сочетаний: Ctrl в Windows и Linux, Cmd на macOS
+ * (CONTROL — то же значение, прежнее имя). META — Win/Super, на macOS — физический Control.
+ * The modifiers bits. GRAN_MODIFIER_MOD is the primary shortcut modifier: Ctrl on Windows and Linux, Cmd on macOS
+ * (CONTROL is the same value, the former name). META is Win/Super, the physical Control on macOS. */
+enum
+{
+    GRAN_MODIFIER_SHIFT = 1,
+    GRAN_MODIFIER_MOD = 2,
+    GRAN_MODIFIER_CONTROL = 2,
+    GRAN_MODIFIER_ALT = 4,
+    GRAN_MODIFIER_META = 8
+};
 typedef int32_t (*gran_event_fn)(void* user, const gran_input_event* event);
 
 /* on_event — обработчик имени из разметки (NULL снимает, тогда имя ищется среди on_action); listen —

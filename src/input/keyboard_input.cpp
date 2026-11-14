@@ -120,8 +120,11 @@ namespace gran::input
             return false;
         if (mnemonicKey(state, event))
             return true;
+        // Символ с Mod (без AltGr) или с META (Win/Super, физический Control на macOS) — не набор
+        // A character with Mod (without AltGr) or with META (Win/Super, the physical Control on macOS) is not typing
         if (state.focus == nullptr || !ui::isTextField(*state.focus) || state.focus->content.readOnly
-            || ((event.modifiers & platform::MODIFIER_CONTROL) != 0 && (event.modifiers & platform::MODIFIER_ALT) == 0))
+            || ((event.modifiers & platform::MODIFIER_CONTROL) != 0 && (event.modifiers & platform::MODIFIER_ALT) == 0)
+            || (event.modifiers & platform::MODIFIER_META) != 0)
             return false;
         appendUtf8(text, event.character);
         return internal::typeText(state, *state.focus, text);

@@ -12,7 +12,13 @@ namespace gran::platform::x11
             case ClientMessage: clientMessage(event.xclient); break;
             case ConfigureNotify: resized(event); break;
             case FocusIn: if (_native.input != nullptr) XSetICFocus(_native.input); push(EventKind::FOCUS_GAINED); break;
-            case FocusOut: if (_native.input != nullptr) XUnsetICFocus(_native.input); push(EventKind::FOCUS_LOST); break;
+            // Потеря фокуса: захват XGrabPointer отпускается (контракт платформы; без захвата вызов ничего не делает)
+            // A focus loss: the XGrabPointer capture is released (the platform contract; without a grab the call does nothing)
+            case FocusOut:
+                if (_native.input != nullptr) XUnsetICFocus(_native.input);
+                XUngrabPointer(_native.display, CurrentTime);
+                push(EventKind::FOCUS_LOST);
+                break;
             case LeaveNotify: push(EventKind::MOUSE_LEAVE); break;
             case MotionNotify: case ButtonPress: case ButtonRelease: mouse(event); break;
             case KeyPress: keyboard(event.xkey, true); break;

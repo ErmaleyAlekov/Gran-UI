@@ -135,7 +135,11 @@ namespace gran::i18n
             {Message::RES_TOOL_USAGE, "usage: gran_rcc <manifest.xml> <output.cpp> [--blob <bundle.bin>] [--depfile <output.d>]"},
             {Message::SETTINGS_DAMAGED, "the settings file is damaged and kept as .bad, the default values are used: {0}"},
             {Message::GPU_ADAPTER_NOT_FOUND, "GRAN_ADAPTER=\"{0}\": no suitable video adapter with this name ({1})"},
-            {Message::TOOLBAR_MORE, "More"}
+            {Message::TOOLBAR_MORE, "More"},
+            {Message::GPU_BAD_FRAME, "invalid frame data: {0}"},
+            {Message::APP_DRIVER_NOT_HEADLESS, "AppDriver works only with an application without OS windows (AppOptions::headless)"},
+            {Message::APP_DRIVER_NO_WINDOW, "AppDriver: no window \"{0}\" (windows open in start() and loop steps)"},
+            {Message::APP_DRIVER_DETACHED, "AppDriver: the application is already destroyed (declare AppDriver after Application)"}
         };
     }
 

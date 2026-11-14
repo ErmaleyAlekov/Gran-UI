@@ -6,6 +6,7 @@
 #include "support/layout_helpers.hpp"
 #include "gran/capi/gran.h"
 #include "gran/style/style_sheet.hpp"
+#include "gran/platform/headless/headless_window.hpp"
 #include <vector>
 #include <string>
 
@@ -100,74 +101,6 @@ namespace
         }
     };
 
-    class WindowStub : public gran::platform::Window
-    {
-    public:
-        bool pollEvent(gran::platform::Event&) override
-        {
-            return false;
-        }
-
-        void waitEvents(double) override
-        {
-        }
-
-        void* nativeHandle() const override
-        {
-            return nullptr;
-        }
-
-        float scale() const override
-        {
-            return 1.0f;
-        }
-
-        gran::Size pixelSize() const override
-        {
-            return {0, 0};
-        }
-
-        void setCursor(gran::platform::CursorShape) override
-        {
-        }
-
-        void show() override
-        {
-        }
-
-        void setLiveResize(std::function<void()>) override
-        {
-        }
-
-        std::string clipboardText() override
-        {
-            return clipboardText_;
-        }
-
-        void setClipboardText(const std::string& text) override
-        {
-            clipboardText_ = text;
-        }
-
-        void setAccessTree(gran::a11y::AccessTree*) override
-        {
-        }
-
-        void accessFocusChanged() override
-        {
-        }
-
-        void accessRefresh() override
-        {
-        }
-
-        void wake() noexcept override
-        {
-        }
-
-        std::string clipboardText_;
-    };
-
     void testDoubleClick()
     {
         auto doc = support::layoutMarkup(
@@ -178,7 +111,7 @@ namespace
 
         ActionSinkStub sink;
         TextLocatorStub locator;
-        WindowStub window;
+        gran::platform::HeadlessWindow window;
 
         gran::input::InputRouter router(*doc.root, sink, &window, locator);
 
@@ -209,7 +142,7 @@ namespace
         auto* s = gran::ui::findNode(*doc.root, "s");
         ActionSinkStub sink;
         TextLocatorStub locator;
-        WindowStub window;
+        gran::platform::HeadlessWindow window;
         gran::input::InputRouter router(*doc.root, sink, &window, locator);
         gran::platform::Event event;
 
@@ -237,7 +170,7 @@ namespace
 
         ActionSinkStub sink;
         TextLocatorStub locator;
-        WindowStub window;
+        gran::platform::HeadlessWindow window;
 
         gran::input::InputRouter router(*doc.root, sink, &window, locator);
 
@@ -268,7 +201,7 @@ namespace
 
         ActionSinkStub sink;
         TextLocatorStub locator;
-        WindowStub window;
+        gran::platform::HeadlessWindow window;
 
         gran::input::InputRouter router(*doc.root, sink, &window, locator);
 
@@ -305,7 +238,7 @@ namespace
 
         ActionSinkStub sink;
         TextLocatorStub locator;
-        WindowStub window;
+        gran::platform::HeadlessWindow window;
 
         gran::input::InputRouter router(*doc.root, sink, &window, locator);
 

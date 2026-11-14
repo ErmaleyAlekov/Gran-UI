@@ -6,6 +6,13 @@ namespace gran::image::internal
     // Bytes are pulled into a 32-bit buffer; beyond the data end — failed, not a read of foreign memory
     std::uint32_t readBits(BitReader& reader, int need) noexcept
     {
+        // Сдвиг 1u << 32 и переполнение буфера — неопределённое поведение: такой запрос — ошибка вызова
+        // The shift 1u << 32 and a buffer overflow are undefined behaviour: such a request is a call error
+        if (need < 0 || need > MAX_READ_BITS)
+        {
+            reader.failed = true;
+            return 0;
+        }
         while (reader.count < need)
         {
             if (reader.position >= reader.size)
@@ -31,20 +38,26 @@ namespace gran::image::internal
     */
     bool buildHuffman(Huffman& code, const std::uint16_t* lengths, std::size_t count)
     {
-        std::uint16_t offsets[16] = {};
+        std::uint16_t offsets[MAX_CODE_BITS + 1] = {};
         int left = 1;
 
         for (std::uint16_t& value : code.counts)
             value = 0;
+        // Длина — индекс в counts: проверяется до записи, а не доверяется вызывающему
+        // A length is an index into counts: it is checked before the write, not trusted to the caller
         for (std::size_t symbol = 0; symbol < count; ++symbol)
+        {
+            if (lengths[symbol] > MAX_CODE_BITS)
+                return false;
             ++code.counts[lengths[symbol]];
-        for (int length = 1; length < 16; ++length)
+        }
+        for (int length = 1; length <= MAX_CODE_BITS; ++length)
         {
             left = left * 2 - code.counts[length];
             if (left < 0)
                 return false;
         }
-        for (int length = 1; length < 15; ++length)
+        for (int length = 1; length < MAX_CODE_BITS; ++length)
             offsets[length + 1] = static_cast<std::uint16_t>(offsets[length] + code.counts[length]);
         code.symbols.assign(count, 0);
         for (std::size_t symbol = 0; symbol < count; ++symbol)
@@ -63,7 +76,7 @@ namespace gran::image::internal
         int first = 0;
         int index = 0;
 
-        for (int length = 1; length < 16; ++length)
+        for (int length = 1; length <= MAX_CODE_BITS; ++length)
         {
             value |= static_cast<int>(readBits(reader, 1));
             int count = code.counts[length];

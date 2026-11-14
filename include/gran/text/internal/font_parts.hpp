@@ -97,6 +97,27 @@ namespace gran::text
     bool glyphLocation(const FontReader& reader, const FaceTables& tables, bool longLoca, std::uint16_t glyph,
         std::uint32_t& offset, std::uint32_t& end) noexcept;
 
+    // ---- font_component.cpp ----
+
+    // Флаги записи компонента составного глифа (OpenType glyf) / The composite glyph component record flags (OpenType glyf)
+    constexpr std::uint16_t COMPONENT_ARGS_ARE_WORDS = 0x0001;
+    constexpr std::uint16_t COMPONENT_ARGS_ARE_XY = 0x0002;
+    constexpr std::uint16_t COMPONENT_HAS_SCALE = 0x0008;
+    constexpr std::uint16_t COMPONENT_MORE_COMPONENTS = 0x0020;
+    constexpr std::uint16_t COMPONENT_HAS_XY_SCALE = 0x0040;
+    constexpr std::uint16_t COMPONENT_HAS_TWO_BY_TWO = 0x0080;
+
+    // Полный размер записи компонента по её флагам — проверяется до чтения / The full component record size by its flags — checked before reading
+    std::size_t componentRecordSize(std::uint16_t flags) noexcept;
+
+    // Смещение компонента; возвращает позицию после него / The component offset; returns the position after it
+    std::size_t readComponentOffset(const FontReader& reader, std::size_t position, std::uint16_t flags,
+        Affine2D& transform);
+
+    // Матрица компонента (F2Dot14); возвращает позицию после неё / The component matrix (F2Dot14); returns the position after it
+    std::size_t readComponentTransform(const FontReader& reader, std::size_t position, std::uint16_t flags,
+        Affine2D& transform);
+
     // ---- font_kern.cpp / font_gpos.cpp / font_coverage.cpp ----
 
     // Тег таблицы или признака из четырёх символов / A table or feature tag from four characters

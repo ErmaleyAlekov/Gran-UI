@@ -52,8 +52,8 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `input/` | hit-test (considering transform), focus, event routing, text editing and selection, clipboard, the field edit history (Ctrl+Z/Ctrl+Y) |
 | `a11y/` | accessibility: roles, names, control patterns, tree navigation, the client request queue (neutral); UI Automation provider in `platform/win32/uia_*`, the requests are performed by `InputRouter::perform` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
-| `rhi/` | backend interface, `null/`, `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
-| `platform/` | window and events: `win32/`, `x11/` (then `cocoa/`); the embedded browser `webview2/` (optional) |
+| `rhi/` | backend interface, `null/` (the empty backend without a GPU, `BackendKind::NONE`), `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
+| `platform/` | window and events: `win32/`, `x11/`, `headless/` (without an OS, for tests; then `cocoa/`); the embedded browser `webview2/` (optional) |
 | `app/` | application: windows (an `AppWindow` per window — the document, the renderer, input; the shared part is in `Application::State`; the owner is a non-owning reference to a window standing earlier in the list: the owned windows close before the owners, the graphics go from the list end; the modality is the `blocked` flag of the owners, the input is dropped before the tree, on Win32 also `EnableWindow`), the background task pool `TaskPool` (a shared queue, the threads on the first task, the outcome and the merged progress — through `post`), event loop, file dialogs, file dragging, timers (`setTimeout`/`setInterval`), action binding (`onClick="name"` → C++ function), `<WebView>` placement |
 
 ### The embedded browser (hybrid)
@@ -72,7 +72,8 @@ The engine draws the interface itself and does not use a browser for this. `<Web
 ### The platform contract (`platform::`)
 
 An OS window is the `platform::Window` interface (the Bridge pattern, `include/gran/platform/window.hpp`). Implementations:
-`win32/`, `x11/`, then a windowless one for tests (step M2 of the plan) and `cocoa/` (M6). The common code (`app/`, `input/`,
+`win32/`, `x11/`, `headless/` — without an OS, for tests (`HeadlessWindow`, `AppDriver` feeds the events, the "UI tests
+without a window" section in [development.en.md](development.en.md)), then `cocoa/` (M6). The common code (`app/`, `input/`,
 `ui/`, `render/` and the other modules) relies only on what is listed below; everything OS-dependent is done by the window
 implementation. Adding a platform means fulfilling this contract — there must be no changes in the common code.
 
@@ -82,11 +83,12 @@ implementation. Adding a platform means fulfilling this contract — there must 
 | Event loop | `pollEvent` without waiting; `waitEvents(timeout)` sleeps until an event, the timeout or `wake()`. The window procedure only queues events; the exception is `setLiveResize` (repainting while resizing), wrapped into a `noexcept` barrier | message queue / `XNextEvent` + `poll` | `nextEventMatchingMask:untilDate:`, waking — a `CFRunLoopSource` |
 | Coordinates and scale | mouse events are in logical pixels of the client area; `scale()` is device pixels per logical pixel, may be fractional (1.25; 1.5); `RESIZE` and `pixelSize()` are in device pixels; moving to a monitor with another scale gives `DPI_CHANGED` | DPI v2 / `Xft.dpi` | a logical pixel is a point, `scale` = `backingScaleFactor` |
 | Keys | `Key` is by the physical position (Ctrl+C works in the Russian layout); auto-repeat — repeated `KEY_DOWN` | virtual codes / keycode | `keyCode` |
-| Modifiers | `MODIFIER_CONTROL` is "Mod", the primary shortcut modifier (as `Qt::ControlModifier`); `MODIFIER_ALT` is Alt/Option; `MODIFIER_META` is Win/Super, the common code does not use it | Ctrl → `CONTROL` | Cmd → `CONTROL`, the physical Control → `META` |
+| Modifiers | `MODIFIER_CONTROL` is "Mod", the primary shortcut modifier (as `Qt::ControlModifier`); `MODIFIER_ALT` is Alt/Option; `MODIFIER_META` is Win/Super; a chord with `META` matches no command (`commandKey`). The implementation gives the modifiers as they are and does not translate the text editing chords (see below) | Ctrl → `CONTROL` | Cmd → `CONTROL`, the physical Control → `META` |
 | Text | a character is `CHARACTER` (UTF-32) after `KEY_DOWN`; chords with Mod give no characters. Dead keys and AltGr are typed by the OS | `WM_CHAR`; AltGr = Ctrl+Alt, the field takes it | `interpretKeyEvents`; if Option typed a character — `KEY_DOWN` without `MODIFIER_ALT` |
 | IME | **not in the code yet** (item 2.5): a `COMPOSITION` event (the composition string and caret), committing — `CHARACTER`, `Window::setTextInputArea(Rect)` — where to show the candidate window | IMM32/TSF, XIM/IBus | `NSTextInputClient` |
 | Wheel | `wheel` is in "notches" (fractions allowed); precise sources (a trackpad) divide pixels by `WHEEL_NOTCH_PIXELS` (48). Plus on y is towards the document start, plus on x — towards the line start | `WHEEL_DELTA` = 120; X11 — buttons 4–7 | `scrollingDeltaX/Y`, with `hasPreciseScrollingDeltas` — divided by 48; the OS gives the inertia |
 | Clicks | `clicks` on `MOUSE_DOWN` is the OS count (a double click by its settings); capturing the mouse until release is the implementation's job | `SetCapture` / an active grab | `clickCount` |
+| Event order | **Size:** the initial one is `pixelSize()` right after `createWindow`; the common code reads `pixelSize()` when handling `RESIZE` and before every frame, so the order of `RESIZE` and `EXPOSE` is **neither guaranteed nor needed**. `EXPOSE` only means "repaint"; the first frame is drawn before `show()` without it. **Focus loss:** `FOCUS_LOST` cancels the press in the common code without a click (the press, the node capture, a drag, the mouse selection, the click count — `input_router.cpp`). The implementation then releases its OS mouse capture and does **not** send synthetic `MOUSE_UP`/`MOUSE_LEAVE` (a `MOUSE_UP` would click). A `MOUSE_UP` without `MOUSE_DOWN` is allowed and gives no click; a repeated `MOUSE_DOWN` without `MOUSE_UP` is a new press. The order of `FOCUS_LOST` and `CLOSE` is not guaranteed | `WM_KILLFOCUS` → `ReleaseCapture` / `FocusOut` → `XUngrabPointer` | `resignKey` → release the capture |
 | Cursors | `CursorShape` (the order is as `style::Cursor`) | system cursors | `NSCursor` |
 | Clipboard | UTF-8 text, synchronously (`clipboardText`, `setClipboardText`) | `CF_UNICODETEXT` / the `CLIPBOARD` owner | `NSPasteboard` |
 | Window | `show()` — after the first frame (no white flash); minimize, maximize, restore, `close()` — by the usual `CLOSE` event; a custom frame (`TitleBar::CUSTOM`) and region roles (`WindowRole`) via `setFrameHitTest`; the owner and modality — the application blocks the input itself, the OS only helps | `EnableWindow` / `_NET_WM_STATE_MODAL` | `zoom:`, `miniaturize:`; a custom frame — `FullSizeContentView` + a transparent title bar |
@@ -102,17 +104,34 @@ the OS for them: today it is the look of the shortcut labels in menus (`Ctrl+Shi
 OS calls outside `platform/` and `rhi/` exist only in modules that need them by nature: the log and the crash report (`log/`),
 the settings paths (`settings/`), file mapping (`utils/mapped_file_os.cpp`), the system font search (`text/library/`).
 
-The Cocoa implementation translates the usual macOS chords into the canonical engine events, so text editing in the common
-code is one for all OSes:
+**Text editing chords** are not the platform's job: their meaning is chosen by the input field by `hostOs()`
+(`input/internal/text_keys.hpp`, `caretMove` / `eraseMove`), and only when the focused field handles the key
+(`command_keys.cpp`, `fieldOwns`). Outside a field the same presses stay with the commands. There used to be a table here
+translating Option+← → Mod+← at the platform level — remark T-43 (2026-11-14): such a press outside a field would run
+`<Command key="Mod+Left">`, and Cmd+← would never reach a command at all.
 
-| macOS | Engine event | Meaning |
-|---|---|---|
-| Cmd+← / Cmd+→ | Home / End | the line edge |
-| Cmd+↑ / Cmd+↓ | Mod+Home / Mod+End | the text edge |
-| Option+← / Option+→ | Mod+← / Mod+→ | by a word |
-| Option+Backspace / Option+Delete | Mod+Backspace / Mod+Delete | delete a word |
-| Control+Tab, Control+Shift+Tab | Mod+Tab, Mod+Shift+Tab | document tabs (Cmd+Tab is taken by the system) |
-| a lone Option | not sent as `Key::ALT` | macOS has no menu bar by Alt: the menu is the system one |
+| Meaning | Windows | Linux | macOS |
+|---|---|---|---|
+| by a character | ← / → | ← / → | ← / → |
+| by a word | Ctrl+← / Ctrl+→ (right — to the next word start) | Ctrl+← / Ctrl+→ (right — to the word end) | Option+← / Option+→ (right — to the word end) |
+| the line edge | Home / End | Home / End | Cmd+← / Cmd+→ |
+| the text edge | Ctrl+Home / Ctrl+End | Ctrl+Home / Ctrl+End | Cmd+↑ / Cmd+↓, Home / End |
+| erase a word | Ctrl+Backspace / Ctrl+Delete | Ctrl+Backspace / Ctrl+Delete | Option+Backspace / Option+Delete |
+| a paragraph (already at the edge — the neighbour one) | — | — | Option+↑ / Option+↓ |
+| the paragraph edge (emacs) | — | — | Control+A / Control+E |
+| erase to the line edge | — | — | Cmd+Backspace / Cmd+Delete |
+| erase to the paragraph end (emacs) | — | — | Control+K |
+| redo | Ctrl+Y, Ctrl+Shift+Z | the same | Cmd+Shift+Z (Cmd+Y is a program command) |
+| Mod+Enter | a TextArea submits, a single-line field — a command | the same | the same |
+| AltGr (typing a character) | Ctrl+Alt — the field takes it | the same | none: Cmd+Option are commands |
+
+A line break stops a word step: a step from a line edge crosses to the neighbour line and goes no further (empty lines
+are not skipped through). Chords with `META` (the physical Control on macOS) are taken by the field only by the table
+(Control+A/E/K), a character with `META` is not typed (remarks T-46, 2026-11-14).
+
+The Cocoa implementation keeps only two translations that cannot match a command: Control+Tab and Control+Shift+Tab →
+Mod+Tab, Mod+Shift+Tab (document tabs; Cmd+Tab is taken by the system and never reaches the program) and a lone Option —
+not sent as `Key::ALT` (macOS has no menu bar by Alt: the menu is the system one).
 
 #### Searching for Win32/X11 "leaks" in the common code (2026-11-13, step M1)
 
@@ -125,7 +144,8 @@ code is one for all OSes:
 | The POSIX crash report: `gregs[REG_RIP]` registers (glibc), `/proc/self/maps` | will not build on macOS — step M3 (`uc_mcontext->__ss`, the `dyld` image list) |
 | Makefile and CMake stop the build on macOS | step M3 |
 | Modality: Win32 disables the owner, X11 cannot | already neutral: the application blocks the input (`blocked`), the OS only helps |
-| The menu bar by Alt, AltGr as Ctrl+Alt | Windows/Linux conventions; Cocoa fulfils them by the table above |
+| The menu bar by Alt, AltGr as Ctrl+Alt | Windows/Linux conventions; on macOS — the text editing table above (no AltGr) and a lone Option is not sent |
+| Ctrl+←/→ and Ctrl+Backspace in a field stepped and erased by a character; `commandKey` cut `MODIFIER_META` by a mask, and Control+S on macOS would match the command "S" (found while handling T-43, 2026-11-14) | word steps and erasing — `text_keys.cpp`, `text_word_steps.cpp`; chords with `META` match no command |
 | No IME on any platform | the contract extension is described above, the implementation is item 2.5 |
 
 There is no `#if` by the OS in `app/`, `input/`, `ui/`, `render/`, `layout/`, `style/`, `markup/`, `binding/`, `data/`.

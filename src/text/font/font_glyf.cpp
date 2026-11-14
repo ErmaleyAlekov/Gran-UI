@@ -26,6 +26,10 @@ namespace gran::text
         {
             std::size_t previous = 0;
 
+            // Концы контуров (по 2 байта) должны поместиться в глиф до чтения: иначе их место — в чужом глифе
+            // The contour ends (2 bytes each) must fit in the glyph before reading: otherwise their place is in a foreign glyph
+            if (contours == 0 || cursor.position > cursor.end || contours > (cursor.end - cursor.position) / 2)
+                return 0;
             for (std::size_t index = 0; index < contours; ++index)
             {
                 std::size_t last = cursor.reader.u16(cursor.position + index * 2);
@@ -35,9 +39,28 @@ namespace gran::text
                 outline.contourEnds.push_back(static_cast<std::uint16_t>(base + last));
             }
             cursor.position += contours * 2;
-            if (contours == 0 || previous + 1 > 65535 - base || cursor.position > cursor.end)
+            if (previous + 1 > 65535 - base)
                 return 0;
             return previous + 1;
+        }
+
+        /*
+        ** Пропуск инструкций хинтинга: длина (2 байта) и сами инструкции должны лежать внутри глифа.
+        ** Без проверки длина читалась из следующего глифа на глифе, обрезанном после концов контуров.
+        **
+        ** Skipping the hinting instructions: the length (2 bytes) and the instructions themselves must lie inside the glyph.
+        ** Without the check the length was read from the next glyph on a glyph cut right after the contour ends.
+        */
+        bool skipInstructions(GlyphCursor& cursor)
+        {
+            if (cursor.end - cursor.position < 2)
+                return false;
+            std::size_t length = cursor.reader.u16(cursor.position);
+            cursor.position += 2;
+            if (length > cursor.end - cursor.position)
+                return false;
+            cursor.position += length;
+            return true;
         }
 
         // Флаги с повторами; false — данные кончились раньше / The flags with repeats; false — the data ended early
@@ -108,9 +131,8 @@ namespace gran::text
         std::size_t base = outline.points.size();
         std::size_t count = readContours(cursor, static_cast<std::size_t>(reader.i16(offset)), base, outline);
 
-        if (count == 0)
+        if (count == 0 || !skipInstructions(cursor))
             return false;
-        cursor.position += 2 + reader.u16(cursor.position);
         std::vector<std::uint8_t> flags(count);
         std::vector<Vec2> points(count);
         if (!readFlags(cursor, flags) || !readAxis(cursor, flags, points, false) || !readAxis(cursor, flags, points, true))

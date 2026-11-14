@@ -20,7 +20,12 @@ namespace gran::image
             internal::throwBadImage(source, "no IHDR");
         if (chunks.header.colorType == 3 && chunks.palette.empty())
             internal::throwBadImage(source, "no PLTE");
-        std::size_t expected = (internal::rowBytes(chunks.header) + 1) * chunks.header.height;
+        // Размер — в 64 битах и проверяется против SIZE_MAX: в 32-битной сборке иначе возможен перенос
+        // The size is in 64 bits and checked against SIZE_MAX: otherwise a wrap is possible in a 32-bit build
+        std::uint64_t total = (static_cast<std::uint64_t>(internal::rowBytes(chunks.header)) + 1) * chunks.header.height;
+        if (total > SIZE_MAX)
+            internal::throwBadImage(source, "IHDR");
+        std::size_t expected = static_cast<std::size_t>(total);
         if (!inflateZlib(chunks.compressed.data(), chunks.compressed.size(), expected, raw) || raw.size() != expected)
             internal::throwBadImage(source, "IDAT");
         if (!internal::unfilter(raw, chunks.header))

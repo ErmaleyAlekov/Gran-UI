@@ -18,10 +18,22 @@ namespace gran::image::internal
         bool failed = false;
     };
 
+    // Самый длинный код DEFLATE (RFC 1951 §3.2.7): длины 0..15 / The longest DEFLATE code (RFC 1951 §3.2.7): lengths 0..15
+    constexpr std::uint16_t MAX_CODE_BITS = 15;
+
+    /*
+    ** Предел одного чтения битов: буфер 32-битный, и до чтения в нём может остаться до 7 бит,
+    ** поэтому больше 24 бит за раз без переполнения сдвига не дочитать. DEFLATE просит не больше 13.
+    **
+    ** The limit of one bit read: the buffer is 32-bit and up to 7 bits may remain in it before the read,
+    ** so more than 24 bits at once cannot be pulled in without a shift overflow. DEFLATE asks for at most 13.
+    */
+    constexpr int MAX_READ_BITS = 24;
+
     // Канонический код Хаффмана: число кодов каждой длины и символы по порядку / A canonical Huffman code: the code count per length and the symbols in order
     struct Huffman
     {
-        std::uint16_t counts[16] = {};
+        std::uint16_t counts[MAX_CODE_BITS + 1] = {};
         std::vector<std::uint16_t> symbols;
     };
 
@@ -34,10 +46,12 @@ namespace gran::image::internal
 
     // ---- inflate_bits.cpp ----
 
-    // need бит (0..16); при нехватке данных — failed и 0 / need bits (0..16); when the data runs out — failed and 0
+    // need бит (0..MAX_READ_BITS); вне предела или при нехватке данных — failed и 0
+    // need bits (0..MAX_READ_BITS); out of the limit or when the data runs out — failed and 0
     std::uint32_t readBits(BitReader& reader, int need) noexcept;
 
-    // Код по длинам; false — длины противоречивы (переподписка) / A code by lengths; false — the lengths are contradictory (oversubscribed)
+    // Код по длинам; false — длина больше MAX_CODE_BITS или длины противоречивы (переподписка)
+    // A code by lengths; false — a length above MAX_CODE_BITS or the lengths are contradictory (oversubscribed)
     bool buildHuffman(Huffman& code, const std::uint16_t* lengths, std::size_t count);
 
     // Символ по коду (побитно, как в puff); −1 — неверный код / A symbol by the code (bit by bit, as in puff); −1 — an invalid code

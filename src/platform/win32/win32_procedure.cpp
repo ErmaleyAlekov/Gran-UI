@@ -85,7 +85,15 @@ namespace gran::platform::win32
             else if (message == WM_SETFOCUS)
                 event.kind = EventKind::FOCUS_GAINED;
             else if (message == WM_KILLFOCUS)
+            {
+                // Контракт: при потере фокуса общий код отменяет нажатие сам, а окно отпускает захват ОС
+                // (иначе мышь до отпускания шла бы окну, которое уже забыло нажатие). MOUSE_UP не шлётся: дал бы щелчок.
+                // The contract: on a focus loss the common code cancels the press itself, and the window releases the OS
+                // capture (otherwise the mouse would go to a window that forgot the press). No MOUSE_UP: it would click.
+                if (GetCapture() == self.window)
+                    ReleaseCapture();
                 event.kind = EventKind::FOCUS_LOST;
+            }
             else
                 return false;
             self.push(event);

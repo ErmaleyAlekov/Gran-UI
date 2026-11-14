@@ -13,19 +13,44 @@ namespace gran::input
         }
 
         /*
-        ** Ctrl+Z — отмена, Ctrl+Y и Ctrl+Shift+Z — повтор (как в Windows и в браузерах). Сочетания
-        ** зарезервированы за полем (command_keys.cpp), команды <Command> их здесь не перехватывают.
+        ** Backspace и Delete: при выделении стирается оно, иначе — от каретки до границы по смыслу клавиши
+        ** (символ, слово, край строки — internal::eraseMove в соглашениях ОС). Чужое сочетание — не обработано.
         **
-        ** Ctrl+Z — undo, Ctrl+Y and Ctrl+Shift+Z — redo (as in Windows and in browsers). The chords
-        ** are reserved for the field (command_keys.cpp), the <Command> commands do not intercept them here.
+        ** Backspace and Delete: with a selection it is erased, otherwise — from the caret to the bound by the key meaning
+        ** (a character, a word, the line edge — internal::eraseMove in the OS conventions). A foreign chord is not handled.
+        */
+        bool eraseKey(RouterState& state, ui::Node& input, const platform::Event& event)
+        {
+            internal::TextMove move = internal::eraseMove(event.key, event.modifiers, platform::hostOs());
+            std::size_t caret = input.content.caret;
+            std::size_t target = caret;
+
+            if (move == internal::TextMove::NONE)
+                return false;
+            if (internal::eraseSelection(state, input))
+                return true;
+            if (!internal::moveTarget(state, input, move, target))
+                return false;
+            if (target < caret)
+                return eraseRange(state, input, target, caret, internal::EditKind::ERASE_BACK);
+            return eraseRange(state, input, caret, target, internal::EditKind::ERASE_FORWARD);
+        }
+
+        /*
+        ** Ctrl+Z — отмена, Ctrl+Y и Ctrl+Shift+Z — повтор (как в Windows и в браузерах; на macOS повтор — только
+        ** Cmd+Shift+Z, Cmd+Y — команда программы). Сочетания зарезервированы за полем (command_keys.cpp).
+        **
+        ** Ctrl+Z — undo, Ctrl+Y and Ctrl+Shift+Z — redo (as in Windows and in browsers; on macOS redo is only
+        ** Cmd+Shift+Z, Cmd+Y is a program command). The chords are reserved for the field (command_keys.cpp).
         */
         bool historyKey(RouterState& state, ui::Node& input, const platform::Event& event, bool& handled)
         {
             bool shift = (event.modifiers & platform::MODIFIER_SHIFT) != 0;
 
             // Ctrl+Alt — это AltGr (набор знаков), не отмена / Ctrl+Alt is AltGr (typing marks), not undo
-            handled = (event.modifiers & platform::MODIFIER_ALT) == 0
-                && (event.key == platform::Key::Y || event.key == platform::Key::Z);
+            bool redoKey = event.key == platform::Key::Y && platform::hostOs() != platform::HostOs::MACOS;
+
+            handled = (event.modifiers & platform::MODIFIER_ALT) == 0 && (redoKey || event.key == platform::Key::Z);
             if (!handled)
                 return false;
             if (event.key == platform::Key::Z && !shift)
@@ -72,24 +97,12 @@ namespace gran::input
     */
     bool editText(RouterState& state, ui::Node& input, const platform::Event& event)
     {
-        const std::string& text = input.content.text;
-        std::size_t caret = input.content.caret;
-
         bool handled = false;
 
-        switch (event.key)
-        {
-            case platform::Key::BACKSPACE:
-                return internal::eraseSelection(state, input)
-                    || eraseRange(state, input, internal::previousBoundary(text, caret), caret, internal::EditKind::ERASE_BACK);
-            case platform::Key::DELETE_KEY:
-                return internal::eraseSelection(state, input)
-                    || eraseRange(state, input, caret, internal::nextBoundary(text, caret), internal::EditKind::ERASE_FORWARD);
-            case platform::Key::ENTER:
-                return enterKey(state, input, event.modifiers);
-            default:
-                break;
-        }
+        if (internal::eraseMove(event.key, event.modifiers, platform::hostOs()) != internal::TextMove::NONE)
+            return eraseKey(state, input, event);
+        if (event.key == platform::Key::ENTER)
+            return enterKey(state, input, event.modifiers);
         if (navigateText(state, input, event))
             return true;
         if ((event.modifiers & platform::MODIFIER_CONTROL) == 0)
