@@ -1,0 +1,3 @@
+# Скрипты оболочки — всегда с LF: bash не понимает CR в конце строк (на раннере Windows Git иначе ставит CRLF)
+# Shell scripts always use LF: bash does not understand CR at line ends (otherwise Git puts CRLF on the Windows runner)
+*.sh text eol=lf
