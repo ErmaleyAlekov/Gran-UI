@@ -5,6 +5,8 @@
 #    make               — библиотека bin/libgran.a, примеры и инструменты
 #    make test          — собрать и запустить модульные тесты
 #    make shaders       — HLSL → DXIL (+ SPIR-V при VULKAN=1) → src/rhi/shaders_gen/*.cpp (нужен dxc)
+#    make shaders-metal — HLSL → SPIR-V → MSL → src/rhi/shaders_gen/msl/*.metal (dxc со SPIR-V, spirv-cross)
+#    make metal-check   — компиляция MSL в metallib (только macOS, xcrun metal)
 #    make beresta       — собрать статическую «Берёсту» в BERESTA_DIR
 #    make clean / fclean / re / platform
 #
@@ -24,6 +26,8 @@
 #    make               — the bin/libgran.a library, the examples and the tools
 #    make test          — build and run the unit tests
 #    make shaders       — HLSL → DXIL (+ SPIR-V with VULKAN=1) → src/rhi/shaders_gen/*.cpp (needs dxc)
+#    make shaders-metal — HLSL → SPIR-V → MSL → src/rhi/shaders_gen/msl/*.metal (dxc with SPIR-V, spirv-cross)
+#    make metal-check   — compiling MSL into a metallib (macOS only, xcrun metal)
 #    make beresta       — build the static Beresta library in BERESTA_DIR
 #    make clean / fclean / re / platform
 #
@@ -603,3 +607,58 @@ shaders-vulkan: $(EMBED_BIN)
 	$(EMBED_BIN) $(OBJ_DIR)/shaders/blur_down_ps.spv src/rhi/shaders_gen/blur_down_ps_spv.cpp BLUR_DOWN_PS_SPV
 	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_VULKAN=1 -T ps_6_0 -E psBlurUp -O3 -Fo $(OBJ_DIR)/shaders/blur_up_ps.spv shaders/hlsl/ui.hlsl
 	$(EMBED_BIN) $(OBJ_DIR)/shaders/blur_up_ps.spv src/rhi/shaders_gen/blur_up_ps_spv.cpp BLUR_UP_PS_SPV
+
+# ---- Шейдеры Metal (M4): HLSL → SPIR-V (dxc -spirv) → MSL (spirv-cross) -------
+# ---- The Metal shaders (M4): HLSL → SPIR-V (dxc -spirv) → MSL (spirv-cross) -------
+# Тот же HLSL, ветка GRAN_METAL в ui_common.hlsli: фиксированные привязки, номер привязки = индекс MSL
+# (--msl-decoration-binding). Без -fvk-invert-y: пространство отсечения Metal, как у D3D, — y вверх.
+# Тексты MSL лежат в исходниках (как DXIL и SPIR-V): обычной сборке dxc и spirv-cross не нужны. MSL 2.3 — macOS 11.
+# Цель — для Linux, WSL и macOS (dxc из Windows SDK не умеет SPIR-V).
+# The same HLSL, the GRAN_METAL branch in ui_common.hlsli: fixed bindings, the binding number = the MSL index
+# (--msl-decoration-binding). Without -fvk-invert-y: the Metal clip space is as in D3D — y up.
+# The MSL texts live in the sources (as DXIL and SPIR-V): a normal build needs neither dxc nor spirv-cross. MSL 2.3 is macOS 11.
+# The target is for Linux, WSL and macOS (dxc from the Windows SDK cannot do SPIR-V).
+SPIRV_CROSS ?= spirv-cross
+MSL_VERSION := 20300
+MSL_STD     := macos-metal2.3
+MSL_OUT     := $(SHADER_OUT)/msl
+MSL_TMP     := $(SHADER_TMP)/msl
+# Шейдеры: имя файла, профиль, точка входа / The shaders: the file name, the profile, the entry point
+MSL_SHADERS := ui_vs:vs_6_0:vsMain ui_ps:ps_6_0:psMain fullscreen_vs:vs_6_0:vsFullscreen                blur_down_ps:ps_6_0:psBlurDown blur_up_ps:ps_6_0:psBlurUp
+MSL_NAMES   := $(foreach s,$(MSL_SHADERS),$(word 1,$(subst :, ,$(s))))
+
+# Один шейдер: SPIR-V во временную папку, затем MSL в исходники (пустая строка в конце — разделитель команд)
+# One shader: SPIR-V into the temporary folder, then MSL into the sources (the blank line at the end separates commands)
+define MSL_RULE
+	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_METAL=1 -T $(2) -E $(3) -O3 -Fo $(MSL_TMP)/$(1).spv $(SHADER_SRC)
+	"$(SPIRV_CROSS)" --msl --msl-version $(MSL_VERSION) --msl-decoration-binding --output $(MSL_OUT)/$(1).metal $(MSL_TMP)/$(1).spv
+
+endef
+
+# Один шейдер MSL → AIR с предупреждениями как ошибками / One MSL shader → AIR with warnings as errors
+define METAL_AIR_RULE
+	xcrun -sdk macosx metal -std=$(MSL_STD) -mmacosx-version-min=$(MACOS_MIN) -Werror -c $(MSL_OUT)/$(1).metal -o $(MSL_TMP)/$(1).air
+
+endef
+
+.PHONY: shaders-metal metal-check
+shaders-metal:
+	@$(call MKDIR,$(MSL_TMP))
+	@$(call MKDIR,$(MSL_OUT))
+	$(foreach s,$(MSL_SHADERS),$(call MSL_RULE,$(word 1,$(subst :, ,$(s))),$(word 2,$(subst :, ,$(s))),$(word 3,$(subst :, ,$(s)))))
+
+# Проверка MSL компилятором Apple: все шейдеры → AIR → один gran.metallib (точки входа не пересекаются),
+# затем раскладка структур GPU против C++ (tests/metal/layout_check.metal)
+# The MSL check by the Apple compiler: all shaders → AIR → one gran.metallib (the entry points do not overlap),
+# then the GPU struct layout against C++ (tests/metal/layout_check.metal)
+metal-check:
+ifeq ($(PLATFORM_OS),macos)
+	@$(call MKDIR,$(MSL_TMP))
+	$(foreach n,$(MSL_NAMES),$(call METAL_AIR_RULE,$(n)))
+	xcrun -sdk macosx metallib $(addprefix $(MSL_TMP)/,$(addsuffix .air,$(MSL_NAMES))) -o $(MSL_TMP)/gran.metallib
+	xcrun -sdk macosx metal -std=$(MSL_STD) -mmacosx-version-min=$(MACOS_MIN) -Werror -I $(MSL_OUT) -c tests/metal/layout_check.metal -o $(MSL_TMP)/layout_check.air
+	@echo metal-check: $(words $(MSL_NAMES)) shaders, $(MSL_TMP)/gran.metallib
+else
+	@echo metal-check: macOS only - xcrun metal
+	@exit 1
+endif

@@ -91,6 +91,29 @@ Texture2D backdropTexture : register(t5);
 #define GRAN_IMAGE(slot) imageTexture
 #define GRAN_BACKDROP backdropTexture
 #define GRAN_BLUR_SOURCE imageTexture
+#elif defined(GRAN_METAL)
+// Metal: SPIR-V → MSL (spirv-cross --msl-decoration-binding), номер привязки становится индексом MSL.
+// У Metal свои пространства индексов для буферов, текстур и сэмплеров, поэтому каждый вид — в своём наборе:
+// buffer(0) константы кадра, buffer(1) экземпляры, buffer(2) отсечения; texture(0..3) атлас, градиенты, картинка,
+// подложка; sampler(0). Константы кадра — обычный буфер (в Metal — setVertexBytes/setFragmentBytes), не push constant.
+// Metal: SPIR-V → MSL (spirv-cross --msl-decoration-binding), the binding number becomes the MSL index.
+// Metal has separate index spaces for buffers, textures and samplers, so each kind lives in its own set:
+// buffer(0) the frame constants, buffer(1) the instances, buffer(2) the clips; texture(0..3) the atlas, the ramps,
+// the image, the backdrop; sampler(0). The frame constants are a plain buffer (setVertexBytes/setFragmentBytes in Metal),
+// not a push constant.
+VK_BINDING(0, 0) ConstantBuffer<FrameConstants> frame;
+VK_BINDING(1, 0) StructuredBuffer<GpuInstance> instances;
+VK_BINDING(2, 0) StructuredBuffer<GpuClip> clips;
+VK_BINDING(0, 1) Texture2D atlasTexture;
+VK_BINDING(1, 1) Texture2D rampTexture;
+VK_BINDING(2, 1) Texture2D imageTexture;
+VK_BINDING(3, 1) Texture2D backdropTexture;
+VK_BINDING(0, 2) SamplerState linearSampler;
+#define GRAN_ATLAS atlasTexture
+#define GRAN_RAMP rampTexture
+#define GRAN_IMAGE(slot) imageTexture
+#define GRAN_BACKDROP backdropTexture
+#define GRAN_BLUR_SOURCE imageTexture
 #elif defined(GRAN_VULKAN)
 // Фиксированные привязки не требуют descriptor indexing на старых драйверах Mesa.
 // Fixed bindings require no descriptor indexing on older Mesa drivers.

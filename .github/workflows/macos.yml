@@ -83,6 +83,20 @@ jobs:
         timeout-minutes: 25
         working-directory: gran
         run: gmake BERESTA_DIR=../beresta test-crash 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      # Шейдеры Metal (M4): сгенерированный MSL → metallib компилятором Apple + раскладка структур против C++
+      # The Metal shaders (M4): the generated MSL → a metallib by the Apple compiler + the struct layout against C++
+      - name: Шейдеры Metal / Metal shaders (xcrun metal)
+        timeout-minutes: 10
+        working-directory: gran
+        run: gmake BERESTA_DIR=../beresta metal-check 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      # Есть ли у раннера устройство Metal — от этого зависят снимки бэкенда Metal (M5); шаг только сообщает
+      # Whether the runner has a Metal device — the Metal backend snapshots (M5) depend on it; the step only reports
+      - name: Устройство Metal / Metal device probe
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          xcrun swift -e 'import Metal; if let d = MTLCreateSystemDefaultDevice() { print("Metal device: \(d.name)") } else { print("Metal device: none") }'
+          system_profiler SPDisplaysDataType | head -20
       # Журнал — в аннотации (их видно без входа в GitHub), отчёты о сбое — в артефакт
       # The log goes to annotations (visible without signing in to GitHub), the crash reports — to an artifact
       - name: Журнал в аннотации / The log into annotations
