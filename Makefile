@@ -519,12 +519,16 @@ $(RES_SCHEMA_CPP): $(RES_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(RES_SCHEMA_C
 $(SET_SCHEMA_CPP): $(SET_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(SET_SCHEMA_CPP))
 	$(call native,$(EMBED_BIN)) $(SET_SCHEMA_XSD) $@ GRAN_SETTINGS_SCHEMA
 
-# Библиотека шейдеров Metal: каждый .metal → AIR (предупреждения — ошибки), все AIR → gran.metallib → массив METAL_LIBRARY
-# The Metal shader library: each .metal → AIR (warnings are errors), all AIR → gran.metallib → the METAL_LIBRARY array
+# Библиотека шейдеров Metal: каждый .metal → AIR (предупреждения — ошибки), все AIR → gran.metallib → массив METAL_LIBRARY.
+# -fno-fast-math: компилятор Metal по умолчанию упрощает математику (fast-math), из-за этого края фигур и размытие
+# расходились с эталонами D3D12 WARP; точная математика ближе к D3D, как в браузерах.
+# The Metal shader library: each .metal → AIR (warnings are errors), all AIR → gran.metallib → the METAL_LIBRARY array.
+# -fno-fast-math: the Metal compiler simplifies math by default (fast-math), so the shape edges and the blur diverged
+# from the D3D12 WARP baselines; precise math is closer to D3D, as in browsers.
 ifeq ($(PLATFORM_OS),macos)
 $(METAL_TMP)/%.air: $(METAL_SRC)/%.metal
 	@mkdir -p "$(METAL_TMP)"
-	xcrun -sdk macosx metal -std=$(METAL_STD) -mmacosx-version-min=$(MACOS_MIN) -Werror -c $< -o $@
+	xcrun -sdk macosx metal -std=$(METAL_STD) -mmacosx-version-min=$(MACOS_MIN) -fno-fast-math -Werror -c $< -o $@
 
 $(METALLIB): $(METAL_AIR)
 	xcrun -sdk macosx metallib $(METAL_AIR) -o $@
