@@ -22,6 +22,25 @@ namespace snapshot
                     gran::i18n::format(gran::i18n::Message::STYLE_BAD_NUMBER, {text}));
             return value;
         }
+
+        // Ключ выбора API или программного адаптера; false — это не ключ бэкенда.
+        // A key selecting the API or the software adapter; false — it is not a backend key.
+        bool backendKey(const char* text, Arguments& args)
+        {
+            if (std::strcmp(text, "--d3d11") == 0)
+                args.backend = gran::rhi::BackendKind::D3D11;
+            else if (std::strcmp(text, "--d3d12") == 0)
+                args.backend = gran::rhi::BackendKind::D3D12;
+            else if (std::strcmp(text, "--vulkan") == 0)
+                args.backend = gran::rhi::BackendKind::VULKAN;
+            else if (std::strcmp(text, "--metal") == 0)
+                args.backend = gran::rhi::BackendKind::METAL;
+            else if (std::strcmp(text, "--software") == 0 || std::strcmp(text, "--warp") == 0)
+                args.forceWarp = true;
+            else
+                return false;
+            return true;
+        }
     }
 
     // Ключи допускаются после путей вперемешку с прежними позиционными размерами.
@@ -36,17 +55,9 @@ namespace snapshot
         args.output = argv[2];
         for (int index = 3; index < argc; ++index)
         {
-            if (std::strcmp(argv[index], "--d3d11") == 0)
-                args.backend = gran::rhi::BackendKind::D3D11;
-            else if (std::strcmp(argv[index], "--d3d12") == 0)
-                args.backend = gran::rhi::BackendKind::D3D12;
-            else if (std::strcmp(argv[index], "--vulkan") == 0)
-                args.backend = gran::rhi::BackendKind::VULKAN;
-            else if (std::strcmp(argv[index], "--software") == 0)
-                args.forceWarp = true;
-            else if (std::strcmp(argv[index], "--warp") == 0)
-                args.forceWarp = true;
-            else if (count < 3)
+            if (backendKey(argv[index], args))
+                continue;
+            if (count < 3)
                 *dimensions[count++] = dimension(argv[index]);
             else
                 dimension("invalid");

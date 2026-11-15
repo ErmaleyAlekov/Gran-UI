@@ -159,7 +159,9 @@ namespace gran::rhi
     ** API selection; AUTO selects the platform API. NONE is an empty backend without a GPU (rhi::NullBackend): a frame is not
     ** drawn, only accepted; for UI tests on machines without a graphics card. Added at the end — the former codes did not shift.
     */
-    enum class BackendKind : std::uint8_t { AUTO, D3D11, D3D12, VULKAN, NONE };
+    // METAL (macOS) добавлен после NONE — коды прежних значений не сдвинулись (Си-интерфейс, настройки)
+    // METAL (macOS) is added after NONE — the codes of the former values did not shift (the C interface, the settings)
+    enum class BackendKind : std::uint8_t { AUTO, D3D11, D3D12, VULKAN, NONE, METAL };
 
     // Параметры создания бэкенда / The backend creation parameters
     struct BackendOptions

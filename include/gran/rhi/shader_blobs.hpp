@@ -44,6 +44,13 @@ namespace gran::generated
     extern const std::size_t BLUR_DOWN_PS_SPV_SIZE;
     extern const unsigned char BLUR_UP_PS_SPV[];
     extern const std::size_t BLUR_UP_PS_SPV_SIZE;
+
+    // Metal: все пять шейдеров одной библиотекой metallib; собирается при сборке на macOS
+    // (src/rhi/shaders_gen/msl/*.metal → xcrun metal → gen/rhi/metal_library.cpp), в исходниках её нет
+    // Metal: all five shaders in one metallib library; built at build time on macOS
+    // (src/rhi/shaders_gen/msl/*.metal → xcrun metal → gen/rhi/metal_library.cpp), it is not in the sources
+    extern const unsigned char METAL_LIBRARY[];
+    extern const std::size_t METAL_LIBRARY_SIZE;
 }
 
 #endif

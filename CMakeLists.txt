@@ -1,7 +1,7 @@
 # ============================================================================
 #  Gran UI — кроссплатформенная сборка CMake (повторяет Makefile)
-#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux (Vulkan/X11); macOS — пока только ядро без окна
-#  (GRAN_NATIVE=OFF: безоконная платформа и NullBackend; Cocoa и Metal — шаги M5–M6).
+#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux (Vulkan/X11); macOS — по умолчанию ядро без окна
+#  (GRAN_NATIVE=OFF: безоконная платформа и NullBackend), с GRAN_NATIVE=ON — Metal вне экрана (M5); окно Cocoa — M6.
 #
 #  Цели:
 #    gran                — статическая библиотека движка (libgran.a / gran.lib)
@@ -27,8 +27,8 @@
 #    cmake --build build --target gran_shaders
 # ============================================================================
 #  Gran UI — a cross-platform CMake build (mirrors the Makefile)
-#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux (Vulkan/X11); macOS — so far only the core without
-#  windows (GRAN_NATIVE=OFF: the windowless platform and NullBackend; Cocoa and Metal are steps M5–M6).
+#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux (Vulkan/X11); macOS — the core without windows by
+#  default (GRAN_NATIVE=OFF: the windowless platform and NullBackend), with GRAN_NATIVE=ON — offscreen Metal (M5); Cocoa — M6.
 #
 #  Targets:
 #    gran                — the engine static library (libgran.a / gran.lib)
@@ -87,17 +87,17 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(GRAN_BUILD_TESTS "Собирать модульные тесты / Build the unit tests" ON)
 option(GRAN_BUILD_RENDER_TESTS "GPU-тесты WARP/Vulkan / WARP/Vulkan GPU tests" OFF)
-# Платформа ОС (окна, GPU): на macOS её пока нет (Cocoa — шаг M6, Metal — M5) — там ядро без окна
-# The OS platform (windows, GPU): macOS has none yet (Cocoa — step M6, Metal — M5) — the core without windows there
+# Платформа ОС (окна, GPU): на macOS окна ещё нет (Cocoa — шаг M6) — по умолчанию ядро без окна; GRAN_NATIVE=ON —
+# Metal вне экрана (M5, нужен компилятор Metal из Xcode)
+# The OS platform (windows, GPU): macOS has no window yet (Cocoa — step M6) — the core without windows by default;
+# GRAN_NATIVE=ON — offscreen Metal (M5, needs the Metal compiler from Xcode)
 set(GRAN_NATIVE_DEFAULT ON)
 if(APPLE)
     set(GRAN_NATIVE_DEFAULT OFF)
 endif()
 option(GRAN_NATIVE "Платформа ОС и GPU (OFF — только безоконная) / The OS platform and GPU (OFF — windowless only)"
     ${GRAN_NATIVE_DEFAULT})
-if(APPLE AND GRAN_NATIVE)
-    message(FATAL_ERROR "Gran UI: the macOS platform (Cocoa, Metal) is not ready yet, use -DGRAN_NATIVE=OFF")
-elseif(WIN32 AND NOT GRAN_NATIVE)
+if(WIN32 AND NOT GRAN_NATIVE)
     message(FATAL_ERROR "Gran UI: GRAN_NATIVE=OFF (the build without the OS platform) is for Linux and macOS")
 elseif(NOT WIN32 AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(FATAL_ERROR "Gran UI: currently supported platforms are Windows, Linux and macOS")
@@ -175,11 +175,13 @@ gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-ui.xsd" markup/gran_ui
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/default_theme.xml" markup/default_theme.cpp DEFAULT_THEME)
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-resources.xsd" res/gran_resources_schema.cpp GRAN_RESOURCES_SCHEMA)
 gran_embed_file("${CMAKE_CURRENT_SOURCE_DIR}/schemas/gran-settings.xsd" settings/gran_settings_schema.cpp GRAN_SETTINGS_SCHEMA)
+# macOS + GRAN_NATIVE: библиотека шейдеров Metal и файлы .mm бэкенда / macOS + GRAN_NATIVE: the Metal shader library and the backend .mm files
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GranMetal.cmake")
 
 # ---- Библиотека движка ----------------------------------------------------------
 # ---- The engine library ----------------------------------------------------------
 gran_collect_sources(GRAN_SOURCES)
-add_library(gran STATIC ${GRAN_SOURCES} ${GRAN_GENERATED_SOURCES})
+add_library(gran STATIC ${GRAN_SOURCES} ${GRAN_METAL_SOURCES} ${GRAN_GENERATED_SOURCES})
 target_include_directories(gran PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(gran PUBLIC beresta_static ${GRAN_SYSTEM_LIBS})
 # Инструмент ресурсов использует библиотеку (схема и разбор манифеста) / The resource tool uses the library (the schema and the manifest parsing)
@@ -252,7 +254,13 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
     get_filename_component(example "${example_dir}" NAME)
     # Без платформы ОС примеры не собираются: всем нужно окно или GPU (ревью Т-48)
     # Without the OS platform the examples are not built: all of them need a window or a GPU (review T-48)
-    if(GRAN_NATIVE AND IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example STREQUAL "chat"))
+    # macOS: окна ещё нет (M6) — из примеров собирается только snapshot (кадр вне экрана через Metal)
+    # macOS: there is no window yet (M6) — of the examples only snapshot is built (an offscreen frame through Metal)
+    set(example_wanted TRUE)
+    if(APPLE AND NOT example STREQUAL "snapshot")
+        set(example_wanted FALSE)
+    endif()
+    if(GRAN_NATIVE AND example_wanted AND IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example STREQUAL "chat"))
         file(GLOB_RECURSE example_sources CONFIGURE_DEPENDS "${example_dir}/*.cpp")
         add_executable(gran_${example} ${example_sources})
         # Заголовки примера подключаются от его корня; свои системные библиотеки — из system_libs.txt
@@ -330,6 +338,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND GRAN_NATIVE AND GRAN_BUILD_RENDER_TEST
         add_test(NAME gran_x11_vulkan COMMAND gran_linux_tests --window)
         set_tests_properties(gran_x11_vulkan PROPERTIES TIMEOUT 30)
     endif()
+endif()
+
+# macOS: проверки бэкенда Metal и снимки против эталонов D3D12 WARP (как make test-render при NATIVE=1)
+# macOS: the Metal backend checks and the snapshots against the D3D12 WARP baselines (as make test-render with NATIVE=1)
+if(APPLE AND GRAN_NATIVE AND GRAN_BUILD_RENDER_TESTS)
+    enable_testing()
+    file(GLOB GRAN_MACOS_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/macos/*.cpp")
+    add_executable(gran_macos_tests ${GRAN_MACOS_TEST_SOURCES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/render/render_scene.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/tests/render/render_compare.cpp")
+    target_link_libraries(gran_macos_tests PRIVATE gran)
+    gran_apply_compile_options(gran_macos_tests)
+    gran_apply_link_options(gran_macos_tests)
+    add_test(NAME gran_metal COMMAND gran_macos_tests)
+    set_tests_properties(gran_metal PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 120)
 endif()
 
 # ---- Модульные тесты: запускаются из корня исходников (пути schemas/, samples/) ----

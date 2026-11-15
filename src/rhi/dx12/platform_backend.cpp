@@ -11,6 +11,8 @@ namespace gran::rhi
     {
         if (options.backend == BackendKind::VULKAN)
             throw GpuException(ErrorCode::GPU, i18n::format(i18n::Message::GPU_NO_ADAPTER, {"Vulkan (Windows)"}), 0);
+        if (options.backend == BackendKind::METAL)
+            throw GpuException(ErrorCode::GPU, i18n::format(i18n::Message::GPU_NO_ADAPTER, {"Metal (Windows)"}), 0);
         if (options.backend == BackendKind::D3D11)
             return createDx11Backend(options);
         if (options.backend == BackendKind::D3D12)

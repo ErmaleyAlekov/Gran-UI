@@ -6,13 +6,17 @@
 # Платформенные каталоги src/: собираются только на своей ОС (как PLATFORM_DIRS в Makefile)
 # The platform src/ directories: built only on their OS (as PLATFORM_DIRS in the Makefile)
 set(GRAN_ALL_PLATFORM_DIRS platform/win32 platform/x11 platform/cocoa platform/webview2 platform/none
-    rhi/dx12 rhi/dx11 rhi/vulkan rhi/none)
+    rhi/dx12 rhi/dx11 rhi/vulkan rhi/metal rhi/none)
 # GRAN_NATIVE=OFF — заглушки окна, диалогов и бэкенда (src/platform/none/, src/rhi/none/)
 # GRAN_NATIVE=OFF — the window, dialog and backend stubs (src/platform/none/, src/rhi/none/)
 if(NOT GRAN_NATIVE)
     set(GRAN_PLATFORM_DIRS platform/none rhi/none)
 elseif(WIN32)
     set(GRAN_PLATFORM_DIRS platform/win32 rhi/dx12 rhi/dx11)
+elseif(APPLE)
+    # Окна Cocoa ещё нет (M6): окно и диалоги — заглушки platform/none, GPU — Metal вне экрана
+    # There is no Cocoa window yet (M6): the window and dialogs are platform/none stubs, the GPU is offscreen Metal
+    set(GRAN_PLATFORM_DIRS platform/none rhi/metal)
 else()
     set(GRAN_PLATFORM_DIRS platform/x11)
 endif()

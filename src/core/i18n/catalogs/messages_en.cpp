@@ -140,7 +140,8 @@ namespace gran::i18n
             {Message::APP_DRIVER_NOT_HEADLESS, "AppDriver works only with an application without OS windows (AppOptions::headless)"},
             {Message::APP_DRIVER_NO_WINDOW, "AppDriver: no window \"{0}\" (windows open in start() and loop steps)"},
             {Message::APP_DRIVER_DETACHED, "AppDriver: the application is already destroyed (declare AppDriver after Application)"},
-            {Message::PLATFORM_NOT_BUILT, "the {0} function is unavailable: the library is built without the OS platform and GPU (NATIVE=0), only AppOptions::headless works"}
+            {Message::PLATFORM_NOT_BUILT, "the {0} function is unavailable: the library is built without the OS platform and GPU (NATIVE=0), only AppOptions::headless works"},
+            {Message::GPU_NO_WINDOW, "{0} draws offscreen only: there is no window support yet (the macOS window is step M6)"}
         };
     }
 

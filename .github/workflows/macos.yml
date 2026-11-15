@@ -117,6 +117,71 @@ jobs:
           path: gran/bin/crash_check
           if-no-files-found: ignore
 
+  # ---- Metal вне экрана (NATIVE=1, шаг M5): бэкенд, снимки против эталонов D3D12 WARP --------
+  # ---- Offscreen Metal (NATIVE=1, step M5): the backend, the snapshots against the D3D12 WARP baselines --------
+  metal:
+    name: macOS arm64 Metal (Makefile, NATIVE=1)
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: gran
+      - uses: actions/checkout@v5
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      - name: GNU make 4 (gmake)
+        run: brew install make
+      - name: «Берёста» / Beresta (libberesta.a)
+        timeout-minutes: 25
+        run: gmake -C beresta -j"$(sysctl -n hw.ncpu)" bin/libberesta.a 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Библиотека с Metal, snapshot, тесты / The library with Metal, snapshot, the tests
+        timeout-minutes: 25
+        working-directory: gran
+        run: |
+          { gmake NATIVE=1 BERESTA_DIR=../beresta platform
+            gmake -j"$(sysctl -n hw.ncpu)" NATIVE=1 BERESTA_DIR=../beresta all
+            gmake NATIVE=1 BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      # Отладочный слой Metal и проверка шейдеров включаются только переменными окружения процесса
+      # The Metal debug layer and the shader validation are enabled only by the process environment variables
+      - name: Бэкенд Metal и снимки / The Metal backend and the snapshots
+        timeout-minutes: 15
+        working-directory: gran
+        env:
+          MTL_DEBUG_LAYER: 1
+          MTL_SHADER_VALIDATION: 1
+        run: gmake NATIVE=1 BERESTA_DIR=../beresta test-render 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG" "$RUNNER_TEMP/render.log"
+      # Итог снимков (пиксели, наибольшее отличие) — в аннотацию и при успехе: так допуск выбирается по фактам
+      # The snapshot summary (pixels, the largest difference) goes to an annotation on success too: so the tolerance is chosen by facts
+      - name: Снимки в аннотацию / The snapshots into an annotation
+        if: always()
+        run: |
+          set +e +o pipefail
+          summary=$(grep -E "^\[ OK \]|^\[FAIL\]|^Metal |informational" "$RUNNER_TEMP/render.log" 2>/dev/null | tr '\n' ';')
+          echo "::notice title=Metal snapshots::$summary"
+      # Тот же бэкенд через CMake: metallib, .mm с ARC, фреймворки, ctest с проверками Metal
+      # The same backend through CMake: the metallib, .mm with ARC, the frameworks, ctest with the Metal checks
+      - name: CMake + ctest (Metal)
+        timeout-minutes: 25
+        env:
+          MTL_DEBUG_LAYER: 1
+        run: |
+          { cmake -S gran -B build-metal -DGRAN_NATIVE=ON -DGRAN_BUILD_RENDER_TESTS=ON -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta"
+            cmake --build build-metal -j"$(sysctl -n hw.ncpu)"
+            ctest --test-dir build-metal --output-on-failure; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Снимки Metal / Metal snapshots (PNG)
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: macos-metal-snapshots
+          path: gran/scratchpad/render-tests
+          if-no-files-found: ignore
+      - name: Журнал в аннотации / The log into annotations
+        if: failure() || cancelled()
+        run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "macOS Metal"
+
   # ---- CMake: универсальный бинарник x86_64 + arm64 ----------------------------
   # ---- CMake: the universal x86_64 + arm64 binary ----------------------------
   cmake:

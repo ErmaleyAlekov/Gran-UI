@@ -15,7 +15,7 @@
 #    DEBUG=1            — -O0 -g, отладочные слои D3D12 / Vulkan
 #    VULKAN=1           — собрать бэкенд Vulkan (нужен Vulkan SDK: VULKAN_SDK)
 #    NATIVE=0           — ядро без окна ОС и GPU: только безоконная платформа и NullBackend (Linux без X11;
-#                         на macOS — по умолчанию, пока нет Cocoa и Metal)
+#                         на macOS — по умолчанию, пока нет Cocoa). macOS NATIVE=1 — Metal вне экрана без окна (M5)
 #    DXC=путь           — компилятор шейдеров dxc
 #    WEBVIEW2_SDK=путь  — build/native из NuGet-пакета Microsoft.Web.WebView2 (Windows): элемент <WebView>
 #                         получает браузер, рядом с программами кладётся WebView2Loader.dll (после смены — make re)
@@ -36,7 +36,7 @@
 #    DEBUG=1            — -O0 -g, the D3D12 / Vulkan debug layers
 #    VULKAN=1           — build the Vulkan backend (needs the Vulkan SDK: VULKAN_SDK)
 #    NATIVE=0           — the core without an OS window and GPU: only the windowless platform and NullBackend (Linux
-#                         without X11; on macOS — the default until Cocoa and Metal exist)
+#                         without X11; on macOS — the default until Cocoa exists). macOS NATIVE=1 — offscreen Metal (M5)
 #    DXC=path           — the dxc shader compiler
 #    WEBVIEW2_SDK=path  — build/native of the Microsoft.Web.WebView2 NuGet package (Windows): the <WebView> element
 #                         gets a browser, WebView2Loader.dll is put next to the programs (after a change — make re)
@@ -192,7 +192,10 @@ else
             SYSTEM_LIBS :=
         endif
     else ifeq ($(PLATFORM_OS),macos)
-        $(error Gran UI: the macOS platform (Cocoa, Metal) is not ready yet, build the core with NATIVE=0)
+        # macOS: бэкенд Metal вне экрана (M5); окна Cocoa ещё нет (M6) — окно и диалоги из заглушек platform/none
+        # macOS: the offscreen Metal backend (M5); there is no Cocoa window yet (M6) — the window and dialogs are platform/none stubs
+        PLATFORM_DIRS := platform/none rhi/metal
+        SYSTEM_LIBS   := -framework Metal -framework Foundation
     else
         PLATFORM_DIRS := platform/x11
         # libvulkan не компонуется: загрузчик открывается через dlopen (vulkan_loader.cpp)
@@ -251,7 +254,8 @@ endif
 
 # Все платформенные каталоги: из общего набора исходников они исключаются
 # All platform directories: they are excluded from the common source set
-ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 platform/none \n                     rhi/dx12 rhi/dx11 rhi/vulkan rhi/none
+ALL_PLATFORM_DIRS := platform/win32 platform/x11 platform/cocoa platform/webview2 platform/none \
+                     rhi/dx12 rhi/dx11 rhi/vulkan rhi/metal rhi/none
 
 # ---- Вспомогательные функции ------------------------------------------------
 # Рекурсивный поиск файлов средствами самого make (без внешней утилиты find)
@@ -290,6 +294,24 @@ SET_SCHEMA_CPP := $(GEN_DIR)/settings/gran_settings_schema.cpp
 SET_SCHEMA_OBJ := $(OBJ_DIR)/$(GEN_DIR)/settings/gran_settings_schema.o
 LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ) $(RES_SCHEMA_OBJ) $(SET_SCHEMA_OBJ)
 
+# Metal (macOS): тексты MSL из исходников → AIR → gran.metallib → массив gen/rhi/metal_library.cpp (gran_embed).
+# Нужен компилятор Metal из Xcode (xcrun metal); в движке шейдеры не компилируются. Код бэкенда — Objective-C++ (.mm, ARC).
+# Metal (macOS): the MSL texts from the sources → AIR → gran.metallib → the gen/rhi/metal_library.cpp array (gran_embed).
+# The Metal compiler from Xcode is needed (xcrun metal); shaders are not compiled in the engine. The backend code is Objective-C++ (.mm, ARC).
+ifeq ($(PLATFORM_OS),macos)
+    METAL_SRC    := $(SRC_DIR)/rhi/shaders_gen/msl
+    METAL_TMP    := $(OBJ_DIR)/shaders/msl
+    METAL_STD    := macos-metal2.3
+    METAL_AIR    := $(patsubst $(METAL_SRC)/%.metal,$(METAL_TMP)/%.air,$(wildcard $(METAL_SRC)/*.metal))
+    METALLIB     := $(METAL_TMP)/gran.metallib
+    METALLIB_CPP := $(GEN_DIR)/rhi/metal_library.cpp
+    METALLIB_OBJ := $(OBJ_DIR)/$(GEN_DIR)/rhi/metal_library.o
+endif
+ifeq ($(PLATFORM_OS)-$(NATIVE),macos-1)
+    OBJC_SRC     := $(call rwildcard,$(SRC_DIR)/rhi/metal,*.mm)
+    LIB_OBJ      += $(OBJC_SRC:$(SRC_DIR)/%.mm=$(OBJ_DIR)/%.o) $(METALLIB_OBJ)
+endif
+
 # Инструмент встраивания файлов в C++ (собирается первым, без библиотеки)
 # The tool that embeds files into C++ (built first, without the library)
 EMBED_SRC     := $(TOOL_DIR)/embed/embed_main.cpp
@@ -320,6 +342,11 @@ endif
 # platform they would only throw — therefore they are not built (review T-48). The gran_embed and gran_rcc tools are built.
 ifeq ($(NATIVE),0)
     EXAMPLES  :=
+endif
+# macOS NATIVE=1: окна ещё нет (M6) — собирается только snapshot (кадр вне экрана через Metal)
+# macOS NATIVE=1: there is no window yet (M6) — only snapshot is built (an offscreen frame through Metal)
+ifeq ($(PLATFORM_OS)-$(NATIVE),macos-1)
+    EXAMPLES  := $(filter snapshot,$(EXAMPLES))
 endif
 EXAMPLE_BINS  := $(foreach e,$(EXAMPLES),$(BIN_DIR)/gran_$(e)$(EXE))
 # Объект встроенных ресурсов примера (есть examples/<имя>/resources.xml) / The example embedded resource object (when examples/<name>/resources.xml exists)
@@ -360,6 +387,19 @@ test-render: $(RENDER_TEST_BIN)
 	$(RENDER_TEST_BIN)
 test-window: $(RENDER_TEST_BIN)
 	$(RENDER_TEST_BIN) --window
+update-render-baselines:
+	@echo Gran UI: reference baselines require Windows D3D12 WARP
+	@false
+else ifeq ($(PLATFORM_OS)-$(NATIVE),macos-1)
+# macOS: проверки бэкенда Metal и снимки сцен против эталонов D3D12 WARP (tests/macos, общие части tests/render)
+# macOS: the Metal backend checks and the scene snapshots against the D3D12 WARP baselines (tests/macos, shared parts of tests/render)
+RENDER_TEST_SRC := $(wildcard tests/macos/*.cpp) tests/render/render_scene.cpp tests/render/render_compare.cpp
+RENDER_TEST_BIN := $(BIN_DIR)/gran_macos_tests
+.PHONY: test-render update-render-baselines
+$(RENDER_TEST_BIN): $(RENDER_TEST_SRC) $(wildcard tests/macos/*.hpp) tests/render/render_tests.hpp $(LIB_BIN)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(RENDER_TEST_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+test-render: $(RENDER_TEST_BIN)
+	$(RENDER_TEST_BIN)
 update-render-baselines:
 	@echo Gran UI: reference baselines require Windows D3D12 WARP
 	@false
@@ -479,6 +519,21 @@ $(RES_SCHEMA_CPP): $(RES_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(RES_SCHEMA_C
 $(SET_SCHEMA_CPP): $(SET_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(SET_SCHEMA_CPP))
 	$(call native,$(EMBED_BIN)) $(SET_SCHEMA_XSD) $@ GRAN_SETTINGS_SCHEMA
 
+# Библиотека шейдеров Metal: каждый .metal → AIR (предупреждения — ошибки), все AIR → gran.metallib → массив METAL_LIBRARY
+# The Metal shader library: each .metal → AIR (warnings are errors), all AIR → gran.metallib → the METAL_LIBRARY array
+ifeq ($(PLATFORM_OS),macos)
+$(METAL_TMP)/%.air: $(METAL_SRC)/%.metal
+	@mkdir -p "$(METAL_TMP)"
+	xcrun -sdk macosx metal -std=$(METAL_STD) -mmacosx-version-min=$(MACOS_MIN) -Werror -c $< -o $@
+
+$(METALLIB): $(METAL_AIR)
+	xcrun -sdk macosx metallib $(METAL_AIR) -o $@
+
+$(METALLIB_CPP): $(METALLIB) $(EMBED_BIN)
+	@mkdir -p "$(dir $@)"
+	$(EMBED_BIN) $(METALLIB) $@ METAL_LIBRARY
+endif
+
 # Тема по умолчанию — разметка, встроенная как DEFAULT_THEME / The default theme is markup embedded as DEFAULT_THEME
 $(THEME_CPP): $(THEME_XML) $(EMBED_BIN) | $(call dir_of,$(THEME_CPP))
 	$(call native,$(EMBED_BIN)) $(THEME_XML) $@ DEFAULT_THEME
@@ -548,6 +603,11 @@ $(ALL_OBJ) $(RENDER_TEST_BIN) $(CAPI_BIN) $(CRASH_BIN): $(FLAGS_STAMP)
 # ---- Compilation rules -----------------------------------------------------
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(ALL_DIRS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
+
+# Objective-C++ бэкенда Metal: ARC владеет объектами Metal (см. metal_backend_impl.hpp)
+# The Metal backend Objective-C++: ARC owns the Metal objects (see metal_backend_impl.hpp)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) -fobjc-arc $(INCLUDES) $(DEPFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/$(GEN_DIR)/%.o: $(GEN_DIR)/%.cpp | $(ALL_DIRS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
@@ -620,11 +680,11 @@ shaders-vulkan: $(EMBED_BIN)
 # The target is for Linux, WSL and macOS (dxc from the Windows SDK cannot do SPIR-V).
 SPIRV_CROSS ?= spirv-cross
 MSL_VERSION := 20300
-MSL_STD     := macos-metal2.3
 MSL_OUT     := $(SHADER_OUT)/msl
 MSL_TMP     := $(SHADER_TMP)/msl
 # Шейдеры: имя файла, профиль, точка входа / The shaders: the file name, the profile, the entry point
-MSL_SHADERS := ui_vs:vs_6_0:vsMain ui_ps:ps_6_0:psMain fullscreen_vs:vs_6_0:vsFullscreen                blur_down_ps:ps_6_0:psBlurDown blur_up_ps:ps_6_0:psBlurUp
+MSL_SHADERS := ui_vs:vs_6_0:vsMain ui_ps:ps_6_0:psMain fullscreen_vs:vs_6_0:vsFullscreen \
+               blur_down_ps:ps_6_0:psBlurDown blur_up_ps:ps_6_0:psBlurUp
 MSL_NAMES   := $(foreach s,$(MSL_SHADERS),$(word 1,$(subst :, ,$(s))))
 
 # Один шейдер: SPIR-V во временную папку, затем MSL в исходники (пустая строка в конце — разделитель команд)
@@ -632,12 +692,6 @@ MSL_NAMES   := $(foreach s,$(MSL_SHADERS),$(word 1,$(subst :, ,$(s))))
 define MSL_RULE
 	"$(DXC)" -spirv -fspv-target-env=vulkan1.0 -DGRAN_METAL=1 -T $(2) -E $(3) -O3 -Fo $(MSL_TMP)/$(1).spv $(SHADER_SRC)
 	"$(SPIRV_CROSS)" --msl --msl-version $(MSL_VERSION) --msl-decoration-binding --output $(MSL_OUT)/$(1).metal $(MSL_TMP)/$(1).spv
-
-endef
-
-# Один шейдер MSL → AIR с предупреждениями как ошибками / One MSL shader → AIR with warnings as errors
-define METAL_AIR_RULE
-	xcrun -sdk macosx metal -std=$(MSL_STD) -mmacosx-version-min=$(MACOS_MIN) -Werror -c $(MSL_OUT)/$(1).metal -o $(MSL_TMP)/$(1).air
 
 endef
 
@@ -651,14 +705,12 @@ shaders-metal:
 # затем раскладка структур GPU против C++ (tests/metal/layout_check.metal)
 # The MSL check by the Apple compiler: all shaders → AIR → one gran.metallib (the entry points do not overlap),
 # then the GPU struct layout against C++ (tests/metal/layout_check.metal)
-metal-check:
 ifeq ($(PLATFORM_OS),macos)
-	@$(call MKDIR,$(MSL_TMP))
-	$(foreach n,$(MSL_NAMES),$(call METAL_AIR_RULE,$(n)))
-	xcrun -sdk macosx metallib $(addprefix $(MSL_TMP)/,$(addsuffix .air,$(MSL_NAMES))) -o $(MSL_TMP)/gran.metallib
-	xcrun -sdk macosx metal -std=$(MSL_STD) -mmacosx-version-min=$(MACOS_MIN) -Werror -I $(MSL_OUT) -c tests/metal/layout_check.metal -o $(MSL_TMP)/layout_check.air
-	@echo metal-check: $(words $(MSL_NAMES)) shaders, $(MSL_TMP)/gran.metallib
+metal-check: $(METALLIB)
+	xcrun -sdk macosx metal -std=$(METAL_STD) -mmacosx-version-min=$(MACOS_MIN) -Werror -I $(METAL_SRC) -c tests/metal/layout_check.metal -o $(METAL_TMP)/layout_check.air
+	@echo metal-check: $(words $(METAL_AIR)) shaders, $(METALLIB)
 else
+metal-check:
 	@echo metal-check: macOS only - xcrun metal
 	@exit 1
 endif
