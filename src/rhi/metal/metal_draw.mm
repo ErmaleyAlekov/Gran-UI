@@ -28,19 +28,21 @@ namespace gran::rhi::metal
     void MetalBackend::drawFrame(id<MTLCommandBuffer> buffer, const FrameData& frame)
     {
         id<MTLRenderCommandEncoder> encoder = beginUi(buffer, frame, true);
+        EncoderScope scope(encoder);
 
         for (std::uint32_t index = 0; index < frame.segmentCount; ++index)
         {
             const FrameSegment& segment = frame.segments[index];
             if (segment.backdropBefore)
             {
-                [encoder endEncoding];
+                scope.end();
                 backdrop(buffer, segment.backdropRadius);
                 encoder = beginUi(buffer, frame, false);
+                scope.adopt(encoder);
             }
             drawSegment(encoder, frame, segment);
         }
-        [encoder endEncoding];
+        scope.end();
     }
 
     // Привязки — по номерам из ветки GRAN_METAL в ui_common.hlsli: buffer(1) экземпляры, buffer(2) отсечения,

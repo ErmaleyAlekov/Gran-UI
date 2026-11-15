@@ -11,6 +11,10 @@
 ## [Не выпущено]
 
 ### Добавлено
+- Бэкенд Metal вне экрана (шаг M5): `BackendKind::METAL`, `src/rhi/metal/` (Objective-C++ с ARC) — 2 кадра в полёте,
+  загрузка текстур копией в том же командном буфере, размытие подложки, чтение кадра; macOS `NATIVE=1` /
+  `-DGRAN_NATIVE=ON` (нужен компилятор Metal из Xcode), `gran_snapshot --metal`. Проверки бэкенда и снимки против
+  эталонов D3D12 — в `macos.yml` с отладочным слоем Metal. Окна на macOS пока нет (M6).
 - Шейдеры Metal (шаг M4): тот же HLSL → SPIR-V → MSL 2.3 (`make shaders-metal`, нужны dxc со SPIR-V и spirv-cross),
   тексты MSL — в `src/rhi/shaders_gen/msl/`; `make metal-check` на macOS собирает metallib с `-Werror` и сверяет размеры
   и смещения структур GPU с C++ — шаг `macos.yml`.

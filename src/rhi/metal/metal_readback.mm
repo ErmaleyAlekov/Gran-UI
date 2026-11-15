@@ -22,10 +22,11 @@ namespace gran::rhi::metal
         buffer.label = @"gran.metal.readback";
         id<MTLBlitCommandEncoder> blit = [buffer blitCommandEncoder];
         GRAN_METAL_CHECK(blit != nil, nil, "blitCommandEncoder");
+        EncoderScope scope(blit);
         [blit copyFromTexture:_surface.resource sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0)
             sourceSize:MTLSizeMake(width, height, 1) toBuffer:staging destinationOffset:0
             destinationBytesPerRow:pitch destinationBytesPerImage:pitch * height];
-        [blit endEncoding];
+        scope.end();
         [buffer commit];
         [buffer waitUntilCompleted];
         GRAN_METAL_CHECK(buffer.status == MTLCommandBufferStatusCompleted, buffer.error, "readback");
@@ -61,8 +62,8 @@ namespace gran::rhi::metal
         AdapterInfo info;
 
         info.api = "Metal";
-        info.name = _device.name.UTF8String;
-        info.driver = [NSProcessInfo processInfo].operatingSystemVersionString.UTF8String;
+        info.name = utf8(_device.name);
+        info.driver = utf8([NSProcessInfo processInfo].operatingSystemVersionString);
         info.software = false;
         return info;
     }

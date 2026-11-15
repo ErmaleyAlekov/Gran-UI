@@ -11,6 +11,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- An offscreen Metal backend (step M5): `BackendKind::METAL`, `src/rhi/metal/` (Objective-C++ with ARC) — 2 frames in
+  flight, texture uploads as a copy in the same command buffer, the backdrop blur, frame readback; macOS `NATIVE=1` /
+  `-DGRAN_NATIVE=ON` (needs the Metal compiler from Xcode), `gran_snapshot --metal`. The backend checks and the snapshots
+  against the D3D12 baselines run in `macos.yml` with the Metal debug layer. There is no window on macOS yet (M6).
 - Metal shaders (step M4): the same HLSL → SPIR-V → MSL 2.3 (`make shaders-metal`, needs dxc with SPIR-V and spirv-cross),
   the MSL texts are in `src/rhi/shaders_gen/msl/`; `make metal-check` on macOS builds a metallib with `-Werror` and checks
   the sizes and offsets of the GPU structs against C++ — a `macos.yml` step.

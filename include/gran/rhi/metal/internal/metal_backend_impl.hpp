@@ -111,6 +111,35 @@ namespace gran::rhi::metal
     // Итог командного буфера → SharedState; вызывается из обработчика завершения
     // A command buffer result → SharedState; called from the completion handler
     void completed(SharedState& state, id<MTLCommandBuffer> buffer) noexcept;
+    // NSString → UTF-8; nil и строка без представления UTF-8 дают пустую строку (ревью Т-49)
+    // NSString → UTF-8; nil and a string without a UTF-8 form give an empty string (review T-49)
+    std::string utf8(NSString* text) noexcept;
+
+    /*
+    ** Кодировщик команд, закрываемый при любом выходе из области — и при исключении (ревью Т-49): незакрытый
+    ** кодировщик у брошенного командного буфера — ошибка слоя проверки Metal. Паттерн RAII; adopt закрывает
+    ** текущий и берёт новый (проход интерфейса прерывается подложкой и начинается заново).
+    **
+    ** A command encoder closed on any scope exit — on an exception too (review T-49): an unclosed encoder of an
+    ** abandoned command buffer is a Metal validation layer error. The RAII pattern; adopt closes the current one and
+    ** takes a new one (the UI pass is interrupted by a backdrop and started again).
+    */
+    class EncoderScope
+    {
+    public:
+        explicit EncoderScope(id<MTLCommandEncoder> encoder);
+        ~EncoderScope();
+        EncoderScope(const EncoderScope&) = delete;
+        EncoderScope& operator=(const EncoderScope&) = delete;
+
+        // Закрыть текущий кодировщик и взять новый / Close the current encoder and take a new one
+        void adopt(id<MTLCommandEncoder> encoder);
+        // Закрыть сейчас (дальше деструктору делать нечего) / Close now (nothing is left for the destructor)
+        void end();
+
+    private:
+        id<MTLCommandEncoder> _encoder = nil;
+    };
 
     /*
     ** Бэкенд Metal вне экрана (паттерн Bridge, как Dx11Backend: та же раскладка привязок и тот же порядок

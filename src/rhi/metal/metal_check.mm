@@ -13,7 +13,7 @@ namespace gran::rhi::metal
             return;
         if (error != nil)
         {
-            detail = error.localizedDescription.UTF8String;
+            detail = utf8(error.localizedDescription);
             code = static_cast<long long>(error.code);
         }
         throw GpuException(ErrorCode::GPU, i18n::format(i18n::Message::GPU_CALL_FAILED,
@@ -68,7 +68,7 @@ namespace gran::rhi::metal
             if (buffer.status == MTLCommandBufferStatusError && error != nil)
             {
                 std::lock_guard<std::mutex> lock(state.mutex);
-                std::string text = error.localizedDescription.UTF8String;
+                std::string text = utf8(error.localizedDescription);
                 if (error.code == MTLCommandBufferErrorDeviceRemoved || error.code == MTLCommandBufferErrorAccessRevoked)
                 {
                     state.lostReason = text;

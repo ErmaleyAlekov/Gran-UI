@@ -254,10 +254,10 @@ function, otherwise after `require(p != nullptr)` it would consider `p` null.
 
 ## macOS
 
-On macOS the **core without an OS window** is built for now: the markup, styles, layout, text, input, bindings, models,
+On macOS the **core without an OS window** is built by default: the markup, styles, layout, text, input, bindings, models,
 the program and all the unit tests — on the windowless platform (`AppOptions::headless`, `AppDriver`) and `NullBackend`.
-There is no own window (Cocoa) and graphics (Metal) yet — these are the next plan steps ([roadmap](roadmap.en.md)),
-therefore macOS defaults to `NATIVE=0` (Makefile) and `GRAN_NATIVE=OFF` (CMake). Calling an OS window or a GPU backend in
+There is no own window (Cocoa) yet — it is the next plan step ([roadmap](roadmap.en.md)); Metal graphics is offscreen
+only so far (the section below), therefore macOS defaults to `NATIVE=0` (Makefile) and `GRAN_NATIVE=OFF` (CMake). Calling an OS window or a GPU backend in
 such a build is an exception with a clear text, not a link error. The examples (all of them need a window or a GPU) and the
 C interface shared library for the bindings are not built in such a build, the `gran_embed` and `gran_rcc` tools are.
 
@@ -284,6 +284,27 @@ cmake -S . -B build -DGRAN_BERESTA_DIR=../beresta -DCMAKE_OSX_ARCHITECTURES="x86
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
+
+### Offscreen Metal
+
+With `NATIVE=1` (the Makefile) or `-DGRAN_NATIVE=ON` (CMake) the **Metal** backend is built (`src/rhi/metal/`,
+Objective-C++ with ARC): the frame is drawn into its own texture and read back — as `gran_snapshot` on the other OSes.
+There is no Cocoa window yet (step M6), so the window and the dialogs in such a build are throwing stubs, and of the
+examples only `gran_snapshot` is built (the `--metal` key). The Metal compiler from **Xcode** is needed (`xcrun metal`;
+the Command Line Tools do not have it): the `src/rhi/shaders_gen/msl/*.metal` shaders are built into `gran.metallib` at
+build time and embedded into the library, shaders are not compiled in the engine. The MSL texts come from the same HLSL
+(`make shaders-metal` on Linux, WSL or macOS: dxc with SPIR-V and spirv-cross), `make metal-check` checks them with
+the Apple compiler and compares the GPU struct layout with C++.
+
+```bash
+gmake NATIVE=1 BERESTA_DIR=../beresta all test-render
+```
+
+`test-render` (`bin/gran_macos_tests`) checks the backend (frames in flight, the blur, resizing, texture slots,
+rejecting invalid data) and compares the snapshots of the `tests/render/scenes` scenes with the D3D12 WARP baselines:
+the whole frame within a tolerance of 2 per channel, the outliers on the very shape edges at most 0.1 % of the pixels and
+not farther than 48 (Metal rasterizes the edges slightly differently from WARP). The Metal debug layer is enabled only by
+environment variables: `MTL_DEBUG_LAYER=1`, `MTL_SHADER_VALIDATION=1`.
 
 The crash report on macOS is as on Linux (signals on an own stack, backtrace, the stack bytes); instead of
 `/proc/self/maps` the report gets the dyld images with their load addresses (for `atos -l`). Fonts are looked up in

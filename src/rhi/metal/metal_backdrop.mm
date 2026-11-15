@@ -17,9 +17,10 @@ namespace gran::rhi::metal
         ensureBackdrop();
         id<MTLBlitCommandEncoder> blit = [buffer blitCommandEncoder];
         GRAN_METAL_CHECK(blit != nil, nil, "blitCommandEncoder");
+        EncoderScope scope(blit);
         blit.label = @"gran.metal.backdrop.copy";
         [blit copyFromTexture:_surface.resource toTexture:_blur[0].resource];
-        [blit endEncoding];
+        scope.end();
         for (std::uint32_t level = 1; level <= passes; ++level)
             blur(buffer, level - 1, level, _down);
         for (std::uint32_t level = passes - 1; level >= 1; --level)
@@ -57,6 +58,7 @@ namespace gran::rhi::metal
         data.inverseViewport[1] = 1.0f / static_cast<float>(_blur[source].height);
         id<MTLRenderCommandEncoder> encoder = [buffer renderCommandEncoderWithDescriptor:pass];
         GRAN_METAL_CHECK(encoder != nil, nil, "renderCommandEncoderWithDescriptor");
+        EncoderScope scope(encoder);
         encoder.label = @"gran.metal.blur";
         [encoder setRenderPipelineState:pipeline];
         [encoder setViewport:MTLViewport{0, 0, static_cast<double>(target.width), static_cast<double>(target.height), 0, 1}];
@@ -65,6 +67,6 @@ namespace gran::rhi::metal
         [encoder setVertexBytes:&data length:sizeof(data) atIndex:0];
         [encoder setFragmentBytes:&data length:sizeof(data) atIndex:0];
         [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-        [encoder endEncoding];
+        scope.end();
     }
 }

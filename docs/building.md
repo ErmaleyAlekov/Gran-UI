@@ -273,10 +273,10 @@ bin/gran_gallery samples/popups.xml --debug
 
 ## macOS
 
-На macOS пока собирается **ядро без окна ОС**: разметка, стили, компоновка, текст, ввод, привязки, модели,
+На macOS по умолчанию собирается **ядро без окна ОС**: разметка, стили, компоновка, текст, ввод, привязки, модели,
 программа и все модульные тесты — на безоконной платформе (`AppOptions::headless`, `AppDriver`) и `NullBackend`.
-Своего окна (Cocoa) и графики (Metal) ещё нет — это следующие шаги плана ([дорожная карта](roadmap.md)),
-поэтому на macOS по умолчанию `NATIVE=0` (Makefile) и `GRAN_NATIVE=OFF` (CMake). Вызов окна ОС или бэкенда GPU в такой
+Своего окна (Cocoa) ещё нет — это следующий шаг плана ([дорожная карта](roadmap.md)); графика Metal пока
+только вне экрана (раздел ниже), поэтому на macOS по умолчанию `NATIVE=0` (Makefile) и `GRAN_NATIVE=OFF` (CMake). Вызов окна ОС или бэкенда GPU в такой
 сборке — исключение с понятным текстом, а не ошибка компоновки. Примеры (им всем нужно окно или GPU) и общая библиотека
 Си-интерфейса для обёрток в такой сборке не собираются, инструменты `gran_embed` и `gran_rcc` — собираются.
 
@@ -303,6 +303,25 @@ cmake -S . -B build -DGRAN_BERESTA_DIR=../beresta -DCMAKE_OSX_ARCHITECTURES="x86
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
+
+### Metal вне экрана
+
+С `NATIVE=1` (Makefile) или `-DGRAN_NATIVE=ON` (CMake) собирается бэкенд **Metal** (`src/rhi/metal/`, Objective-C++
+с ARC): кадр рисуется в свою текстуру и читается обратно — как `gran_snapshot` на других ОС. Окна Cocoa ещё нет
+(шаг M6), поэтому окно и диалоги в такой сборке — исключения-заглушки, а из примеров собирается только `gran_snapshot`
+(ключ `--metal`). Нужен компилятор Metal из **Xcode** (`xcrun metal`; в Command Line Tools его нет): шейдеры
+`src/rhi/shaders_gen/msl/*.metal` собираются в `gran.metallib` при сборке и встраиваются в библиотеку, в движке шейдеры
+не компилируются. Тексты MSL получаются из того же HLSL (`make shaders-metal` на Linux, WSL или macOS: dxc со SPIR-V
+и spirv-cross), `make metal-check` проверяет их компилятором Apple и сверяет раскладку структур GPU с C++.
+
+```bash
+gmake NATIVE=1 BERESTA_DIR=../beresta all test-render
+```
+
+`test-render` (`bin/gran_macos_tests`) проверяет бэкенд (кадры в полёте, размытие, смена размера, слоты текстур, отказ
+на неверные данные) и сверяет снимки сцен `tests/render/scenes` с эталонами D3D12 WARP: весь кадр — в допуске 2 на канал,
+выбросы на самых краях фигур — не больше 0,1 % пикселей и не дальше 48 (Metal растеризует края чуть иначе, чем WARP).
+Отладочный слой Metal включается только переменными окружения: `MTL_DEBUG_LAYER=1`, `MTL_SHADER_VALIDATION=1`.
 
 Отчёт о сбое на macOS — как на Linux (сигналы на своём стеке, backtrace, байты стека), вместо `/proc/self/maps` в
 отчёт идут образы dyld с адресами загрузки (для `atos -l`). Шрифты ищутся в `/System/Library/Fonts`,

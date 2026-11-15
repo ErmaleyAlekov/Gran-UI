@@ -88,6 +88,7 @@ namespace gran::rhi::metal
             return;
         id<MTLBlitCommandEncoder> blit = [buffer blitCommandEncoder];
         GRAN_METAL_CHECK(blit != nil, nil, "blitCommandEncoder");
+        EncoderScope scope(blit);
         blit.label = @"gran.metal.uploads";
         for (const PendingUpload& upload : _uploads)
             [blit copyFromBuffer:upload.staging sourceOffset:0 sourceBytesPerRow:upload.pitch
@@ -95,7 +96,7 @@ namespace gran::rhi::metal
                 sourceSize:MTLSizeMake(upload.region.width, upload.region.height, 1)
                 toTexture:upload.texture destinationSlice:0 destinationLevel:0
                 destinationOrigin:MTLOriginMake(upload.region.x, upload.region.y, 0)];
-        [blit endEncoding];
+        scope.end();
         _uploads.clear();
     }
 }
