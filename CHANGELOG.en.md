@@ -11,6 +11,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- Metal shaders (step M4): the same HLSL → SPIR-V → MSL 2.3 (`make shaders-metal`, needs dxc with SPIR-V and spirv-cross),
+  the MSL texts are in `src/rhi/shaders_gen/msl/`; `make metal-check` on macOS builds a metallib with `-Werror` and checks
+  the sizes and offsets of the GPU structs against C++ — a `macos.yml` step.
+- CI on Gitverse: `.gitverse/workflows/ci.yml` — the Linux x86_64 checks from `linux.yml` as short jobs.
 - macOS (step M3): building the core with clang — the Makefile (GNU make 4+, `gmake`) and CMake, including a universal
   x86_64 + arm64 build, macOS 11.0 or newer; all the unit tests on the windowless platform. There is no Cocoa window and
   Metal yet, therefore macOS defaults to `NATIVE=0` / `-DGRAN_NATIVE=OFF` — the core without an OS window and GPU (on Linux

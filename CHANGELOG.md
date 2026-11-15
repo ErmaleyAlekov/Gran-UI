@@ -11,6 +11,10 @@
 ## [Не выпущено]
 
 ### Добавлено
+- Шейдеры Metal (шаг M4): тот же HLSL → SPIR-V → MSL 2.3 (`make shaders-metal`, нужны dxc со SPIR-V и spirv-cross),
+  тексты MSL — в `src/rhi/shaders_gen/msl/`; `make metal-check` на macOS собирает metallib с `-Werror` и сверяет размеры
+  и смещения структур GPU с C++ — шаг `macos.yml`.
+- CI на Gitverse: `.gitverse/workflows/ci.yml` — проверки Linux x86_64 из `linux.yml` короткими задачами.
 - macOS (шаг M3): сборка ядра clang'ом — Makefile (GNU make 4+, `gmake`) и CMake, в том числе универсальная
   x86_64 + arm64, не ниже macOS 11.0; все модульные тесты на безоконной платформе. Окна Cocoa и Metal ещё нет, поэтому
   на macOS по умолчанию `NATIVE=0` / `-DGRAN_NATIVE=OFF` — ядро без окна ОС и GPU (на Linux так собирается ядро без X11

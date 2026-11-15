@@ -95,8 +95,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 5
         run: |
-          xcrun swift -e 'import Metal; if let d = MTLCreateSystemDefaultDevice() { print("Metal device: \(d.name)") } else { print("Metal device: none") }'
-          system_profiler SPDisplaysDataType | head -20
+          # Итог — в аннотацию ::notice: журнал задачи без входа в GitHub не читается
+          # The result goes to a ::notice annotation: the job log cannot be read without signing in to GitHub
+          device=$(xcrun swift -e 'import Metal; if let d = MTLCreateSystemDefaultDevice() { print(d.name) } else { print("none") }' 2>&1 | tail -1)
+          gpu=$(system_profiler SPDisplaysDataType | grep -E "Chipset Model|Metal" | tr -s ' ' | tr '\n' ';')
+          echo "::notice title=Metal device::device=$device; $gpu"
       # Журнал — в аннотации (их видно без входа в GitHub), отчёты о сбое — в артефакт
       # The log goes to annotations (visible without signing in to GitHub), the crash reports — to an artifact
       - name: Журнал в аннотации / The log into annotations
