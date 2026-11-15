@@ -228,6 +228,9 @@ namespace gran::platform::cocoa
         // Раздать события AppKit: первое ждём до until, остальные — без ожидания (cocoa_events.mm)
         // Hand out the AppKit events: the first one is awaited until until, the rest — without waiting (cocoa_events.mm)
         static void pump(NSDate* until);
+        // Разорвать связи Objective-C → C++ и убрать окно с экрана (деструктор и сбой конструктора, ревью Т-51)
+        // Break the Objective-C → C++ links and take the window off the screen (the destructor and a constructor failure, review T-51)
+        void detach() noexcept;
 
         // Порядок полей: делегат и вид освобождаются раньше окна (обратный порядок объявления), но связь с ними
         // разрывает деструктор явно (owner = nil, delegate = nil) — порядок здесь не задаёт безопасность.
@@ -255,6 +258,9 @@ namespace gran::platform::cocoa
         // Control+щелчок — правая кнопка (соглашение macOS); отпускание той же кнопки тоже правое
         // Control+click is the right button (the macOS convention); the release of that button is right too
         bool _controlClick = false;
+        // Двойной щелчок по своей рамке уже обработан: следующее отпускание левой кнопки движку не идёт (ревью Т-51)
+        // A double click on the custom frame is already handled: the next left release does not go to the engine (review T-51)
+        bool _framePress = false;
     };
 }
 

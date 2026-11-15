@@ -47,6 +47,8 @@ namespace macos_tests
     void window();
     void input(gran::platform::Window& window);
     void closing(gran::platform::Window& window);
+    // Проверки по находкам ревью Т-51 (macos_review.mm) / The checks for the review T-51 findings (macos_review.mm)
+    void review(gran::platform::Window& window, gran::rhi::RenderBackend& backend, Scene& scene);
 
 #ifdef __OBJC__
     // Помощники AppKit для теста окна (macos_cocoa.mm) / AppKit helpers for the window test (macos_cocoa.mm)

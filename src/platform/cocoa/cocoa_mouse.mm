@@ -58,7 +58,7 @@ namespace gran::platform::cocoa
         bool inside = NSPointInRect(NSMakePoint(event.position.x, event.position.y), _view.bounds);
         if (event.kind == EventKind::MOUSE_DOWN && !inside)
             return false;
-        if (event.kind == EventKind::MOUSE_DOWN && frameMouse(native, event.position))
+        if ((event.kind == EventKind::MOUSE_DOWN || event.kind == EventKind::MOUSE_UP) && frameMouse(native, event.position))
             return true;
         button(native, event);
         post(event);
@@ -75,10 +75,12 @@ namespace gran::platform::cocoa
 
     /*
     ** Кнопка и число щелчков (счёт ОС — clickCount, по настройке двойного щелчка). Control+щелчок левой — правая
-    ** кнопка без META (соглашение macOS, контекстное меню); её отпускание тоже правое.
+    ** кнопка без META (соглашение macOS, контекстное меню); её перетаскивание и отпускание тоже правые (ревью Т-51:
+    ** перетаскивание уходило левой кнопкой).
     **
     ** The button and the click count (the OS count — clickCount, by the double click setting). Control+left click is the
-    ** right button without META (the macOS convention, the context menu); its release is right too.
+    ** right button without META (the macOS convention, the context menu); its drag and release are right too (review T-51:
+    ** the drag went with the left button).
     */
     void CocoaWindow::button(NSEvent* native, Event& event) noexcept
     {
@@ -86,11 +88,11 @@ namespace gran::platform::cocoa
 
         if (type == NSEventTypeRightMouseDown || type == NSEventTypeRightMouseUp || type == NSEventTypeRightMouseDragged)
             event.button = MouseButton::RIGHT;
-        else if (type == NSEventTypeOtherMouseDown || type == NSEventTypeOtherMouseUp)
+        else if (type == NSEventTypeOtherMouseDown || type == NSEventTypeOtherMouseUp || type == NSEventTypeOtherMouseDragged)
             event.button = MouseButton::MIDDLE;
         if (type == NSEventTypeLeftMouseDown)
             _controlClick = (event.modifiers & MODIFIER_META) != 0;
-        if (_controlClick && event.button == MouseButton::LEFT && event.kind != EventKind::MOUSE_MOVE)
+        if (_controlClick && event.button == MouseButton::LEFT)
         {
             event.button = MouseButton::RIGHT;
             event.modifiers = static_cast<std::uint8_t>(event.modifiers & ~MODIFIER_META);
@@ -104,16 +106,23 @@ namespace gran::platform::cocoa
     /*
     ** Своя рамка (TitleBar::CUSTOM): нажатие на участке роли DRAG перетаскивает окно средствами AppKit,
     ** двойной щелчок — как в заголовке macOS (по настройке «Двойное нажатие на заголовок окна»: развернуть,
-    ** свернуть или ничего). Края окна своей рамки AppKit растягивает сам.
+    ** свернуть или ничего). Отпускание после двойного щелчка тоже принадлежит рамке: без нажатия оно дошло бы до
+    ** движка одиноким MOUSE_UP (ревью Т-51). Края окна своей рамки AppKit растягивает сам.
     **
     ** The custom frame (TitleBar::CUSTOM): a press on a DRAG role area drags the window by AppKit means, a double click is
     ** as in the macOS title (by the "Double-click a window's title bar" setting: zoom, minimize or nothing). AppKit
-    ** resizes the custom frame window edges itself.
+    ** resizes the custom frame window edges itself. The release after a double click belongs to the frame too: without
+    ** the press it would reach the engine as a lone MOUSE_UP (review T-51).
     */
     bool CocoaWindow::frameMouse(NSEvent* native, Vec2 position) noexcept
     {
         WindowRole role = WindowRole::NONE;
+        bool release = native.type == NSEventTypeLeftMouseUp && _framePress;
 
+        if (native.type == NSEventTypeLeftMouseDown || release)
+            _framePress = false;
+        if (release)
+            return true;
         if (native.type != NSEventTypeLeftMouseDown || !_custom || !_frameHit)
             return false;
         try { role = _frameHit(position); } catch (...) { return false; }
@@ -124,6 +133,7 @@ namespace gran::platform::cocoa
             [_window performWindowDragWithEvent:native];
             return true;
         }
+        _framePress = true;
         NSString* action = [[NSUserDefaults standardUserDefaults] stringForKey:@"AppleActionOnDoubleClick"];
         if ([action isEqualToString:@"Minimize"])
             [_window miniaturize:nil];

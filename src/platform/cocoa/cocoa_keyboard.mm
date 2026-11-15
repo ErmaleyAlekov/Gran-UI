@@ -15,13 +15,21 @@ namespace gran::platform::cocoa
         ** Whether the key with Option typed a symbol (Option+E — "´", Option+2 — "™"): then it is typing, not a chord,
         ** and KEY_DOWN goes without MODIFIER_ALT (the platform contract). The service keys give symbols from the Unicode
         ** private area (0xF700–0xF8FF) or control ones — they do not count as symbols.
+        **
+        ** Мёртвая клавиша с Option (Option+E в раскладке «ABC — Extended») символа не даёт — characters пуст, набор
+        ** продолжит следующая клавиша. Это тоже набор текста: с ALT такое нажатие совпало бы с командой Alt+E (ревью Т-51).
+        **
+        ** A dead key with Option (Option+E in the "ABC — Extended" layout) gives no symbol — characters is empty, the next
+        ** key continues the typing. That is typing too: with ALT such a press would match the Alt+E command (review T-51).
         */
         bool optionTyped(NSEvent* event) noexcept
         {
             NSString* typed = event.characters;
 
-            if ((event.modifierFlags & NSEventModifierFlagOption) == 0 || typed.length == 0)
+            if ((event.modifierFlags & NSEventModifierFlagOption) == 0)
                 return false;
+            if (typed.length == 0)
+                return true;
             unichar first = [typed characterAtIndex:0];
             if (first < 0x20 || first == 0x7F || (first >= 0xF700 && first <= 0xF8FF))
                 return false;

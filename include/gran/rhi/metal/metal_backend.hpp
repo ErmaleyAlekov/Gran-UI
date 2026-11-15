@@ -15,6 +15,15 @@ namespace gran::rhi
     ** window. Not a layer — GpuException. The header is plain C++: Objective-C is hidden in the .mm files of src/rhi/metal.
     */
     std::unique_ptr<RenderBackend> createMetalBackend(const BackendOptions& options);
+
+    /*
+    ** Ключ KVC у CAMetalLayer окна: YES — окно свёрнуто или закрыто другими (ставит платформа Cocoa по уведомлению ОС),
+    ** бэкенд тогда пропускает показ кадра без ожидания drawable (FrameStatus::OCCLUDED).
+    **
+    ** A KVC key of the window CAMetalLayer: YES — the window is minimized or covered by others (the Cocoa platform sets it by
+    ** the OS notification), the backend then skips showing the frame without waiting for a drawable (FrameStatus::OCCLUDED).
+    */
+    constexpr const char* METAL_LAYER_OCCLUDED_KEY = "granOccluded";
 }
 
 #endif

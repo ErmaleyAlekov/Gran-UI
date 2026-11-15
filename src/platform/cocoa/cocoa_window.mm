@@ -17,10 +17,13 @@ namespace gran::platform::cocoa
 {
     /*
     ** AppKit требует главный поток: окно из другого потока — понятная ошибка, а не падение внутри AppKit.
-    ** Окно скрыто до первого кадра (show), как в Windows и X11.
+    ** Окно скрыто до первого кадра (show), как в Windows и X11. Сбой после create: деструктор не вызовется, поэтому
+    ** связи с уже созданными объектами AppKit рвёт сам конструктор — иначе у них остался бы висячий owner (ревью Т-51).
     **
     ** AppKit requires the main thread: a window from another thread is a clear error, not a crash inside AppKit.
-    ** The window is hidden until the first frame (show), as on Windows and X11.
+    ** The window is hidden until the first frame (show), as on Windows and X11. A failure after create: the destructor will
+    ** not run, so the constructor itself breaks the links with the AppKit objects already made — otherwise they would keep
+    ** a dangling owner (review T-51).
     */
     CocoaWindow::CocoaWindow(const WindowDesc& desc)
     {
@@ -29,10 +32,18 @@ namespace gran::platform::cocoa
                 i18n::format(i18n::Message::PLATFORM_WINDOW_FAILED, {"AppKit: not the main thread"}));
         @autoreleasepool
         {
-            ensureApplication();
-            create(desc);
-            configure(desc);
-            place(desc);
+            try
+            {
+                ensureApplication();
+                create(desc);
+                configure(desc);
+                place(desc);
+            }
+            catch (...)
+            {
+                detach();
+                throw;
+            }
         }
         _pixels = pixelSize();
         registry().push_back(this);
@@ -45,6 +56,13 @@ namespace gran::platform::cocoa
         std::vector<CocoaWindow*>& windows = registry();
 
         windows.erase(std::remove(windows.begin(), windows.end(), this), windows.end());
+        detach();
+    }
+
+    // Обмен сообщениями с nil в Objective-C безопасен: годится и для частично созданного окна
+    // Messaging nil in Objective-C is safe: it also suits a partially created window
+    void CocoaWindow::detach() noexcept
+    {
         @autoreleasepool
         {
             _view.owner = nullptr;

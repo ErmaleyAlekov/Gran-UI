@@ -5,6 +5,29 @@
 
 namespace gran::rhi::metal
 {
+    namespace
+    {
+        /*
+        ** Виден ли слой. Свёрнутое или полностью закрытое окно кадр не показывает, а nextDrawable ждал бы свободный
+        ** drawable до секунды на каждый кадр (ревью Т-51) — кадр пропускается сразу (OCCLUDED, как
+        ** DXGI_STATUS_OCCLUDED). Отметку ставит платформа по уведомлению ОС (METAL_LAYER_OCCLUDED_KEY, значение KVC
+        ** у CALayer): своему состоянию occlusionState AppKit сразу после показа окна ещё не верит, и первые кадры
+        ** потерялись бы. Нет отметки — слой виден.
+        **
+        ** Whether the layer is visible. A minimized or fully covered window does not show the frame, and nextDrawable
+        ** would wait for a free drawable up to a second per frame (review T-51) — the frame is skipped at once (OCCLUDED,
+        ** as DXGI_STATUS_OCCLUDED). The platform sets the mark by the OS notification (METAL_LAYER_OCCLUDED_KEY, a KVC
+        ** value of CALayer): the AppKit occlusionState is not yet reliable right after the window is shown, and the first
+        ** frames would be lost. No mark — the layer is visible.
+        */
+        bool visible(CAMetalLayer* layer) noexcept
+        {
+            id mark = [layer valueForKey:@(METAL_LAYER_OCCLUDED_KEY)];
+
+            return ![mark boolValue];
+        }
+    }
+
     /*
     ** Слой окна Cocoa: тот же GPU, формат BGRA8 (из поддержанных CAMetalLayer он ближе всего к RGBA8 поверхности
     ** вне экрана), framebufferOnly = NO — в drawable копирует blit, а не проход отрисовки. Цвета кадра уже в sRGB
@@ -66,6 +89,8 @@ namespace gran::rhi::metal
     {
         if (_layer == nil)
             return true;
+        if (!visible(_layer))
+            return false;
         id<CAMetalDrawable> drawable = [_layer nextDrawable];
         if (drawable == nil)
             return false;

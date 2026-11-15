@@ -1,4 +1,5 @@
 #include "gran/platform/cocoa/internal/cocoa_window_impl.hpp"
+#include "gran/rhi/metal/metal_backend.hpp"
 
 // Видимость окна: EXPOSE — «перерисовать», когда окно снова видно (контракт платформы)
 // The window visibility: EXPOSE is "repaint" when the window is visible again (the platform contract)
@@ -10,13 +11,17 @@
 
 @implementation GranCocoaWindowDelegate (State)
 
-// Окно снова не закрыто другими: кадр, пропущенный за невидимостью (OCCLUDED), рисуется заново
-// The window is no longer covered by others: the frame skipped while invisible (OCCLUDED) is drawn again
+// Видимость сменилась: отметка на слое для бэкенда Metal (не ждать drawable у невидимого окна, ревью Т-51); окно
+// снова видно — кадр, пропущенный за невидимостью (OCCLUDED), рисуется заново
+// The visibility changed: a mark on the layer for the Metal backend (no waiting for a drawable of an invisible window,
+// review T-51); the window is visible again — the frame skipped while invisible (OCCLUDED) is drawn again
 - (void)windowDidChangeOcclusionState:(NSNotification*)notification
 {
     NSWindow* window = notification.object;
+    BOOL visible = (window.occlusionState & NSWindowOcclusionStateVisible) != 0;
 
-    if (self.owner != nullptr && (window.occlusionState & NSWindowOcclusionStateVisible) != 0)
+    [window.contentView.layer setValue:@(!visible) forKey:@(gran::rhi::METAL_LAYER_OCCLUDED_KEY)];
+    if (self.owner != nullptr && visible)
         self.owner->push(gran::platform::EventKind::EXPOSE);
 }
 

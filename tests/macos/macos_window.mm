@@ -78,6 +78,7 @@ namespace macos_tests
         std::cout << "Cocoa window: scale " << window->scale() << ", key " << int(nativeWindow(*window).keyWindow) << '\n';
         input(*window);
         checkResize(*window, *renderer, scene);
+        review(*window, *renderer, scene);
         window->setClipboardText("Берёста: UTF-8");
         require(window->clipboardText() == "Берёста: UTF-8", "Cocoa clipboard UTF-8");
         checkWake(*window);

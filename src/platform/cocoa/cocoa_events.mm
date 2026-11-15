@@ -51,12 +51,19 @@ namespace gran::platform::cocoa
             until = [NSDate distantPast];
     }
 
-    // Очередь пуста — сначала раздать то, что AppKit уже получил, без ожидания
-    // The queue is empty — first hand out what AppKit has already received, without waiting
+    // Очередь пуста — сначала раздать то, что AppKit уже получил, без ожидания. NSDate — в своём пуле: [NSApp run]
+    // нет, и объект, созданный вне пула, жил бы до выхода (ревью Т-51)
+    // The queue is empty — first hand out what AppKit has already received, without waiting. NSDate is in an own pool:
+    // there is no [NSApp run], and an object made outside a pool would live until the exit (review T-51)
     bool CocoaWindow::pollEvent(Event& event)
     {
         if (_events.empty())
-            pump([NSDate distantPast]);
+        {
+            @autoreleasepool
+            {
+                pump([NSDate distantPast]);
+            }
+        }
         if (_events.empty())
             return false;
         event = _events.front();
@@ -68,16 +75,18 @@ namespace gran::platform::cocoa
     // Sleeping is not allowed while any window has events: the application loop waits on the main window only
     void CocoaWindow::waitEvents(double timeout)
     {
-        NSDate* until = [NSDate distantFuture];
-
         for (CocoaWindow* window : registry())
         {
             if (!window->_events.empty())
                 return;
         }
-        if (timeout >= 0)
-            until = [NSDate dateWithTimeIntervalSinceNow:timeout];
-        pump(until);
+        @autoreleasepool
+        {
+            NSDate* until = [NSDate distantFuture];
+            if (timeout >= 0)
+                until = [NSDate dateWithTimeIntervalSinceNow:timeout];
+            pump(until);
+        }
     }
 
     /*
