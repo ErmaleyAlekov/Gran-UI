@@ -1,4 +1,4 @@
-<Window width="320" height="240" background="#f1f5f9" fontFamily="Consolas" fontSize="15">
+<Window width="320" height="240" background="#f1f5f9" fontFamily="Consolas, monospace" fontSize="15">
   <Stack padding="12" spacing="10">
     <Text>Gran UI: ABC abc 0123</Text>
     <Text>Текст: ёж, Ж, й. <Span fontWeight="700" color="#be123c">Bold</Span> <Span textDecoration="underline">link</Span></Text>

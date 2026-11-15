@@ -2,7 +2,7 @@
 <!-- Оформленный текст: участки Span внутри одного Text / Styled text: Span runs inside one Text -->
 <Window title="Gran UI — оформленный текст" width="640" height="300" background="#ffffff" fontSize="15">
   <Resources>
-    <Style name="code" fontFamily="Consolas" fontSize="14" background="#eef0f4" color="#b42318"/>
+    <Style name="code" fontFamily="Consolas, monospace" fontSize="14" background="#eef0f4" color="#b42318"/>
     <Style name="link" color="#2563eb" textDecoration="underline" cursor="pointer">
       <Hover color="#1d4ed8"/>
     </Style>

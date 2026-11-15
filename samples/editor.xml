@@ -2,7 +2,7 @@
 <!-- Нативная оболочка редактора; содержимым управляет контроллер.
      Native editor shell; the controller manages its content. -->
 <Window title="Gran UI Editor" width="1280" height="800" minWidth="800" minHeight="500"
-        titleBar="custom" onClose="closeWindow" background="#181818" color="#d6d6d6" fontFamily="Segoe UI" fontSize="13" accentColor="#78a9ff">
+        titleBar="custom" onClose="closeWindow" background="#181818" color="#d6d6d6" fontFamily="Segoe UI, sans-serif" fontSize="13" accentColor="#78a9ff">
   <Resources>
     <Theme>
       <Token name="shell" value="#181818"/>
@@ -70,7 +70,7 @@
     <Style name="editor-tab-active" basedOn="editor-tab" background="$surface" color="$foreground" borderColor="$border"/>
     <Style name="tab-label" basedOn="Button" padding="0 9" height="30" background="transparent" borderRadius="4" fontSize="13" textWrap="nowrap"/>
     <Style name="tab-close" basedOn="Button" width="24" height="24" padding="0" borderRadius="4" fontSize="16"/>
-    <Style name="code-input" fontFamily="Consolas" fontSize="14" lineHeight="1.5" padding="12"
+    <Style name="code-input" fontFamily="Consolas, monospace" fontSize="14" lineHeight="1.5" padding="12"
            grow="1" minWidth="0" minHeight="0" borderWidth="0" borderRadius="0"
            background="$surface" color="$foreground" cursor="text" overflow="hidden">
       <Hover borderWidth="0"/>
@@ -228,7 +228,7 @@
             </Button>
           </Stack>
           <Scroll grow="1" minHeight="0">
-            <Text id="panelText" padding="12 16" fontFamily="Consolas" fontSize="13" lineHeight="1.6" textWrap="wrap" color="$muted">Select a view to see its status.</Text>
+            <Text id="panelText" padding="12 16" fontFamily="Consolas, monospace" fontSize="13" lineHeight="1.6" textWrap="wrap" color="$muted">Select a view to see its status.</Text>
           </Scroll>
         </Stack>
       </Stack>

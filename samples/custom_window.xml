@@ -2,7 +2,7 @@
 <!-- Свой заголовок: gran_gallery samples/custom_window.xml. По умолчанию остаётся заголовок ОС. -->
 <!-- A custom title bar: gran_gallery samples/custom_window.xml. The OS title bar remains the default. -->
 <Window title="Gran UI — custom window" titleBar="custom" width="820" height="520"
-        minWidth="420" minHeight="300" background="#11151f" color="#e5eaf5" fontFamily="Segoe UI">
+        minWidth="420" minHeight="300" background="#11151f" color="#e5eaf5" fontFamily="Segoe UI, sans-serif">
   <Resources>
     <Style name="captionButton" width="46" height="40" padding="0" borderRadius="0"
            background="transparent" color="#dce4f5" justify="center" align="center">
