@@ -159,7 +159,7 @@ jobs:
         if: always()
         run: |
           set +e +o pipefail
-          summary=$(grep -E "^\[ OK \]|^\[FAIL\]|^Metal |informational" "$RUNNER_TEMP/render.log" 2>/dev/null | tr '\n' ';')
+          summary=$(grep -E "^\[ OK \]|^\[FAIL\]|^Metal |informational|^    \(" "$RUNNER_TEMP/render.log" 2>/dev/null | tr '\n' ';')
           echo "::notice title=Metal snapshots::$summary"
       # Тот же бэкенд через CMake: metallib, .mm с ARC, фреймворки, ctest с проверками Metal
       # The same backend through CMake: the metallib, .mm with ARC, the frameworks, ctest with the Metal checks

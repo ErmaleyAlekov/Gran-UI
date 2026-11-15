@@ -22,8 +22,7 @@ set(GRAN_METAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/rhi/shaders_gen/msl")
 set(GRAN_METAL_TMP "${CMAKE_BINARY_DIR}/shaders/msl")
 file(GLOB GRAN_METAL_SHADERS CONFIGURE_DEPENDS "${GRAN_METAL_DIR}/*.metal")
 
-# Каждый шейдер → AIR с предупреждениями как ошибками; -fno-fast-math — точная математика, ближе к эталонам D3D (см. Makefile)
-# Each shader → AIR with warnings as errors; -fno-fast-math — precise math, closer to the D3D baselines (see the Makefile)
+# Каждый шейдер → AIR с предупреждениями как ошибками / Each shader → AIR with warnings as errors
 set(GRAN_METAL_AIR "")
 foreach(shader IN LISTS GRAN_METAL_SHADERS)
     get_filename_component(name "${shader}" NAME_WE)
@@ -32,7 +31,7 @@ foreach(shader IN LISTS GRAN_METAL_SHADERS)
         OUTPUT "${air}"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "${GRAN_METAL_TMP}"
         COMMAND xcrun -sdk macosx metal -std=macos-metal2.3 -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}
-            -fno-fast-math -Werror -c "${shader}" -o "${air}"
+            -Werror -c "${shader}" -o "${air}"
         DEPENDS "${shader}"
         COMMENT "xcrun metal ${name}"
         VERBATIM)
