@@ -29,7 +29,14 @@ if [ ! -f "$log" ]; then
     emit "no log file: $log"
     exit 0
 fi
-# После «[FAIL] имя» тестовый каркас печатает строку с причиной — берём и её (-A1)
-# After "[FAIL] name" the test framework prints a line with the reason — it is taken too (-A1)
-emit "$(grep -a -A1 -E 'error:|error [A-Z]+[0-9]+|Error [0-9]|FAIL|undefined reference|Undefined symbols|ld: |Итого|упало|exception|Assertion|runtime error|Sanitizer' "$log" | head -n 80)"
-emit "$(tail -n 60 "$log")"
+# После «[FAIL] имя» тестовый каркас печатает строку с причиной — берём и её (-A1). Команды компилятора и ar
+# пропускаются: в путях исходников бывают «errors» и «exception» (src/capi/errors/ «Берёсты»), и такие строки
+# вытесняли настоящую ошибку за предел аннотации (Windows MinGW, M6). Строки хвоста обрезаются до 300 знаков:
+# одна команда ar длиной в десятки килобайт занимала весь хвост.
+# After "[FAIL] name" the test framework prints a line with the reason — it is taken too (-A1). The compiler and ar
+# commands are skipped: source paths may contain "errors" and "exception" (Beresta's src/capi/errors/), and such lines
+# pushed the real error out of the annotation limit (Windows MinGW, M6). The tail lines are cut to 300 characters:
+# a single ar command tens of kilobytes long took the whole tail.
+commands='^[^ ]*(g\+\+|clang\+\+|gcc|clang|ar)(\.exe)? '
+emit "$(grep -a -v -E "$commands" "$log" | grep -a -A1 -E 'error:|error [A-Z]+[0-9]+|Error [0-9]|FAIL|undefined reference|Undefined symbols|ld: |Итого|упало|exception|Assertion|runtime error|Sanitizer' | head -n 80)"
+emit "$(tail -n 60 "$log" | cut -c1-300)"
