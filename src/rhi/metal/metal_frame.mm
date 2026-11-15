@@ -35,25 +35,24 @@ namespace gran::rhi::metal
         }
     }
 
-    // Кадр: ждём свободный кадр в полёте, пишем его буферы, записываем загрузки и проходы, отправляем.
-    // Потерю устройства сообщает обработчик завершения прошлого кадра — тогда кадр не рисуется.
-    // A frame: wait for a free frame in flight, write its buffers, record the uploads and the passes, submit.
-    // A device loss is reported by the completion handler of a previous frame — then the frame is not drawn.
+    // Кадр: ждём свободный кадр в полёте, пишем его буферы, записываем загрузки и проходы, показываем в окне
+    // (если оно есть) и отправляем. Потерю устройства сообщает обработчик завершения прошлого кадра — тогда кадр
+    // не рисуется. Слой не дал drawable за секунду (окно скрыто) — кадр отправлен, но не показан: OCCLUDED.
+    // A frame: wait for a free frame in flight, write its buffers, record the uploads and the passes, show it in the
+    // window (if there is one) and submit. A device loss is reported by the completion handler of a previous frame —
+    // then the frame is not drawn. The layer gave no drawable within a second (the window is hidden) — the frame is
+    // submitted but not shown: OCCLUDED.
     FrameStatus MetalBackend::render(const FrameData& frame)
     {
+        bool shown = true;
+
         validate(frame);
         if (_shared->lost)
             return FrameStatus::DEVICE_LOST;
         dispatch_semaphore_wait(_shared->inFlight, DISPATCH_TIME_FOREVER);
         try
         {
-            id<MTLCommandBuffer> buffer = [_queue commandBuffer];
-            GRAN_METAL_CHECK(buffer != nil, nil, "commandBuffer");
-            buffer.label = @"gran.metal.frame";
-            uploadFrame(frame);
-            encodeUploads(buffer);
-            drawFrame(buffer, frame);
-            submit(buffer);
+            shown = record(frame);
         }
         catch (...)
         {
@@ -65,6 +64,8 @@ namespace gran::rhi::metal
         _frameIndex = (_frameIndex + 1) % FRAMES_IN_FLIGHT;
         if (_shared->lost)
             return FrameStatus::DEVICE_LOST;
+        if (!shown)
+            return FrameStatus::OCCLUDED;
         return FrameStatus::PRESENTED;
     }
 

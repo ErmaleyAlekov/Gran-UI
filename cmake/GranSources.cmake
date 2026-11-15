@@ -14,9 +14,9 @@ if(NOT GRAN_NATIVE)
 elseif(WIN32)
     set(GRAN_PLATFORM_DIRS platform/win32 rhi/dx12 rhi/dx11)
 elseif(APPLE)
-    # Окна Cocoa ещё нет (M6): окно и диалоги — заглушки platform/none, GPU — Metal вне экрана
-    # There is no Cocoa window yet (M6): the window and dialogs are platform/none stubs, the GPU is offscreen Metal
-    set(GRAN_PLATFORM_DIRS platform/none rhi/metal)
+    # Окно Cocoa (M6) и Metal: файлы .mm обоих каталогов добавляет GranMetal.cmake, .cpp — этот список
+    # The Cocoa window (M6) and Metal: GranMetal.cmake adds the .mm files of both directories, the .cpp ones — this list
+    set(GRAN_PLATFORM_DIRS platform/cocoa rhi/metal)
 else()
     set(GRAN_PLATFORM_DIRS platform/x11)
 endif()

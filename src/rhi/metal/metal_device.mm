@@ -46,9 +46,9 @@ namespace gran::rhi::metal
         GRAN_METAL_CHECK(_sampler != nil, nil, "newSamplerStateWithDescriptor");
     }
 
-    // Конвейер: вершинная и пиксельная функции из библиотеки, цель RGBA8. blend — смешивание с предумноженной
+    // Конвейер: вершинная и пиксельная функции из библиотеки, цель — формат поверхности (_format). blend — смешивание с предумноженной
     // альфой (ONE, ONE_MINUS_SRC_ALPHA), как в D3D11; проходы размытия пишут без смешивания.
-    // A pipeline: the vertex and fragment functions from the library, an RGBA8 target. blend — blending with
+    // A pipeline: the vertex and fragment functions from the library, the target is the surface format (_format). blend — blending with
     // premultiplied alpha (ONE, ONE_MINUS_SRC_ALPHA), as in D3D11; the blur passes write without blending.
     id<MTLRenderPipelineState> MetalBackend::makePipeline(NSString* vertex, NSString* fragment, bool blend, const char* name)
     {
@@ -59,7 +59,7 @@ namespace gran::rhi::metal
         GRAN_METAL_CHECK(info.vertexFunction != nil && info.fragmentFunction != nil, nil, "newFunctionWithName");
         info.label = [NSString stringWithUTF8String:name];
         MTLRenderPipelineColorAttachmentDescriptor* color = info.colorAttachments[0];
-        color.pixelFormat = MTLPixelFormatRGBA8Unorm;
+        color.pixelFormat = _format;
         color.blendingEnabled = blend;
         color.sourceRGBBlendFactor = MTLBlendFactorOne;
         color.sourceAlphaBlendFactor = MTLBlendFactorOne;

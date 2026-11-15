@@ -1,20 +1,20 @@
 # ============================================================================
-#  Gran UI на macOS без своего Mac (шаг M3 плана, docs/roadmap.md): сборка ядра clang'ом и модульные тесты
-#  на раннере GitHub Actions при каждом push и pull request.
+#  Gran UI на macOS без своего Mac (план M1–M6, docs/roadmap.md): сборка clang'ом и проверки на раннере
+#  GitHub Actions при каждом push и pull request.
 #
-#  Пока нет платформы Cocoa (M6) и бэкенда Metal (M5), на macOS собирается ядро без окна ОС
-#  (NATIVE=0 / GRAN_NATIVE=OFF): безоконная платформа и NullBackend, на которых работают все модульные тесты.
-#  Две задачи: Makefile на родной архитектуре раннера (arm64) — тесты и отчёт о сбое;
-#  CMake — универсальная сборка x86_64 + arm64, тесты обеих архитектур (x86_64 — через Rosetta).
+#  Три задачи: ядро без окна ОС (Makefile, NATIVE=0) — модульные тесты, отчёт о сбое, шейдеры Metal;
+#  окно Cocoa и Metal (Makefile и CMake, NATIVE=1 — умолчание с M6) — бэкенд, окно в процессе, снимки;
+#  CMake — универсальная сборка x86_64 + arm64 с окном и Metal, тесты обеих архитектур (x86_64 — через Rosetta).
 #  «Берёста» берётся из её публичного репозитория на закреплённом выпуске BERESTA_REF.
 #  Используются только официальные действия GitHub (actions/*).
 # ============================================================================
-#  Gran UI on macOS without an own Mac (plan step M3, docs/roadmap.md): building the core with clang and the unit tests
-#  on a GitHub Actions runner on every push and pull request.
+#  Gran UI on macOS without an own Mac (plan M1–M6, docs/roadmap.md): building with clang and the checks on a
+#  GitHub Actions runner on every push and pull request.
 #
-#  Until the Cocoa platform (M6) and the Metal backend (M5) exist, macOS builds the core without an OS window
-#  (NATIVE=0 / GRAN_NATIVE=OFF): the windowless platform and NullBackend, on which all the unit tests run.
-#  Two jobs: the Makefile on the runner's native architecture (arm64) — the tests and the crash report; CMake — a universal x86_64 + arm64 build, the tests of both architectures (x86_64 — through Rosetta).
+#  Three jobs: the core without an OS window (Makefile, NATIVE=0) — the unit tests, the crash report, the Metal shaders;
+#  the Cocoa window and Metal (Makefile and CMake, NATIVE=1 — the default since M6) — the backend, the in-process window,
+#  the snapshots; CMake — a universal x86_64 + arm64 build with the window and Metal, the tests of both architectures
+#  (x86_64 — through Rosetta).
 #  Beresta is taken from its public repository at the pinned BERESTA_REF release.
 #  Only the official GitHub actions (actions/*) are used.
 # ============================================================================
@@ -49,10 +49,10 @@ defaults:
     shell: bash
 
 jobs:
-  # ---- Makefile: arm64, GNU make 4 из Homebrew (штатный make macOS — 3.81) ------
-  # ---- Makefile: arm64, GNU make 4 from Homebrew (the stock macOS make is 3.81) ------
+  # ---- Ядро без окна (NATIVE=0): arm64, GNU make 4 из Homebrew (штатный make macOS — 3.81) ------
+  # ---- The core without a window (NATIVE=0): arm64, GNU make 4 from Homebrew (the stock macOS make is 3.81) ------
   make:
-    name: macOS arm64 (Makefile)
+    name: macOS arm64 core (Makefile, NATIVE=0)
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -76,19 +76,19 @@ jobs:
         timeout-minutes: 25
         working-directory: gran
         run: |
-          { gmake BERESTA_DIR=../beresta platform
-            gmake -j"$(sysctl -n hw.ncpu)" BERESTA_DIR=../beresta all
-            gmake BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+          { gmake NATIVE=0 BERESTA_DIR=../beresta platform
+            gmake -j"$(sysctl -n hw.ncpu)" NATIVE=0 BERESTA_DIR=../beresta all
+            gmake NATIVE=0 BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: Отчёт о сбое / The crash report (SIGSEGV, terminate, abort)
         timeout-minutes: 25
         working-directory: gran
-        run: gmake BERESTA_DIR=../beresta test-crash 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+        run: gmake NATIVE=0 BERESTA_DIR=../beresta test-crash 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       # Шейдеры Metal (M4): сгенерированный MSL → metallib компилятором Apple + раскладка структур против C++
       # The Metal shaders (M4): the generated MSL → a metallib by the Apple compiler + the struct layout against C++
       - name: Шейдеры Metal / Metal shaders (xcrun metal)
         timeout-minutes: 10
         working-directory: gran
-        run: gmake BERESTA_DIR=../beresta metal-check 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+        run: gmake NATIVE=0 BERESTA_DIR=../beresta metal-check 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       # Есть ли у раннера устройство Metal — от этого зависят снимки бэкенда Metal (M5); шаг только сообщает
       # Whether the runner has a Metal device — the Metal backend snapshots (M5) depend on it; the step only reports
       - name: Устройство Metal / Metal device probe
@@ -117,10 +117,10 @@ jobs:
           path: gran/bin/crash_check
           if-no-files-found: ignore
 
-  # ---- Metal вне экрана (NATIVE=1, шаг M5): бэкенд, снимки против эталонов D3D12 WARP --------
-  # ---- Offscreen Metal (NATIVE=1, step M5): the backend, the snapshots against the D3D12 WARP baselines --------
+  # ---- Окно Cocoa и Metal (NATIVE=1, шаги M5, M6): бэкенд, окно в процессе, снимки против эталонов D3D12 WARP --------
+  # ---- The Cocoa window and Metal (NATIVE=1, steps M5, M6): the backend, the in-process window, the snapshots against the D3D12 WARP baselines --------
   metal:
-    name: macOS arm64 Metal (Makefile, NATIVE=1)
+    name: macOS arm64 Metal + Cocoa (Makefile, NATIVE=1)
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -137,16 +137,19 @@ jobs:
       - name: «Берёста» / Beresta (libberesta.a)
         timeout-minutes: 25
         run: gmake -C beresta -j"$(sysctl -n hw.ncpu)" bin/libberesta.a 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
-      - name: Библиотека с Metal, snapshot, тесты / The library with Metal, snapshot, the tests
+      - name: Библиотека с Cocoa и Metal, примеры, тесты / The library with Cocoa and Metal, the examples, the tests
         timeout-minutes: 25
         working-directory: gran
         run: |
           { gmake NATIVE=1 BERESTA_DIR=../beresta platform
             gmake -j"$(sysctl -n hw.ncpu)" NATIVE=1 BERESTA_DIR=../beresta all
-            gmake NATIVE=1 BERESTA_DIR=../beresta test; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+            gmake NATIVE=1 BERESTA_DIR=../beresta test
+            ls -l bin/gran_gallery bin/gran_editor bin/gran_snapshot; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       # Отладочный слой Metal и проверка шейдеров включаются только переменными окружения процесса
       # The Metal debug layer and the shader validation are enabled only by the process environment variables
-      - name: Бэкенд Metal и снимки / The Metal backend and the snapshots
+      # Окно Cocoa создаётся в сеансе рабочего стола раннера; ввод — через очередь AppKit, без прав «Универсального доступа»
+      # The Cocoa window is created in the runner desktop session; the input goes through the AppKit queue, without the "Accessibility" rights
+      - name: Бэкенд Metal, окно Cocoa и снимки / The Metal backend, the Cocoa window and the snapshots
         timeout-minutes: 15
         working-directory: gran
         env:
@@ -159,7 +162,7 @@ jobs:
         if: always()
         run: |
           set +e +o pipefail
-          summary=$(grep -E "^\[ OK \]|^\[FAIL\]|^Metal |informational|^    \(" "$RUNNER_TEMP/render.log" 2>/dev/null | tr '\n' ';')
+          summary=$(grep -E "^\[ OK \]|^\[FAIL\]|^Metal |^Cocoa |informational|^    \(" "$RUNNER_TEMP/render.log" 2>/dev/null | tr '\n' ';')
           echo "::notice title=Metal snapshots::$summary"
       # Тот же бэкенд через CMake: metallib, .mm с ARC, фреймворки, ctest с проверками Metal
       # The same backend through CMake: the metallib, .mm with ARC, the frameworks, ctest with the Metal checks
@@ -182,8 +185,8 @@ jobs:
         if: failure() || cancelled()
         run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "macOS Metal"
 
-  # ---- CMake: универсальный бинарник x86_64 + arm64 ----------------------------
-  # ---- CMake: the universal x86_64 + arm64 binary ----------------------------
+  # ---- CMake: универсальный бинарник x86_64 + arm64 (с M6 по умолчанию — с окном Cocoa и Metal) ------------
+  # ---- CMake: the universal x86_64 + arm64 binary (since M6 by default — with the Cocoa window and Metal) ------------
   cmake:
     name: macOS universal (CMake)
     runs-on: macos-15
@@ -202,7 +205,8 @@ jobs:
         run: |
           { cmake -S gran -B build -DGRAN_BERESTA_DIR="$GITHUB_WORKSPACE/beresta" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
             cmake --build build -j"$(sysctl -n hw.ncpu)"
-            lipo -info build/bin/gran_tests | grep 'x86_64 arm64'; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+            lipo -info build/bin/gran_tests | grep 'x86_64 arm64'
+            lipo -info build/bin/gran_gallery | grep 'x86_64 arm64'; } 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
       - name: ctest (arm64)
         timeout-minutes: 25
         run: ctest --test-dir build --output-on-failure 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"

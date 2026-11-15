@@ -33,6 +33,19 @@
 **
 ** The command buffer completion handler runs in a foreign thread: it only writes into SharedState under
 ** a mutex and releases the semaphore, no exceptions pass through it (noexcept).
+**
+** Окно (M6). Кадр всегда рисуется в свою поверхность (_surface): из неё же читают размытие подложки и readPixels.
+** С окном (nativeWindow — CAMetalLayer вида Cocoa) поверхность и все конвейеры — в формате BGRA8 (CAMetalLayer
+** не умеет RGBA8), а в конце командного буфера поверхность копируется в drawable слоя и показывается
+** (presentDrawable). Drawable удерживает командный буфер; пул автоосвобождения вокруг кадра обязателен: без него
+** drawable, выданные nextDrawable, не возвращались бы слою, и через три кадра nextDrawable ждал бы вечно.
+**
+** The window (M6). The frame is always drawn into the own surface (_surface): the backdrop blur and readPixels read it
+** too. With a window (nativeWindow is the CAMetalLayer of a Cocoa view) the surface and all the pipelines are in the
+** BGRA8 format (CAMetalLayer cannot do RGBA8), and at the end of the command buffer the surface is copied into the layer
+** drawable and shown (presentDrawable). The command buffer retains the drawable; an autorelease pool around the frame
+** is mandatory: without it the drawables given by nextDrawable would not return to the layer, and after three frames
+** nextDrawable would wait forever.
 */
 #if !defined(__OBJC__) || !__has_feature(objc_arc)
 #error "metal_backend_impl.hpp: only for Objective-C++ with ARC (-fobjc-arc)"
@@ -43,6 +56,7 @@
 #include "gran/core/i18n.hpp"
 
 #import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
 
 #include <atomic>
 #include <cstdint>
@@ -106,8 +120,12 @@ namespace gran::rhi::metal
     void check(bool ok, NSError* error, const char* call, const char* file, int line);
     // Неверный аргумент от вызывающего кода (слот, область, кадр) / An invalid argument from the caller (slot, region, frame)
     [[noreturn]] void invalid(const char* resource);
-    // Текстура RGBA8 или R8 в памяти GPU; target — ещё и цель отрисовки / An RGBA8 or R8 texture in GPU memory; target — also a render target
-    void makeTexture(id<MTLDevice> device, Texture& texture, const TextureDesc& desc, bool target);
+    // Текстура RGBA8 или R8 в памяти GPU; target — формат цели отрисовки (MTLPixelFormatInvalid — не цель, формат из desc)
+    // An RGBA8 or R8 texture in GPU memory; target — the render target format (MTLPixelFormatInvalid — not a target, the format from desc)
+    void makeTexture(id<MTLDevice> device, Texture& texture, const TextureDesc& desc, MTLPixelFormat target);
+    // Строки, прочитанные в формате поверхности, → RGBA8 (BGRA8 окна меняет местами R и B) (metal_present.mm)
+    // The rows read in the surface format → RGBA8 (the window BGRA8 swaps R and B) (metal_present.mm)
+    void toRgba(std::vector<std::uint8_t>& pixels, MTLPixelFormat format) noexcept;
     // Итог командного буфера → SharedState; вызывается из обработчика завершения
     // A command buffer result → SharedState; called from the completion handler
     void completed(SharedState& state, id<MTLCommandBuffer> buffer) noexcept;
@@ -142,10 +160,10 @@ namespace gran::rhi::metal
     };
 
     /*
-    ** Бэкенд Metal вне экрана (паттерн Bridge, как Dx11Backend: та же раскладка привязок и тот же порядок
+    ** Бэкенд Metal вне экрана или в окно (паттерн Bridge, как Dx11Backend: та же раскладка привязок и тот же порядок
     ** проходов размытия, чтобы кадры совпадали с эталонами D3D12 WARP с допуском).
     **
-    ** The offscreen Metal backend (the Bridge pattern, as Dx11Backend: the same binding layout and the same order
+    ** The Metal backend, offscreen or into a window (the Bridge pattern, as Dx11Backend: the same binding layout and the same order
     ** of the blur passes, so that the frames match the D3D12 WARP baselines within a tolerance).
     */
     class MetalBackend final : public RenderBackend, public SnapshotSource
@@ -177,6 +195,13 @@ namespace gran::rhi::metal
         // Ожидание последнего отправленного командного буфера (metal_readback.mm)
         // Waiting for the last submitted command buffer (metal_readback.mm)
         void waitIdle();
+        // Окно: настройка слоя и показ кадра; present — false, если слой не дал drawable (metal_present.mm)
+        // The window: setting up the layer and showing the frame; present — false if the layer gave no drawable (metal_present.mm)
+        void attachLayer();
+        bool present(id<MTLCommandBuffer> buffer);
+        // Командный буфер кадра: загрузки, проходы, показ, отправка; true — кадр показан (metal_present.mm)
+        // The frame command buffer: the uploads, the passes, showing, the submission; true — the frame is shown (metal_present.mm)
+        bool record(const FrameData& frame);
 
         // Кадр: проверка, данные кадра, отправка (metal_frame.mm)
         // The frame: the check, the frame data, the submission (metal_frame.mm)
@@ -215,6 +240,10 @@ namespace gran::rhi::metal
         std::shared_ptr<SharedState> _shared;
         id<MTLDevice> _device = nil;
         id<MTLCommandQueue> _queue = nil;
+        // Слой окна (nil — вне экрана) и формат поверхности и конвейеров: RGBA8 вне экрана, BGRA8 с окном
+        // The window layer (nil — offscreen) and the surface and pipeline format: RGBA8 offscreen, BGRA8 with a window
+        CAMetalLayer* _layer = nil;
+        MTLPixelFormat _format = MTLPixelFormatRGBA8Unorm;
         id<MTLLibrary> _library = nil;
         id<MTLRenderPipelineState> _ui = nil;
         id<MTLRenderPipelineState> _down = nil;

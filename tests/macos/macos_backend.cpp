@@ -7,9 +7,9 @@
 namespace macos_tests
 {
     // Шесть кадров подряд проходят через оба кадра в полёте; затем смена размера с подложкой, слоты текстур,
-    // отказ на Direct3D и на окно (окна у Metal до M6 нет)
+    // отказ на Direct3D (окно — в macos_window.mm)
     // Six frames in a row go through both frames in flight; then a resize with a backdrop, the texture slots,
-    // rejecting Direct3D and a window (Metal has no window until M6)
+    // rejecting Direct3D (the window — in macos_window.mm)
     void backend()
     {
         gran::rhi::BackendOptions options;

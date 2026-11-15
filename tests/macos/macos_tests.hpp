@@ -2,17 +2,29 @@
 #define GRAN_MACOS_TESTS_HPP
 
 #include "gran/rhi/backend_factory.hpp"
+#include "gran/platform/window.hpp"
 
 #include <stdexcept>
+#include <vector>
+
+#ifdef __OBJC__
+#import <Cocoa/Cocoa.h>
+#endif
 
 /*
 ** GPU-проверки бэкенда Metal на macOS (make test-render при NATIVE=1, шаг M5): кадр вне экрана, чтение пикселей,
 ** размытие подложки, смена размера, повторное использование слотов текстур, отказ на неверные данные; затем снимки
-** сцен tests/render/scenes против эталонов D3D12 WARP с допуском. Окна здесь нет — оно появится в M6.
+** сцен tests/render/scenes против эталонов D3D12 WARP с допуском.
 **
 ** The GPU checks of the Metal backend on macOS (make test-render with NATIVE=1, step M5): an offscreen frame, reading
 ** pixels, the backdrop blur, resizing, reusing texture slots, rejecting invalid data; then snapshots of the
-** tests/render/scenes scenes against the D3D12 WARP baselines within a tolerance. There is no window here — it comes in M6.
+** tests/render/scenes scenes against the D3D12 WARP baselines within a tolerance.
+**
+** Окно Cocoa (M6, macos_window.mm и др. — Objective-C++): настоящее окно с CAMetalLayer, кадры, чтение кадра бэкендом,
+** ввод через очередь AppKit, смена размера, буфер обмена, wake и закрытие.
+**
+** The Cocoa window (M6, macos_window.mm and others — Objective-C++): a real window with CAMetalLayer, frames, reading the
+** frame by the backend, input through the AppKit queue, resizing, the clipboard, wake and closing.
 */
 namespace macos_tests
 {
@@ -30,6 +42,21 @@ namespace macos_tests
     void compare(gran::rhi::RenderBackend& backend, unsigned x, unsigned y, std::uint32_t color);
     // Снимки сцен против эталонов; возвращает число провалов / The scene snapshots against the baselines; returns the failure count
     unsigned snapshots(unsigned tolerance);
+    // Окно Cocoa с Metal (macos_window.mm), ввод и закрытие (macos_input.mm)
+    // The Cocoa window with Metal (macos_window.mm), the input and closing (macos_input.mm)
+    void window();
+    void input(gran::platform::Window& window);
+    void closing(gran::platform::Window& window);
+
+#ifdef __OBJC__
+    // Помощники AppKit для теста окна (macos_cocoa.mm) / AppKit helpers for the window test (macos_cocoa.mm)
+    NSWindow* nativeWindow(gran::platform::Window& window);
+    std::vector<gran::platform::Event> collect(gran::platform::Window& window, double seconds);
+    NSEvent* mouseEvent(NSWindow* window, NSEventType type, NSPoint point, NSEventModifierFlags flags);
+    NSEvent* keyEvent(NSWindow* window, NSEventType type, unsigned short code, NSString* characters,
+        NSEventModifierFlags flags);
+    void deliver(NSWindow* window, NSEvent* event, bool queue);
+#endif
 
     // Синтетическая сцена: красный квадрат 16×16 в точке (4, 4) на синем фоне
     // A synthetic scene: a red 16×16 square at (4, 4) on a blue background

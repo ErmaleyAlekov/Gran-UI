@@ -34,6 +34,7 @@ namespace gran::rhi::metal
         const auto* source = static_cast<const std::uint8_t*>(staging.contents);
         for (std::uint32_t line = 0; line < height; ++line)
             std::memcpy(rgba.data() + line * row, source + line * pitch, row);
+        toRgba(rgba, _format);
     }
 
     // Последний отправленный командный буфер завершён — значит, завершены и все прежние (одна очередь)

@@ -16,7 +16,7 @@ namespace gran::rhi::metal
         if (slot >= MAX_TEXTURES)
             throw GpuException(ErrorCode::LIMIT_EXCEEDED,
                 i18n::format(i18n::Message::GPU_DESCRIPTOR_EXHAUSTED, {std::to_string(MAX_TEXTURES)}), 0);
-        makeTexture(_device, texture, desc, false);
+        makeTexture(_device, texture, desc, MTLPixelFormatInvalid);
         // Атлас заполняется кусками, а линейная выборка задевает соседние пиксели: вся текстура сначала обнуляется
         // The atlas is filled in pieces, and linear sampling touches the neighbor pixels: the whole texture is zeroed first
         queueUpload(texture.resource, TextureRegion{0, 0, texture.width, texture.height}, nullptr, 0, texture.bytes);

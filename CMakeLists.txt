@@ -1,7 +1,7 @@
 # ============================================================================
 #  Gran UI — кроссплатформенная сборка CMake (повторяет Makefile)
-#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux (Vulkan/X11); macOS — по умолчанию ядро без окна
-#  (GRAN_NATIVE=OFF: безоконная платформа и NullBackend), с GRAN_NATIVE=ON — Metal вне экрана (M5); окно Cocoa — M6.
+#  Компиляторы: MSVC, MinGW, GCC, Clang. ОС: Windows (D3D12), Linux (Vulkan/X11), macOS (Metal/Cocoa, нужен Xcode);
+#  GRAN_NATIVE=OFF — ядро без окна ОС (безоконная платформа и NullBackend).
 #
 #  Цели:
 #    gran                — статическая библиотека движка (libgran.a / gran.lib)
@@ -14,7 +14,7 @@
 #    -DGRAN_BERESTA_DIR=путь   каталог исходников «Берёсты» (по умолчанию ../Dom lib C++);
 #                              она собирается тем же компилятором как подпроект (beresta_static)
 #    -DGRAN_WITH_VULKAN=ON     бэкенд Vulkan (нужен Vulkan SDK)
-#    -DGRAN_NATIVE=OFF         ядро без окна ОС и GPU (Linux без X11; на macOS — по умолчанию)
+#    -DGRAN_NATIVE=OFF         ядро без окна ОС и GPU (Linux без X11, macOS без Xcode)
 #    -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"  macOS: универсальная сборка (не ниже macOS 11.0)
 #    -DGRAN_DXC=путь           компилятор шейдеров dxc
 #    -DGRAN_WEBVIEW2_SDK=путь  build/native из NuGet-пакета Microsoft.Web.WebView2 (Windows): браузер для <WebView>,
@@ -27,8 +27,8 @@
 #    cmake --build build --target gran_shaders
 # ============================================================================
 #  Gran UI — a cross-platform CMake build (mirrors the Makefile)
-#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux (Vulkan/X11); macOS — the core without windows by
-#  default (GRAN_NATIVE=OFF: the windowless platform and NullBackend), with GRAN_NATIVE=ON — offscreen Metal (M5); Cocoa — M6.
+#  Compilers: MSVC, MinGW, GCC, Clang. OS: Windows (D3D12), Linux (Vulkan/X11), macOS (Metal/Cocoa, needs Xcode);
+#  GRAN_NATIVE=OFF — the core without an OS window (the windowless platform and NullBackend).
 #
 #  Targets:
 #    gran                — the engine static library (libgran.a / gran.lib)
@@ -41,7 +41,7 @@
 #    -DGRAN_BERESTA_DIR=path   the Beresta source directory (default ../Dom lib C++);
 #                              it is built by the same compiler as a subproject (beresta_static)
 #    -DGRAN_WITH_VULKAN=ON     the Vulkan backend (needs the Vulkan SDK)
-#    -DGRAN_NATIVE=OFF         the core without an OS window and GPU (Linux without X11; on macOS — the default)
+#    -DGRAN_NATIVE=OFF         the core without an OS window and GPU (Linux without X11, macOS without Xcode)
 #    -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"  macOS: a universal build (not lower than macOS 11.0)
 #    -DGRAN_DXC=path           the dxc shader compiler
 #    -DGRAN_WEBVIEW2_SDK=path  build/native of the Microsoft.Web.WebView2 NuGet package (Windows): a browser for <WebView>,
@@ -87,16 +87,19 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 option(GRAN_BUILD_TESTS "Собирать модульные тесты / Build the unit tests" ON)
 option(GRAN_BUILD_RENDER_TESTS "GPU-тесты WARP/Vulkan / WARP/Vulkan GPU tests" OFF)
-# Платформа ОС (окна, GPU): на macOS окна ещё нет (Cocoa — шаг M6) — по умолчанию ядро без окна; GRAN_NATIVE=ON —
-# Metal вне экрана (M5, нужен компилятор Metal из Xcode)
-# The OS platform (windows, GPU): macOS has no window yet (Cocoa — step M6) — the core without windows by default;
-# GRAN_NATIVE=ON — offscreen Metal (M5, needs the Metal compiler from Xcode)
-set(GRAN_NATIVE_DEFAULT ON)
-if(APPLE)
-    set(GRAN_NATIVE_DEFAULT OFF)
+# Платформа ОС (окна, GPU) включена на всех ОС; на macOS это окно Cocoa и Metal (M6) — нужен компилятор Metal из Xcode,
+# без Xcode (только Command Line Tools) — GRAN_NATIVE=OFF
+# The OS platform (windows, GPU) is on for all the OSes; on macOS it is the Cocoa window and Metal (M6) — the Metal compiler
+# from Xcode is needed, without Xcode (Command Line Tools only) — GRAN_NATIVE=OFF
+option(GRAN_NATIVE "Платформа ОС и GPU (OFF — только безоконная) / The OS platform and GPU (OFF — windowless only)" ON)
+# Без компилятора Metal сборка упала бы на первом шейдере — понятная ошибка сразу при настройке
+# Without the Metal compiler the build would fail at the first shader — a clear error right at configuration
+if(APPLE AND GRAN_NATIVE)
+    execute_process(COMMAND xcrun -sdk macosx -f metal RESULT_VARIABLE GRAN_METAL_FOUND OUTPUT_QUIET ERROR_QUIET)
+    if(NOT GRAN_METAL_FOUND EQUAL 0)
+        message(FATAL_ERROR "Gran UI: the Metal compiler (xcrun metal) is not found: install Xcode, or use -DGRAN_NATIVE=OFF for the core without windows")
+    endif()
 endif()
-option(GRAN_NATIVE "Платформа ОС и GPU (OFF — только безоконная) / The OS platform and GPU (OFF — windowless only)"
-    ${GRAN_NATIVE_DEFAULT})
 if(WIN32 AND NOT GRAN_NATIVE)
     message(FATAL_ERROR "Gran UI: GRAN_NATIVE=OFF (the build without the OS platform) is for Linux and macOS")
 elseif(NOT WIN32 AND NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -254,13 +257,7 @@ foreach(example_dir IN LISTS GRAN_EXAMPLE_DIRS)
     get_filename_component(example "${example_dir}" NAME)
     # Без платформы ОС примеры не собираются: всем нужно окно или GPU (ревью Т-48)
     # Without the OS platform the examples are not built: all of them need a window or a GPU (review T-48)
-    # macOS: окна ещё нет (M6) — из примеров собирается только snapshot (кадр вне экрана через Metal)
-    # macOS: there is no window yet (M6) — of the examples only snapshot is built (an offscreen frame through Metal)
-    set(example_wanted TRUE)
-    if(APPLE AND NOT example STREQUAL "snapshot")
-        set(example_wanted FALSE)
-    endif()
-    if(GRAN_NATIVE AND example_wanted AND IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example STREQUAL "chat"))
+    if(GRAN_NATIVE AND IS_DIRECTORY "${example_dir}" AND (WIN32 OR NOT example STREQUAL "chat"))
         file(GLOB_RECURSE example_sources CONFIGURE_DEPENDS "${example_dir}/*.cpp")
         add_executable(gran_${example} ${example_sources})
         # Заголовки примера подключаются от его корня; свои системные библиотеки — из system_libs.txt
@@ -345,6 +342,10 @@ endif()
 if(APPLE AND GRAN_NATIVE AND GRAN_BUILD_RENDER_TESTS)
     enable_testing()
     file(GLOB GRAN_MACOS_TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/macos/*.cpp")
+    # Тест окна Cocoa подаёт события AppKit — Objective-C++ с ARC / The Cocoa window test posts AppKit events — Objective-C++ with ARC
+    file(GLOB GRAN_MACOS_TEST_OBJC CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/macos/*.mm")
+    set_source_files_properties(${GRAN_MACOS_TEST_OBJC} PROPERTIES LANGUAGE CXX COMPILE_OPTIONS "-x;objective-c++;-fobjc-arc")
+    list(APPEND GRAN_MACOS_TEST_SOURCES ${GRAN_MACOS_TEST_OBJC})
     add_executable(gran_macos_tests ${GRAN_MACOS_TEST_SOURCES}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/render/render_scene.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/tests/render/render_compare.cpp")
     target_link_libraries(gran_macos_tests PRIVATE gran)

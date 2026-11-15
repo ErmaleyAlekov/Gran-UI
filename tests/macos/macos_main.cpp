@@ -4,10 +4,10 @@
 #include <string>
 
 /*
-** bin/gran_macos_tests [--tolerance N]: проверки бэкенда, затем снимки. N — допуск на канал при сравнении
+** bin/gran_macos_tests [--tolerance N]: проверки бэкенда, окно Cocoa, затем снимки. N — допуск на канал при сравнении
 ** с эталонами (по умолчанию 2, как у сравнения D3D11 с D3D12 на Windows).
 **
-** bin/gran_macos_tests [--tolerance N]: the backend checks, then the snapshots. N is the per-channel tolerance
+** bin/gran_macos_tests [--tolerance N]: the backend checks, the Cocoa window, then the snapshots. N is the per-channel tolerance
 ** for the baseline comparison (2 by default, as for comparing D3D11 with D3D12 on Windows).
 */
 int main(int argc, char* argv[])
@@ -28,6 +28,8 @@ int main(int argc, char* argv[])
         macos_tests::require(tolerance <= 255, "tolerance <= 255");
         macos_tests::backend();
         std::cout << "Metal backend checks passed\n";
+        macos_tests::window();
+        std::cout << "Cocoa window checks passed\n";
         unsigned failed = macos_tests::snapshots(static_cast<unsigned>(tolerance));
         if (failed != 0)
             std::cout << "[FAIL] Metal snapshots: " << failed << '\n';

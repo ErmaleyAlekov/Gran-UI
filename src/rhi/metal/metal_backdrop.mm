@@ -35,7 +35,7 @@ namespace gran::rhi::metal
             return;
         for (std::uint32_t level = 0; level < BLUR_LEVELS; ++level)
             makeTexture(_device, _blur[level], TextureDesc{std::max(1u, _options.width >> level),
-                std::max(1u, _options.height >> level), TextureFormat::RGBA8, "gran.metal.blur"}, true);
+                std::max(1u, _options.height >> level), TextureFormat::RGBA8, "gran.metal.blur"}, _format);
     }
 
     // Один проход: полноэкранный треугольник читает уровень source (texture(2)) и пишет весь уровень destination.

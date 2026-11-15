@@ -14,8 +14,8 @@
 #    BERESTA_DIR=путь   — каталог «Берёсты» (по умолчанию ../Dom lib C++)
 #    DEBUG=1            — -O0 -g, отладочные слои D3D12 / Vulkan
 #    VULKAN=1           — собрать бэкенд Vulkan (нужен Vulkan SDK: VULKAN_SDK)
-#    NATIVE=0           — ядро без окна ОС и GPU: только безоконная платформа и NullBackend (Linux без X11;
-#                         на macOS — по умолчанию, пока нет Cocoa). macOS NATIVE=1 — Metal вне экрана без окна (M5)
+#    NATIVE=0           — ядро без окна ОС и GPU: только безоконная платформа и NullBackend (Linux без X11,
+#                         macOS без Xcode). macOS NATIVE=1 (по умолчанию) — окно Cocoa и Metal, нужен Xcode
 #    DXC=путь           — компилятор шейдеров dxc
 #    WEBVIEW2_SDK=путь  — build/native из NuGet-пакета Microsoft.Web.WebView2 (Windows): элемент <WebView>
 #                         получает браузер, рядом с программами кладётся WebView2Loader.dll (после смены — make re)
@@ -36,7 +36,7 @@
 #    DEBUG=1            — -O0 -g, the D3D12 / Vulkan debug layers
 #    VULKAN=1           — build the Vulkan backend (needs the Vulkan SDK: VULKAN_SDK)
 #    NATIVE=0           — the core without an OS window and GPU: only the windowless platform and NullBackend (Linux
-#                         without X11; on macOS — the default until Cocoa exists). macOS NATIVE=1 — offscreen Metal (M5)
+#                         without X11, macOS without Xcode). macOS NATIVE=1 (the default) — the Cocoa window and Metal, needs Xcode
 #    DXC=path           — the dxc shader compiler
 #    WEBVIEW2_SDK=path  — build/native of the Microsoft.Web.WebView2 NuGet package (Windows): the <WebView> element
 #                         gets a browser, WebView2Loader.dll is put next to the programs (after a change — make re)
@@ -87,13 +87,11 @@ else
 endif
 
 DEBUG       ?= 0
-# Платформа ОС (окна, GPU): на macOS её пока нет (Cocoa — шаг M6, Metal — M5), поэтому там NATIVE=0
-# The OS platform (windows, GPU): macOS has none yet (Cocoa — step M6, Metal — M5), therefore NATIVE=0 there
-ifeq ($(PLATFORM_OS),macos)
-NATIVE      ?= 0
-else
+# Платформа ОС (окна, GPU) по умолчанию включена на всех ОС: `make` везде даёт программы с окном (M6). На macOS ей
+# нужен компилятор Metal из Xcode (проверка ниже); без Xcode, с одними Command Line Tools, — NATIVE=0
+# The OS platform (windows, GPU) is on by default on all the OSes: `make` gives windowed programs everywhere (M6). On macOS
+# it needs the Metal compiler from Xcode (the check below); without Xcode, with Command Line Tools only, — NATIVE=0
 NATIVE      ?= 1
-endif
 # Vulkan по умолчанию — только у платформы Linux / Vulkan by default — only with the Linux platform
 ifeq ($(PLATFORM_OS)-$(NATIVE),linux-1)
 VULKAN      ?= 1
@@ -192,10 +190,13 @@ else
             SYSTEM_LIBS :=
         endif
     else ifeq ($(PLATFORM_OS),macos)
-        # macOS: бэкенд Metal вне экрана (M5); окна Cocoa ещё нет (M6) — окно и диалоги из заглушек platform/none
-        # macOS: the offscreen Metal backend (M5); there is no Cocoa window yet (M6) — the window and dialogs are platform/none stubs
-        PLATFORM_DIRS := platform/none rhi/metal
-        SYSTEM_LIBS   := -framework Metal -framework Foundation
+        # macOS: окно Cocoa (M6) и бэкенд Metal (M5); без компилятора Metal шейдеры не собрать — понятная ошибка сразу
+        # macOS: the Cocoa window (M6) and the Metal backend (M5); without the Metal compiler the shaders cannot be built — a clear error at once
+        PLATFORM_DIRS := platform/cocoa rhi/metal
+        SYSTEM_LIBS   := -framework Metal -framework QuartzCore -framework Cocoa
+        ifeq ($(shell xcrun -sdk macosx -f metal 2>/dev/null),)
+            $(error Gran UI: the Metal compiler (xcrun metal) is not found: install Xcode, or use NATIVE=0 for the core without windows)
+        endif
     else
         PLATFORM_DIRS := platform/x11
         # libvulkan не компонуется: загрузчик открывается через dlopen (vulkan_loader.cpp)
@@ -308,7 +309,7 @@ ifeq ($(PLATFORM_OS),macos)
     METALLIB_OBJ := $(OBJ_DIR)/$(GEN_DIR)/rhi/metal_library.o
 endif
 ifeq ($(PLATFORM_OS)-$(NATIVE),macos-1)
-    OBJC_SRC     := $(call rwildcard,$(SRC_DIR)/rhi/metal,*.mm)
+    OBJC_SRC     := $(call rwildcard,$(SRC_DIR)/rhi/metal,*.mm) $(call rwildcard,$(SRC_DIR)/platform/cocoa,*.mm)
     LIB_OBJ      += $(OBJC_SRC:$(SRC_DIR)/%.mm=$(OBJ_DIR)/%.o) $(METALLIB_OBJ)
 endif
 
@@ -342,11 +343,6 @@ endif
 # platform they would only throw — therefore they are not built (review T-48). The gran_embed and gran_rcc tools are built.
 ifeq ($(NATIVE),0)
     EXAMPLES  :=
-endif
-# macOS NATIVE=1: окна ещё нет (M6) — собирается только snapshot (кадр вне экрана через Metal)
-# macOS NATIVE=1: there is no window yet (M6) — only snapshot is built (an offscreen frame through Metal)
-ifeq ($(PLATFORM_OS)-$(NATIVE),macos-1)
-    EXAMPLES  := $(filter snapshot,$(EXAMPLES))
 endif
 EXAMPLE_BINS  := $(foreach e,$(EXAMPLES),$(BIN_DIR)/gran_$(e)$(EXE))
 # Объект встроенных ресурсов примера (есть examples/<имя>/resources.xml) / The example embedded resource object (when examples/<name>/resources.xml exists)
@@ -391,13 +387,15 @@ update-render-baselines:
 	@echo Gran UI: reference baselines require Windows D3D12 WARP
 	@false
 else ifeq ($(PLATFORM_OS)-$(NATIVE),macos-1)
-# macOS: проверки бэкенда Metal и снимки сцен против эталонов D3D12 WARP (tests/macos, общие части tests/render)
-# macOS: the Metal backend checks and the scene snapshots against the D3D12 WARP baselines (tests/macos, shared parts of tests/render)
-RENDER_TEST_SRC := $(wildcard tests/macos/*.cpp) tests/render/render_scene.cpp tests/render/render_compare.cpp
+# macOS: проверки бэкенда Metal, снимки сцен против эталонов D3D12 WARP и окно Cocoa в процессе (tests/macos, общие
+# части tests/render). Тест окна — Objective-C++ (.mm): он подаёт события AppKit, поэтому ARC включён для всей программы
+# macOS: the Metal backend checks, the scene snapshots against the D3D12 WARP baselines and the in-process Cocoa window
+# (tests/macos, shared parts of tests/render). The window test is Objective-C++ (.mm): it posts AppKit events, so ARC is on for the whole program
+RENDER_TEST_SRC := $(wildcard tests/macos/*.cpp) $(wildcard tests/macos/*.mm) tests/render/render_scene.cpp tests/render/render_compare.cpp
 RENDER_TEST_BIN := $(BIN_DIR)/gran_macos_tests
 .PHONY: test-render update-render-baselines
 $(RENDER_TEST_BIN): $(RENDER_TEST_SRC) $(wildcard tests/macos/*.hpp) tests/render/render_tests.hpp $(LIB_BIN)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(RENDER_TEST_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+	$(CXX) $(CXXFLAGS) -fobjc-arc $(LDFLAGS) $(INCLUDES) $(RENDER_TEST_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 test-render: $(RENDER_TEST_BIN)
 	$(RENDER_TEST_BIN)
 update-render-baselines:
@@ -604,8 +602,8 @@ $(ALL_OBJ) $(RENDER_TEST_BIN) $(CAPI_BIN) $(CRASH_BIN): $(FLAGS_STAMP)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(ALL_DIRS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
 
-# Objective-C++ бэкенда Metal: ARC владеет объектами Metal (см. metal_backend_impl.hpp)
-# The Metal backend Objective-C++: ARC owns the Metal objects (see metal_backend_impl.hpp)
+# Objective-C++ бэкенда Metal и окна Cocoa: ARC владеет объектами Metal и AppKit (metal_backend_impl.hpp, cocoa_window_impl.hpp)
+# The Metal backend and Cocoa window Objective-C++: ARC owns the Metal and AppKit objects (metal_backend_impl.hpp, cocoa_window_impl.hpp)
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm | $(ALL_DIRS)
 	$(CXX) $(CXXFLAGS) -fobjc-arc $(INCLUDES) $(DEPFLAGS) -c $< -o $@
 

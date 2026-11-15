@@ -4,16 +4,16 @@
 
 namespace gran::rhi::metal
 {
-    // Окна у Metal пока нет (CAMetalLayer — с платформой Cocoa, M6): только рисование вне экрана
-    // Metal has no window yet (CAMetalLayer comes with the Cocoa platform, M6): offscreen drawing only
+    // Слой окна настраивается до конвейеров: от него зависит формат поверхности (BGRA8 с окном, RGBA8 вне экрана)
+    // The window layer is set up before the pipelines: the surface format depends on it (BGRA8 with a window, RGBA8 offscreen)
     MetalBackend::MetalBackend(const BackendOptions& options) : _options(options), _shared(std::make_shared<SharedState>())
     {
-        if (options.nativeWindow != nullptr)
-            throw GpuException(ErrorCode::GPU, i18n::format(i18n::Message::GPU_NO_WINDOW, {"Metal"}), 0);
         _options.width = std::max(1u, options.width);
         _options.height = std::max(1u, options.height);
         _shared->inFlight = dispatch_semaphore_create(FRAMES_IN_FLIGHT);
         createDevice();
+        if (_options.nativeWindow != nullptr)
+            attachLayer();
         createPipelines();
         createSurface();
     }
@@ -33,9 +33,9 @@ namespace gran::rhi::metal
     }
 
     // Новый размер: старые поверхность и уровни размытия освобождаются после кадров в полёте
-    // (их удерживают командные буферы), поэтому ждать GPU не нужно
+    // (их удерживают командные буферы), поэтому ждать GPU не нужно; drawable слоя — нового размера
     // A new size: the old surface and blur levels are released after the frames in flight
-    // (the command buffers retain them), so there is no need to wait for the GPU
+    // (the command buffers retain them), so there is no need to wait for the GPU; the layer drawables get the new size
     void MetalBackend::resize(std::uint32_t width, std::uint32_t height)
     {
         if (width == 0 || height == 0 || (width == _options.width && height == _options.height))
@@ -46,6 +46,8 @@ namespace gran::rhi::metal
             level = Texture{};
         _options.width = width;
         _options.height = height;
+        if (_layer != nil)
+            _layer.drawableSize = CGSizeMake(width, height);
         createSurface();
     }
 
@@ -56,10 +58,10 @@ namespace gran::rhi::metal
     void MetalBackend::createSurface()
     {
         makeTexture(_device, _surface, TextureDesc{_options.width, _options.height, TextureFormat::RGBA8,
-            "gran.metal.surface"}, true);
+            "gran.metal.surface"}, _format);
         if (_dummy.resource != nil)
             return;
-        makeTexture(_device, _dummy, TextureDesc{1, 1, TextureFormat::RGBA8, "gran.metal.dummy"}, false);
+        makeTexture(_device, _dummy, TextureDesc{1, 1, TextureFormat::RGBA8, "gran.metal.dummy"}, MTLPixelFormatInvalid);
         queueUpload(_dummy.resource, TextureRegion{0, 0, 1, 1}, nullptr, 0, 4);
     }
 }

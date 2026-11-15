@@ -31,7 +31,7 @@ namespace gran::rhi::metal
     // Цель отрисовки ещё и читается шейдером (поверхность — источник размытия, уровни размытия — подложка).
     // A texture in private GPU memory: data arrives only as a copy from a staging buffer (metal_textures.mm).
     // A render target is also read by a shader (the surface is the blur source, the blur levels are the backdrop).
-    void makeTexture(id<MTLDevice> device, Texture& texture, const TextureDesc& desc, bool target)
+    void makeTexture(id<MTLDevice> device, Texture& texture, const TextureDesc& desc, MTLPixelFormat target)
     {
         MTLPixelFormat format = MTLPixelFormatRGBA8Unorm;
 
@@ -39,11 +39,13 @@ namespace gran::rhi::metal
             invalid("size");
         if (desc.format == TextureFormat::R8)
             format = MTLPixelFormatR8Unorm;
+        if (target != MTLPixelFormatInvalid)
+            format = target;
         MTLTextureDescriptor* info = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format
             width:desc.width height:desc.height mipmapped:NO];
         info.storageMode = MTLStorageModePrivate;
         info.usage = MTLTextureUsageShaderRead;
-        if (target)
+        if (target != MTLPixelFormatInvalid)
             info.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
         texture.resource = [device newTextureWithDescriptor:info];
         GRAN_METAL_CHECK(texture.resource != nil, nil, "newTextureWithDescriptor");

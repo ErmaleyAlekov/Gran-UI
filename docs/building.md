@@ -72,7 +72,7 @@ make BERESTA_DIR=../beresta
 | `BERESTA_DIR=путь` | Каталог «Берёсты» (по умолчанию `../Dom lib C++`) |
 | `DEBUG=1` | `-O0 -g`, отладочный слой D3D12 доступен через `--debug` у примеров |
 | `VULKAN=1` | Vulkan на Linux (включён по умолчанию; заголовки Vulkan SDK или системные) |
-| `NATIVE=0` | Ядро без окна ОС и GPU: безоконная платформа и `NullBackend` (Linux без X11; на macOS — по умолчанию, см. [macOS](#macos)) |
+| `NATIVE=0` | Ядро без окна ОС и GPU: безоконная платформа и `NullBackend` (Linux без X11, macOS без Xcode, см. [macOS](#macos)) |
 | `WEBVIEW2_SDK=путь` | Браузер для `<WebView>` (Windows): `build/native` пакета NuGet `Microsoft.Web.WebView2`; `WebView2Loader.dll` копируется в `bin/`. После смены — `make re` |
 
 Очистка работает и в CMD/PowerShell, и в Unix-оболочке.
@@ -111,7 +111,7 @@ ctest --test-dir build -C Release
 | `-DGRAN_BERESTA_DIR=путь` | Каталог исходников «Берёсты» |
 | `-DGRAN_BUILD_TESTS=ON` | Собирать модульные тесты (по умолчанию включено) |
 | `-DGRAN_WITH_VULKAN=ON` | Vulkan на Linux (по умолчанию ON) |
-| `-DGRAN_NATIVE=OFF` | Ядро без окна ОС и GPU (Linux без X11; на macOS — по умолчанию) |
+| `-DGRAN_NATIVE=OFF` | Ядро без окна ОС и GPU (Linux без X11, macOS без Xcode) |
 | `-DGRAN_WEBVIEW2_SDK=путь` | Браузер для `<WebView>` (Windows): `build/native` пакета `Microsoft.Web.WebView2`; загрузчик копируется к программам |
 | `-DCMAKE_BUILD_TYPE=Debug` | Отладочная сборка (`GRAN_DEBUG=1`) |
 
@@ -273,15 +273,10 @@ bin/gran_gallery samples/popups.xml --debug
 
 ## macOS
 
-На macOS по умолчанию собирается **ядро без окна ОС**: разметка, стили, компоновка, текст, ввод, привязки, модели,
-программа и все модульные тесты — на безоконной платформе (`AppOptions::headless`, `AppDriver`) и `NullBackend`.
-Своего окна (Cocoa) ещё нет — это следующий шаг плана ([дорожная карта](roadmap.md)); графика Metal пока
-только вне экрана (раздел ниже), поэтому на macOS по умолчанию `NATIVE=0` (Makefile) и `GRAN_NATIVE=OFF` (CMake). Вызов окна ОС или бэкенда GPU в такой
-сборке — исключение с понятным текстом, а не ошибка компоновки. Примеры (им всем нужно окно или GPU) и общая библиотека
-Си-интерфейса для обёрток в такой сборке не собираются, инструменты `gran_embed` и `gran_rcc` — собираются.
-
-Нужны Xcode Command Line Tools (`xcode-select --install`: clang и libc++) и GNU make 4+: штатный `make` macOS —
-версии 3.81, Makefile движка ему не подходит и говорит об этом сам.
+На macOS собираются **окно Cocoa и графика Metal** (`NATIVE=1` — умолчание с шага M6, как на Windows и Linux):
+библиотека, все примеры, кроме `chat` (у него сеть Winsock), и Си-интерфейс для обёрток. Нужны **Xcode** (компилятор
+Metal `xcrun metal`; в одних Command Line Tools его нет — тогда сборка сразу говорит об этом) и GNU make 4+: штатный
+`make` macOS — версии 3.81, Makefile движка ему не подходит и говорит об этом сам.
 
 ```bash
 brew install make
@@ -292,44 +287,91 @@ gmake beresta BERESTA_DIR=../beresta
 ```
 
 ```bash
-gmake BERESTA_DIR=../beresta all test test-crash
+gmake BERESTA_DIR=../beresta all test test-render
 ```
+
+```bash
+bin/gran_gallery
+```
+
+Без Xcode собирается **ядро без окна ОС** (`NATIVE=0` / `-DGRAN_NATIVE=OFF`, хватает Command Line Tools:
+`xcode-select --install`): разметка, стили, компоновка, текст, ввод, привязки, модели, программа и все модульные
+тесты — на безоконной платформе (`AppOptions::headless`, `AppDriver`) и `NullBackend`. Вызов окна ОС или бэкенда GPU
+в такой сборке — исключение с понятным текстом, примеры и Си-интерфейс не собираются.
+
+```bash
+gmake NATIVE=0 BERESTA_DIR=../beresta all test test-crash
+```
+
+Почему `NATIVE=1` стал умолчанием: так `make` на всех трёх ОС даёт одно и то же — программы с окном; Xcode для
+программ macOS всё равно нужен (подпись, пакет `.app`), а без него ошибка появляется сразу и подсказывает `NATIVE=0`.
 
 Код собирается для macOS 11.0 и новее (`MACOS_MIN` в Makefile, `CMAKE_OSX_DEPLOYMENT_TARGET` в CMake) — как
 «Берёста». Универсальная сборка Intel + Apple Silicon — через CMake:
 
 ```bash
 cmake -S . -B build -DGRAN_BERESTA_DIR=../beresta -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+```
+
+```bash
 cmake --build build -j
+```
+
+```bash
 ctest --test-dir build --output-on-failure
 ```
 
+### Окно Cocoa
+
+Платформа `src/platform/cocoa/` (Objective-C++ с ARC) выполняет контракт `platform::` ([архитектура](architecture.md)):
+
+- **Окно** — свой подкласс `NSWindow`, содержимое — вид со слоем `CAMetalLayer` (`nativeHandle`). Цикл событий —
+  свой (`nextEventMatchingMask:untilDate:`, `[NSApp run]` не вызывается), `wake()` из любого потока кладёт событие
+  в очередь AppKit. Программа, запущенная из терминала без пакета `.app`, всё равно получает Dock, строку меню
+  и фокус; «Завершить» (Cmd+Q, Dock) и кнопка закрытия дают обычный `CLOSE` — решает программа.
+- **Retina:** логический пиксель — пункт, `scale()` — `backingScaleFactor`; перенос окна на монитор с другим
+  масштабом — `DPI_CHANGED` и `RESIZE`.
+- **Мышь** — в пунктах от левого верхнего угла; `clickCount` ОС; Control+щелчок — правая кнопка (соглашение macOS).
+  **Колесо и трекпад:** точная прокрутка (`hasPreciseScrollingDeltas`) делится на 48 пунктов на «щелчок», инерцию даёт ОС.
+- **Клавиатура:** клавиши — по физическому коду (Cmd+C работает в русской раскладке), Cmd — `Mod`
+  (`MODIFIER_CONTROL`), физический Control — `META`, Control+Tab — Mod+Tab. Текст — через метод ввода
+  (`interpretKeyEvents` → `NSTextInputClient`): мёртвые клавиши и Option набирают символы, Option с символом приходит
+  без `ALT`. IME — минимум контракта: зафиксированная строка приходит символами, набираемая движку пока не видна
+  (`COMPOSITION` — пункт 2.5), окно кандидатов — у левого верхнего угла окна.
+- **Буфер обмена** — `NSPasteboard` (UTF-8), **курсоры** — `NSCursor`, **диалоги файлов** — `NSOpenPanel` / `NSSavePanel`.
+- **Своя рамка** (`titleBar="custom"`) — содержимое под прозрачным заголовком, «светофор» macOS остаётся; участок
+  с ролью перетаскивания двигает окно, двойной щелчок — по настройке системы.
+- **Пока нет:** перетаскивание файлов в окно (`NSDraggingDestination`) и мост доступности `NSAccessibility`
+  (VoiceOver видит только окно) — следующие шаги.
+
+Бэкенд Metal рисует кадр в свою текстуру, в конце кадра копирует её в `drawable` слоя и показывает; поверхность окна —
+BGRA8 (CAMetalLayer не умеет RGBA8), цвета — в sRGB, `vsync` — `displaySyncEnabled`. Кадр окна читается так же, как вне
+экрана (`SnapshotSource`), без прав «Запись экрана».
+
 ### Metal вне экрана
 
-С `NATIVE=1` (Makefile) или `-DGRAN_NATIVE=ON` (CMake) собирается бэкенд **Metal** (`src/rhi/metal/`, Objective-C++
-с ARC): кадр рисуется в свою текстуру и читается обратно — как `gran_snapshot` на других ОС. Окна Cocoa ещё нет
-(шаг M6), поэтому окно и диалоги в такой сборке — исключения-заглушки, а из примеров собирается только `gran_snapshot`
-(ключ `--metal`). Нужен компилятор Metal из **Xcode** (`xcrun metal`; в Command Line Tools его нет): шейдеры
-`src/rhi/shaders_gen/msl/*.metal` собираются в `gran.metallib` при сборке и встраиваются в библиотеку, в движке шейдеры
-не компилируются. Тексты MSL получаются из того же HLSL (`make shaders-metal` на Linux, WSL или macOS: dxc со SPIR-V
-и spirv-cross), `make metal-check` проверяет их компилятором Apple и сверяет раскладку структур GPU с C++.
-
-```bash
-gmake NATIVE=1 BERESTA_DIR=../beresta all test-render
-```
+Бэкенд **Metal** (`src/rhi/metal/`, Objective-C++ с ARC) без окна рисует кадр в свою текстуру и читает её обратно —
+как `gran_snapshot` на других ОС (ключ `--metal`). Шейдеры `src/rhi/shaders_gen/msl/*.metal` собираются в
+`gran.metallib` при сборке и встраиваются в библиотеку, в движке шейдеры не компилируются. Тексты MSL получаются из того
+же HLSL (`make shaders-metal` на Linux, WSL или macOS: dxc со SPIR-V и spirv-cross), `make metal-check` проверяет их
+компилятором Apple и сверяет раскладку структур GPU с C++.
 
 `test-render` (`bin/gran_macos_tests`) проверяет бэкенд (кадры в полёте, размытие, смена размера, слоты текстур, отказ
-на неверные данные) и сверяет снимки сцен `tests/render/scenes` с эталонами D3D12 WARP: весь кадр — в допуске 2 на канал,
-выбросы на самых краях фигур — не больше 0,1 % пикселей и не дальше 48 (Metal растеризует края чуть иначе, чем WARP).
-Отладочный слой Metal включается только переменными окружения: `MTL_DEBUG_LAYER=1`, `MTL_SHADER_VALIDATION=1`.
+на неверные данные), затем **окно Cocoa в процессе** — настоящее окно с `CAMetalLayer`: кадры через `nextDrawable`,
+пиксели кадра, ввод через очередь AppKit (`[NSApp postEvent:]`, без прав «Универсального доступа»: мышь, Shift+A с
+символом, Cmd+C, Control+Tab, точная прокрутка), смена размера, буфер обмена, `wake` из потока, закрытие — и сверяет
+снимки сцен `tests/render/scenes` с эталонами D3D12 WARP: весь кадр — в допуске 2 на канал, выбросы на самых краях фигур —
+не больше 0,1 % пикселей и не дальше 48 (Metal растеризует края чуть иначе, чем WARP). Отладочный слой Metal включается
+только переменными окружения: `MTL_DEBUG_LAYER=1`, `MTL_SHADER_VALIDATION=1`.
 
 Отчёт о сбое на macOS — как на Linux (сигналы на своём стеке, backtrace, байты стека), вместо `/proc/self/maps` в
 отчёт идут образы dyld с адресами загрузки (для `atos -l`). Шрифты ищутся в `/System/Library/Fonts`,
 `/Library/Fonts` и `~/Library/Fonts`.
 
 Своего Mac у разработчиков пока нет: каждый push проверяется на раннере GitHub Actions macOS 15
-(`.github/workflows/macos.yml`) — Makefile на arm64 (тесты, отчёт о сбое) и универсальная сборка
-CMake с тестами обеих архитектур (x86_64 — через Rosetta).
+(`.github/workflows/macos.yml`): ядро `NATIVE=0` на arm64 (тесты, отчёт о сбое, шейдеры Metal), окно Cocoa и Metal
+(Makefile и CMake: тесты, `test-render` с окном в процессе, снимки) и универсальная сборка CMake с тестами обеих
+архитектур (x86_64 — через Rosetta). Живое окно на настоящем Mac (трекпад, IME, Retina, VoiceOver) проверяет человек.
 
 `NATIVE=0` работает и на Linux: ядро без X11 и Vulkan — например, для серверной проверки разметки или контейнера CI
 без графических пакетов.
