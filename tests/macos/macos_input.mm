@@ -62,6 +62,9 @@ namespace macos_tests
             for (const Event& event : collect(window, 0.5))
             {
                 std::uint8_t mods = event.modifiers;
+                if (event.kind == EventKind::KEY_DOWN || event.kind == EventKind::CHARACTER)
+                    std::cout << "Cocoa key event: kind " << int(event.kind) << " key " << gran::platform::keyName(event.key)
+                        << " mods " << int(mods) << " char " << std::uint32_t(event.character) << '\n';
                 letter = letter || (event.kind == EventKind::KEY_DOWN && event.key == gran::platform::Key::A
                     && (mods & gran::platform::MODIFIER_SHIFT) != 0);
                 character = character || (event.kind == EventKind::CHARACTER && event.character == U'A');
@@ -76,7 +79,8 @@ namespace macos_tests
             else
                 std::cout << "Cocoa keys delivered through [NSWindow sendEvent:] (the window is not key)\n";
             require(letter && character && !stray, "Cocoa keyboard: Shift+A → KEY_DOWN + CHARACTER, Cmd+C without a symbol");
-            require(copy && tab, "Cocoa keyboard: Cmd+C → Mod+C, Control+Tab → Mod+Tab");
+            require(copy, "Cocoa keyboard: Cmd+C → Mod+C");
+            require(tab, "Cocoa keyboard: Control+Tab → Mod+Tab");
         }
 
         /*

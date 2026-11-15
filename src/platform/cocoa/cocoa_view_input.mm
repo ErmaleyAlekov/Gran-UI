@@ -3,34 +3,6 @@
 @implementation GranCocoaView (Input)
 
 /*
-** Нажатие: KEY_DOWN движку, затем — методу ввода (interpretKeyEvents → insertText: даёт CHARACTER). Пока метод
-** ввода набирает строку (IME), клавиши принадлежат ему: Enter или стрелка выбирают кандидата, а не уходят программе.
-**
-** A press: KEY_DOWN to the engine, then to the input method (interpretKeyEvents → insertText: gives CHARACTER). While
-** the input method composes a string (IME), the keys belong to it: Enter or an arrow choose a candidate instead of
-** going to the program.
-*/
-- (void)keyDown:(NSEvent*)event
-{
-    gran::platform::cocoa::CocoaWindow* owner = self.owner;
-
-    if (owner == nullptr)
-        return;
-    if (self.hasMarkedText || owner->keyDown(event))
-        [self interpretKeyEvents:@[event]];
-}
-
-// Отпускание; базовый keyUp: не вызывается — он передал бы событие дальше по цепочке и дал бы сигнал «нельзя»
-// A release; the base keyUp: is not called — it would pass the event up the chain and beep
-- (void)keyUp:(NSEvent*)event
-{
-    gran::platform::cocoa::CocoaWindow* owner = self.owner;
-
-    if (owner != nullptr && !self.hasMarkedText)
-        owner->keyUp(event);
-}
-
-/*
 ** Команды правки, которые метод ввода выводит из клавиш (insertNewline:, moveLeft:, deleteBackward:), не нужны:
 ** их смысл уже выбрало поле ввода движка по KEY_DOWN. Базовый метод не вызывается — он подал бы звуковой сигнал.
 **
@@ -53,6 +25,37 @@
 
 namespace gran::platform::cocoa
 {
+    /*
+    ** Клавиатура окна — в одном месте, как мышь (sendEvent: и performKeyEquivalent: окна): нажатие — KEY_DOWN движку,
+    ** затем методу ввода (interpretKeyEvents → insertText: даёт CHARACTER). Цепочка ответчиков AppKit клавишу не видит:
+    ** иначе Control+Tab забрал бы перебор полей AppKit, а Tab и Esc — свои действия окна. Пока метод ввода набирает
+    ** строку (IME), клавиши принадлежат ему: Enter или стрелка выбирают кандидата, а не уходят программе.
+    **
+    ** The window keyboard is in one place, as the mouse (the window sendEvent: and performKeyEquivalent:): a press is
+    ** KEY_DOWN to the engine, then to the input method (interpretKeyEvents → insertText: gives CHARACTER). The AppKit
+    ** responder chain does not see the key: otherwise the AppKit field cycling would take Control+Tab, and Tab and Esc —
+    ** the own window actions. While the input method composes a string (IME), the keys belong to it: Enter or an arrow
+    ** choose a candidate instead of going to the program.
+    */
+    bool CocoaWindow::key(NSEvent* native) noexcept
+    {
+        NSEventType type = native.type;
+
+        if (type != NSEventTypeKeyDown && type != NSEventTypeKeyUp)
+            return false;
+        if (_view.hasMarkedText)
+        {
+            if (type == NSEventTypeKeyDown)
+                [_view interpretKeyEvents:@[native]];
+            return true;
+        }
+        if (type == NSEventTypeKeyUp)
+            keyUp(native);
+        else if (keyDown(native))
+            [_view interpretKeyEvents:@[native]];
+        return true;
+    }
+
     // Якорь компоновки категории Input (cocoa_window_impl.hpp) / The Input category link anchor (cocoa_window_impl.hpp)
     void linkViewInput() noexcept
     {

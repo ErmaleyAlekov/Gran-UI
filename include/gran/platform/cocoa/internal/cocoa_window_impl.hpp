@@ -4,11 +4,12 @@
 /*
 ** Внутренности платформы Cocoa (macOS, шаг M6): только для файлов .mm из src/platform/cocoa (Objective-C++ с ARC).
 **
-** Устройство. Окно — свой подкласс NSWindow (GranCocoaNativeWindow): его sendEvent: видит все события мыши
-** окна раньше видов, поэтому мышь переводится в события движка в одном месте (cocoa_mouse.mm), а не в десятке
-** методов NSView. Содержимое — вид GranCocoaView, слой которого — CAMetalLayer (поверхность бэкенда Metal,
-** nativeHandle). Вид — первый ответчик клавиатуры: keyDown: даёт KEY_DOWN, а текст приходит через
-** interpretKeyEvents → NSTextInputClient (insertText:) — так набирают мёртвые клавиши, Option и методы ввода.
+** Устройство. Окно — свой подкласс NSWindow (GranCocoaNativeWindow): его sendEvent: и performKeyEquivalent: видят
+** все события мыши и клавиатуры окна раньше видов, поэтому ввод переводится в события движка в одном месте
+** (cocoa_mouse.mm, cocoa_view_input.mm), а не в десятке методов NSView и не через цепочку ответчиков AppKit.
+** Содержимое — вид GranCocoaView, слой которого — CAMetalLayer (поверхность бэкенда Metal, nativeHandle). Текст
+** приходит через interpretKeyEvents вида → NSTextInputClient (insertText:) — так набирают мёртвые клавиши, Option и
+** методы ввода.
 ** Делегат окна (GranCocoaWindowDelegate) сообщает о закрытии, размере, фокусе и масштабе.
 **
 ** Цикл событий. Программа не вызывает [NSApp run]: события берёт сам движок (nextEventMatchingMask:untilDate:)
@@ -23,11 +24,12 @@
 **
 ** Cocoa platform internals (macOS, step M6): for the .mm files of src/platform/cocoa only (Objective-C++ with ARC).
 **
-** Structure. The window is an own NSWindow subclass (GranCocoaNativeWindow): its sendEvent: sees all the window
-** mouse events before the views, so the mouse is turned into engine events in one place (cocoa_mouse.mm) and not
-** in a dozen NSView methods. The content is the GranCocoaView view whose layer is a CAMetalLayer (the Metal backend
-** surface, nativeHandle). The view is the keyboard first responder: keyDown: gives KEY_DOWN, and the text comes
-** through interpretKeyEvents → NSTextInputClient (insertText:) — that is how dead keys, Option and input methods type.
+** Structure. The window is an own NSWindow subclass (GranCocoaNativeWindow): its sendEvent: and performKeyEquivalent:
+** see all the window mouse and keyboard events before the views, so the input is turned into engine events in one
+** place (cocoa_mouse.mm, cocoa_view_input.mm), not in a dozen NSView methods and not through the AppKit responder chain.
+** The content is the GranCocoaView view whose layer is a CAMetalLayer (the Metal backend surface, nativeHandle). The
+** text comes through the view interpretKeyEvents → NSTextInputClient (insertText:) — that is how dead keys, Option and
+** input methods type.
 ** The window delegate (GranCocoaWindowDelegate) reports closing, the size, the focus and the scale.
 **
 ** The event loop. The program does not call [NSApp run]: the engine takes the events itself
@@ -97,10 +99,8 @@ namespace gran::platform::cocoa
 - (instancetype)initWithOwner:(gran::platform::cocoa::CocoaWindow*)owner frame:(NSRect)frame;
 @end
 
-// Клавиатура и первый щелчок (cocoa_view_input.mm) / The keyboard and the first click (cocoa_view_input.mm)
+// Команды метода ввода и первый щелчок (cocoa_view_input.mm) / The input method commands and the first click (cocoa_view_input.mm)
 @interface GranCocoaView (Input)
-- (void)keyDown:(NSEvent*)event;
-- (void)keyUp:(NSEvent*)event;
 - (void)doCommandBySelector:(SEL)selector;
 - (BOOL)acceptsFirstMouse:(NSEvent*)event;
 @end
@@ -127,7 +127,7 @@ namespace gran::platform::cocoa
 - (NSUInteger)characterIndexForPoint:(NSPoint)point;
 @end
 
-// Окно: перехват событий мыши до видов (cocoa_native_window.mm) / The window: intercepting the mouse events before the views (cocoa_native_window.mm)
+// Окно: перехват клавиш и мыши до видов (cocoa_native_window.mm) / The window: intercepting the keys and the mouse before the views (cocoa_native_window.mm)
 @interface GranCocoaNativeWindow : NSWindow
 @property(nonatomic, assign) gran::platform::cocoa::CocoaWindow* owner;
 @end
@@ -190,6 +190,9 @@ namespace gran::platform::cocoa
         // Событие мыши окна; true — поглощено (перетаскивание своей рамки), AppKit его не получает (cocoa_mouse.mm)
         // A window mouse event; true — consumed (dragging the custom frame), AppKit does not get it (cocoa_mouse.mm)
         bool mouse(NSEvent* event) noexcept;
+        // Событие клавиатуры окна; true — это клавиша, AppKit её дальше не передаёт (cocoa_view_input.mm)
+        // A window keyboard event; true — it is a key, AppKit does not pass it further (cocoa_view_input.mm)
+        bool key(NSEvent* event) noexcept;
         // Клавиша нажата / отпущена; keyDown возвращает, передавать ли клавишу методу ввода (cocoa_keyboard.mm)
         // A key is pressed / released; keyDown returns whether to pass the key to the input method (cocoa_keyboard.mm)
         bool keyDown(NSEvent* event) noexcept;
