@@ -55,17 +55,12 @@ namespace
     self.marked = nil;
 }
 
-- (BOOL)hasMarkedText
-{
-    return self.marked.length != 0;
-}
-
-// Набираемая строка занимает весь «документ» вида: своего текста у вида нет / The composed string takes the whole view "document": the view has no own text
-- (NSRange)markedRange
-{
-    if (self.marked.length == 0)
-        return NSMakeRange(NSNotFound, 0);
-    return NSMakeRange(0, self.marked.length);
-}
-
 @end
+
+namespace gran::platform::cocoa
+{
+    // Якорь компоновки категории TextInput (cocoa_window_impl.hpp) / The TextInput category link anchor (cocoa_window_impl.hpp)
+    void linkTextInput() noexcept
+    {
+    }
+}

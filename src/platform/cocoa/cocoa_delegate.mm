@@ -9,8 +9,8 @@
 */
 @implementation GranCocoaWindowDelegate
 
-// Кнопка закрытия и Cmd+W: окно не закрывается само — программа получает CLOSE и решает (контракт платформы)
-// The close button and Cmd+W: the window does not close itself — the program gets CLOSE and decides (the platform contract)
+// Кнопка закрытия: окно не закрывается само — программа получает CLOSE и решает (контракт платформы)
+// The close button: the window does not close itself — the program gets CLOSE and decides (the platform contract)
 - (BOOL)windowShouldClose:(NSWindow*)sender
 {
     (void)sender;

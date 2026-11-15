@@ -11,18 +11,26 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- The macOS window (step M6): the Cocoa platform `src/platform/cocoa/` (Objective-C++ with ARC) — a window with
+  `CAMetalLayer`, Retina (`backingScaleFactor`, `DPI_CHANGED` on a monitor change), the mouse in points, Control+click is
+  the right button, the wheel and precise trackpad scrolling, keys by the physical code with Cmd = `Mod`, text through the
+  input method (`NSTextInputClient`, the IME minimum), Control+Tab is Mod+Tab, the `NSPasteboard` clipboard, `NSCursor`
+  cursors, `NSOpenPanel` / `NSSavePanel` file dialogs, a custom frame under a transparent title, the window place; "Quit"
+  (Cmd+Q) and the close button give the usual `CLOSE`. The Metal backend draws into the window (`nextDrawable`,
+  `presentDrawable`, `displaySyncEnabled` = vsync). All the examples except `chat` are built on macOS. An in-process window
+  test (`gran_macos_tests`): the window frames and pixels, input through `[NSApp postEvent:]`, resizing, the clipboard,
+  `wake`, closing — on the `macos.yml` runner. Dragging files and the `NSAccessibility` bridge are not on macOS yet.
 - An offscreen Metal backend (step M5): `BackendKind::METAL`, `src/rhi/metal/` (Objective-C++ with ARC) — 2 frames in
   flight, texture uploads as a copy in the same command buffer, the backdrop blur, frame readback; macOS `NATIVE=1` /
   `-DGRAN_NATIVE=ON` (needs the Metal compiler from Xcode), `gran_snapshot --metal`. The backend checks and the snapshots
-  against the D3D12 baselines run in `macos.yml` with the Metal debug layer. There is no window on macOS yet (M6).
+  against the D3D12 baselines run in `macos.yml` with the Metal debug layer.
 - Metal shaders (step M4): the same HLSL → SPIR-V → MSL 2.3 (`make shaders-metal`, needs dxc with SPIR-V and spirv-cross),
   the MSL texts are in `src/rhi/shaders_gen/msl/`; `make metal-check` on macOS builds a metallib with `-Werror` and checks
   the sizes and offsets of the GPU structs against C++ — a `macos.yml` step.
 - CI on Gitverse: `.gitverse/workflows/ci.yml` — the Linux x86_64 checks from `linux.yml` as short jobs.
 - macOS (step M3): building the core with clang — the Makefile (GNU make 4+, `gmake`) and CMake, including a universal
-  x86_64 + arm64 build, macOS 11.0 or newer; all the unit tests on the windowless platform. There is no Cocoa window and
-  Metal yet, therefore macOS defaults to `NATIVE=0` / `-DGRAN_NATIVE=OFF` — the core without an OS window and GPU (on Linux
-  this builds the core without X11 and Vulkan); an OS window, a file dialog and a GPU backend in such a build are the
+  x86_64 + arm64 build, macOS 11.0 or newer; all the unit tests on the windowless platform. `NATIVE=0` /
+  `-DGRAN_NATIVE=OFF` — the core without an OS window and GPU (on macOS — without Xcode, on Linux — without X11 and Vulkan); an OS window, a file dialog and a GPU backend in such a build are the
   `PLATFORM_NOT_BUILT` exception. The crash report on macOS: the registers from the signal context and the dyld images
   instead of `/proc/self/maps`. A check on every push — `.github/workflows/macos.yml` (a macOS 15 runner: arm64 and x86_64
   through Rosetta). Description — `docs/building.en.md`, "macOS".
@@ -78,6 +86,9 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   `gran:dockShow` returns it to the edge. `Application::floatDockPanel`.
 
 ### Changed
+- macOS: `NATIVE=1` / `-DGRAN_NATIVE=ON` (the Cocoa window and Metal) is now the default, as on Windows and Linux; Xcode
+  is needed (the Metal compiler), without it the build suggests `NATIVE=0` / `-DGRAN_NATIVE=OFF` at once (the core without
+  an OS window). The `GPU_NO_WINDOW` message now means "the window surface is not a CAMetalLayer".
 - Input field: Ctrl+← / Ctrl+→ step by words, Ctrl+Backspace / Ctrl+Delete erase a word (on macOS — Option;
   Cmd+← / Cmd+→ — the line edges, Cmd+↑ / Cmd+↓ — the text edges, Cmd+Backspace — up to the line start). The meaning
   of the editing chords is chosen by the field by the OS (`input/internal/text_keys.hpp`) and only when it handles the key:

@@ -248,7 +248,7 @@ Mesa lavapipe вне экрана): Astra Linux SE 1.7 (GCC 8.3, glibc 2.28) и 
 
 X11: клавиатура/XIM с UTF-8, мышь, колесо, курсоры, CLIPBOARD, DPI из `Xft.dpi` (переопределение
 `GRAN_UI_SCALE=1.5`), системная и собственная рамка, EWMH resize/maximize/minimize, ожидание событий
-и thread-safe wake через pipe. Нативный Wayland, AT-SPI, браузер Linux и macOS пока не реализованы.
+и thread-safe wake через pipe. Нативный Wayland, AT-SPI и браузер (`<WebView>`) на Linux и macOS пока не реализованы.
 Большие clipboard-передачи INCR пока не поддерживаются; отдача ограничена 200 000 байтами.
 CMake: `-DGRAN_BUILD_RENDER_TESTS=ON` добавляет GPU-проверки в CTest.
 Подробнее: [API](api.md), [проверки отрисовки](render_testing.md).

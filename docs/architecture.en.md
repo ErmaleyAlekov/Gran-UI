@@ -53,7 +53,7 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `a11y/` | accessibility: roles, names, control patterns, tree navigation, the client request queue (neutral); UI Automation provider in `platform/win32/uia_*`, the requests are performed by `InputRouter::perform` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/` (the empty backend without a GPU, `BackendKind::NONE`), `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
-| `platform/` | window and events: `win32/`, `x11/`, `headless/` (without an OS, for tests; then `cocoa/`); the embedded browser `webview2/` (optional) |
+| `platform/` | window and events: `win32/`, `x11/`, `cocoa/` (macOS), `headless/` (without an OS, for tests); the embedded browser `webview2/` (optional) |
 | `app/` | application: windows (an `AppWindow` per window — the document, the renderer, input; the shared part is in `Application::State`; the owner is a non-owning reference to a window standing earlier in the list: the owned windows close before the owners, the graphics go from the list end; the modality is the `blocked` flag of the owners, the input is dropped before the tree, on Win32 also `EnableWindow`), the background task pool `TaskPool` (a shared queue, the threads on the first task, the outcome and the merged progress — through `post`), event loop, file dialogs, file dragging, timers (`setTimeout`/`setInterval`), action binding (`onClick="name"` → C++ function), `<WebView>` placement |
 
 ### The embedded browser (hybrid)
@@ -73,14 +73,14 @@ The engine draws the interface itself and does not use a browser for this. `<Web
 
 An OS window is the `platform::Window` interface (the Bridge pattern, `include/gran/platform/window.hpp`). Implementations:
 `win32/`, `x11/`, `headless/` — without an OS, for tests (`HeadlessWindow`, `AppDriver` feeds the events, the "UI tests
-without a window" section in [development.en.md](development.en.md)), then `cocoa/` (M6). The common code (`app/`, `input/`,
+without a window" section in [development.en.md](development.en.md)) and `cocoa/` (macOS, M6; dragging files and accessibility — later). The common code (`app/`, `input/`,
 `ui/`, `render/` and the other modules) relies only on what is listed below; everything OS-dependent is done by the window
 implementation. Adding a platform means fulfilling this contract — there must be no changes in the common code.
 
-| Area | Contract | Win32 / X11 | Cocoa (plan) |
+| Area | Contract | Win32 / X11 | Cocoa (M6) |
 |---|---|---|---|
 | Threads | `createWindow` and all window methods — only on the UI thread, which is the main process thread. The only thread-safe method is `wake()` | any single thread; we keep the main one | the main thread is mandatory (AppKit) |
-| Event loop | `pollEvent` without waiting; `waitEvents(timeout)` sleeps until an event, the timeout or `wake()`. The window procedure only queues events; the exception is `setLiveResize` (repainting while resizing), wrapped into a `noexcept` barrier | message queue / `XNextEvent` + `poll` | `nextEventMatchingMask:untilDate:`, waking — a `CFRunLoopSource` |
+| Event loop | `pollEvent` without waiting; `waitEvents(timeout)` sleeps until an event, the timeout or `wake()`. The window procedure only queues events; the exception is `setLiveResize` (repainting while resizing), wrapped into a `noexcept` barrier | message queue / `XNextEvent` + `poll` | `nextEventMatchingMask:untilDate:`, waking — an `NSEventTypeApplicationDefined` event through `postEvent:atStart:` (AppKit allows it from any thread; a `CFRunLoopSource` would not interrupt waiting for an event) |
 | Coordinates and scale | mouse events are in logical pixels of the client area; `scale()` is device pixels per logical pixel, may be fractional (1.25; 1.5); `RESIZE` and `pixelSize()` are in device pixels; moving to a monitor with another scale gives `DPI_CHANGED` | DPI v2 / `Xft.dpi` | a logical pixel is a point, `scale` = `backingScaleFactor` |
 | Keys | `Key` is by the physical position (Ctrl+C works in the Russian layout); auto-repeat — repeated `KEY_DOWN` | virtual codes / keycode | `keyCode` |
 | Modifiers | `MODIFIER_CONTROL` is "Mod", the primary shortcut modifier (as `Qt::ControlModifier`); `MODIFIER_ALT` is Alt/Option; `MODIFIER_META` is Win/Super; a chord with `META` matches no command (`commandKey`). The implementation gives the modifiers as they are and does not translate the text editing chords (see below) | Ctrl → `CONTROL` | Cmd → `CONTROL`, the physical Control → `META` |

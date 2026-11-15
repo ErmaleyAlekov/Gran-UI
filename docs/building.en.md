@@ -70,7 +70,7 @@ The first command builds `libberesta.a` using Beresta's own Makefile, the second
 | `BERESTA_DIR=path` | Beresta directory (default `../Dom lib C++`) |
 | `DEBUG=1` | `-O0 -g`, D3D12 debug layer available via `--debug` in examples |
 | `VULKAN=1` | Linux Vulkan backend (enabled by default; SDK or system Vulkan headers) |
-| `NATIVE=0` | The core without an OS window and GPU: the windowless platform and `NullBackend` (Linux without X11; the default on macOS, see [macOS](#macos)) |
+| `NATIVE=0` | The core without an OS window and GPU: the windowless platform and `NullBackend` (Linux without X11, macOS without Xcode, see [macOS](#macos)) |
 | `WEBVIEW2_SDK=path` | A browser for `<WebView>` (Windows): `build/native` of the `Microsoft.Web.WebView2` NuGet package; `WebView2Loader.dll` is copied to `bin/`. After a change — `make re` |
 
 Cleaning works in CMD/PowerShell and Unix shell.
@@ -107,7 +107,7 @@ files. With multi-configuration generators, select the configuration using `--co
 | `-DGRAN_BERESTA_DIR=path` | Directory of Beresta sources |
 | `-DGRAN_BUILD_TESTS=ON` | Build unit tests (enabled by default) |
 | `-DGRAN_WITH_VULKAN=ON` | Linux Vulkan backend (ON by default) |
-| `-DGRAN_NATIVE=OFF` | The core without an OS window and GPU (Linux without X11; the default on macOS) |
+| `-DGRAN_NATIVE=OFF` | The core without an OS window and GPU (Linux without X11, macOS without Xcode) |
 | `-DGRAN_WEBVIEW2_SDK=path` | A browser for `<WebView>` (Windows): `build/native` of the `Microsoft.Web.WebView2` package; the loader is copied next to the programs |
 | `-DCMAKE_BUILD_TYPE=Debug` | Debug build (`GRAN_DEBUG=1`) |
 
@@ -177,7 +177,7 @@ with a hint); dragging files into a window and AT-SPI are not implemented yet.
 
 X11 provides UTF-8/XIM input, mouse/wheel, cursors, CLIPBOARD, `Xft.dpi` scaling (`GRAN_UI_SCALE=1.5`
 overrides it), native/custom frames, EWMH window management and sleeping with a thread-safe pipe wakeup.
-Native Wayland, AT-SPI, Linux WebView and macOS are currently unsupported. Large clipboard INCR
+Native Wayland, AT-SPI and the browser (`<WebView>`) on Linux and macOS are currently unsupported. Large clipboard INCR
 transfers are currently unsupported; outgoing clipboard text is limited to 200,000 bytes.
 
 Source: `shaders/hlsl/*.hlsl`. The DXIL bytecode is stored in the repository as generated arrays `src/rhi/shaders_gen/*.cpp`, so `dxc` is not needed for regular builds. After editing a shader:
@@ -254,15 +254,10 @@ function, otherwise after `require(p != nullptr)` it would consider `p` null.
 
 ## macOS
 
-On macOS the **core without an OS window** is built by default: the markup, styles, layout, text, input, bindings, models,
-the program and all the unit tests — on the windowless platform (`AppOptions::headless`, `AppDriver`) and `NullBackend`.
-There is no own window (Cocoa) yet — it is the next plan step ([roadmap](roadmap.en.md)); Metal graphics is offscreen
-only so far (the section below), therefore macOS defaults to `NATIVE=0` (Makefile) and `GRAN_NATIVE=OFF` (CMake). Calling an OS window or a GPU backend in
-such a build is an exception with a clear text, not a link error. The examples (all of them need a window or a GPU) and the
-C interface shared library for the bindings are not built in such a build, the `gran_embed` and `gran_rcc` tools are.
-
-You need the Xcode Command Line Tools (`xcode-select --install`: clang and libc++) and GNU make 4+: the stock macOS
-`make` is version 3.81, the engine Makefile does not fit it and says so itself.
+On macOS the **Cocoa window and Metal graphics** are built (`NATIVE=1` is the default since step M6, as on Windows and
+Linux): the library, all the examples except `chat` (it uses Winsock networking) and the C interface for the bindings.
+You need **Xcode** (the Metal compiler `xcrun metal`; the Command Line Tools alone do not have it — then the build says so
+at once) and GNU make 4+: the stock macOS `make` is version 3.81, the engine Makefile does not fit it and says so itself.
 
 ```bash
 brew install make
@@ -273,46 +268,97 @@ gmake beresta BERESTA_DIR=../beresta
 ```
 
 ```bash
-gmake BERESTA_DIR=../beresta all test test-crash
+gmake BERESTA_DIR=../beresta all test test-render
 ```
+
+```bash
+bin/gran_gallery
+```
+
+Without Xcode the **core without an OS window** is built (`NATIVE=0` / `-DGRAN_NATIVE=OFF`, the Command Line Tools are
+enough: `xcode-select --install`): the markup, styles, layout, text, input, bindings, models, the program and all the unit
+tests — on the windowless platform (`AppOptions::headless`, `AppDriver`) and `NullBackend`. Calling an OS window or a GPU
+backend in such a build is an exception with a clear text, the examples and the C interface are not built.
+
+```bash
+gmake NATIVE=0 BERESTA_DIR=../beresta all test test-crash
+```
+
+Why `NATIVE=1` became the default: so `make` gives the same on all three OSes — windowed programs; Xcode is needed for
+macOS programs anyway (signing, the `.app` bundle), and without it the error comes at once and suggests `NATIVE=0`.
 
 The code is built for macOS 11.0 and newer (`MACOS_MIN` in the Makefile, `CMAKE_OSX_DEPLOYMENT_TARGET` in CMake) — as
 Beresta. A universal Intel + Apple Silicon build — through CMake:
 
 ```bash
 cmake -S . -B build -DGRAN_BERESTA_DIR=../beresta -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+```
+
+```bash
 cmake --build build -j
+```
+
+```bash
 ctest --test-dir build --output-on-failure
 ```
 
+### The Cocoa window
+
+The `src/platform/cocoa/` platform (Objective-C++ with ARC) fulfils the `platform::` contract
+([architecture](architecture.en.md)):
+
+- **The window** is an own `NSWindow` subclass, the content is a view with a `CAMetalLayer` layer (`nativeHandle`). The
+  event loop is own (`nextEventMatchingMask:untilDate:`, `[NSApp run]` is not called), `wake()` from any thread puts an
+  event into the AppKit queue. A program run from a terminal without an `.app` bundle still gets the Dock, the menu bar
+  and the focus; "Quit" (Cmd+Q, the Dock) and the close button give the usual `CLOSE` — the program decides.
+- **Retina:** a logical pixel is a point, `scale()` is `backingScaleFactor`; moving the window to a monitor with another
+  scale gives `DPI_CHANGED` and `RESIZE`.
+- **The mouse** is in points from the top left corner; the OS `clickCount`; Control+click is the right button (the macOS
+  convention). **The wheel and the trackpad:** precise scrolling (`hasPreciseScrollingDeltas`) is divided by 48 points per
+  "notch", the OS gives the inertia.
+- **The keyboard:** keys go by the physical code (Cmd+C works in the Russian layout), Cmd is `Mod` (`MODIFIER_CONTROL`),
+  the physical Control is `META`, Control+Tab is Mod+Tab. Text goes through the input method (`interpretKeyEvents` →
+  `NSTextInputClient`): dead keys and Option type symbols, Option with a symbol comes without `ALT`. IME is the contract
+  minimum: the committed string comes as symbols, the string being composed is not visible to the engine yet
+  (`COMPOSITION` is item 2.5), the candidate window is at the top left corner of the window.
+- **The clipboard** is `NSPasteboard` (UTF-8), **the cursors** are `NSCursor`, **the file dialogs** are `NSOpenPanel` /
+  `NSSavePanel`.
+- **A custom frame** (`titleBar="custom"`) is the content under a transparent title, the macOS "traffic lights" stay; an
+  area with the drag role moves the window, a double click acts by the system setting.
+- **Not yet:** dragging files into the window (`NSDraggingDestination`) and the `NSAccessibility` accessibility bridge
+  (VoiceOver sees only the window) — next steps.
+
+The Metal backend draws the frame into its own texture, at the end of the frame copies it into the layer `drawable` and
+shows it; the window surface is BGRA8 (CAMetalLayer cannot do RGBA8), the colors are sRGB, `vsync` is
+`displaySyncEnabled`. The window frame is read the same way as offscreen (`SnapshotSource`), without the "Screen
+Recording" rights.
+
 ### Offscreen Metal
 
-With `NATIVE=1` (the Makefile) or `-DGRAN_NATIVE=ON` (CMake) the **Metal** backend is built (`src/rhi/metal/`,
-Objective-C++ with ARC): the frame is drawn into its own texture and read back — as `gran_snapshot` on the other OSes.
-There is no Cocoa window yet (step M6), so the window and the dialogs in such a build are throwing stubs, and of the
-examples only `gran_snapshot` is built (the `--metal` key). The Metal compiler from **Xcode** is needed (`xcrun metal`;
-the Command Line Tools do not have it): the `src/rhi/shaders_gen/msl/*.metal` shaders are built into `gran.metallib` at
-build time and embedded into the library, shaders are not compiled in the engine. The MSL texts come from the same HLSL
-(`make shaders-metal` on Linux, WSL or macOS: dxc with SPIR-V and spirv-cross), `make metal-check` checks them with
-the Apple compiler and compares the GPU struct layout with C++.
-
-```bash
-gmake NATIVE=1 BERESTA_DIR=../beresta all test-render
-```
+Without a window the **Metal** backend (`src/rhi/metal/`, Objective-C++ with ARC) draws the frame into its own texture
+and reads it back — as `gran_snapshot` on the other OSes (the `--metal` key). The `src/rhi/shaders_gen/msl/*.metal`
+shaders are built into `gran.metallib` at build time and embedded into the library, shaders are not compiled in the
+engine. The MSL texts come from the same HLSL (`make shaders-metal` on Linux, WSL or macOS: dxc with SPIR-V and
+spirv-cross), `make metal-check` checks them with the Apple compiler and compares the GPU struct layout with C++.
 
 `test-render` (`bin/gran_macos_tests`) checks the backend (frames in flight, the blur, resizing, texture slots,
-rejecting invalid data) and compares the snapshots of the `tests/render/scenes` scenes with the D3D12 WARP baselines:
-the whole frame within a tolerance of 2 per channel, the outliers on the very shape edges at most 0.1 % of the pixels and
-not farther than 48 (Metal rasterizes the edges slightly differently from WARP). The Metal debug layer is enabled only by
-environment variables: `MTL_DEBUG_LAYER=1`, `MTL_SHADER_VALIDATION=1`.
+rejecting invalid data), then **the in-process Cocoa window** — a real window with `CAMetalLayer`: frames through
+`nextDrawable`, the frame pixels, input through the AppKit queue (`[NSApp postEvent:]`, without the "Accessibility" rights:
+the mouse, Shift+A with a symbol, Cmd+C, Control+Tab, precise scrolling), resizing, the clipboard, `wake` from a thread,
+closing — and compares the snapshots of the `tests/render/scenes` scenes with the D3D12 WARP baselines: the whole frame
+within a tolerance of 2 per channel, the outliers on the very shape edges at most 0.1 % of the pixels and not farther than
+48 (Metal rasterizes the edges slightly differently from WARP). The Metal debug layer is enabled only by environment
+variables: `MTL_DEBUG_LAYER=1`, `MTL_SHADER_VALIDATION=1`.
 
 The crash report on macOS is as on Linux (signals on an own stack, backtrace, the stack bytes); instead of
 `/proc/self/maps` the report gets the dyld images with their load addresses (for `atos -l`). Fonts are looked up in
 `/System/Library/Fonts`, `/Library/Fonts` and `~/Library/Fonts`.
 
 The developers have no own Mac yet: every push is checked on a GitHub Actions macOS 15 runner
-(`.github/workflows/macos.yml`) — the Makefile on arm64 (the tests, the crash report) and the universal
-CMake build with the tests of both architectures (x86_64 — through Rosetta).
+(`.github/workflows/macos.yml`): the `NATIVE=0` core on arm64 (the tests, the crash report, the Metal shaders), the Cocoa
+window and Metal (the Makefile and CMake: the tests, `test-render` with the in-process window, the snapshots) and the
+universal CMake build with the tests of both architectures (x86_64 — through Rosetta). A live window on a real Mac (the
+trackpad, IME, Retina, VoiceOver) is checked by a person.
 
 `NATIVE=0` works on Linux too: the core without X11 and Vulkan — for example, for server-side markup checking or a CI
 container without graphics packages.

@@ -68,6 +68,24 @@ namespace gran::platform::cocoa
     // Модификаторы NSEvent → биты MODIFIER_* (Cmd → CONTROL, Option → ALT, Control → META)
     // The NSEvent modifiers → the MODIFIER_* bits (Cmd → CONTROL, Option → ALT, Control → META)
     std::uint8_t modifiersFromFlags(NSEventModifierFlags flags) noexcept;
+
+    /*
+    ** Якоря компоновки категорий. Компоновщик берёт объектный файл из статической библиотеки только по ссылке на его
+    ** символ, а у категории Objective-C символов нет: без ссылки файл категории не попал бы в программу, и AppKit
+    ** получил бы «unrecognized selector» (так упал первый прогон M6 на раннере: -validAttributesForMarkedText). Каждый
+    ** файл категории определяет пустой якорь, ensureApplication вызывает все — программе не нужен ключ -ObjC.
+    **
+    ** The category link anchors. The linker takes an object file from a static library only by a reference to its
+    ** symbol, and an Objective-C category has no symbols: without a reference the category file would not get into the
+    ** program, and AppKit would get "unrecognized selector" (the first M6 run on the runner crashed so:
+    ** -validAttributesForMarkedText). Each category file defines an empty anchor, ensureApplication calls them all —
+    ** the program needs no -ObjC key.
+    */
+    void linkViewInput() noexcept;
+    void linkTextInput() noexcept;
+    void linkTextMarked() noexcept;
+    void linkTextQuery() noexcept;
+    void linkDelegateState() noexcept;
 }
 
 // Вид содержимого: слой CAMetalLayer, клавиатура и ввод текста / The content view: the CAMetalLayer layer, the keyboard and the text input
@@ -79,11 +97,10 @@ namespace gran::platform::cocoa
 - (instancetype)initWithOwner:(gran::platform::cocoa::CocoaWindow*)owner frame:(NSRect)frame;
 @end
 
-// Клавиатура и область слежения за мышью (cocoa_view_input.mm) / The keyboard and the mouse tracking area (cocoa_view_input.mm)
+// Клавиатура и первый щелчок (cocoa_view_input.mm) / The keyboard and the first click (cocoa_view_input.mm)
 @interface GranCocoaView (Input)
 - (void)keyDown:(NSEvent*)event;
 - (void)keyUp:(NSEvent*)event;
-- (void)updateTrackingAreas;
 - (void)doCommandBySelector:(SEL)selector;
 - (BOOL)acceptsFirstMouse:(NSEvent*)event;
 @end
@@ -93,13 +110,17 @@ namespace gran::platform::cocoa
 - (void)insertText:(id)text replacementRange:(NSRange)range;
 - (void)setMarkedText:(id)text selectedRange:(NSRange)selected replacementRange:(NSRange)range;
 - (void)unmarkText;
+@end
+
+// Ввод текста NSTextInputClient: набираемая строка (cocoa_text_marked.mm) / The NSTextInputClient text input: the composed string (cocoa_text_marked.mm)
+@interface GranCocoaView (TextMarked)
 - (BOOL)hasMarkedText;
 - (NSRange)markedRange;
+- (NSRange)selectedRange;
 @end
 
 // Ввод текста NSTextInputClient: вопросы метода ввода (cocoa_text_query.mm) / The NSTextInputClient text input: the input method questions (cocoa_text_query.mm)
 @interface GranCocoaView (TextQuery)
-- (NSRange)selectedRange;
 - (NSArray<NSAttributedStringKey>*)validAttributesForMarkedText;
 - (NSAttributedString*)attributedSubstringForProposedRange:(NSRange)range actualRange:(NSRangePointer)actual;
 - (NSRect)firstRectForCharacterRange:(NSRange)range actualRange:(NSRangePointer)actual;

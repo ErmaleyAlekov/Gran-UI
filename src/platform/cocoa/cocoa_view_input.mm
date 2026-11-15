@@ -31,25 +31,6 @@
 }
 
 /*
-** Область слежения на весь видимый вид: движения указателя без кнопок (MOUSE_MOVE) и уход за край (MOUSE_LEAVE),
-** пока программа активна. Сами события проходят через sendEvent: окна (cocoa_mouse.mm).
-**
-** A tracking area over the whole visible view: pointer motion without buttons (MOUSE_MOVE) and leaving over the edge
-** (MOUSE_LEAVE) while the program is active. The events themselves go through the window sendEvent: (cocoa_mouse.mm).
-*/
-- (void)updateTrackingAreas
-{
-    NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved
-        | NSTrackingActiveInActiveApp | NSTrackingInVisibleRect;
-    NSArray<NSTrackingArea*>* old = [self.trackingAreas copy];
-
-    for (NSTrackingArea* area in old)
-        [self removeTrackingArea:area];
-    [self addTrackingArea:[[NSTrackingArea alloc] initWithRect:NSZeroRect options:options owner:self userInfo:nil]];
-    [super updateTrackingAreas];
-}
-
-/*
 ** Команды правки, которые метод ввода выводит из клавиш (insertNewline:, moveLeft:, deleteBackward:), не нужны:
 ** их смысл уже выбрало поле ввода движка по KEY_DOWN. Базовый метод не вызывается — он подал бы звуковой сигнал.
 **
@@ -69,3 +50,11 @@
 }
 
 @end
+
+namespace gran::platform::cocoa
+{
+    // Якорь компоновки категории Input (cocoa_window_impl.hpp) / The Input category link anchor (cocoa_window_impl.hpp)
+    void linkViewInput() noexcept
+    {
+    }
+}

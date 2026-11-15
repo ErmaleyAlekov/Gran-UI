@@ -41,3 +41,11 @@
 }
 
 @end
+
+namespace gran::platform::cocoa
+{
+    // Якорь компоновки категории State (cocoa_window_impl.hpp) / The State category link anchor (cocoa_window_impl.hpp)
+    void linkDelegateState() noexcept
+    {
+    }
+}

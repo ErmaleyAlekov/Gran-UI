@@ -11,18 +11,26 @@
 ## [Не выпущено]
 
 ### Добавлено
+- Окно macOS (шаг M6): платформа Cocoa `src/platform/cocoa/` (Objective-C++ с ARC) — окно с `CAMetalLayer`, Retina
+  (`backingScaleFactor`, `DPI_CHANGED` при смене монитора), мышь в пунктах, Control+щелчок — правая кнопка, колесо и
+  точная прокрутка трекпада, клавиши по физическому коду с Cmd = `Mod`, текст через метод ввода (`NSTextInputClient`,
+  минимум IME), Control+Tab — Mod+Tab, буфер обмена `NSPasteboard`, курсоры `NSCursor`, диалоги файлов
+  `NSOpenPanel` / `NSSavePanel`, своя рамка под прозрачным заголовком, место окна; «Завершить» (Cmd+Q) и кнопка закрытия —
+  обычный `CLOSE`. Бэкенд Metal рисует в окно (`nextDrawable`, `presentDrawable`, `displaySyncEnabled` = vsync). На
+  macOS собираются все примеры, кроме `chat`. Тест окна в процессе (`gran_macos_tests`): кадры и пиксели окна, ввод через
+  `[NSApp postEvent:]`, смена размера, буфер обмена, `wake`, закрытие — на раннере `macos.yml`. Перетаскивания файлов и
+  моста `NSAccessibility` на macOS пока нет.
 - Бэкенд Metal вне экрана (шаг M5): `BackendKind::METAL`, `src/rhi/metal/` (Objective-C++ с ARC) — 2 кадра в полёте,
   загрузка текстур копией в том же командном буфере, размытие подложки, чтение кадра; macOS `NATIVE=1` /
   `-DGRAN_NATIVE=ON` (нужен компилятор Metal из Xcode), `gran_snapshot --metal`. Проверки бэкенда и снимки против
-  эталонов D3D12 — в `macos.yml` с отладочным слоем Metal. Окна на macOS пока нет (M6).
+  эталонов D3D12 — в `macos.yml` с отладочным слоем Metal.
 - Шейдеры Metal (шаг M4): тот же HLSL → SPIR-V → MSL 2.3 (`make shaders-metal`, нужны dxc со SPIR-V и spirv-cross),
   тексты MSL — в `src/rhi/shaders_gen/msl/`; `make metal-check` на macOS собирает metallib с `-Werror` и сверяет размеры
   и смещения структур GPU с C++ — шаг `macos.yml`.
 - CI на Gitverse: `.gitverse/workflows/ci.yml` — проверки Linux x86_64 из `linux.yml` короткими задачами.
 - macOS (шаг M3): сборка ядра clang'ом — Makefile (GNU make 4+, `gmake`) и CMake, в том числе универсальная
-  x86_64 + arm64, не ниже macOS 11.0; все модульные тесты на безоконной платформе. Окна Cocoa и Metal ещё нет, поэтому
-  на macOS по умолчанию `NATIVE=0` / `-DGRAN_NATIVE=OFF` — ядро без окна ОС и GPU (на Linux так собирается ядро без X11
-  и Vulkan); окно ОС, диалог файлов и бэкенд GPU в такой сборке — исключение `PLATFORM_NOT_BUILT`. Отчёт о сбое на macOS:
+  x86_64 + arm64, не ниже macOS 11.0; все модульные тесты на безоконной платформе. `NATIVE=0` /
+  `-DGRAN_NATIVE=OFF` — ядро без окна ОС и GPU (на macOS — без Xcode, на Linux — без X11 и Vulkan); окно ОС, диалог файлов и бэкенд GPU в такой сборке — исключение `PLATFORM_NOT_BUILT`. Отчёт о сбое на macOS:
   регистры из контекста сигнала и образы dyld вместо `/proc/self/maps`. Проверка на каждый push —
   `.github/workflows/macos.yml` (раннер macOS 15: arm64 и x86_64 через Rosetta). Описание — `docs/building.md`, «macOS».
 - CI на каждый push: `.github/workflows/linux.yml` (Makefile GCC x86_64 и aarch64 с GPU-проверками на lavapipe,
@@ -76,6 +84,9 @@
   `gran:dockShow` возвращает его на край. `Application::floatDockPanel`.
 
 ### Изменено
+- macOS: `NATIVE=1` / `-DGRAN_NATIVE=ON` (окно Cocoa и Metal) — теперь умолчание, как на Windows и Linux; нужен Xcode
+  (компилятор Metal), без него сборка сразу подсказывает `NATIVE=0` / `-DGRAN_NATIVE=OFF` (ядро без окна ОС).
+  Сообщение `GPU_NO_WINDOW` теперь значит «поверхность окна — не CAMetalLayer».
 - Поле ввода: Ctrl+← / Ctrl+→ шагают по словам, Ctrl+Backspace / Ctrl+Delete стирают слово (на macOS — Option;
   Cmd+← / Cmd+→ — края строки, Cmd+↑ / Cmd+↓ — края текста, Cmd+Backspace — до начала строки). Смысл сочетаний правки
   выбирает поле по ОС (`input/internal/text_keys.hpp`) и только когда клавишу обрабатывает оно: платформа больше не

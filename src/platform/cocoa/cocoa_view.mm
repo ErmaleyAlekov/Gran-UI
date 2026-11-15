@@ -21,6 +21,13 @@
     self.wantsLayer = YES;
     self.layerContentsRedrawPolicy = NSViewLayerContentsRedrawNever;
     self.layerContentsPlacement = NSViewLayerContentsPlacementTopLeft;
+    // Слежение за мышью без кнопок (MOUSE_MOVE) и уходом за край (MOUSE_LEAVE), пока программа активна; область сама
+    // следует за видимой частью вида (InVisibleRect). События проходят через sendEvent: окна (cocoa_mouse.mm)
+    // Tracking the mouse without buttons (MOUSE_MOVE) and leaving over the edge (MOUSE_LEAVE) while the program is active;
+    // the area follows the visible part of the view itself (InVisibleRect). The events go through the window sendEvent: (cocoa_mouse.mm)
+    NSTrackingAreaOptions options = NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved
+        | NSTrackingActiveInActiveApp | NSTrackingInVisibleRect;
+    [self addTrackingArea:[[NSTrackingArea alloc] initWithRect:NSZeroRect options:options owner:self userInfo:nil]];
     return self;
 }
 

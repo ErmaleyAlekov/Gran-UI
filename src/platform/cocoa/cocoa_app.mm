@@ -52,6 +52,13 @@ namespace gran::platform::cocoa
 
         if (delegate != nil)
             return;
+        // Ссылки на якоря затягивают файлы категорий в программу (cocoa_window_impl.hpp)
+        // The anchor references pull the category files into the program (cocoa_window_impl.hpp)
+        linkViewInput();
+        linkTextInput();
+        linkTextMarked();
+        linkTextQuery();
+        linkDelegateState();
         [NSApplication sharedApplication];
         delegate = [[GranCocoaAppDelegate alloc] init];
         if (NSApp.activationPolicy == NSApplicationActivationPolicyProhibited)
