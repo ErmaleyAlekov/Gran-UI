@@ -51,10 +51,10 @@ jobs:
           make -j"$(nproc)" BERESTA_DIR=../beresta all
           make BERESTA_DIR=../beresta test
 
-  # ---- Отчёт о сбое и общая библиотека C ABI --------------------------------------
-  # ---- The crash report and the C ABI shared library --------------------------------------
+  # ---- Отчёт о сбое и общая библиотека C ABI — отдельными задачами: вместе на раннере Gitverse 22 минуты из 30 ----
+  # ---- The crash report and the C ABI shared library — separate jobs: together 22 of 30 minutes on the Gitverse runner ----
   crash:
-    name: Linux x86_64 (отчёт о сбое, C ABI / crash report, C ABI)
+    name: Linux x86_64 (отчёт о сбое / crash report)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +68,17 @@ jobs:
         run: |
           cd gran
           make -j"$(nproc)" BERESTA_DIR=../beresta test-crash
+
+  bindings:
+    name: Linux x86_64 (C ABI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gran
+      - name: Пакеты и «Берёста» / Packages and Beresta
+        shell: bash
+        run: bash gran/tools/ci/gitverse_prepare.sh full beresta
       - name: Общая библиотека C ABI / The C ABI shared library (libgran_c.so)
         shell: bash
         run: |
