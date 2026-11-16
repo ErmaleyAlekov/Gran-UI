@@ -113,20 +113,30 @@ jobs:
           ref: ${{ env.BERESTA_REF }}
           path: beresta
       # Скрипт идёт в контейнере, а не через `container:`: действиям GitHub (checkout, upload)
-      # нужен свой Node.js, а в старом образе он может не запуститься. Нет образа — сборка на
-      # раннере с предупреждением: такой архив требует glibc раннера (2.39), а не образа
+      # нужен свой Node.js, а в старом образе он может не запуститься. Образ скачивается до 5 раз
+      # с паузой; не скачался — задача падает. Запасной сборки на раннере нет: в выпуске 0.2.0 реестр
+      # Astra не ответил, и вместо архива gcc8 (glibc 2.28) ушёл gcc13 раннера (glibc 2.39)
       # The script runs in the container, not through `container:`: the GitHub actions (checkout, upload)
-      # need their own Node.js, which may not start in an old image. No image — a build on the
-      # runner with a warning: such an archive requires the runner glibc (2.39), not the image one
+      # need their own Node.js, which may not start in an old image. The image is pulled up to 5 times
+      # with a pause; not pulled — the job fails. There is no fallback build on the runner: in the 0.2.0 release
+      # the Astra registry did not answer, and the runner gcc13 (glibc 2.39) went out instead of the gcc8 archive (glibc 2.28)
+      - name: Образ сборки / The build image
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if docker pull -q "${{ matrix.image }}"; then
+              exit 0
+            fi
+            echo "Попытка ${attempt} не удалась / Attempt ${attempt} failed"
+            sleep $((attempt * 30))
+          done
+          echo "::error::Образ ${{ matrix.image }} не скачан / The image was not pulled"
+          exit 1
       - name: Сборка, тесты, архив / Build, tests, archive
         run: |
-          if docker pull -q "${{ matrix.image }}"; then
-            docker run --rm -v "$GITHUB_WORKSPACE:/w" -w /w/gran "${{ matrix.image }}" \
-              bash tools/release/build_linux.sh /w/beresta /w/dist
-          else
-            echo "::warning::Образ ${{ matrix.image }} недоступен — сборка на раннере / The image is unavailable — a build on the runner"
-            cd gran && bash tools/release/build_linux.sh ../beresta ../dist
-          fi
+          docker run --rm -v "$GITHUB_WORKSPACE:/w" -w /w/gran "${{ matrix.image }}" \
+            bash tools/release/build_linux.sh /w/beresta /w/dist
+          # Имя архива — по GCC образа: другой номер значит, что собрано не там / The archive name follows the image GCC: another number means a wrong build place
+          ls dist/*-${{ matrix.compiler }}.tar.gz
       - uses: actions/upload-artifact@v5
         with:
           name: dist-linux-x86_64-${{ matrix.compiler }}

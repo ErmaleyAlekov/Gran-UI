@@ -9,7 +9,7 @@
 #  - Astra Linux SE 1.7 (GCC 8.3, glibc 2.28) — для программ на GCC 8 (Astra 1.7, РЕД ОС 7.3);
 #  - Альт p10 (GCC 10.3, glibc 2.32) — для программ на GCC 10 и новее.
 #  Инструменты и libgran_c.so годятся из любого архива на системах с glibc не старше образа.
-#  Запасной путь — тот же скрипт прямо на раннере Ubuntu (тогда glibc раннера, о чём пишет журнал).
+#  Скрипт можно запустить и прямо на системе (архив тогда под её GCC и glibc); release.yml так не делает.
 # ============================================================================
 #  Building the Gran UI release archive for Linux x86_64 (P.2)
 #
@@ -20,7 +20,7 @@
 #  - Astra Linux SE 1.7 (GCC 8.3, glibc 2.28) — for programs on GCC 8 (Astra 1.7, RED OS 7.3);
 #  - ALT p10 (GCC 10.3, glibc 2.32) — for programs on GCC 10 and newer.
 #  The tools and libgran_c.so fit from either archive on systems with a glibc not older than the image.
-#  The fallback is the same script right on the Ubuntu runner (then with the runner glibc, which the log reports).
+#  The script can also run right on a system (the archive then fits its GCC and glibc); release.yml does not do that.
 # ============================================================================
 set -euo pipefail
 
