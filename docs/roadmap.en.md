@@ -326,6 +326,14 @@ OS window parameters on reload.
 
 **Linux.** Large clipboard transfers (INCR); browser for `<WebView>`.
 
+**Release and CI** (found during the 0.2.0 release). The Linux archives' `BUILD_INFO.txt` has no commit and Beresta
+version (git in the container does not read the work tree). Gitverse CI repeats the GitHub Linux matrix and exhausts the
+cloud runner limit within a day of pushes — run it on `release/*` and manually. `actions/upload-artifact` and
+`download-artifact@v5` run on the deprecated Node.js 20 — update when versions on Node.js 24 come out. The macOS jobs wait
+for an arm64 runner when GitHub is short of them — make `macos.yml` lighter. Into the release run — building a foreign
+program against the archives (MSVC `/MD`, GCC 13 with `gcc10`), into `test-render` — a snapshot from a folder with "日本"
+in the path. MSVC C4244 warnings from `vector<uint8_t>.assign(n, 0)` in `image/`, `text/`, `vector/`.
+
 ## Postponed
 
 We'll return when real demand arises:
