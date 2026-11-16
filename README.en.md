@@ -2,7 +2,7 @@
 
 [Русский](README.md) · **English**
 
-**Gran UI** is a user interface engine written in **C++17**: the window is described using XML markup, styled with CSS-like syntax, and rendered directly onto the graphics card via **Direct3D 12/11 on Windows or Vulkan on Linux**. The goal is to achieve the look and feel of HTML + CSS (gradients, shadows, rounded corners, frosted glass, smooth transitions) without a browser, without a garbage collector, and without third-party dependencies: startup in milliseconds and 0% CPU usage when idle. When a web page is needed after all, it can be embedded with the `<WebView>` element — the system browser appears only inside it and only while it is visible.
+**Gran UI** is a user interface engine written in **C++17**: the window is described using XML markup, styled with CSS-like syntax, and rendered directly onto the graphics card via **Direct3D 12/11 on Windows, Vulkan on Linux or Metal on macOS**. The goal is to achieve the look and feel of HTML + CSS (gradients, shadows, rounded corners, frosted glass, smooth transitions) without a browser, without a garbage collector, and without third-party dependencies: startup in milliseconds and 0% CPU usage when idle. When a web page is needed after all, it can be embedded with the `<WebView>` element — the system browser appears only inside it and only while it is visible.
 
 The XML markup is parsed and validated by the XML library [Beresta](https://github.com/ErmaleyAlekov/beresta) by the same author: the XSD 1.1 schema is built into the engine, and any markup error is visible with the line, column, and path even before the window is created.
 
@@ -29,7 +29,10 @@ return app.run();
 
 > **Status:** Under development. Windows 10/11 uses Direct3D 12/11 and Win32; Linux uses Vulkan 1.0 and X11
 > (Wayland sessions require XWayland). Software rendering uses WARP on Windows and Mesa lavapipe on Linux.
-> macOS is currently unsupported. Versions follow [semantic versioning](docs/versioning.en.md): before 1.0 the API
+> macOS 11+ uses Metal and Cocoa, **preliminary**: the engine, the examples and the C interface build (arm64 and x86_64)
+> and pass the tests and frame snapshots on CI runners, but the live window on a real Mac (trackpad, IME, Retina,
+> VoiceOver) is not checked yet; file drag and drop, VoiceOver accessibility and ready release archives for macOS are
+> not there yet ([building on macOS](docs/building.en.md#macos)). Versions follow [semantic versioning](docs/versioning.en.md): before 1.0 the API
 > may change between minor versions, while patch releases from `release/X.Y` branches stay compatible.
 > What comes next is in the [roadmap](docs/roadmap.en.md), what changed is in the [CHANGELOG](CHANGELOG.en.md).
 
