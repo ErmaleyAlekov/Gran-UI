@@ -16,6 +16,11 @@ namespace gran::input
         void pointerMove(RouterState& state, const platform::Event& event)
         {
             state.pointer = event.position;
+            if (state.scrollDrag != nullptr)
+            {
+                dragScrollBar(state, event.position);
+                return;
+            }
             changeHover(state, spanAt(state, pickNode(state, event.position), event.position));
             flushEvents(state);
             if (moveDrag(state, event))
@@ -42,6 +47,8 @@ namespace gran::input
 
             if (closeOutside(state, event.position))
                 return;
+            if (event.button == platform::MouseButton::LEFT && pressScrollBar(state, event))
+                return;
             if (event.button == platform::MouseButton::LEFT)
                 state.downClicks = event.clicks;
             if (!firePointer(state, ui::EventType::POINTER_DOWN, pointerTarget(state, hit), event))
@@ -62,6 +69,12 @@ namespace gran::input
             ui::Node* hit = spanAt(state, pickNode(state, event.position), event.position);
             bool allowed = false;
 
+            // Отпускание бегунка — не щелчок по содержимому / Releasing the thumb is not a click on the content
+            if (event.button == platform::MouseButton::LEFT && state.scrollDrag != nullptr)
+            {
+                state.scrollDrag = nullptr;
+                return;
+            }
             if (event.button != platform::MouseButton::LEFT || !finishDrag(state, event))
                 allowed = firePointer(state, ui::EventType::POINTER_UP, pointerTarget(state, hit), event);
             state.capture = nullptr;

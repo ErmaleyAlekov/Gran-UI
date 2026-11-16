@@ -10,6 +10,18 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 
 ## [Unreleased]
 
+### Added
+- The scroll bar of `Scroll` and `TextArea` works with the mouse: the thumb is grabbed and dragged (also outside the window),
+  a press on the bar beside the thumb pages by the visible part. Previously the bar only showed the position, and scrolling
+  was possible only with the wheel and the keyboard (found by the manual check T-58).
+
+### Changed
+- A virtual list (`virtual="true"`) knows the size of every record: the measured records stand exactly in their places,
+  the ones not seen yet take the average size of the measured ones (a size index on a Fenwick tree, O(log n) per measurement
+  and per record lookup by coordinate). Previously all records were taken as one average height — rows of different heights
+  gave a wrong scroll bar and a jump to a record missed its target. The scroll anchor keeps the visible rows in place when
+  an estimate is replaced by a measurement (like `overflow-anchor` in browsers). The first step of 2.2 (DataGrid and TreeView).
+
 ## [0.2.0] — 2026-11-16
 
 The second release: the frame of large programs' windows (2.1), the preparation for macOS (M1–M6 — the core, the shaders

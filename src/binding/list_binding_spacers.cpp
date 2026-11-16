@@ -38,26 +38,29 @@ namespace gran::binding
     }
 
     /*
-    ** Распорка занимает место своих записей без одного промежутка: его даёт сам стек между
-    ** распоркой и первой копией. Пока размер записи не измерен (до первой компоновки), распорки нулевые.
+    ** Распорка занимает место своих записей (по индексу размеров) без одного промежутка: его даёт сам
+    ** стек между распоркой и первой копией. Пока ни одна запись не измерена (до первой компоновки),
+    ** распорки нулевые.
     **
-    ** A spacer takes the place of its records minus one gap: the stack itself gives that gap between
-    ** the spacer and the first copy. While the record size is not measured (before the first layout), the spacers are zero.
+    ** A spacer takes the place of its records (by the size index) minus one gap: the stack itself gives that gap between
+    ** the spacer and the first copy. While no record is measured (before the first layout),
+    ** the spacers are zero.
     */
     bool ListBinding::applySpacers()
     {
         bool horizontal = _container.computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL);
         float gap = _container.computed.spacing;
-        std::size_t after = _model.size() - (_first + _items.size());
+        std::size_t end = _first + _items.size();
+        bool measured = _extents.estimate() > 0.0f;
         float leadSize = 0.0f;
         float trailSize = 0.0f;
 
         if (!_virtual)
             return false;
-        if (_first > 0 && _extent > 0.0f)
-            leadSize = static_cast<float>(_first) * _extent - gap;
-        if (after > 0 && _extent > 0.0f)
-            trailSize = static_cast<float>(after) * _extent - gap;
+        if (_first > 0 && measured)
+            leadSize = static_cast<float>(_extents.offsetOf(_first)) - gap;
+        if (end < _model.size() && measured)
+            trailSize = static_cast<float>(_extents.total() - _extents.offsetOf(end)) - gap;
         bool changed = setMainSize(*_lead, leadSize, horizontal);
         return setMainSize(*_trail, trailSize, horizontal) || changed;
     }

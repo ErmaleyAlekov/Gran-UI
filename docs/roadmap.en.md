@@ -188,9 +188,20 @@ the "0.2.0" section, and in the [guide](guide.en.md#window-frame-menus-toolbars-
 ### 2.2 TreeView and DataGrid
 
 - Column sorting, filter, cell editing (any control element as a cell editor), column width and order change, pinned columns and rows.
-- Virtualization of rows **and** columns, rows of different heights (currently, the virtual list takes the average size).
+- Virtualization of rows **and** columns, rows of different heights (done in 2.2.1).
 - Models already exist (`ListModel`, `TreeModel`, `TreeList`, `SortFilterProxy`, `SelectionModel`) — this item adds their views.
 - Accessibility: UI Automation Grid, Table, Tree, ExpandCollapse, Selection patterns.
+
+Steps (split on 2026-11-16; every step brings tests, snapshots, XSD, UIA, the C interface and RU/EN documentation in the same change):
+
+| Step | What |
+|---|---|
+| **2.2.1** ✓ | Done 2026-11-16: a virtual list with rows of different heights — a record size index (a Fenwick tree: measured ones exactly, unmeasured ones by the average) instead of the average size, a scroll anchor (the visible rows do not jump when an estimate is replaced by a measurement), going to a record by the index |
+| **2.2.2** | `<DataGrid>`: columns `<GridColumn field title width>` (px, `fr`, `auto`, min/max), a header row, cells — a field or `<CellTemplate>`, row virtualization (2.2.1), row selection and the current cell from the keyboard, sorting by a header click through a proxy |
+| **2.2.3** | Column width and order with the mouse (saved in the settings), frozen columns and rows, column virtualization |
+| **2.2.4** | Cell editing: F2, Enter, double click, typing; the editor — `<EditTemplate>` or by the column type (`text`, `number`, `date`, `boolean`); Esc — cancel, undo and redo of edits, validation by type |
+| **2.2.5** | `<TreeView>` over `TreeList`: indents, the expand glyph, keyboard, lazy branches; a tree column in `DataGrid` (TreeGrid); a filter in the column header |
+| **2.2.6** | UI Automation Grid, Table, GridItem, TableItem, Tree, TreeItem, ExpandCollapse, Selection; the C interface and wrappers; the guide and the `samples/grid.xml` example |
 
 ### 2.3 Input Fields and Forms
 

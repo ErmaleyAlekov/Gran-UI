@@ -4,11 +4,11 @@ namespace gran::binding
 {
     /*
     ** Видимая область — рамка ближайшего Scroll. Копия записи есть — по её рамке; записи нет (вне окна
-    ** виртуального списка) — по среднему размеру записи от начала контейнера. Предел прокрутки
+    ** виртуального списка) — по индексу размеров от начала содержимого контейнера. Предел прокрутки
     ** накладывает компоновка, как и для колеса мыши.
     **
     ** The visible area is the frame of the nearest Scroll. The record copy exists — by its frame; there is no record (outside
-    ** the virtual list window) — by the average record size from the container start. The scroll limit
+    ** the virtual list window) — by the size index from the container content start. The scroll limit
     ** is applied by the layout, as for the mouse wheel.
     */
     void ListBinding::reveal(std::size_t index)
@@ -20,10 +20,11 @@ namespace gran::binding
 
         while (scroll != nullptr && scroll->kind != ui::ElementKind::SCROLL)
             scroll = scroll->parent;
-        if (scroll == nullptr || (item == nullptr && _extent <= 0.0f))
+        if (scroll == nullptr || (item == nullptr && _extents.estimate() <= 0.0f))
             return;
-        top = _container.layout.frame.y + static_cast<float>(index) * _extent;
-        bottom = top + _extent;
+        top = _container.layout.frame.y + _container.computed.borderWidth.top + _container.computed.padding.top
+            + static_cast<float>(_extents.offsetOf(index));
+        bottom = top + _extents.sizeAt(index) - _container.computed.spacing;
         if (item != nullptr)
         {
             top = item->layout.frame.y;

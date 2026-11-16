@@ -44,54 +44,41 @@ namespace gran::binding
                 current = &container;
             return contentSpan(*current, horizontal);
         }
-
-        // Средний размер записи с промежутком по рамкам уже скомпонованных копий (0 — копий нет)
-        // The average record size with the gap by the frames of the copies already laid out (0 — no copies)
-        float measureExtent(const std::vector<BoundItem>& items, float spacing, bool horizontal) noexcept
-        {
-            if (items.empty())
-                return 0.0f;
-            const Rect& first = items.front().root->layout.frame;
-            const Rect& last = items.back().root->layout.frame;
-            float span = last.y + last.height - first.y;
-            if (horizontal)
-                span = last.x + last.width - first.x;
-            return (span + spacing) / static_cast<float>(items.size());
-        }
     }
 
     /*
-    ** Окно — записи, попадающие в видимую область, плюс OVERSCAN с каждой стороны. Номер
-    ** записи по координате — через средний размер (для записей примерно одной высоты точно).
+    ** Сначала копии окна измеряются (их размеры заменяют оценку в индексе), и если видимая запись
+    ** сдвинулась в содержимом — прокрутка сдвигается на ту же величину (якорь, anchorShift).
+    ** Затем окно — записи, на которые приходится видимая область, плюс OVERSCAN с каждой стороны;
+    ** номер записи по координате даёт индекс размеров, поэтому строки разной высоты не дают пустот.
     **
-    ** The window is the records falling into the visible area, plus OVERSCAN on each side. The record
-    ** index by a coordinate goes through the average size (exact for records of about the same height).
+    ** First the window copies are measured (their sizes replace the estimate in the index), and if the visible record
+    ** moved in the content — the scroll moves by the same amount (the anchor, anchorShift).
+    ** Then the window is the records the visible area falls on, plus OVERSCAN on each side;
+    ** the record index by a coordinate comes from the size index, so rows of different heights leave no gaps.
     */
     bool ListBinding::updateWindow()
     {
         bool horizontal = _container.computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL);
-
         if (!_virtual)
             return false;
-        float measured = measureExtent(_items, _container.computed.spacing, horizontal);
-        if (measured > 0.0f)
-            _extent = measured;
-        if (_extent <= 0.0f)
+        measureItems(horizontal);
+        if (_extents.estimate() <= 0.0f)
             return false;
+        float start = contentSpan(_container, horizontal).start;
         Span view = viewportSpan(_container, horizontal);
-        float offset = view.start - contentSpan(_container, horizontal).start;
-        double from = std::floor(offset / _extent) - static_cast<double>(OVERSCAN);
-        double to = std::ceil((offset + view.size) / _extent) + static_cast<double>(OVERSCAN);
+        float shift = anchorShift(start, view.start, view.start + view.size, horizontal);
+        bool anchored = anchorScroll(shift, horizontal);
+        double offset = static_cast<double>(view.start - start + shift);
+        _anchor = _extents.indexAt(offset);
+        _anchorAt = _extents.offsetOf(_anchor);
         std::size_t count = _model.size();
-        // Границы — в double до приведения: при крошечной высоте строки offset / _extent огромен, и
-        // static_cast<std::size_t> вне диапазона — UB (NaN std::max превращает в 0)
-        // The bounds are applied in double before the cast: with a tiny row height offset / _extent is huge, and
-        // static_cast<std::size_t> out of range is UB (std::max turns NaN into 0)
-        double limit = static_cast<double>(count);
-        std::size_t first = static_cast<std::size_t>(std::min(limit, std::max(0.0, from)));
-        std::size_t last = std::max(first, static_cast<std::size_t>(std::min(limit, std::max(0.0, to))));
+        std::size_t first = _extents.indexAt(offset);
+        std::size_t last = std::min(count, _extents.indexAt(offset + static_cast<double>(view.size)) + 1 + OVERSCAN);
+        first -= std::min(first, OVERSCAN);
+        last = std::max(first, last);
         _capacity = std::max(INITIAL_WINDOW, last - first);
-        bool changed = reshapeWindow(first, last);
+        bool changed = reshapeWindow(first, last) || anchored;
         if (last >= count)
             changed = fetchMore() || changed;
         return applySpacers() || changed;

@@ -662,6 +662,34 @@ namespace gran::ui
     // The labels of all subtree ComboBoxes — by their values (after building the items from data)
     void syncComboBoxes(Node& subtree);
 
+    // ---- scroll_bar.cpp ----
+
+    /*
+    ** Полоса прокрутки Scroll или TextArea по одной оси — общая геометрия для рисования и для мыши.
+    ** Все прямоугольники — в координатах компоновки узла (как layout.frame).
+    **
+    ** The scroll bar of a Scroll or a TextArea along one axis — the shared geometry for painting and for the mouse.
+    ** All rectangles are in the node layout coordinates (as layout.frame).
+    */
+    struct ScrollBar
+    {
+        // Полоса целиком (где ловится мышь) и бегунок / The whole bar (where the mouse is caught) and the thumb
+        Rect track;
+        Rect thumb;
+        // Путь бегунка (длина полосы минус длина бегунка) / The thumb travel (the bar length minus the thumb length)
+        float travel = 0.0f;
+        // Предел прокрутки (содержимое минус видимая часть) и длина видимой части / The scroll limit (the content minus the visible part) and the visible part length
+        float range = 0.0f;
+        float view = 0.0f;
+    };
+
+    // Полоса по оси (vertical — вертикальная); false — её нет: узел не прокручивается или содержимое помещается
+    // The bar along an axis (vertical — the vertical one); false — there is none: the node does not scroll or the content fits
+    bool scrollBar(const Node& node, bool vertical, ScrollBar& bar) noexcept;
+
+    // Смещение прокрутки, при котором бегунок стоит на месте place от начала полосы / The scroll offset at which the thumb stands at place from the bar start
+    float scrollForThumb(const ScrollBar& bar, float place) noexcept;
+
     // ---- node_transform.cpp ----
 
     // CSS-преобразование узла вокруг transformOrigin (тождественное, если transform не задан)

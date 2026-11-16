@@ -31,23 +31,13 @@ namespace gran::render::internal
     */
     void paintScrollbars(const ui::Node& node, const PaintState& state, SceneContext& context)
     {
-        Rect view = rectDeflate(node.layout.frame, node.computed.borderWidth);
-        Size content = node.layout.contentSize;
-        Vec2 offset = node.layout.scrollOffset;
+        ui::ScrollBar bar;
 
-        if (node.kind != ui::ElementKind::SCROLL && node.kind != ui::ElementKind::TEXT_AREA)
-            return;
-        if (content.height > view.height + 0.5f)
-        {
-            float length = std::max(24.0f, view.height * view.height / content.height);
-            float travel = (view.height - length) * offset.y / (content.height - view.height);
-            emitThumb(Rect{view.x + view.width - 8.0f, view.y + travel, 6.0f, length}, node.computed.color, state, context);
-        }
-        if (content.width > view.width + 0.5f)
-        {
-            float length = std::max(24.0f, view.width * view.width / content.width);
-            float travel = (view.width - length) * offset.x / (content.width - view.width);
-            emitThumb(Rect{view.x + travel, view.y + view.height - 8.0f, length, 6.0f}, node.computed.color, state, context);
-        }
+        // Геометрия общая с вводом мыши (ui::scrollBar): бегунок рисуется там, где его можно схватить
+        // The geometry is shared with the mouse input (ui::scrollBar): the thumb is painted where it can be grabbed
+        if (ui::scrollBar(node, true, bar))
+            emitThumb(bar.thumb, node.computed.color, state, context);
+        if (ui::scrollBar(node, false, bar))
+            emitThumb(bar.thumb, node.computed.color, state, context);
     }
 }

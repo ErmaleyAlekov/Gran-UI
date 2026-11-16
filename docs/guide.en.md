@@ -582,8 +582,9 @@ gran::ItemRef item = app.itemOf(node);              // item.model == &contacts, 
 - The model changes only in the UI thread; the background thread passes data through `app.post`.
 - **A long list** — `virtual="true"` on a `Stack` with `items` inside a `Scroll`: copies are built only for the records near
   the visible area (plus 8 on each side), two spacers replace the rest. A list of 100,000 records is built in a fraction
-  of a millisecond and scrolls at ~1 ms per frame. The condition is records of about the same height: a record position
-  goes through the average size, so with records of very different heights the scroll bar "drifts" a little.
+  of a millisecond and scrolls at ~1 ms per frame. Records may have different heights: the size of every record that has
+  been on screen is remembered, and the ones not seen yet take the average size of the measured ones — the scroll bar
+  gets more precise while scrolling, and the visible rows do not jump meanwhile (the scroll anchor).
   Copies outside the window do not exist: `app.find` and `itemOf` see only the records in the window, and the state inside
   a copy (selection, focus) is lost when its record leaves the window.
 - `gran_snapshot` builds lists from `<Data>` without a window — the list frame is checked without the program

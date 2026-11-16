@@ -45,6 +45,7 @@ namespace gran::input
             cancelDrag(_state);
             changePressed(_state, nullptr);
             _state.drag = nullptr;
+            _state.scrollDrag = nullptr;
             _state.selecting = nullptr;
             _state.capture = nullptr;
             _state.downClicks = 0;

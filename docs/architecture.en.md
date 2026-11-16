@@ -281,10 +281,15 @@ keeping the window and GPU backend. See [API](api.en.md).
   and free space within the rounding error counts as zero: otherwise a long stack would "shrink" by pixel fractions,
   and every item would be measured anew.
 - **Virtual lists** (`virtual="true"`, the `binding/` module). Only the record window near the visible scroll area has
-  template copies; the records before and after the window are replaced by two `Box` spacers sized "the record count ×
-  the average size". After a layout `ListBindings::updateVirtual` fits the window (an overlapping one — at its edges, the
-  other copies live on), and one more style pass and layout run in the same frame (`app::layoutFrame`, at most three).
-  The spacers change only on a difference above half a pixel — the average jitter does not relayout the list.
+  template copies; the records before and after the window are replaced by two `Box` spacers sized by the sum of their
+  records. The sizes are kept by `ExtentIndex` — a Fenwick tree over the records: a measured record (its copy was laid out)
+  counts with its size plus the stack gap, an unmeasured one — with the average of the measured; a node keeps the sum and
+  the count of the measured ones, so a change of the average needs no rebuild, and a measurement and a record lookup by
+  coordinate are O(log n) (insertion and removal rebuild the tree lazily, O(n)). After a layout `ListBindings::updateVirtual`
+  measures the window copies, shifts the scroll by the movement of the anchor record (the first visible one: if the records
+  above it replaced the estimate with an exact size, the visible part does not jump), fits the window (an overlapping one —
+  at its edges, the other copies live on), and one more style pass and layout run in the same frame (`app::layoutFrame`,
+  at most three). The spacers change only on a difference above half a pixel.
 
 ## 6. Performance (Goals)
 

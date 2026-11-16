@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Виртуальный список со строками разной высоты (шаг 2.2.1): 1000 заметок из JSON, у каждой — заголовок и текст
+  от пустого до нескольких абзацев. Размер каждой записи, побывавшей на экране, запоминается, остальные занимают
+  средний размер измеренных; якорь прокрутки держит видимые строки на месте, пока оценка сменяется измерением.
+  Выделение с клавиатуры (стрелки, PageUp/PageDown, Home/End) прокручивает к текущей записи.
+  Запуск: gran_gallery samples/variable_rows.xml или gran_snapshot samples/variable_rows.xml variable_rows.png
+
+  A virtual list with rows of different heights (step 2.2.1): 1000 notes from JSON, each with a title and a text
+  from empty to several paragraphs. The size of every record that has been on screen is remembered, the rest take the
+  average size of the measured ones; the scroll anchor keeps the visible rows in place while an estimate is replaced
+  by a measurement. Selection from the keyboard (arrows, PageUp/PageDown, Home/End) scrolls to the current record.
+  Run: gran_gallery samples/variable_rows.xml or gran_snapshot samples/variable_rows.xml variable_rows.png
+-->
+<Window title="Gran UI — строки разной высоты" width="720" height="600" background="#f5f6f8">
+  <Resources>
+    <Style name="muted" color="#667085" fontSize="12"/>
+    <Style name="note" spacing="4" padding="8 12" borderRadius="8" background="#ffffff">
+      <Hover background="#eef2f6"/>
+      <Selected background="#dbe4ff"/>
+    </Style>
+    <Data name="notes" source="data/notes.json" select="notes">
+      <Field name="number" path="number"/>
+      <Field name="title" path="title"/>
+      <Field name="body" path="body"/>
+    </Data>
+    <Selection name="noteSel" model="notes" mode="extended"/>
+  </Resources>
+  <Stack padding="16" spacing="10" grow="1">
+    <Stack orientation="horizontal" spacing="12" align="center">
+      <Text fontSize="18" fontWeight="700" grow="1">Заметки</Text>
+      <Text style="muted">Записей: {count(notes/Item)}, текущая: {$noteSel.current}</Text>
+    </Stack>
+    <Scroll grow="1">
+      <Stack items="notes" selection="noteSel" virtual="true" spacing="6">
+        <ItemTemplate>
+          <Stack style="note">
+            <Text fontWeight="700">{number}. {title}</Text>
+            <Text style="muted">{body}</Text>
+          </Stack>
+        </ItemTemplate>
+      </Stack>
+    </Scroll>
+  </Stack>
+</Window>

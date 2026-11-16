@@ -1,6 +1,7 @@
 #ifndef GRAN_BINDING_INTERNAL_LIST_BINDING_HPP
 #define GRAN_BINDING_INTERNAL_LIST_BINDING_HPP
 
+#include "gran/binding/internal/extent_index.hpp"
 #include "gran/binding/list_bindings.hpp"
 #include "gran/data/selection_model.hpp"
 
@@ -39,14 +40,16 @@ namespace gran::binding
     ** own children, in the record order. It lives in ListBindings while the container is in the tree.
     **
     ** Виртуальный список (virtual="true"): копии есть только у «окна» записей [first, first + k) около
-    ** видимой области прокрутки, остальные записи заменяют две распорки (Box) с размером «число записей ×
-    ** средний размер записи». После каждой компоновки updateWindow подгоняет окно под видимую область,
-    ** поэтому список из 100 000 записей стоит как список из нескольких десятков.
+    ** видимой области прокрутки, остальные записи заменяют две распорки (Box) с суммой размеров своих записей
+    ** (ExtentIndex: измеренные — точно, неизмеренные — средним). После каждой компоновки updateWindow измеряет
+    ** копии окна и подгоняет окно под видимую область, поэтому список из 100 000 записей разной высоты стоит
+    ** как список из нескольких десятков.
     **
     ** A virtual list (virtual="true"): only the "window" of records [first, first + k) near the visible scroll area
-    ** has copies, the other records are replaced by two spacers (Box) sized "the record count × the average
-    ** record size". After every layout updateWindow fits the window to the visible area,
-    ** so a list of 100,000 records costs as much as a list of a few dozen.
+    ** has copies, the other records are replaced by two spacers (Box) sized by the sum of their records
+    ** (ExtentIndex: the measured ones exactly, the unmeasured ones by the average). After every layout updateWindow measures
+    ** the window copies and fits the window to the visible area, so a list of 100,000 records of different heights
+    ** costs as much as a list of a few dozen.
     **
     ** С моделью выделения (selection="…") копии отмеченных записей получают состояние стиля Selected;
     ** перестановка записей (сортировка прокси) переставляет готовые копии, а не строит их заново.
@@ -128,16 +131,53 @@ namespace gran::binding
         // Распорки до и после окна (только виртуальный список) / The spacers before and after the window (a virtual list only)
         void createSpacers();
 
-        // ---- list_binding_window.cpp ----
+        // ---- list_binding_spacers.cpp ----
 
-        // Размеры распорок по числу записей вне окна; true — размер изменился / The spacer sizes by the record count outside the window; true — a size changed
+        // Размеры распорок по размерам записей вне окна; true — размер изменился / The spacer sizes by the sizes of the records outside the window; true — a size changed
         bool applySpacers();
 
         // Следующая порция источника, когда окно дошло до конца; true — записи добавились / The next source portion when the window reached the end; true — records were added
         bool fetchMore();
 
+        // ---- list_binding_window.cpp ----
+
         // Окно стало [first, last): лишние копии уходят, недостающие создаются / The window became [first, last): extra copies go, missing ones are created
         bool reshapeWindow(std::size_t first, std::size_t last);
+
+        // ---- list_binding_measure.cpp ----
+
+        /*
+        ** Записать в индекс размеры копий окна по их рамкам (размер плюс промежуток стека).
+        ** Вызывается после компоновки: все копии окна к этому моменту скомпонованы.
+        **
+        ** Write the sizes of the window copies into the index by their frames (the size plus the stack gap).
+        ** It is called after a layout: all window copies are laid out by this moment.
+        */
+        void measureItems(bool horizontal);
+
+        /*
+        ** Якорь прокрутки (как overflow-anchor браузеров). Запись у верха видимой области запоминается вместе
+        ** со своим местом по индексу размеров (_anchorAt). После измерения место по индексу меняется (оценка
+        ** сменилась точным размером, сменилось среднее) — Scroll сдвигается на разницу, и видимые записи
+        ** остаются на месте экрана, а окно и прокрутка считаются в одних координатах. Якорь не виден (прыжок
+        ** полосой прокрутки, правка модели) — сдвиг берётся по первой видимой копии: от её места в компоновке
+        ** до места по индексу, куда её поставят новые распорки. Прокрутка пользователя место по индексу
+        ** не меняет и поэтому не гасится. start — начало содержимого контейнера, [from, to) — видимая
+        ** область, всё в координатах окна.
+        **
+        ** The scroll anchor (like overflow-anchor in browsers). The record at the top of the visible area is remembered together
+        ** with its place by the size index (_anchorAt). After a measurement the place by the index changes (an estimate was
+        ** replaced by an exact size, the average changed) — the Scroll moves by the difference, and the visible records
+        ** stay in their place on the screen, while the window and the scroll are computed in the same coordinates. The anchor
+        ** is not visible (a jump with the scroll bar, a model edit) — the shift is taken by the first visible copy: from its place
+        ** in the layout to its place by the index, where the new spacers will put it. The user's scrolling does not change
+        ** the place by the index and therefore is not cancelled. start is the container content start, [from, to) is
+        ** the visible area, all in window coordinates.
+        */
+        float anchorShift(float start, float from, float to, bool horizontal) const;
+
+        // Прокрутить ближайший Scroll на shift по главной оси; true — прокрутка сдвинута (нужна перекомпоновка) / Scroll the nearest Scroll by shift along the main axis; true — the scroll moved (a relayout is needed)
+        bool anchorScroll(float shift, bool horizontal);
 
         ListBindings& _owner;
         ui::Node& _container;
@@ -150,8 +190,11 @@ namespace gran::binding
         bool _virtual = false;
         // Сколько копий можно держать без компоновки (до первого кадра — начальная порция) / How many copies may be kept without a layout (before the first frame — the initial portion)
         std::size_t _capacity = 32;
-        // Средний размер записи по главной оси вместе с промежутком (0 — ещё не измерен) / The average record size along the main axis with the gap (0 — not measured yet)
-        float _extent = 0.0f;
+        // Размеры записей по главной оси вместе с промежутком (только виртуальный список) / The record sizes along the main axis with the gap (a virtual list only)
+        ExtentIndex _extents;
+        // Якорь прокрутки: номер записи (SIZE_MAX — нет) и её место по индексу размеров / The scroll anchor: the record index (SIZE_MAX — none) and its place by the size index
+        std::size_t _anchor = static_cast<std::size_t>(-1);
+        double _anchorAt = 0.0;
         // Источник отказал при подгрузке — больше не просить / The source failed while fetching — do not ask any more
         bool _fetchFailed = false;
         ui::Node* _lead = nullptr;

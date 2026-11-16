@@ -247,6 +247,11 @@ namespace gran::input
         // Dragging a dockable panel title: the press point and whether the threshold was passed (dock_input.cpp)
         Vec2 dockOrigin;
         bool dockDragging = false;
+        // Захваченный бегунок полосы прокрутки: узел прокрутки, ось и место захвата от начала бегунка (scroll_bar_input.cpp)
+        // The grabbed scroll bar thumb: the scroll node, the axis and the grab place from the thumb start (scroll_bar_input.cpp)
+        ui::Node* scrollDrag = nullptr;
+        bool scrollVertical = true;
+        float scrollGrab = 0.0f;
     };
 
     /*
@@ -634,6 +639,17 @@ namespace gran::input
 
     // Свернуть или развернуть панель collapse; true — состояние сменилось / Collapsing or expanding the collapse pane; true — the state changed
     bool toggleSplit(RouterState& state, ui::Node& splitter);
+
+    // ---- scroll_bar_input.cpp ----
+
+    // Scroll или TextArea, чья полоса прокрутки под точкой окна; vertical — какая из двух / The Scroll or TextArea whose scroll bar is under the window point; vertical — which of the two
+    ui::Node* scrollBarAt(RouterState& state, Vec2 point, bool& vertical);
+
+    // Левое нажатие на полосу прокрутки: захват бегунка или листание; false — нажатие не на полосе / A left press on a scroll bar: grabbing the thumb or paging; false — the press is not on a bar
+    bool pressScrollBar(RouterState& state, const platform::Event& event);
+
+    // Захваченный бегунок за указателем / The grabbed thumb follows the pointer
+    void dragScrollBar(RouterState& state, Vec2 point);
 
     // ---- splitter_events.cpp ----
 

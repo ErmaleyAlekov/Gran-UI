@@ -22,6 +22,9 @@ namespace gran::binding
         std::size_t first = _first;
         std::size_t last = _first + _items.size();
 
+        if (_virtual)
+            _extents.permute(oldToNew);
+        _anchor = static_cast<std::size_t>(-1);
         if (!_virtual && oldToNew.size() == _items.size() && _first == 0)
         {
             permute(oldToNew);

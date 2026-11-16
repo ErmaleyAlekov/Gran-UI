@@ -44,6 +44,7 @@ namespace gran::input
         drop(_state.pressed, subtree);
         drop(_state.focus, subtree);
         drop(_state.drag, subtree);
+        drop(_state.scrollDrag, subtree);
         drop(_state.selection, subtree);
         drop(_state.selecting, subtree);
         drop(_state.contextMenu, subtree);

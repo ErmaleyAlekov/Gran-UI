@@ -39,6 +39,9 @@ namespace gran::binding
     */
     void ListBinding::inserted(std::size_t index, std::size_t count)
     {
+        if (_virtual)
+            _extents.insert(index, count);
+        _anchor = static_cast<std::size_t>(-1);
         for (std::size_t record = index; record < index + count; ++record)
         {
             std::size_t end = _first + _items.size();
@@ -59,6 +62,9 @@ namespace gran::binding
     // С конца, чтобы номера ещё не удалённых записей не сдвигались / From the end, so that the indices of the records not yet removed do not shift
     void ListBinding::removed(std::size_t index, std::size_t count)
     {
+        if (_virtual)
+            _extents.erase(index, count);
+        _anchor = static_cast<std::size_t>(-1);
         for (std::size_t record = index + count; record > index; --record)
         {
             if (record - 1 < _first)
@@ -72,10 +78,18 @@ namespace gran::binding
         selectionChanged();
     }
 
-    // Только тексты с подстановками и только у записи в окне / Only the texts with placeholders and only for a record in the window
+    /*
+    ** Только тексты с подстановками и только у записи в окне: её новый размер измерит следующий кадр.
+    ** Запись вне окна теряет измеренный размер — он мог устареть вместе с содержимым.
+    **
+    ** Only the texts with placeholders and only for a record in the window: the next frame measures its new size.
+    ** A record outside the window loses its measured size — it may have gone stale together with the content.
+    */
     void ListBinding::changed(std::size_t index)
     {
         if (index >= _first && index - _first < _items.size())
             applyFields(_items[index - _first].fields, _model.at(index));
+        else if (_virtual)
+            _extents.forget(index);
     }
 }
