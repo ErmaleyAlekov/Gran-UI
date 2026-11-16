@@ -7,7 +7,7 @@
 > **This is a living document.** Here is only what has not been done yet and ideas for the future. The order of tasks, their composition
 > and deadlines **will change** as the engine develops: based on user feedback, what is discovered during implementation, and as new tasks appear. Dates are guidelines, not promises. Done items are moved to the [CHANGELOG](../CHANGELOG.en.md), versioning rules are in [docs/versioning.en.md](versioning.en.md).
 >
-> Updated: 2026-11-15 (the P.2 release build by tag is done; macOS M1–M6 are done, the direction is paused until a real Mac).
+> Updated: 2026-11-16 (0.2.0 is released; macOS M1–M6 are done, the direction is paused until a real Mac).
 
 ## Table of Contents
 
@@ -71,8 +71,8 @@ A minor version is released when its main plan item is ready; patch versions as 
 | Version | Target | Main Content |
 |---|---|---|
 | **0.1.0** | released 2026-11-09 | First release with a tag: stage 1 completely, semantic versions, `gran_export.h`, sanitizer builds, the first manual check tasks (P.16), `release/0.1` branch |
-| **0.2.0** | December 2026 | 2.1 Window frame (done, checked by hand); macOS without a Mac — M1–M3 (first priority); CI on each commit (P.1) with sanitizers and GPU debug layers (P.16), release build by tag (P.2, done) |
-| **0.3.0** | January 2027 | macOS without a Mac — M4–M6; 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
+| **0.2.0** | released 2026-11-16 | 2.1 Window frame; macOS without a Mac — M1–M6 (the Cocoa window is preliminary, checked only in CI); CI on every push (P.1) with sanitizers and GPU debug layers (P.16); the release build by tag with Windows and Linux archives (P.2); `release/0.2` branch |
+| **0.3.0** | January 2027 | 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
 | **0.4.0** | January–February 2027 | 2.3 Input fields and forms; fallback content for `<WebView>` without a browser (R.5) |
 | **0.5.0** | February 2027 | 2.4 Feedback (notifications, indicators, wizard) |
 | **0.6.0** | March 2027 | 2.5 Text for editing (formatted text editor, code editor, IME) |
@@ -179,11 +179,11 @@ The section is compiled according to the recommendations of the project's lead d
 
 After this stage: accounting systems, admin panels, catalogs, forms.
 
-### 2.1 Window Frame — done (goes into 0.2.0)
+### 2.1 Window Frame — went into 0.2.0
 
 The menu bar with access letters, toolbars with the "more" menu, the status bar, the pane splitter, document tabs,
 dockable panels with tearing off into a window, file dragging on Linux — in detail in the [CHANGELOG](../CHANGELOG.en.md),
-the "Unreleased" section, and in the [guide](guide.en.md#window-frame-menus-toolbars-status-bar).
+the "0.2.0" section, and in the [guide](guide.en.md#window-frame-menus-toolbars-status-bar).
 
 ### 2.2 TreeView and DataGrid
 

@@ -10,6 +10,14 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-11-16
+
+The second release: the frame of large programs' windows (2.1), the preparation for macOS (M1–M6 — the core, the shaders
+and the Metal backend, the Cocoa window; checked only on the CI runners, macOS support is preliminary until a check on a
+real Mac), CI on every push and the release build by tag with prebuilt archives for Windows (MinGW, MSVC `/MT` and `/MD`)
+and Linux (GCC 8 and GCC 10+), UTF-8 paths on Windows (the own `gran::fs` layer). The incompatible change is the paths in
+the `res::` resource API as UTF-8 strings (the section below). Requires Beresta 2.2.1 or later.
+
 ### Added
 - The release build by tag (P.2): `.github/workflows/release.yml` checks the tag against `gran_version.h` and the
   CHANGELOG section, builds after the unit tests the Linux x86_64 archives for the program compiler —

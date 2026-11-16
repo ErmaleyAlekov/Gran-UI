@@ -31,7 +31,7 @@
 
 /* Суффикс предвыпуска с дефисом ("-dev", "-rc.1") или пустая строка у выпуска.
  * Pre-release suffix with a hyphen ("-dev", "-rc.1") or an empty string for a release. */
-#define GRAN_VERSION_PRERELEASE "-dev"
+#define GRAN_VERSION_PRERELEASE ""
 
 /* Версия двоичного интерфейса Си (gran.h). Растёт только при несовместимом изменении ABI:
  * удаление функции, смена сигнатуры, раскладки структуры или значения перечисления.
