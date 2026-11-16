@@ -4,7 +4,8 @@
 #include "gran/log/internal/crash_windows.hpp"
 
 #include <cwchar>
-#include <filesystem>
+
+#include "gran/utils/file_system.hpp"
 
 namespace gran::log
 {
@@ -57,15 +58,15 @@ namespace gran::log
         // Пути и dbghelp — до сбоя; dbghelp не найден — будет только текстовый отчёт / The paths and dbghelp — before a crash; no dbghelp — only the text report
         bool prepareState(internal::CrashState& state, const CrashOptions& options)
         {
-            std::filesystem::path folder = std::filesystem::u8path(crashDirectory(options));
-            std::error_code error;
+            std::string folder = crashDirectory(options);
+            std::wstring wide = fs::toWidePath(folder);
             HMODULE dbghelp = LoadLibraryW(L"dbghelp.dll");
 
-            std::filesystem::create_directories(folder, error);
-            if (folder.wstring().size() + 64 >= MAX_PATH)
+            fs::createDirectories(folder);
+            if (wide.size() + 64 >= MAX_PATH)
                 return false;
-            std::wcsncpy(state.folder, folder.wstring().c_str(), MAX_PATH - 1);
-            std::wcsncpy(state.prefix, std::filesystem::u8path(options.appName).wstring().c_str(), 127);
+            std::wcsncpy(state.folder, wide.c_str(), MAX_PATH - 1);
+            std::wcsncpy(state.prefix, fs::toWidePath(options.appName).c_str(), 127);
             if (dbghelp != nullptr)
                 state.writeDump = reinterpret_cast<internal::MiniDumpWriteDumpFn>(
                     reinterpret_cast<void*>(GetProcAddress(dbghelp, "MiniDumpWriteDump")));

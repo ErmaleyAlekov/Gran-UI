@@ -3,14 +3,13 @@
 #include "gran/core/i18n.hpp"
 #include "gran/res/resources.hpp"
 
-#include <filesystem>
 #include <utility>
 
 namespace gran::data::internal
 {
     // Путь — UTF-8 (u8path), как у разметки; массив записей ищется сразу — ошибка пути видна при загрузке / The path is UTF-8 (u8path), as for the markup; the record array is found at once — a path error is visible at loading
     JsonListFetcher::JsonListFetcher(SourceSpec spec)
-        : _spec(std::move(spec)), _file(res::openStream(std::filesystem::u8path(_spec.path))), _reader(*_file, _spec.path)
+        : _spec(std::move(spec)), _file(res::openStream(_spec.path)), _reader(*_file, _spec.path)
     {
         if (!*_file)
             throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_READ_FAILED, {_spec.path}));
@@ -44,7 +43,7 @@ namespace gran::data::internal
 
     std::vector<TreeItem> readJsonTree(const SourceSpec& spec)
     {
-        std::unique_ptr<std::istream> file = res::openStream(std::filesystem::u8path(spec.path));
+        std::unique_ptr<std::istream> file = res::openStream(spec.path);
         JsonReader reader(*file, spec.path);
         std::vector<TreeItem> items;
 

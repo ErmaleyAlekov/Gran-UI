@@ -159,6 +159,39 @@ g++ -std=c++17 -I"Gran-UI/include" -I"beresta/include" main.cpp Gran-UI/bin/libg
 `gran_<имя>` автоматически (метка `windows_gui.txt` — программа без консоли, `system_libs.txt` — дополнительные
 системные библиотеки, как `ws2_32` у чата).
 
+### Готовые архивы выпуска
+
+К каждому выпуску на GitHub и Gitverse приложены архивы — движок можно подключить без сборки из исходников:
+
+| Архив | Чем собран | Где работает |
+|---|---|---|
+| `gran-ui-X.Y.Z-linux-x86_64-gcc10.tar.gz` | GCC 10.3 в образе Альт p10 | программы на GCC 10 и новее, glibc 2.30+: Альт p10 и p11, Astra 1.8, РЕД ОС 8, Ubuntu 22.04+ |
+| `gran-ui-X.Y.Z-linux-x86_64-gcc8.tar.gz` | GCC 8.3 в образе Astra Linux SE 1.7 | программы на GCC 8, glibc 2.27+: Astra 1.7, РЕД ОС 7.3 |
+| `gran-ui-X.Y.Z-windows-x86_64-mingw.zip` | MinGW-w64 GCC (рантайм внутри, `-static`) | Windows 10 и 11 x64 |
+| `gran-ui-X.Y.Z-windows-x86_64-msvc.zip` | MSVC, Release, статический рантайм `/MT` | Windows 10 и 11 x64, программы с `/MT` |
+| `gran-ui-X.Y.Z-windows-x86_64-msvc-md.zip` | MSVC, Release, динамический рантайм `/MD` | Windows 10 и 11 x64, программы с `/MD` (по умолчанию у нового проекта Visual Studio) |
+
+Внутри: `include/` (заголовки Грани и «Берёсты»), `lib/` (`libgran` и `libberesta` — статические, `gran_c` —
+общая библиотека Си-интерфейса для обёрток), `bin/` (`gran_rcc`, `gran_snapshot`), `schemas/`, `samples/`, `docs/`,
+лицензии и `BUILD_INFO.txt` (коммит, версия «Берёсты», компилятор). Статические библиотеки MinGW, MSVC `/MT` и
+MSVC `/MD` между собой несовместимы — берите архив под свой компилятор и рантайм: иначе компоновщик MSVC отвечает
+`LNK2038` («RuntimeLibrary» или «_ITERATOR_DEBUG_LEVEL»). Библиотеки в архивах — только Release; конфигурацию Debug
+своей программы с ними собирайте с тем же рантаймом и `_ITERATOR_DEBUG_LEVEL=0` (например, `/MD /Od /Zi
+/D_ITERATOR_DEBUG_LEVEL=0` с архивом `msvc-md`) или соберите движок из исходников (CMake, `-DGRAN_MSVC_DYNAMIC_RUNTIME=ON`
+для `/MD`). Целостность — `sha256sum -c SHA256SUMS.txt` рядом с архивами.
+Компоновка — как выше, только пути из архива: `-Igran-ui/include gran-ui/lib/libgran.a gran-ui/lib/libberesta.a`
+(MSVC — `gran.lib beresta_static.lib`). Встроенного браузера (`<WebView>`) в архивах нет: для него движок
+собирается из исходников с WebView2 SDK.
+
+**Почему архивов Linux два.** Статические библиотеки C++ привязаны к компилятору: `std::filesystem` (им пользуется
+«Берёста») в GCC 8 экспериментальный, а в GCC 9 его двоичная раскладка изменилась — программа на GCC 13, собранная
+со статическими библиотеками GCC 8, падает при первом обращении к пути (проверено на Альт p11). Поэтому программе на
+GCC 8 нужен архив `gcc8` (компоновка с `-lstdc++fs`), программе на GCC 10 и новее — архив `gcc10` (проверен с GCC 12
+на Astra 1.8 и GCC 13 на Альт p11). Инструменты из `bin/` и `libgran_c.so` (Си-интерфейс для обёрток) от компилятора
+программы не зависят: их можно брать из любого архива, подходящего по glibc. Для запуска им нужны X11 и загрузчик
+Vulkan системы: Astra и Debian — `libx11-6 libvulkan1`, Альт — `libX11 libvulkan1`, РЕД ОС — `libX11 vulkan-loader`;
+без видеокарты — ещё `mesa-vulkan-drivers` (программный Vulkan).
+
 ## Проверка
 
 Выбор API: `AppOptions::backend` / `BackendOptions::backend` (`AUTO`, `D3D11`, `D3D12`, `VULKAN`).
@@ -173,6 +206,13 @@ g++ -std=c++17 -I"Gran-UI/include" -I"beresta/include" main.cpp Gran-UI/bin/libg
 репозитория выбрана конфигурация из `.gitverse/workflows`): та же матрица Linux x86_64 — облачный раннер Gitverse
 только Linux x86_64 с ограничением 30 минут на задачу, поэтому проверки разбиты на короткие задачи, а пакеты и
 «Берёсту» каждая готовит сама (`tools/ci/gitverse_prepare.sh`).
+
+Выпуск по тегу `vX.Y.Z`: `.github/workflows/release.yml` проверяет, что тег совпадает с `gran_version.h` и в
+CHANGELOG есть раздел версии, собирает [архивы выпуска](#готовые-архивы-выпуска) (Linux — в контейнерах Astra 1.7 и Альт p10,
+`tools/release/build_linux.sh`; Windows — `tools/release/build_windows.sh mingw|msvc`) после модульных тестов, считает
+SHA-256 и создаёт релиз GitHub с описанием из CHANGELOG. Ручной запуск этого workflow с ветки собирает архивы без
+релиза — проверка до тега. `.gitverse/workflows/release.yml` ждёт релиз GitHub, сверяет суммы и повторяет его на
+Gitverse (секрет `GV_API_TOKEN`).
 
 ### Статический анализ (clang-tidy)
 

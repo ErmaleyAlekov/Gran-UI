@@ -74,11 +74,21 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Статический runtime MSVC — как у «Берёсты» (смешивать /MT и /MD в одной программе нельзя)
-# и как -static у MinGW: программа — один файл без vcruntime140.dll
-# The static MSVC runtime — as Beresta has (mixing /MT and /MD in one program is impossible)
-# and as -static with MinGW: a program is one file without vcruntime140.dll
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# Статический runtime MSVC по умолчанию — как у «Берёсты» (смешивать /MT и /MD в одной программе нельзя)
+# и как -static у MinGW: программа — один файл без vcruntime140.dll. GRAN_MSVC_DYNAMIC_RUNTIME=ON — /MD, как
+# у нового проекта Visual Studio (архив выпуска …-msvc-md.zip; без него программа с /MD получала LNK2038 — Т-53);
+# «Берёсте» тогда выключается свой статический runtime, иначе подпроект остался бы на /MT
+# The static MSVC runtime by default — as Beresta has (mixing /MT and /MD in one program is impossible)
+# and as -static with MinGW: a program is one file without vcruntime140.dll. GRAN_MSVC_DYNAMIC_RUNTIME=ON is /MD, as in
+# a new Visual Studio project (the …-msvc-md.zip release archive; without it a /MD program got LNK2038 — T-53);
+# Beresta then gets its own static runtime off, otherwise the subproject would stay on /MT
+option(GRAN_MSVC_DYNAMIC_RUNTIME "MSVC: the dynamic runtime /MD instead of /MT" OFF)
+if(GRAN_MSVC_DYNAMIC_RUNTIME)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    set(BERESTA_STATIC_RUNTIME OFF CACHE BOOL "Beresta: the static C++ runtime" FORCE)
+else()
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 # Программы кладутся в <сборка>/bin, а не в bin/ исходников (там живут программы Makefile)
 # Programs go to <build>/bin, not to the source bin/ (the Makefile programs live there)

@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
 #include <istream>
 #include <memory>
 #include <string>
@@ -72,12 +71,14 @@ namespace gran::res
     // ---- files.cpp ----
 
     // Байты файла: ресурс res:/ или файл диска; false — не прочитан / The file bytes: a res:/ resource or a disk file; false — not read
-    bool readFile(const std::filesystem::path& path, std::vector<std::uint8_t>& bytes);
+    // Путь — UTF-8 (gran/utils/file_system.hpp) / The path is UTF-8 (gran/utils/file_system.hpp)
+    bool readFile(const std::string& path, std::vector<std::uint8_t>& bytes);
 
     // ---- streams.cpp ----
 
     // Поток чтения: ресурс res:/ (из памяти) или файл диска; при ошибке поток в состоянии fail / A read stream: a res:/ resource (from memory) or a disk file; on an error the stream is in the fail state
-    std::unique_ptr<std::istream> openStream(const std::filesystem::path& path);
+    // Путь — UTF-8 (gran/utils/file_system.hpp) / The path is UTF-8 (gran/utils/file_system.hpp)
+    std::unique_ptr<std::istream> openStream(const std::string& path);
 }
 
 #endif

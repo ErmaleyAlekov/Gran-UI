@@ -12,6 +12,7 @@
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 #include "gran/res/manifest.hpp"
+#include "gran/utils/file_system.hpp"
 
 #include <cstring>
 #include <fstream>
@@ -52,15 +53,19 @@ namespace
     // Записать, только если содержимое другое; ошибка записи — GranException(IO) / Write only if the content differs; a write error is GranException(IO)
     void writeIfChanged(const std::string& path, const std::string& content)
     {
-        std::ifstream input(std::filesystem::u8path(path), std::ios::binary);
+        std::ifstream input;
+        std::ofstream output;
         std::ostringstream current;
 
+        gran::fs::openFile(input, path);
         current << input.rdbuf();
         if (input && current.str() == content)
             return;
         input.close();
-        std::ofstream output(std::filesystem::u8path(path), std::ios::binary | std::ios::trunc);
+        gran::fs::openFile(output, path);
         output << content;
+        // close до проверки: ошибка сброса буфера при закрытии видна только после него / close before the check: a flush error on closing shows only after it
+        output.close();
         if (!output)
             throw gran::GranException(gran::ErrorCode::IO, gran::i18n::format(gran::i18n::Message::IO_WRITE_FAILED, {path}));
     }
@@ -68,7 +73,7 @@ namespace
     // Манифест → .cpp, блок и файл зависимостей по запросу / The manifest → .cpp, the block and the dependency file on request
     void run(const Arguments& arguments)
     {
-        gran::res::Manifest manifest = gran::res::readManifest(std::filesystem::u8path(arguments.manifest));
+        gran::res::Manifest manifest = gran::res::readManifest(arguments.manifest);
 
         writeIfChanged(arguments.source, gran::res::generateSource(manifest));
         if (!arguments.blob.empty())

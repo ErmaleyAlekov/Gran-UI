@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <iterator>
 
-#include <filesystem>
 #include <utility>
+
+#include "gran/utils/file_system.hpp"
 
 namespace gran::app
 {
@@ -50,7 +51,7 @@ namespace gran::app
             ui::applyInitialStates(*win.document.root);
         win.windowStyle = markup::windowStyle(markup::defaultTheme(), win.document.window);
         for (const markup::FontFace& face : win.document.fonts)
-            state.fonts.addFile((std::filesystem::path(base) / face.source).string());
+            state.fonts.addFile(fs::joinPath(base, face.source));
         state.lists.adoptData(win.document.data);
         win.persistedVariables.clear();
         std::copy_if(win.document.variables.begin(), win.document.variables.end(),

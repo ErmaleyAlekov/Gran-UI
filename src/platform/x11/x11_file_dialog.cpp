@@ -4,7 +4,8 @@
 #include "gran/core/i18n.hpp"
 
 #include <cstdint>
-#include <filesystem>
+
+#include "gran/utils/file_system.hpp"
 
 namespace gran::platform::x11
 {
@@ -97,7 +98,7 @@ namespace gran::platform
         // A saved file name without an extension gets defaultExtension (as in the Windows dialog)
         for (std::string& path : run.lines)
         {
-            if (kind == FileDialogKind::SAVE && !options.defaultExtension.empty() && !std::filesystem::path(path).has_extension())
+            if (kind == FileDialogKind::SAVE && !options.defaultExtension.empty() && fs::fileExtension(path).empty())
                 path += "." + options.defaultExtension;
         }
         return run.lines;

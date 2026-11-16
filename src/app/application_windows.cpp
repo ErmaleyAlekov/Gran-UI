@@ -1,6 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
+
 #include <utility>
 
 namespace gran
@@ -12,7 +13,7 @@ namespace gran
     {
         app::AppWindow* owner = app::requireOwner(*_state, options);
         app::AppWindow& win = app::addWindow(*_state, markup::loadMarkupFile(path, markup::LoadOptions{}),
-            std::filesystem::path(path).parent_path().string());
+            fs::parentPath(path));
 
         app::attachOwner(win, owner, options);
         return *win.document.root;

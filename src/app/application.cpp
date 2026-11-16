@@ -1,7 +1,8 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/res/resources.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
+
 #include <utility>
 
 namespace gran
@@ -27,7 +28,7 @@ namespace gran
         std::string absolute = path;
 
         if (!res::isResourcePath(path))
-            absolute = std::filesystem::absolute(path).lexically_normal().string();
+            absolute = fs::absolutePath(path);
 
         app::stageDocument(*_state, markup::loadMarkupFile(absolute, markup::LoadOptions{}), absolute);
     }

@@ -1,7 +1,8 @@
 #include "gallery_actions.hpp"
 
+#include "gran/utils/file_system.hpp"
+
 #include <chrono>
-#include <filesystem>
 #include <string>
 #include <thread>
 
@@ -85,10 +86,10 @@ namespace gallery
     // Действия samples/program.xml и его диалога / The samples/program.xml and its dialog actions
     void registerProgram(gran::Application& application, const std::string& markup)
     {
-        std::filesystem::path folder = std::filesystem::path(markup).parent_path();
+        std::string folder = gran::fs::parentPath(markup);
 
-        application.onAction("programDialog", OpenOwned{&application, (folder / "program_dialog.xml").string(), true});
-        application.onAction("programTool", OpenOwned{&application, (folder / "tool_window.xml").string(), false});
+        application.onAction("programDialog", OpenOwned{&application, gran::fs::joinPath(folder, "program_dialog.xml"), true});
+        application.onAction("programTool", OpenOwned{&application, gran::fs::joinPath(folder, "tool_window.xml"), false});
         registerTasks(application);
         registerLog(application);
         registerSettings(application);

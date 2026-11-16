@@ -1,7 +1,11 @@
 #include "ui/controller.hpp"
+#include "gran/utils/program_arguments.hpp"
+
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <string>
+#include <vector>
 
 namespace
 {
@@ -41,6 +45,14 @@ namespace
 // The controller is destroyed only after the application loop finishes.
 int main(int argc, char* argv[])
 {
+    // Аргументы — в UTF-8: u8path ниже ждёт именно его (на Windows argv в ANSI) / The arguments are in UTF-8: u8path below expects it (ANSI argv on Windows)
+    std::vector<std::string> arguments = gran::programArguments(argc, argv);
+    std::vector<char*> utf8;
+
+    for (std::string& argument : arguments)
+        utf8.push_back(&argument[0]);
+    argc = static_cast<int>(utf8.size());
+    argv = utf8.data();
     std::string markup;
     std::string file;
     auto options = parseOptions(argc, argv, markup, file);

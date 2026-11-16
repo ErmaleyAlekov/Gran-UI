@@ -11,9 +11,12 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
 #include <iostream>
 #include <string>
+#include <vector>
+
+#include "gran/utils/file_system.hpp"
+#include "gran/utils/program_arguments.hpp"
 
 namespace
 {
@@ -26,12 +29,13 @@ namespace
     */
     std::string defaultMarkup(const char* program)
     {
-        std::filesystem::path local = "samples/showcase.xml";
-        std::filesystem::path besideProgram = std::filesystem::path(program).parent_path() / ".." / local;
+        std::string local = "samples/showcase.xml";
+        std::string besideProgram = gran::fs::normalizePath(
+            gran::fs::joinPath(gran::fs::joinPath(gran::fs::parentPath(program), ".."), local));
 
-        if (!std::filesystem::exists(local) && std::filesystem::exists(besideProgram))
-            return besideProgram.lexically_normal().string();
-        return local.string();
+        if (!gran::fs::pathExists(local) && gran::fs::pathExists(besideProgram))
+            return besideProgram;
+        return local;
     }
 
     /*
@@ -92,8 +96,17 @@ namespace
 }
 
 // Точка входа: разметка, действия, цикл окна / The entry point: the markup, the actions, the window loop
+// Аргументы — в UTF-8 (gran::programArguments): на Windows argv в ANSI теряет «日本» в путях (Т-56)
+// The arguments are in UTF-8 (gran::programArguments): on Windows the ANSI argv loses "日本" in paths (T-56)
 int main(int argc, char* argv[])
 {
+    std::vector<std::string> arguments = gran::programArguments(argc, argv);
+    std::vector<char*> utf8;
+
+    for (std::string& argument : arguments)
+        utf8.push_back(&argument[0]);
+    argc = static_cast<int>(utf8.size());
+    argv = utf8.data();
     std::string markup = defaultMarkup(argv[0]);
 
     try

@@ -1,6 +1,6 @@
 #include "gran/app/internal/web_slots.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
 
 namespace gran::app
 {
@@ -35,7 +35,7 @@ namespace gran::app
         }
     }
 
-    // Путь собирается в UTF-8 (generic_u8string), затем экранируется побайтно / The path is assembled in UTF-8 (generic_u8string), then escaped byte by byte
+    // Путь собирается в UTF-8 с «/», затем экранируется побайтно / The path is assembled in UTF-8 with "/", then escaped byte by byte
     std::string webSourceUrl(const std::string& source, const std::string& baseDirectory)
     {
         static const char HEX[] = "0123456789ABCDEF";
@@ -43,10 +43,9 @@ namespace gran::app
 
         if (hasScheme(source))
             return source;
-        std::filesystem::path path = std::filesystem::u8path(source);
-        if (path.is_relative())
-            path = std::filesystem::absolute(std::filesystem::u8path(baseDirectory) / path);
-        std::string utf8 = path.lexically_normal().generic_u8string();
+        std::string utf8 = fs::normalizePath(source);
+        if (!fs::isAbsolutePath(source))
+            utf8 = fs::absolutePath(fs::joinPath(baseDirectory, source));
         if (!utf8.empty() && utf8.front() == '/')
             utf8.erase(0, 1);
         for (unsigned char symbol : utf8)

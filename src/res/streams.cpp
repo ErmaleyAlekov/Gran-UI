@@ -1,6 +1,7 @@
 #include "gran/res/internal/registry.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
+
 #include <fstream>
 
 namespace gran::res
@@ -58,17 +59,19 @@ namespace gran::res
     }
 
     // Ненайденный ресурс — поток в состоянии fail, как у несуществующего файла / A missing resource is a stream in the fail state, as for a missing file
-    std::unique_ptr<std::istream> openStream(const std::filesystem::path& path)
+    std::unique_ptr<std::istream> openStream(const std::string& path)
     {
         ResourceView view;
-        std::string text = path.u8string();
-        std::unique_ptr<std::istream> stream;
+        std::unique_ptr<std::ifstream> stream;
 
-        if (find(text, view))
+        if (find(path, view))
             return std::make_unique<ResourceStream>(view);
-        stream = std::make_unique<std::ifstream>(path, std::ios::binary);
-        if (isResourcePath(text))
+        stream = std::make_unique<std::ifstream>();
+        // Ненайденный ресурс res:/ не ищется на диске / A missing res:/ resource is not looked up on disk
+        if (isResourcePath(path))
             stream->setstate(std::ios::failbit);
+        else
+            fs::openFile(*stream, path);
         return stream;
     }
 }

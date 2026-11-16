@@ -1,17 +1,16 @@
 #ifndef GRAN_RES_MANIFEST_HPP
 #define GRAN_RES_MANIFEST_HPP
 
-#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace gran::res
 {
-    // Файл пакета: где лежит на диске и путь внутри res:/ / A bundle file: where it lies on disk and the path inside res:/
+    // Файл пакета: где лежит на диске (UTF-8) и путь внутри res:/ / A bundle file: where it lies on disk (UTF-8) and the path inside res:/
     struct ManifestFile
     {
-        std::filesystem::path source;
+        std::string source;
         std::string alias;
     };
 
@@ -19,7 +18,8 @@ namespace gran::res
     struct Manifest
     {
         std::string name;
-        std::filesystem::path location;
+        // Путь манифеста на диске (UTF-8) / The manifest path on disk (UTF-8)
+        std::string location;
         std::vector<ManifestFile> files;
     };
 
@@ -34,7 +34,7 @@ namespace gran::res
     ** the paths are relative to the manifest. A schema error is MarkupException; a missing file or folder, a repeated alias —
     ** GranException(RESOURCE).
     */
-    Manifest readManifest(const std::filesystem::path& path);
+    Manifest readManifest(const std::string& path);
 
     // ---- manifest_folder.cpp ----
 
@@ -42,7 +42,7 @@ namespace gran::res
     bool matchPattern(std::string_view pattern, std::string_view name) noexcept;
 
     // Файлы папки по шаблонам через пробел (с подпапками при recursive) в files / The folder files by space-separated patterns (with subfolders when recursive) into files
-    void expandFolder(const std::filesystem::path& folder, const std::string& alias, const std::string& patterns,
+    void expandFolder(const std::string& folder, const std::string& alias, const std::string& patterns,
         bool recursive, std::vector<ManifestFile>& files);
 
     // Файлы по возрастанию alias (одинаковый результат на любой ОС); повтор alias — GranException(RESOURCE)

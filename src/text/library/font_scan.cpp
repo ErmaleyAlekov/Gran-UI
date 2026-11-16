@@ -3,7 +3,6 @@
 #include "gran/res/resources.hpp"
 
 #include <cstdlib>
-#include <filesystem>
 #include <memory>
 
 namespace gran::text
@@ -74,7 +73,7 @@ namespace gran::text
     void scanFontFile(const std::string& path, std::vector<FontCandidate>& candidates)
     {
         // Файл диска или шрифт из ресурсов res:/ / A disk file or a font from the res:/ resources
-        std::unique_ptr<std::istream> stream = res::openStream(std::filesystem::path(path));
+        std::unique_ptr<std::istream> stream = res::openStream(path);
         std::istream& file = *stream;
         std::vector<std::uint8_t> header;
 

@@ -29,6 +29,9 @@ namespace suites
     void registerJpegTests(test::TestRunner& runner);
     void registerVectorShapeTests(test::TestRunner& runner);
     void registerMappedFileTests(test::TestRunner& runner);
+    void registerPathTextTests(test::TestRunner& runner);
+    void registerFileSystemTests(test::TestRunner& runner);
+    void registerFileSystemEdgeTests(test::TestRunner& runner);
     void registerTextSelectionTests(test::TestRunner& runner);
     void registerAccessibilityTests(test::TestRunner& runner);
     void registerAccessActionTests(test::TestRunner& runner);

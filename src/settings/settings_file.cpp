@@ -2,8 +2,9 @@
 #include "gran/core/i18n.hpp"
 #include "gran/log/log.hpp"
 
+#include "gran/utils/file_system.hpp"
+
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -12,11 +13,12 @@ namespace gran::settings
     namespace
     {
         // Весь файл в строку; false — файла нет или он не читается / The whole file into a string; false — no file or it is unreadable
-        bool readText(const std::filesystem::path& path, std::string& text)
+        bool readText(const std::string& path, std::string& text)
         {
-            std::ifstream input(path, std::ios::binary);
+            std::ifstream input;
             std::ostringstream content;
 
+            fs::openFile(input, path);
             if (!input)
                 return false;
             content << input.rdbuf();
@@ -25,14 +27,10 @@ namespace gran::settings
         }
 
         // Испорченный файл остаётся рядом (.bad) для разбора, место освобождается для нового / A damaged file stays beside (.bad) for analysis, the place is freed for a new one
-        void keepDamaged(const std::filesystem::path& path)
+        void keepDamaged(const std::string& path)
         {
-            std::filesystem::path damaged = path;
-            std::error_code error;
-
-            damaged += ".bad";
-            std::filesystem::remove(damaged, error);
-            std::filesystem::rename(path, damaged, error);
+            fs::removePath(path + ".bad");
+            fs::renamePath(path, path + ".bad");
         }
     }
 
@@ -45,24 +43,24 @@ namespace gran::settings
     */
     std::string defaultPath(const std::string& appName)
     {
-        std::filesystem::path base = std::filesystem::temp_directory_path();
+        std::string base = fs::temporaryDirectory();
 #if defined(_WIN32)
         const wchar_t* roaming = _wgetenv(L"APPDATA");
         if (roaming != nullptr && roaming[0] != L'\0')
-            base = std::filesystem::path(roaming);
+            base = fs::fromWidePath(roaming, wcslen(roaming));
 #elif defined(__APPLE__)
         const char* home = std::getenv("HOME");
         if (home != nullptr && home[0] != '\0')
-            base = std::filesystem::path(home) / "Library" / "Application Support";
+            base = fs::joinPath(home, "Library/Application Support");
 #else
         const char* config = std::getenv("XDG_CONFIG_HOME");
         const char* home = std::getenv("HOME");
         if (config != nullptr && config[0] == '/')
             base = config;
         else if (home != nullptr && home[0] != '\0')
-            base = std::filesystem::path(home) / ".config";
+            base = fs::joinPath(home, ".config");
 #endif
-        return (base / std::filesystem::u8path(appName) / "settings.xml").u8string();
+        return fs::joinPath(fs::joinPath(base, appName), "settings.xml");
     }
 
     /*
@@ -74,21 +72,20 @@ namespace gran::settings
     */
     bool Settings::load(const std::string& path)
     {
-        std::filesystem::path file = std::filesystem::u8path(path);
         std::string text;
         Model model;
 
         _path = path;
         _model = Model{};
         _modified = false;
-        if (!readText(file, text))
+        if (!readText(path, text))
             return true;
         if (internal::readSettings(text, model))
         {
             _model = std::move(model);
             return true;
         }
-        keepDamaged(file);
+        keepDamaged(path);
         log::write(log::Level::WARNING, "settings", i18n::format(i18n::Message::SETTINGS_DAMAGED, {path}));
         return false;
     }
@@ -96,24 +93,22 @@ namespace gran::settings
     // Временный файл и переименование: сбой посреди записи не портит прежние настройки / A temporary file and renaming: a failure in the middle of writing does not damage the former settings
     bool Settings::save()
     {
-        std::filesystem::path file = std::filesystem::u8path(_path);
-        std::filesystem::path temporary = file;
-        std::error_code error;
+        std::string temporary = _path + ".tmp";
+        std::ofstream output;
 
         if (_path.empty())
             return false;
-        temporary += ".tmp";
-        std::filesystem::create_directories(file.parent_path(), error);
+        fs::createDirectories(fs::parentPath(_path));
+        fs::openFile(output, temporary);
+        output << internal::writeSettings(_model);
+        // close до проверки: ошибка сброса буфера при закрытии иначе не видна, и недописанный .tmp заменил бы рабочие
+        // настройки; недописанный .tmp удаляется (ревью Т-57)
+        // close before the check: otherwise a buffer flush error on closing is invisible, and an incomplete .tmp would replace
+        // the working settings; an incomplete .tmp is deleted (the T-57 review)
+        output.close();
+        if (!output || !fs::renamePath(temporary, _path))
         {
-            std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-            output << internal::writeSettings(_model);
-            if (!output)
-                return false;
-        }
-        std::filesystem::rename(temporary, file, error);
-        if (error)
-        {
-            std::filesystem::remove(temporary, error);
+            fs::removePath(temporary);
             return false;
         }
         _modified = false;

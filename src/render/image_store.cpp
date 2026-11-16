@@ -3,7 +3,8 @@
 #include "gran/core/gran_exception.hpp"
 #include "gran/image/image.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
+
 #include <fstream>
 #include <iterator>
 #include <utility>
@@ -45,7 +46,7 @@ namespace gran::render
     */
     ImageEntry ImageStore::load(const std::string& source)
     {
-        std::filesystem::path path = std::filesystem::path(_base) / source;
+        std::string path = fs::joinPath(_base, source);
         std::vector<std::uint8_t> data;
         ImageEntry entry;
         image::Image picture;
@@ -82,7 +83,7 @@ namespace gran::render
             std::shared_ptr<const vector::Shape> loaded;
             try
             {
-                loaded = vector::loadSvgFile((std::filesystem::path(_base) / source).string());
+                loaded = vector::loadSvgFile(fs::joinPath(_base, source));
             }
             catch (const GranException&)
             {

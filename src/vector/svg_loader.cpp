@@ -114,7 +114,7 @@ namespace gran::vector
 
         options.maxDepth = MAX_DEPTH;
         // Файл диска или ресурс res:/ — разбор из памяти в обоих случаях / A disk file or a res:/ resource — parsing from memory in both cases
-        if (!res::readFile(std::filesystem::path(path), bytes))
+        if (!res::readFile(path, bytes))
             throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_READ_FAILED, {path}));
         try
         {

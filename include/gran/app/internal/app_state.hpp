@@ -7,7 +7,6 @@
 
 #include <cstdint>
 #include <deque>
-#include <filesystem>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -46,8 +45,9 @@ namespace gran
         struct FileStamp
         {
             std::string path;
-            std::filesystem::file_time_type time{};
-            std::uintmax_t size = 0;
+            // Время записи, нс от 1970 года (gran::fs::FileInfo::modified) / The write time, ns since 1970 (gran::fs::FileInfo::modified)
+            std::int64_t time = 0;
+            std::uint64_t size = 0;
         };
     }
 
@@ -114,8 +114,8 @@ namespace gran
         // Наблюдаемый файл главного окна (пусто — разметка из строки) / The watched main window file (empty — markup from a string)
         std::string sourcePath;
         std::string reloadFailure;
-        std::filesystem::file_time_type sourceTime{};
-        std::uintmax_t sourceSize = 0;
+        std::int64_t sourceTime = 0;
+        std::uint64_t sourceSize = 0;
         // Файлы библиотек компонентов главного окна: их правка тоже перезагружает разметку / The component library files of the main window: editing them reloads the markup too
         std::vector<app::FileStamp> libraryStamps;
         double nextReloadCheck = 0.0;

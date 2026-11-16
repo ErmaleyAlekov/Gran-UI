@@ -1,28 +1,26 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/utils/file_system.hpp"
 
 #include <algorithm>
 
 namespace gran::app
 {
-    // error_code допускает временное исчезновение файла при сохранении редактором.
-    // error_code allows temporary file disappearance while an editor saves it.
+    // Исчезнувший на время сохранения редактором файл — не изменение (queryPath без исключений).
+    // A file that vanished while an editor saves it is not a change (queryPath has no exceptions).
     // Файлы библиотек проверяются всегда: их отметки обновляются вместе с отметкой главного файла.
     // The library files are always checked: their stamps are updated together with the main file stamp.
     bool sourceChanged(Application::State& state)
     {
-        std::error_code error;
         bool libraries = librariesChanged(state);
+        fs::FileInfo info;
 
         if (state.sourcePath.empty())
             return false;
-        auto time = std::filesystem::last_write_time(state.sourcePath, error);
-        if (error)
+        info = fs::queryPath(state.sourcePath);
+        if (!info.exists || (info.modified == state.sourceTime && info.size == state.sourceSize))
             return libraries;
-        auto size = std::filesystem::file_size(state.sourcePath, error);
-        if (error || (time == state.sourceTime && size == state.sourceSize))
-            return libraries;
-        state.sourceTime = time;
-        state.sourceSize = size;
+        state.sourceTime = info.modified;
+        state.sourceSize = info.size;
         return true;
     }
 
@@ -31,7 +29,7 @@ namespace gran::app
     void rememberSource(Application::State& state, const std::string& path)
     {
         state.sourcePath = path;
-        state.sourceTime = std::filesystem::file_time_type{};
+        state.sourceTime = 0;
         state.sourceSize = 0;
         sourceChanged(state);
     }
@@ -42,7 +40,7 @@ namespace gran::app
     {
         if (path.empty())
             return ".";
-        return std::filesystem::path(path).parent_path().string();
+        return fs::parentPath(path);
     }
 
     // Ноль — пора проверять файл; отрицательное — наблюдение выключено или файла нет.

@@ -8,7 +8,8 @@
 #include <cstring>
 #include <exception>
 #include <execinfo.h>
-#include <filesystem>
+
+#include "gran/utils/file_system.hpp"
 
 namespace gran::log
 {
@@ -97,13 +98,12 @@ namespace gran::log
     {
         internal::PosixCrash& state = internal::posixCrash();
         std::string folder = crashDirectory(options);
-        std::error_code error;
 
         if (state.installed)
             return true;
         if (options.appName.empty() || folder.size() >= sizeof(state.folder) - 64)
             return false;
-        std::filesystem::create_directories(folder, error);
+        fs::createDirectories(folder);
         std::strncpy(state.folder, folder.c_str(), sizeof(state.folder) - 1);
         std::strncpy(state.prefix, options.appName.c_str(), sizeof(state.prefix) - 1);
         if (!installSignals())

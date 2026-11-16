@@ -1,6 +1,7 @@
 #include "gallery_actions.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
+
 #include <string>
 #include <vector>
 
@@ -96,7 +97,7 @@ namespace gallery
     // Действия samples/platform.xml и samples/tool_window.xml / The samples/platform.xml and samples/tool_window.xml actions
     void registerPlatform(gran::Application& application, const std::string& markup)
     {
-        std::string tool = (std::filesystem::path(markup).parent_path() / "tool_window.xml").string();
+        std::string tool = gran::fs::joinPath(gran::fs::parentPath(markup), "tool_window.xml");
 
         application.onAction("openFile", FileAction{&application, 0});
         application.onAction("saveFile", FileAction{&application, 1});

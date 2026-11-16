@@ -1,4 +1,5 @@
 #include "gran/log/internal/log_state.hpp"
+#include "gran/utils/file_system.hpp"
 
 #include <algorithm>
 #include <string>
@@ -8,11 +9,11 @@ namespace gran::log::internal
     namespace
     {
         // Файл номер index: 0 — сам журнал, иначе «имя.index.log» / The file number index: 0 — the log itself, otherwise "name.index.log"
-        std::filesystem::path numberedPath(const LogState& state, unsigned index)
+        std::string numberedPath(const LogState& state, unsigned index)
         {
             if (index == 0)
                 return state.path;
-            return state.folder / std::filesystem::u8path(state.options.appName + "." + std::to_string(index) + ".log");
+            return fs::joinPath(state.folder, state.options.appName + "." + std::to_string(index) + ".log");
         }
     }
 
@@ -28,17 +29,17 @@ namespace gran::log::internal
     void rotate(LogState& state)
     {
         unsigned files = std::max(1u, state.options.files);
-        std::error_code error;
 
         state.file.close();
         if (files > 1)
         {
-            std::filesystem::remove(numberedPath(state, files - 1), error);
+            fs::removePath(numberedPath(state, files - 1));
             for (unsigned index = files - 1; index > 1; --index)
-                std::filesystem::rename(numberedPath(state, index - 1), numberedPath(state, index), error);
-            std::filesystem::rename(state.path, numberedPath(state, 1), error);
+                fs::renamePath(numberedPath(state, index - 1), numberedPath(state, index));
+            fs::renamePath(state.path, numberedPath(state, 1));
         }
-        state.file.open(state.path, std::ios::out | std::ios::trunc | std::ios::binary);
+        state.file.clear();
+        fs::openFile(state.file, state.path, std::ios::trunc | std::ios::binary);
         state.size = 0;
         state.open = static_cast<bool>(state.file);
     }
@@ -46,14 +47,11 @@ namespace gran::log::internal
     // Дозапись в конец; слишком большой старый файл сразу уходит в .1.log / Appending at the end; a too large old file goes into .1.log at once
     bool openFile(LogState& state)
     {
-        std::error_code error;
-
-        state.file.open(state.path, std::ios::out | std::ios::app | std::ios::binary);
+        state.file.clear();
+        fs::openFile(state.file, state.path, std::ios::app | std::ios::binary);
         if (!state.file)
             return false;
-        state.size = std::filesystem::file_size(state.path, error);
-        if (error)
-            state.size = 0;
+        state.size = fs::queryPath(state.path).size;
         state.open = true;
         if (state.size >= state.options.maxBytes)
             rotate(state);

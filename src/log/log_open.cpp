@@ -1,4 +1,5 @@
 #include "gran/log/internal/log_state.hpp"
+#include "gran/utils/file_system.hpp"
 
 namespace gran::log
 {
@@ -23,17 +24,14 @@ namespace gran::log
     bool open(const LogOptions& options)
     {
         internal::LogState& state = internal::logState();
-        std::filesystem::path folder;
-        std::error_code error;
+        std::string folder = options.directory;
 
         if (options.appName.empty())
             return false;
-        if (options.directory.empty())
-            folder = std::filesystem::u8path(defaultDirectory(options.appName));
-        else
-            folder = std::filesystem::u8path(options.directory);
+        if (folder.empty())
+            folder = defaultDirectory(options.appName);
         std::lock_guard<std::mutex> lock(state.mutex);
-        std::filesystem::path path = folder / std::filesystem::u8path(options.appName + ".log");
+        std::string path = fs::joinPath(folder, options.appName + ".log");
         if (state.open && state.path == path)
             return true;
         state.file.close();
@@ -41,7 +39,7 @@ namespace gran::log
         state.options = options;
         state.folder = folder;
         state.path = path;
-        std::filesystem::create_directories(folder, error);
+        fs::createDirectories(folder);
         return internal::openFile(state);
     }
 
@@ -63,7 +61,7 @@ namespace gran::log
 
         if (!state.open)
             return std::string();
-        return state.path.u8string();
+        return state.path;
     }
 
     // Каталог открытого журнала / The directory of the open log
@@ -74,6 +72,6 @@ namespace gran::log
 
         if (!state.open)
             return std::string();
-        return state.folder.u8string();
+        return state.folder;
     }
 }

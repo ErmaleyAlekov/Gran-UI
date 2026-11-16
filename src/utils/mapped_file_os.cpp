@@ -1,4 +1,5 @@
 #include "gran/utils/mapped_file.hpp"
+#include "gran/utils/internal/file_system_detail.hpp"
 
 #if defined(_WIN32)
 #   ifndef NOMINMAX
@@ -18,15 +19,15 @@ namespace gran
     /*
     ** Windows: файл → объект отображения → вид. Дескриптор файла после создания объекта
     ** не нужен (объект держит файл сам), дескриптор объекта закрывается в unmap.
-    ** Путь — в кодовой странице ANSI, как у std::filesystem::path::string() в MinGW.
+    ** Путь — UTF-8, открывается широким CreateFileW (кириллица в пути не зависит от кодовой страницы ANSI).
     **
     ** Windows: the file → the mapping object → the view. The file handle is not needed after
     ** creating the object (the object holds the file itself), the object handle is closed in unmap.
-    ** The path is in the ANSI code page, as std::filesystem::path::string() gives in MinGW.
+    ** The path is UTF-8, it is opened by the wide CreateFileW (Cyrillic in the path does not depend on the ANSI code page).
     */
     bool MappedFile::map(const std::string& path)
     {
-        HANDLE file = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+        HANDLE file = CreateFileW(fs::internal::systemPath(path).c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
             FILE_ATTRIBUTE_NORMAL, nullptr);
         LARGE_INTEGER length{};
 

@@ -146,15 +146,20 @@ Release is an external action: the tag and release are published only by the rep
 2. Create a `release/X.Y` branch from `main`; in `gran_version.h` remove the `-dev` suffix (`X.Y.0`).
 3. In `CHANGELOG.md` and `CHANGELOG.en.md` a `[X.Y.0]` section with a date: "Added", "Changed", "Incompatible Changes",
    "Deprecated", "Fixed".
-4. Checks from guarantee 7. If necessary — candidate `X.Y.0-rc.1` for a week.
-5. Commit, tag `vX.Y.0` on the release branch, send the branch and tag to GitHub and Gitverse.
+4. Checks from guarantee 7. If necessary — candidate `X.Y.0-rc.1` for a week. A manual run of the `Release` workflow
+   on the release branch (GitHub Actions) builds the [archives](building.en.md#prebuilt-release-archives) without a
+   release — this is how the release build is checked before the tag.
+5. Commit, tag `vX.Y.0` on the release branch, send the branch and tag to GitHub: `release.yml` builds the archives and
+   creates the release with the notes from CHANGELOG (about 40 minutes). 5–10 minutes later, the tag goes to Gitverse:
+   its `release.yml` waits for the GitHub release up to 25 minutes and repeats it with the same files. If it did not
+   wait long enough, repeat it manually (CI/CD → Release, the `tag` parameter).
 6. In `main`, increase the number to `X.(Y+1).0-dev`.
 
 **Patch Release X.Y.Z**
 
 1. The fix is merged into `main` and ported to `release/X.Y` (`git cherry-pick -x`).
 2. `GRAN_VERSION_PATCH` + 1, `[X.Y.Z]` section in CHANGELOG (only "Fixed" and "Security").
-3. Checks, tag `vX.Y.Z`, send to both servers.
+3. Checks, tag `vX.Y.Z`, send to both servers — as in step 5 above.
 
 ## Release Support
 

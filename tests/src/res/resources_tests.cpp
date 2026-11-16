@@ -80,7 +80,7 @@ namespace
         std::ofstream(folder / "assets" / "deep" / "c.svg") << "deep";
         std::ofstream(folder / "bundle.xml") << "<Bundle name=\"probe\"><File path=\"main.xml\" alias=\"ui/main.xml\"/>"
             "<Folder path=\"assets\" alias=\"icons\" include=\"*.svg\"/></Bundle>";
-        gran::res::Manifest manifest = gran::res::readManifest(folder / "bundle.xml");
+        gran::res::Manifest manifest = gran::res::readManifest((folder / "bundle.xml").u8string());
         TEST_ASSERT(manifest.name == "probe" && manifest.files.size() == 3);
         TEST_ASSERT(manifest.files[0].alias == "icons/a.svg" && manifest.files[1].alias == "icons/deep/c.svg");
         std::string blob = gran::res::generateBlob(manifest);
@@ -102,9 +102,9 @@ namespace
         std::ofstream(folder / "missing.xml") << "<Bundle name=\"m\"><File path=\"nope.txt\"/></Bundle>";
         std::ofstream(folder / "twice.xml") << "<Bundle name=\"t\"><File path=\"one.txt\" alias=\"x/one.txt\"/>"
             "<Folder path=\".\" alias=\"x\" include=\"one.txt\" recursive=\"false\"/></Bundle>";
-        TEST_ASSERT_THROWS(gran::res::readManifest(folder / "bad.xml"), gran::GranException);
-        TEST_ASSERT_THROWS(gran::res::readManifest(folder / "missing.xml"), gran::GranException);
-        TEST_ASSERT_THROWS(gran::res::readManifest(folder / "twice.xml"), gran::GranException);
+        TEST_ASSERT_THROWS(gran::res::readManifest((folder / "bad.xml").u8string()), gran::GranException);
+        TEST_ASSERT_THROWS(gran::res::readManifest((folder / "missing.xml").u8string()), gran::GranException);
+        TEST_ASSERT_THROWS(gran::res::readManifest((folder / "twice.xml").u8string()), gran::GranException);
         TEST_ASSERT(gran::res::matchPattern("*.s?g", "icon.svg") && !gran::res::matchPattern("*.png", "icon.svg"));
         TEST_ASSERT(gran::res::matchPattern("*", "") && gran::res::matchPattern("a*b*c", "aXbYc"));
         gran::res::unmountAll();

@@ -11,6 +11,17 @@
 ## [Не выпущено]
 
 ### Добавлено
+- Сборка выпуска по тегу (П.2): `.github/workflows/release.yml` проверяет тег против `gran_version.h` и раздел
+  CHANGELOG, собирает после модульных тестов архивы Linux x86_64 под компилятор программы — `…-linux-x86_64-gcc8.tar.gz`
+  (GCC 8.3 в образе Astra Linux SE 1.7) и `…-linux-x86_64-gcc10.tar.gz` (GCC 10.3 в образе Альт p10, для GCC 10 и
+  новее), — а также `…-windows-x86_64-mingw.zip`, `…-windows-x86_64-msvc.zip` (`/MT`) и `…-windows-x86_64-msvc-md.zip`
+  (`/MD`, как у нового проекта Visual Studio; CMake — `-DGRAN_MSVC_DYNAMIC_RUNTIME=ON`) (заголовки
+  Грани и «Берёсты», `libgran`, `libberesta`, `gran_c`, `gran_rcc`, `gran_snapshot`, схема, примеры, документация,
+  `BUILD_INFO.txt`), `SHA256SUMS.txt` и релиз GitHub с описанием из CHANGELOG; ручной запуск собирает архивы без
+  релиза. `.gitverse/workflows/release.yml` повторяет релиз на Gitverse с теми же файлами. Описание —
+  `docs/building.md`, «Готовые архивы выпуска».
+- `gran::programArguments(argc, argv)` (`gran/utils/program_arguments.hpp`) — аргументы командной строки в UTF-8 на всех
+  ОС (на Windows — из `GetCommandLineW`); его используют `gran_snapshot`, `gran_gallery`, `gran_editor`.
 - Окно macOS (шаг M6): платформа Cocoa `src/platform/cocoa/` (Objective-C++ с ARC) — окно с `CAMetalLayer`, Retina
   (`backingScaleFactor`, `DPI_CHANGED` при смене монитора), мышь в пунктах, Control+щелчок — правая кнопка, колесо и
   точная прокрутка трекпада, клавиши по физическому коду с Cmd = `Mod`, текст через метод ввода (`NSTextInputClient`,
@@ -112,7 +123,27 @@
 - В подписях пунктов меню и строки меню знак `_` теперь означает букву доступа: подпись `a_b` показывается как
   `ab` (для знака — `a__b`). У пунктов `ComboBox` подписи не меняются.
 
+
+### Несовместимые изменения
+- Ресурсы: `res::readManifest`, `res::readFile`, `res::openStream` и `res::expandFolder` принимают путь строкой UTF-8
+  (`const std::string&`) вместо `std::filesystem::path`; `ManifestFile::source` и `Manifest::location` — тоже строки.
+  Было `readManifest(std::filesystem::u8path(p))` — стало `readManifest(p)`.
+
 ### Исправлено
+- Windows: файлы с символами вне кодовой страницы ANSI в пути (кириллица при английской локали, китайские имена
+  папок) не открывались — шрифты (`MappedFile`, `CreateFileA`), картинки, библиотеки компонентов, разметка `openWindow`
+  и `loadFile`. Пути в движке теперь всегда UTF-8: свой слой `gran::fs` (`gran/utils/file_system.hpp`) переводит их
+  в UTF-16 для широких API Windows; на Linux и macOS — POSIX. `std::filesystem` в коде Грани остался только на
+  границе с «Берёстой» (`u8path`).
+- Windows: программы-примеры получали `argv` в кодовой странице ANSI — путь вида `C:\Проба 日本\a.xml` не открывался
+  (`gran_snapshot`, `gran_gallery`, `gran_editor`); теперь аргументы — UTF-8 (`gran::programArguments`).
+- Слой путей (ревью кода): на Windows висячая символическая ссылка или точка соединения выглядела существующим
+  файлом — теперь сведения берутся у цели, как у `stat` на POSIX, а `removePath` удаляет саму ссылку; пути длиннее
+  260 символов работают (форма `\\?\`); `joinPath("//сервер/share", "/sub")` сохраняет сетевой корень.
+- Настройки: при сохранении поток закрывается до проверки — ошибка сброса буфера больше не заменяет рабочий
+  `settings.xml` недописанным файлом, а недописанный `.tmp` удаляется; то же в `gran_rcc`.
+- Makefile: с GNU make 4.2 (Astra Linux SE 1.7 и другие старые системы) каждый вызов `make` пересобирал движок
+  целиком — отметка флагов `obj/.flags` читалась с конечным переводом строки и не совпадала сама с собой.
 - macOS: журнал и отчёты о сбое — `~/Library/Logs/<программа>/logs` и `…/crashes`; раньше отчёты всех программ попали
   бы в общий `~/Library/Logs/crashes` (найдено первым прогоном CI на macOS).
 - `AppDriver`, объявленный раньше `Application`, после разрушения приложения обращался к его состоянию (use-after-free).

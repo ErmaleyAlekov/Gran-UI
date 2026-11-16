@@ -63,7 +63,7 @@ namespace gran::data
 
     void SelectionModel::reordered(const std::vector<std::size_t>& oldToNew)
     {
-        std::vector<std::uint8_t> marks(_marks.size(), 0);
+        std::vector<std::uint8_t> marks(_marks.size(), static_cast<std::uint8_t>(0));
 
         for (std::size_t row = 0; row < oldToNew.size() && row < _marks.size(); ++row)
             marks[oldToNew[row]] = _marks[row];

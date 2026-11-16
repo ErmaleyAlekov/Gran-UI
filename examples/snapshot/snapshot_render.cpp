@@ -8,8 +8,9 @@
 #include "gran/core/i18n.hpp"
 #include "gran/utils/png_writer.hpp"
 
+#include "gran/utils/file_system.hpp"
+
 #include <chrono>
-#include <filesystem>
 #include <iostream>
 
 namespace snapshot
@@ -35,10 +36,10 @@ namespace snapshot
         // Шрифты <Font> относительно каталога разметки / The <Font> fonts relative to the markup directory
         void registerFonts(const gran::markup::UiDocument& document, const std::string& markup, gran::text::FontLibrary& fonts)
         {
-            std::filesystem::path base = std::filesystem::path(markup).parent_path();
+            std::string base = gran::fs::parentPath(markup);
 
             for (const gran::markup::FontFace& face : document.fonts)
-                fonts.addFile((base / face.source).string());
+                fonts.addFile(gran::fs::joinPath(base, face.source));
         }
 
         // Пиксели кадра в PNG и сообщения отладочного слоя / The frame pixels into a PNG and the debug layer messages

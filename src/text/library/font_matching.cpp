@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
-#include <filesystem>
+
+#include "gran/utils/file_system.hpp"
 
 namespace gran::text
 {
@@ -73,10 +74,9 @@ namespace gran::text
         {
             for (const std::string& directory : systemFontDirectories())
             {
-                std::error_code error;
-                std::filesystem::path path = std::filesystem::path(directory) / file;
-                if (std::filesystem::exists(path, error))
-                    scanFontFile(path.string(), _candidates);
+                std::string path = fs::joinPath(directory, file);
+                if (fs::pathExists(path))
+                    scanFontFile(path, _candidates);
             }
         }
         return _candidates.size() > before;
@@ -86,21 +86,18 @@ namespace gran::text
     // The .ttf/.ttc/.otf files in the system directories (recursively, without file system exceptions)
     void FontLibrary::ensureScanned()
     {
-        std::error_code error;
-
         _scanned = true;
         for (const std::string& directory : systemFontDirectories())
         {
-            std::filesystem::recursive_directory_iterator walker(directory, error);
-            for (; !error && walker != std::filesystem::recursive_directory_iterator(); walker.increment(error))
+            for (const std::string& relative : fs::listFiles(directory, true))
             {
-                std::string extension = walker->path().extension().string();
+                std::string extension = fs::fileExtension(relative);
                 // tolower — через unsigned char: байты ≥ 0x80 (кириллица в путях) не должны быть отрицательными
                 // tolower — through unsigned char: bytes ≥ 0x80 (Cyrillic in paths) must not be negative
                 for (char& symbol : extension)
                     symbol = static_cast<char>(std::tolower(static_cast<unsigned char>(symbol)));
                 if (extension == ".ttf" || extension == ".ttc" || extension == ".otf")
-                    scanFontFile(walker->path().string(), _candidates);
+                    scanFontFile(fs::joinPath(directory, relative), _candidates);
             }
         }
     }

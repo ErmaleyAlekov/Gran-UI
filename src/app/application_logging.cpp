@@ -3,7 +3,7 @@
 #include "gran/log/crash_report.hpp"
 #include "gran/log/log.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
 
 namespace gran
 {
@@ -34,7 +34,7 @@ namespace gran
                 return;
             crash.appName = options.appName;
             if (!options.logDirectory.empty())
-                crash.directory = (std::filesystem::u8path(options.logDirectory) / "crashes").u8string();
+                crash.directory = fs::joinPath(options.logDirectory, "crashes");
             log::installCrashHandler(crash);
             state.previousCrash = log::previousCrash(log::crashDirectory(crash));
             if (!state.previousCrash.empty())

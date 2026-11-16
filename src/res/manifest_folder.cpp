@@ -1,6 +1,7 @@
 #include "gran/res/manifest.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/utils/file_system.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -73,22 +74,15 @@ namespace gran::res
     }
 
     // Путь внутри res:/ — alias папки + путь файла относительно неё с косыми «/» / The path inside res:/ — the folder alias + the file path relative to it with "/" slashes
-    void expandFolder(const std::filesystem::path& folder, const std::string& alias, const std::string& patterns,
+    void expandFolder(const std::string& folder, const std::string& alias, const std::string& patterns,
         bool recursive, std::vector<ManifestFile>& files)
     {
-        std::error_code error;
-        std::filesystem::recursive_directory_iterator entry(folder, error);
-        std::filesystem::recursive_directory_iterator end;
-
-        for (; !error && entry != end; entry.increment(error))
+        // listFiles отдаёт пути относительно папки через «/» и сам не спускается в подпапки без recursive
+        // listFiles gives paths relative to the folder with "/" and does not enter the subfolders without recursive itself
+        for (const std::string& relative : fs::listFiles(folder, recursive))
         {
-            // Без recursive в подпапки не спускаемся / Without recursive the subfolders are not entered
-            if (!recursive && entry->is_directory(error))
-                entry.disable_recursion_pending();
-            if (!entry->is_regular_file(error) || !matchesAny(patterns, entry->path().filename().u8string()))
-                continue;
-            std::string relative = std::filesystem::relative(entry->path(), folder, error).generic_u8string();
-            files.push_back(ManifestFile{entry->path(), alias + "/" + relative});
+            if (matchesAny(patterns, fs::fileName(relative)))
+                files.push_back(ManifestFile{fs::joinPath(folder, relative), alias + "/" + relative});
         }
     }
 

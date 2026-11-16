@@ -1,0 +1,83 @@
+# ============================================================================
+#  Выпуск Грани UI на Gitverse по тегу vX.Y.Z — зеркало релиза GitHub
+#
+#  Архивы собирает .github/workflows/release.yml (образ Astra 1.7 и Windows: MinGW и MSVC) —
+#  облачный раннер Gitverse только Linux x86_64 и 30 минут на задачу, Windows на нём не собрать.
+#  Здесь одна задача: дождаться релиза GitHub (до 25 минут), скачать его файлы вместе
+#  с SHA256SUMS.txt, сверить суммы, создать релиз Gitverse с тем же описанием из CHANGELOG
+#  и приложить файлы. Поэтому тег на Gitverse отправляется, когда сборка на GitHub уже идёт
+#  (через 5–10 минут после тега на GitHub, docs/versioning.md, «Порядок выпуска»).
+#  Повтор вручную: CI/CD → Release → запуск с параметром tag — файлы заменяются.
+#  Нужен секрет репозитория GV_API_TOKEN: токен gitverse.ru с правом «Репозитории → Запись».
+# ============================================================================
+#  The Gran UI release on Gitverse by the vX.Y.Z tag — a mirror of the GitHub release
+#
+#  The archives are built by .github/workflows/release.yml (the Astra 1.7 image and Windows: MinGW and MSVC) —
+#  the Gitverse cloud runner is Linux x86_64 only with 30 minutes per job, Windows cannot be built on it.
+#  Here there is one job: wait for the GitHub release (up to 25 minutes), download its files together
+#  with SHA256SUMS.txt, check the sums, create the Gitverse release with the same notes from CHANGELOG
+#  and attach the files. That is why the tag goes to Gitverse when the GitHub build is already running
+#  (5–10 minutes after the GitHub tag, docs/versioning.en.md, "Release Procedure").
+#  A manual repeat: CI/CD → Release → a run with the tag parameter — the files are replaced.
+#  The GV_API_TOKEN repository secret is needed: a gitverse.ru token with the "Repositories → Write" right.
+# ============================================================================
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег выпуска, например v0.2.0 / The release tag, e.g. v0.2.0'
+        required: true
+
+env:
+  # Тег: из ручного запуска или из события push / The tag: from a manual run or from the push event
+  TAG: ${{ inputs.tag || gitverse.ref_name }}
+
+jobs:
+  mirror:
+    name: Зеркало релиза GitHub / The GitHub release mirror
+    runs-on: ubuntu-latest
+    env:
+      GV_API_TOKEN: ${{ secrets.GV_API_TOKEN }}
+    steps:
+      # Описание — из CHANGELOG тега; скрипты — из ветки запуска (при ручном запуске это main):
+      # исправления скриптов работают и для уже выпущенного тега
+      # The notes come from the tag CHANGELOG; the scripts come from the run branch (main for a manual run):
+      # script fixes work for an already released tag too
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/checkout@v4
+        with:
+          path: .release-tools
+      - name: Секрет и инструменты / The secret and tools
+        shell: bash
+        run: |
+          if [ -z "$GV_API_TOKEN" ]; then
+            echo "Нет секрета GV_API_TOKEN (Настройки → Секреты и переменные) / No GV_API_TOKEN secret"; exit 1
+          fi
+          sudo=""
+          if [ "$(id -u)" != "0" ]; then sudo="sudo"; fi
+          $sudo apt-get update -qq && $sudo apt-get install -y -qq curl python3 zip
+      # Версия тега обязана совпадать с gran_version.h / The tag version must match gran_version.h
+      - name: Проверка версии / Version check
+        shell: bash
+        run: |
+          . .release-tools/tools/release/lib/release_common.sh
+          version="$(gran_version)"
+          if [ "$TAG" != "v$version" ]; then
+            echo "Тег $TAG не совпадает с версией $version / The tag does not match the version"; exit 1
+          fi
+      - name: Файлы релиза GitHub / The GitHub release files
+        shell: bash
+        run: |
+          bash .release-tools/tools/release/github_assets.sh "$TAG" mirror 25
+          (cd mirror && sha256sum -c SHA256SUMS.txt)
+      - name: Описание и релиз / The notes and the release
+        shell: bash
+        run: |
+          bash .release-tools/tools/release/release_notes.sh "${TAG#v}" notes.md
+          bash .release-tools/tools/release/gitverse_release.sh "$TAG" notes.md mirror/*

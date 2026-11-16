@@ -2,7 +2,7 @@
 #include "gran/log/crash_report.hpp"
 #include "gran/log/log.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
 #include <mutex>
 #include <string>
 
@@ -33,7 +33,7 @@ gran_status gran_log_open(const char* app_name, const char* directory, int32_t c
         return GRAN_OK;
     crash.appName = app_name;
     if (directory != nullptr)
-        crash.directory = (std::filesystem::u8path(directory) / "crashes").u8string();
+        crash.directory = gran::fs::joinPath(directory, "crashes");
     gran::log::installCrashHandler(crash);
     std::unique_lock<std::mutex> lock;
     previousReport(lock) = gran::log::previousCrash(gran::log::crashDirectory(crash));

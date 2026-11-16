@@ -1,7 +1,7 @@
 #include "gran/data/internal/source_readers.hpp"
 #include "gran/core/i18n.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
 #include <utility>
 
 namespace gran::data::internal
@@ -10,11 +10,9 @@ namespace gran::data::internal
     XmlListFetcher::XmlListFetcher(SourceSpec spec)
         : _spec(std::move(spec))
     {
-        std::error_code status;
-
         parseXmlPath(_spec.select);
         compileFields(_spec);
-        if (!std::filesystem::is_regular_file(std::filesystem::u8path(_spec.path), status))
+        if (!fs::isRegularFile(_spec.path))
             throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_READ_FAILED, {_spec.path}));
     }
 

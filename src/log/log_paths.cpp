@@ -1,7 +1,8 @@
 #include "gran/log/log.hpp"
 
+#include "gran/utils/file_system.hpp"
+
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 
 #if defined(_WIN32)
@@ -26,11 +27,11 @@ namespace gran::log
     std::string defaultDirectory(const std::string& appName)
     {
         const wchar_t* local = _wgetenv(L"LOCALAPPDATA");
-        std::filesystem::path base = std::filesystem::temp_directory_path();
+        std::string base = fs::temporaryDirectory();
 
         if (local != nullptr && local[0] != L'\0')
-            base = std::filesystem::path(local);
-        return (base / std::filesystem::u8path(appName) / "logs").u8string();
+            base = fs::fromWidePath(local, wcslen(local));
+        return fs::joinPath(fs::joinPath(base, appName), "logs");
     }
 
     // Настоящая версия ОС — из RtlGetVersion (GetVersionEx без манифеста занижает её) / The real OS version — from RtlGetVersion (GetVersionEx without a manifest understates it)
@@ -86,17 +87,17 @@ namespace gran::log
     {
         const char* state = std::getenv("XDG_STATE_HOME");
         const char* home = std::getenv("HOME");
-        std::filesystem::path base = "/tmp";
+        std::string base = "/tmp";
 
 #if defined(__APPLE__)
         if (home != nullptr && home[0] != '\0')
-            return (std::filesystem::path(home) / "Library" / "Logs" / appName / "logs").string();
+            return fs::joinPath(fs::joinPath(fs::joinPath(home, "Library/Logs"), appName), "logs");
 #endif
         if (state != nullptr && state[0] == '/')
             base = state;
         else if (home != nullptr && home[0] != '\0')
-            base = std::filesystem::path(home) / ".local" / "state";
-        return (base / appName / "logs").string();
+            base = fs::joinPath(home, ".local/state");
+        return fs::joinPath(fs::joinPath(base, appName), "logs");
     }
 
     // Ядро и архитектура из uname, дистрибутив — из os-release / The kernel and the architecture from uname, the distribution — from os-release

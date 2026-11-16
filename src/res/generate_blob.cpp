@@ -2,6 +2,7 @@
 #include "gran/res/resources.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/utils/file_system.hpp"
 
 #include <cstdint>
 
@@ -17,9 +18,9 @@ namespace gran::res
         }
 
         // Путь для make: косые «/», пробелы экранируются / A path for make: "/" slashes, spaces are escaped
-        std::string makePath(const std::filesystem::path& path)
+        std::string makePath(const std::string& path)
         {
-            std::string text = path.generic_u8string();
+            std::string text = fs::normalizePath(path);
             std::string result;
 
             for (char symbol : text)
@@ -43,7 +44,7 @@ namespace gran::res
         {
             if (!readFile(file.source, bytes))
                 throw GranException(ErrorCode::RESOURCE, i18n::format(i18n::Message::RES_MISSING_FILE,
-                    {file.source.u8string()}));
+                    {file.source}));
             putNumber(out, file.alias.size(), 4);
             out += file.alias;
             putNumber(out, bytes.size(), 8);
@@ -55,7 +56,7 @@ namespace gran::res
     // Цель зависит от манифеста и всех файлов пакета: правка картинки пересоберёт .cpp / The target depends on the manifest and all the bundle files: editing an image rebuilds the .cpp
     std::string generateDepfile(const Manifest& manifest, const std::string& target)
     {
-        std::string out = makePath(std::filesystem::u8path(target)) + ": " + makePath(manifest.location);
+        std::string out = makePath(target) + ": " + makePath(manifest.location);
 
         for (const ManifestFile& file : manifest.files)
             out += " \\\n  " + makePath(file.source);

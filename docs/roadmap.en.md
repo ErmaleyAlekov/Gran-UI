@@ -7,7 +7,7 @@
 > **This is a living document.** Here is only what has not been done yet and ideas for the future. The order of tasks, their composition
 > and deadlines **will change** as the engine develops: based on user feedback, what is discovered during implementation, and as new tasks appear. Dates are guidelines, not promises. Done items are moved to the [CHANGELOG](../CHANGELOG.en.md), versioning rules are in [docs/versioning.en.md](versioning.en.md).
 >
-> Updated: 2026-11-10 (the 2.1 window frame is done in main and goes into 0.2.0 together with CI and the release build).
+> Updated: 2026-11-15 (the P.2 release build by tag is done; macOS M1–M6 are done, the direction is paused until a real Mac).
 
 ## Table of Contents
 
@@ -71,7 +71,7 @@ A minor version is released when its main plan item is ready; patch versions as 
 | Version | Target | Main Content |
 |---|---|---|
 | **0.1.0** | released 2026-11-09 | First release with a tag: stage 1 completely, semantic versions, `gran_export.h`, sanitizer builds, the first manual check tasks (P.16), `release/0.1` branch |
-| **0.2.0** | December 2026 | 2.1 Window frame (done, checked by hand); macOS without a Mac — M1–M3 (first priority); CI on each commit (P.1) with sanitizers and GPU debug layers (P.16), release build by tag (P.2) |
+| **0.2.0** | December 2026 | 2.1 Window frame (done, checked by hand); macOS without a Mac — M1–M3 (first priority); CI on each commit (P.1) with sanitizers and GPU debug layers (P.16), release build by tag (P.2, done) |
 | **0.3.0** | January 2027 | macOS without a Mac — M4–M6; 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
 | **0.4.0** | January–February 2027 | 2.3 Input fields and forms; fallback content for `<WebView>` without a browser (R.5) |
 | **0.5.0** | February 2027 | 2.4 Feedback (notifications, indicators, wizard) |
@@ -93,7 +93,7 @@ Recommendations without which it is hard to use the engine in serious programs. 
 
 **P.1. Continuous Integration (CI).** Currently, checks are run manually. Needed: GitHub Actions and Gitverse workflows for every commit to `main`, `release/*`, and merge requests — Windows (MinGW + make, MSVC + CMake), Linux (GCC 8 in the Astra Linux SE 1.7 image — the oldest target glibc; fresh GCC and Clang), `make test`, `make test-render` on WARP and lavapipe, Python/C#/Java wrapper tests; compiler warnings in CI — error. Done when a branch cannot be merged with a red check.
 
-**P.2. Release Build by Tag.** Tag `vX.Y.Z` triggers the build of archives: Windows x64 (MinGW and MSVC), Linux x86_64 (built in Astra 1.7, works on newer distributions), headers, `libgran.a`, `gran_c`, tools (`gran_rcc`, `gran_snapshot`), SHA-256 checksums, and description from CHANGELOG. Later — aarch64.
+**P.2. Release Build by Tag.** *Done 2026-11-15* ([release archives](building.en.md#prebuilt-release-archives)): the `vX.Y.Z` tag builds the Windows x64 (MinGW and MSVC) and Linux x86_64 (GCC 8 in the Astra 1.7 image and GCC 10 in the ALT p10 image) archives with the headers, the libraries, `gran_c`, `gran_rcc`, `gran_snapshot`, SHA-256 and the notes from CHANGELOG — on GitHub and Gitverse. Remaining: the Linux aarch64 and macOS universal archives; signing the archives is P.9.
 
 **P.3. Binary Interface Verification.** For each public structure in `gran.h` — `static_assert` on `sizeof` and `offsetof` fields (already done for GPU structures). A custom script compares the list of exported symbols in `gran_c` and signatures in `gran.h` with tag `vX.Y.0`; any difference on the `release/X.Y` branch — CI failure.
 

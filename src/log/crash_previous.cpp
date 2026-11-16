@@ -1,7 +1,8 @@
 #include "gran/log/crash_report.hpp"
 #include "gran/log/log.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
+
 #include <fstream>
 
 namespace gran::log
@@ -9,22 +10,19 @@ namespace gran::log
     namespace
     {
         // Самый новый отчёт .txt каталога (пустой путь — отчётов нет) / The newest .txt report of the directory (an empty path — no reports)
-        std::filesystem::path newestReport(const std::filesystem::path& folder)
+        std::string newestReport(const std::string& folder)
         {
-            std::error_code error;
-            std::filesystem::path newest;
-            std::filesystem::file_time_type newestTime{};
+            std::string newest;
+            std::int64_t newestTime = 0;
 
-            for (std::filesystem::directory_iterator entry(folder, error), end; !error && entry != end;
-                entry.increment(error))
+            for (const fs::DirectoryEntry& entry : fs::listDirectory(folder))
             {
-                if (!entry->is_regular_file(error) || entry->path().extension() != ".txt")
+                if (!entry.info.regular || fs::fileExtension(entry.name) != ".txt")
                     continue;
-                std::filesystem::file_time_type time = entry->last_write_time(error);
-                if (newest.empty() || time > newestTime)
+                if (newest.empty() || entry.info.modified > newestTime)
                 {
-                    newest = entry->path();
-                    newestTime = time;
+                    newest = entry.name;
+                    newestTime = entry.info.modified;
                 }
             }
             return newest;
@@ -36,7 +34,7 @@ namespace gran::log
     {
         if (!options.directory.empty())
             return options.directory;
-        return (std::filesystem::u8path(defaultDirectory(options.appName)).parent_path() / "crashes").u8string();
+        return fs::joinPath(fs::parentPath(defaultDirectory(options.appName)), "crashes");
     }
 
     /*
@@ -48,18 +46,20 @@ namespace gran::log
     */
     std::string previousCrash(const std::string& directory)
     {
-        std::filesystem::path folder = std::filesystem::u8path(directory);
-        std::filesystem::path newest = newestReport(folder);
+        std::string newest = newestReport(directory);
+        std::string seenPath = fs::joinPath(directory, ".seen");
         std::string seen;
+        std::ifstream input;
+        std::ofstream output;
 
         if (newest.empty())
             return std::string();
-        std::ifstream input(folder / ".seen");
+        fs::openFile(input, seenPath, std::ios::in);
         std::getline(input, seen);
-        if (seen == newest.filename().u8string())
+        if (seen == newest)
             return std::string();
-        std::ofstream output(folder / ".seen", std::ios::trunc);
-        output << newest.filename().u8string() << '\n';
-        return newest.u8string();
+        fs::openFile(output, seenPath, std::ios::trunc);
+        output << newest << '\n';
+        return fs::joinPath(directory, newest);
     }
 }

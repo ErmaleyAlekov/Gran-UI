@@ -2,7 +2,7 @@
 
 #include <shlobj.h>
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
 
 namespace gran::platform::webview2
 {
@@ -53,19 +53,17 @@ namespace gran::platform::webview2
     {
         wchar_t* local = nullptr;
         wchar_t program[MAX_PATH] = {};
-        std::filesystem::path folder;
+        std::string folder;
 
         if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &local)))
         {
             CoTaskMemFree(local);
             return std::wstring();
         }
-        folder = local;
+        folder = fs::fromWidePath(local, wcslen(local));
         CoTaskMemFree(local);
-        GetModuleFileNameW(nullptr, program, MAX_PATH);
-        folder /= L"GranUI";
-        folder /= std::filesystem::path(program).stem();
-        folder /= L"WebView2";
-        return folder.wstring();
+        DWORD length = GetModuleFileNameW(nullptr, program, MAX_PATH);
+        folder = fs::joinPath(fs::joinPath(folder, "GranUI"), fs::fileStem(fs::fromWidePath(program, length)));
+        return fs::toWidePath(fs::joinPath(folder, "WebView2"));
     }
 }

@@ -2,7 +2,8 @@
 
 #include "beresta.hpp"
 
-#include <filesystem>
+#include "gran/utils/file_system.hpp"
+
 #include <memory>
 
 namespace gran::markup
@@ -30,7 +31,7 @@ namespace gran::markup
         LoadOptions fileOptions = options;
 
         if (fileOptions.baseDirectory.empty())
-            fileOptions.baseDirectory = std::filesystem::path(path).parent_path().string();
+            fileOptions.baseDirectory = fs::parentPath(path);
         std::shared_ptr<beresta::Document> dom = std::make_shared<beresta::Document>(internal::parseMarkupFile(path));
         return internal::buildDocument(std::move(dom), fileOptions);
     }

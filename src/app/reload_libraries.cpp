@@ -1,5 +1,6 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/markup/components.hpp"
+#include "gran/utils/file_system.hpp"
 
 namespace gran::app
 {
@@ -8,16 +9,12 @@ namespace gran::app
         // Файл, исчезнувший на время сохранения редактором, считается прежним / A file that vanished while an editor saves it counts as the former one
         bool stampChanged(FileStamp& stamp)
         {
-            std::error_code error;
-            auto time = std::filesystem::last_write_time(stamp.path, error);
+            fs::FileInfo info = fs::queryPath(stamp.path);
 
-            if (error)
+            if (!info.exists || (info.modified == stamp.time && info.size == stamp.size))
                 return false;
-            auto size = std::filesystem::file_size(stamp.path, error);
-            if (error || (time == stamp.time && size == stamp.size))
-                return false;
-            stamp.time = time;
-            stamp.size = size;
+            stamp.time = info.modified;
+            stamp.size = info.size;
             return true;
         }
     }

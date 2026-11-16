@@ -4,7 +4,8 @@
 #include "beresta.hpp"
 
 #include <cstdlib>
-#include <filesystem>
+
+#include "gran/utils/file_system.hpp"
 
 namespace gran::markup::internal
 {
@@ -30,11 +31,7 @@ namespace gran::markup::internal
         data::SourceSpec readSpec(const beresta::Element& element, const BuildContext& context)
         {
             data::SourceSpec spec;
-            std::filesystem::path path = std::filesystem::u8path(*findAttribute(element, "source"));
-
-            if (path.is_relative() && !context.options.baseDirectory.empty())
-                path = std::filesystem::u8path(context.options.baseDirectory) / path;
-            spec.path = path.u8string();
+            spec.path = fs::joinPath(context.options.baseDirectory, *findAttribute(element, "source"));
             if (const std::string* select = findAttribute(element, "select"))
                 spec.select = *select;
             if (const std::string* children = findAttribute(element, "children"))

@@ -22,10 +22,10 @@ namespace gran::res
     }
 
     /*
-    ** Склейки путей движка (std::filesystem на Windows) дают «res:/ui\assets/a.png» и «res:\ui\..\b.png»:
+    ** Склейки путей (ввод пользователя, прежние std::filesystem на Windows) дают «res:/ui\assets/a.png» и «res:\ui\..\b.png»:
     ** обе косые считаются разделителями, приставка «res:» снимается, результат — «ui/assets/a.png».
     **
-    ** The engine path joins (std::filesystem on Windows) give "res:/ui\assets/a.png" and "res:\ui\..\b.png":
+    ** Path joins (user input, the former std::filesystem on Windows) give "res:/ui\assets/a.png" and "res:\ui\..\b.png":
     ** both slashes count as separators, the "res:" prefix is removed, the result is "ui/assets/a.png".
     */
     std::string normalize(std::string_view path)

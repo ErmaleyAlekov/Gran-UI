@@ -586,7 +586,11 @@ shaders: $(EMBED_BIN)
 FLAGS_STAMP := $(OBJ_DIR)/.flags
 FLAGS_NOW   := $(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(SYSTEM_LIBS)
 FLAGS_OLD   := $(file <$(FLAGS_STAMP))
-ifneq '$(FLAGS_OLD)' '$(FLAGS_NOW)'
+# strip: GNU make до 4.3 (4.2.1 в Astra 1.7) оставляет в $(file <) конечный перевод строки — без strip строки
+# никогда не равны, и каждый вызов make пересобирал всё (найдено при сборке выпуска П.2, 2026-11-15)
+# strip: GNU make before 4.3 (4.2.1 in Astra 1.7) keeps the final newline in $(file <) — without strip the lines
+# are never equal, and every make call rebuilt everything (found in the P.2 release build, 2026-11-15)
+ifneq '$(strip $(FLAGS_OLD))' '$(strip $(FLAGS_NOW))'
     $(shell $(call MKDIR,$(OBJ_DIR)))
     $(file >$(FLAGS_STAMP),$(FLAGS_NOW))
 endif

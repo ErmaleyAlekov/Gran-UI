@@ -3,8 +3,8 @@
 #include "gran/core/i18n.hpp"
 
 #include "beresta.hpp"
+#include "gran/utils/file_system.hpp"
 
-#include <filesystem>
 #include <utility>
 
 namespace gran::markup::internal
@@ -36,10 +36,7 @@ namespace gran::markup::internal
             if (include.getLocalName() != "include" || !href.has_value() || href->empty()
                 || (parse.has_value() && *parse != "xml") || include.hasAttribute("xpointer"))
                 throwElementError(include, i18n::format(i18n::Message::MARKUP_BAD_INCLUDE));
-            std::filesystem::path path(*href);
-            if (path.is_relative() && !context.options.baseDirectory.empty())
-                path = std::filesystem::path(context.options.baseDirectory) / path;
-            return path.lexically_normal().string();
+            return fs::normalizePath(fs::joinPath(context.options.baseDirectory, *href));
         }
 
         /*

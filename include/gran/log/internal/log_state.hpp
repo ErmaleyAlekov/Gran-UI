@@ -4,8 +4,8 @@
 #include "gran/log/log.hpp"
 
 #include <cstdint>
-#include <filesystem>
 #include <fstream>
+#include <string>
 #include <mutex>
 
 namespace gran::log::internal
@@ -24,10 +24,11 @@ namespace gran::log::internal
     {
         std::mutex mutex;
         LogOptions options;
-        std::filesystem::path folder;
-        std::filesystem::path path;
+        // Папка и файл журнала — UTF-8 (gran/utils/file_system.hpp) / The log folder and file are UTF-8 (gran/utils/file_system.hpp)
+        std::string folder;
+        std::string path;
         std::ofstream file;
-        std::uintmax_t size = 0;
+        std::uint64_t size = 0;
         bool open = false;
         char ring[RING_BYTES] = {};
         std::size_t ringHead = 0;

@@ -5,7 +5,6 @@
 
 #include "beresta.hpp"
 
-#include <filesystem>
 
 namespace gran::data::internal
 {
@@ -35,7 +34,7 @@ namespace gran::data::internal
     {
         FieldPaths fields = compileFields(spec);
         XmlRecordHandler handler(spec, fields, sink);
-        std::unique_ptr<std::istream> stream = res::openStream(std::filesystem::u8path(spec.path));
+        std::unique_ptr<std::istream> stream = res::openStream(spec.path);
 
         // Файл диска или ресурс res:/ — SAX читает поток порциями, DOM целиком не строится / A disk file or a res:/ resource — SAX reads the stream by portions, the whole DOM is not built
         if (!*stream)

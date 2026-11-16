@@ -200,6 +200,38 @@ The `-mwindows` flag removes the console window from a GUI program.
 
 With CMake, it is easiest to add your program in the `examples/<name>/` directory: each such directory is automatically built into `gran_<name>` (the `windows_gui.txt` label indicates a program without a console, and `system_libs.txt` specifies additional system libraries, such as `ws2_32` for chat).
 
+### Prebuilt Release Archives
+
+Every release on GitHub and Gitverse has archives attached — the engine can be used without building from source:
+
+| Archive | Built with | Runs on |
+|---|---|---|
+| `gran-ui-X.Y.Z-linux-x86_64-gcc10.tar.gz` | GCC 10.3 in the ALT p10 image | programs on GCC 10 and newer, glibc 2.30+: ALT p10 and p11, Astra 1.8, RED OS 8, Ubuntu 22.04+ |
+| `gran-ui-X.Y.Z-linux-x86_64-gcc8.tar.gz` | GCC 8.3 in the Astra Linux SE 1.7 image | programs on GCC 8, glibc 2.27+: Astra 1.7, RED OS 7.3 |
+| `gran-ui-X.Y.Z-windows-x86_64-mingw.zip` | MinGW-w64 GCC (the runtime inside, `-static`) | Windows 10 and 11 x64 |
+| `gran-ui-X.Y.Z-windows-x86_64-msvc.zip` | MSVC, Release, the static `/MT` runtime | Windows 10 and 11 x64, programs with `/MT` |
+| `gran-ui-X.Y.Z-windows-x86_64-msvc-md.zip` | MSVC, Release, the dynamic `/MD` runtime | Windows 10 and 11 x64, programs with `/MD` (the default of a new Visual Studio project) |
+
+Inside: `include/` (the Gran and Beresta headers), `lib/` (`libgran` and `libberesta` are static, `gran_c` is
+the C interface shared library for the wrappers), `bin/` (`gran_rcc`, `gran_snapshot`), `schemas/`, `samples/`, `docs/`,
+the licenses and `BUILD_INFO.txt` (the commit, the Beresta version, the compiler). The MinGW, MSVC `/MT` and MSVC `/MD`
+static libraries are incompatible with each other — take the archive for your compiler and runtime: otherwise the MSVC
+linker answers `LNK2038` ("RuntimeLibrary" or "_ITERATOR_DEBUG_LEVEL"). The libraries in the archives are Release only;
+build the Debug configuration of your program with them using the same runtime and `_ITERATOR_DEBUG_LEVEL=0` (for example,
+`/MD /Od /Zi /D_ITERATOR_DEBUG_LEVEL=0` with the `msvc-md` archive) or build the engine from source (CMake,
+`-DGRAN_MSVC_DYNAMIC_RUNTIME=ON` for `/MD`). Integrity: `sha256sum -c SHA256SUMS.txt` next to the archives. Linking is as above, only with the archive paths: `-Igran-ui/include gran-ui/lib/libgran.a gran-ui/lib/libberesta.a`
+(MSVC: `gran.lib beresta_static.lib`). The archives have no embedded browser (`<WebView>`): for it the engine is
+built from source with the WebView2 SDK.
+
+**Why there are two Linux archives.** Static C++ libraries are bound to the compiler: `std::filesystem` (Beresta uses
+it) is experimental in GCC 8, and GCC 9 changed its binary layout — a GCC 13 program built with the GCC 8 static
+libraries crashes on the first path operation (checked on ALT p11). So a GCC 8 program needs the `gcc8` archive (link
+with `-lstdc++fs`), and a program on GCC 10 and newer needs the `gcc10` archive (checked with GCC 12 on Astra 1.8 and
+GCC 13 on ALT p11). The `bin/` tools and `libgran_c.so` (the C interface for the wrappers) do not depend on the program
+compiler: take them from any archive that fits by glibc. To run they need the system X11 and Vulkan loader: Astra and
+Debian — `libx11-6 libvulkan1`, ALT — `libX11 libvulkan1`, RED OS — `libX11 vulkan-loader`; without a video card also
+`mesa-vulkan-drivers` (software Vulkan).
+
 ## Testing
 
 Select the API through `AppOptions::backend` / `BackendOptions::backend` (`AUTO`, `D3D11`, `D3D12`, `VULKAN`).
@@ -234,6 +266,13 @@ x86_64 and aarch64, CMake with Clang, the `NATIVE=0` core, the GPU checks on lav
 (`.gitverse/workflows/ci.yml`, the repository CI/CD settings select the configuration from `.gitverse/workflows`):
 the same Linux x86_64 matrix — the Gitverse cloud runner is Linux x86_64 only with a 30-minute limit per job, so the
 checks are split into short jobs, and each one prepares the packages and Beresta itself (`tools/ci/gitverse_prepare.sh`).
+
+A release by the `vX.Y.Z` tag: `.github/workflows/release.yml` checks that the tag matches `gran_version.h` and that
+CHANGELOG has the version section, builds the [release archives](#prebuilt-release-archives) (Linux in the Astra 1.7 and ALT p10
+container, `tools/release/build_linux.sh`; Windows with `tools/release/build_windows.sh mingw|msvc`) after the unit tests,
+computes SHA-256 and creates the GitHub release with the notes from CHANGELOG. A manual run of this workflow from a branch
+builds the archives without a release — a check before the tag. `.gitverse/workflows/release.yml` waits for the GitHub
+release, checks the sums and repeats it on Gitverse (the `GV_API_TOKEN` secret).
 
 ### Static Analysis (clang-tidy)
 

@@ -11,6 +11,17 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- The release build by tag (P.2): `.github/workflows/release.yml` checks the tag against `gran_version.h` and the
+  CHANGELOG section, builds after the unit tests the Linux x86_64 archives for the program compiler —
+  `…-linux-x86_64-gcc8.tar.gz` (GCC 8.3 in the Astra Linux SE 1.7 image) and `…-linux-x86_64-gcc10.tar.gz` (GCC 10.3 in
+  the ALT p10 image, for GCC 10 and newer) — and the `…-windows-x86_64-mingw.zip`, `…-windows-x86_64-msvc.zip` (`/MT`) and
+  `…-windows-x86_64-msvc-md.zip` (`/MD`, as in a new Visual Studio project; CMake — `-DGRAN_MSVC_DYNAMIC_RUNTIME=ON`) archives (the Gran
+  and Beresta headers, `libgran`, `libberesta`, `gran_c`, `gran_rcc`, `gran_snapshot`, the schema, the samples, the
+  documentation, `BUILD_INFO.txt`), `SHA256SUMS.txt` and the GitHub release with the notes from CHANGELOG; a manual run
+  builds the archives without a release. `.gitverse/workflows/release.yml` repeats the release on Gitverse with the same
+  files. Described in `docs/building.en.md`, "Prebuilt Release Archives".
+- `gran::programArguments(argc, argv)` (`gran/utils/program_arguments.hpp`) — the command line arguments in UTF-8 on every
+  OS (on Windows from `GetCommandLineW`); `gran_snapshot`, `gran_gallery`, `gran_editor` use it.
 - The macOS window (step M6): the Cocoa platform `src/platform/cocoa/` (Objective-C++ with ARC) — a window with
   `CAMetalLayer`, Retina (`backingScaleFactor`, `DPI_CHANGED` on a monitor change), the mouse in points, Control+click is
   the right button, the wheel and precise trackpad scrolling, keys by the physical code with Cmd = `Mod`, text through the
@@ -114,7 +125,27 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 - In menu and menu bar item labels the `_` sign now means the access letter: the label `a_b` is shown as `ab` (for the
   sign — `a__b`). `ComboBox` item labels do not change.
 
+
+### Incompatible Changes
+- Resources: `res::readManifest`, `res::readFile`, `res::openStream` and `res::expandFolder` take the path as a UTF-8
+  string (`const std::string&`) instead of `std::filesystem::path`; `ManifestFile::source` and `Manifest::location` are
+  strings too. Was `readManifest(std::filesystem::u8path(p))` — now `readManifest(p)`.
+
 ### Fixed
+- Windows: files with symbols outside the ANSI code page in the path (Cyrillic under an English locale, Chinese folder
+  names) did not open — fonts (`MappedFile`, `CreateFileA`), images, component libraries, `openWindow` and `loadFile`
+  markup. Paths in the engine are now always UTF-8: the own `gran::fs` layer (`gran/utils/file_system.hpp`) converts them
+  to UTF-16 for the Windows wide APIs; POSIX on Linux and macOS. `std::filesystem` remains in the Gran code only at the
+  Beresta boundary (`u8path`).
+- Windows: the sample programs got `argv` in the ANSI code page — a path like `C:\Проба 日本\a.xml` did not open
+  (`gran_snapshot`, `gran_gallery`, `gran_editor`); the arguments are UTF-8 now (`gran::programArguments`).
+- The path layer (code review): on Windows a dangling symbolic link or junction looked like an existing file — now the
+  information comes from the target, as `stat` on POSIX, and `removePath` deletes the link itself; paths longer than 260
+  symbols work (the `\\?\` form); `joinPath("//server/share", "/sub")` keeps the network root.
+- Settings: on saving the stream is closed before the check — a buffer flush error no longer replaces the working
+  `settings.xml` with an incomplete file, and the incomplete `.tmp` is deleted; the same in `gran_rcc`.
+- Makefile: with GNU make 4.2 (Astra Linux SE 1.7 and other old systems) every `make` call rebuilt the whole engine —
+  the `obj/.flags` flags stamp was read with the final newline and did not match itself.
 - macOS: the log and the crash reports — `~/Library/Logs/<program>/logs` and `…/crashes`; earlier the reports of all programs
   would have gone to the shared `~/Library/Logs/crashes` (found by the first CI run on macOS).
 - An `AppDriver` declared before `Application` touched its state after the application was destroyed (use-after-free).

@@ -1,4 +1,5 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/utils/file_system.hpp"
 
 namespace gran::app
 {
@@ -15,7 +16,7 @@ namespace gran::app
     {
         for (const markup::FontFace& face : document.fonts)
         {
-            std::string path = (std::filesystem::path(base) / face.source).lexically_normal().string();
+            std::string path = fs::normalizePath(fs::joinPath(base, face.source));
 
             text::FontFace::load(MappedFile::open(path), 0, path);
         }

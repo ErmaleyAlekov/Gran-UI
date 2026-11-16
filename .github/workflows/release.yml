@@ -1,0 +1,224 @@
+# ============================================================================
+#  Выпуск Грани UI по тегу vX.Y.Z (П.2 плана, docs/roadmap.md)
+#
+#  1. version — номер из include/gran/gran_version.h; у тега он обязан совпасть с тегом,
+#     а в CHANGELOG.md и CHANGELOG.en.md обязан быть раздел этой версии.
+#  2. linux, windows — архивы для подключения движка (tools/release/build_*.sh):
+#       gran-ui-X.Y.Z-linux-x86_64-gcc8.tar.gz  — в образе Astra Linux SE 1.7 (GCC 8.3, glibc 2.28)
+#                                                 для программ на GCC 8 (Astra 1.7, РЕД ОС 7.3);
+#       gran-ui-X.Y.Z-linux-x86_64-gcc10.tar.gz — в образе Альт p10 (GCC 10.3, glibc 2.32) для GCC 10 и новее
+#                                                 (статические библиотеки C++ привязаны к компилятору:
+#                                                 std::filesystem GCC 8 несовместим с GCC 9+);
+#       gran-ui-X.Y.Z-windows-x86_64-mingw.zip — Makefile + MinGW-w64;
+#       gran-ui-X.Y.Z-windows-x86_64-msvc.zip  — CMake + MSVC (статический рантайм /MT);
+#       gran-ui-X.Y.Z-windows-x86_64-msvc-md.zip — CMake + MSVC (динамический рантайм /MD).
+#     Внутри: заголовки Грани и «Берёсты», libgran, libberesta, gran_c (C ABI), gran_rcc, gran_snapshot,
+#     схема разметки, примеры, документация. Перед упаковкой проходят модульные тесты.
+#  3. release — SHA256SUMS.txt и релиз GitHub с описанием из CHANGELOG (RU, затем EN);
+#     версия с суффиксом (-rc.1) — предварительный выпуск. Перезапуск заменяет файлы релиза.
+#  Ручной запуск (workflow_dispatch) с любой ветки собирает и проверяет архивы без релиза —
+#  так сборка выпуска проверяется до тега. Релиз на Gitverse — tools/release/gitverse_release.ps1.
+# ============================================================================
+#  The Gran UI release by the vX.Y.Z tag (item P.2 of the plan, docs/roadmap.md)
+#
+#  1. version — the number from include/gran/gran_version.h; for a tag it must match the tag,
+#     and CHANGELOG.md and CHANGELOG.en.md must have a section for this version.
+#  2. linux, windows — the archives for using the engine (tools/release/build_*.sh):
+#       gran-ui-X.Y.Z-linux-x86_64-gcc8.tar.gz  — in the Astra Linux SE 1.7 image (GCC 8.3, glibc 2.28)
+#                                                 for programs on GCC 8 (Astra 1.7, RED OS 7.3);
+#       gran-ui-X.Y.Z-linux-x86_64-gcc10.tar.gz — in the ALT p10 image (GCC 10.3, glibc 2.32) for GCC 10 and newer
+#                                                 (static C++ libraries are bound to the compiler:
+#                                                 the GCC 8 std::filesystem is incompatible with GCC 9+);
+#       gran-ui-X.Y.Z-windows-x86_64-mingw.zip — the Makefile + MinGW-w64;
+#       gran-ui-X.Y.Z-windows-x86_64-msvc.zip  — CMake + MSVC (the static /MT runtime);
+#       gran-ui-X.Y.Z-windows-x86_64-msvc-md.zip — CMake + MSVC (the dynamic /MD runtime).
+#     Inside: the Gran and Beresta headers, libgran, libberesta, gran_c (C ABI), gran_rcc, gran_snapshot,
+#     the markup schema, the samples, the documentation. The unit tests pass before packing.
+#  3. release — SHA256SUMS.txt and the GitHub release with the notes from CHANGELOG (RU, then EN);
+#     a version with a suffix (-rc.1) is a pre-release. A re-run replaces the release files.
+#  A manual run (workflow_dispatch) from any branch builds and checks the archives without a release —
+#  this is how the release build is checked before a tag. The Gitverse release is tools/release/gitverse_release.ps1.
+# ============================================================================
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Выпуск «Берёсты», с которым собирается архив (тот же, что в linux.yml, windows.yml, macos.yml)
+# The Beresta release the archive is built with (the same as in linux.yml, windows.yml, macos.yml)
+env:
+  BERESTA_REF: v2.2.1
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ---- Номер версии, тег и раздел CHANGELOG ----------------------------------------
+  # ---- The version number, the tag and the CHANGELOG section ----------------------------------------
+  version:
+    name: Проверка версии / Version check
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: read
+        name: Версия из gran_version.h / The version from gran_version.h
+        run: |
+          . tools/release/lib/release_common.sh
+          version="$(gran_version)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Версия / Version: $version"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            if [ "${GITHUB_REF_NAME}" != "v$version" ]; then
+              echo "::error::Тег ${GITHUB_REF_NAME} не совпадает с версией $version / The tag does not match the version"
+              exit 1
+            fi
+            bash tools/release/release_notes.sh "$version" "$RUNNER_TEMP/notes.md"
+          fi
+
+  # ---- Linux x86_64 в двух образах: GCC 8 (Astra 1.7) и GCC 10 (Альт p10) -----------------
+  # ---- Linux x86_64 in two images: GCC 8 (Astra 1.7) and GCC 10 (ALT p10) -----------------
+  linux:
+    name: Linux x86_64 (${{ matrix.name }})
+    needs: version
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # Самое старое целевое окружение: glibc 2.28 / The oldest target environment: glibc 2.28
+          - name: Astra 1.7, GCC 8.3
+            image: registry.astralinux.ru/library/astra/ubi17:latest
+            compiler: gcc8
+          # Старейший GCC с устойчивым ABI std::filesystem (9+) среди целевых ОС: glibc 2.32
+          # The oldest GCC with a stable std::filesystem ABI (9+) among the target OSes: glibc 2.32
+          - name: ALT p10, GCC 10.3
+            image: alt:p10
+            compiler: gcc10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: gran
+      - uses: actions/checkout@v5
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      # Скрипт идёт в контейнере, а не через `container:`: действиям GitHub (checkout, upload)
+      # нужен свой Node.js, а в старом образе он может не запуститься. Нет образа — сборка на
+      # раннере с предупреждением: такой архив требует glibc раннера (2.39), а не образа
+      # The script runs in the container, not through `container:`: the GitHub actions (checkout, upload)
+      # need their own Node.js, which may not start in an old image. No image — a build on the
+      # runner with a warning: such an archive requires the runner glibc (2.39), not the image one
+      - name: Сборка, тесты, архив / Build, tests, archive
+        run: |
+          if docker pull -q "${{ matrix.image }}"; then
+            docker run --rm -v "$GITHUB_WORKSPACE:/w" -w /w/gran "${{ matrix.image }}" \
+              bash tools/release/build_linux.sh /w/beresta /w/dist
+          else
+            echo "::warning::Образ ${{ matrix.image }} недоступен — сборка на раннере / The image is unavailable — a build on the runner"
+            cd gran && bash tools/release/build_linux.sh ../beresta ../dist
+          fi
+      - uses: actions/upload-artifact@v5
+        with:
+          name: dist-linux-x86_64-${{ matrix.compiler }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  # ---- Windows x64: MinGW-w64 и MSVC ---------------------------------------------------
+  # ---- Windows x64: MinGW-w64 and MSVC ---------------------------------------------------
+  windows:
+    name: Windows x64 (${{ matrix.mode }})
+    needs: version
+    strategy:
+      fail-fast: true
+      matrix:
+        mode: [mingw, msvc, msvc-md]
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: gran
+      - uses: actions/checkout@v5
+        with:
+          repository: ErmaleyAlekov/beresta
+          ref: ${{ env.BERESTA_REF }}
+          path: beresta
+      # Как в windows.yml: g++ ищется в известных местах, иначе ставится из Chocolatey
+      # As in windows.yml: g++ is looked up in the known places, otherwise installed from Chocolatey
+      - name: MinGW-w64
+        if: matrix.mode == 'mingw'
+        shell: pwsh
+        run: |
+          $places = @('C:\mingw64\bin', 'C:\ProgramData\mingw64\mingw64\bin', 'C:\msys64\mingw64\bin')
+          $found = $places | Where-Object { Test-Path (Join-Path $_ 'g++.exe') } | Select-Object -First 1
+          if (-not $found) {
+            choco install mingw -y --no-progress
+            $found = $places | Where-Object { Test-Path (Join-Path $_ 'g++.exe') } | Select-Object -First 1
+          }
+          if (-not $found) { throw 'MinGW-w64 g++ not found' }
+          Add-Content -Path $env:GITHUB_PATH -Value $found
+          & (Join-Path $found 'g++.exe') --version | Select-Object -First 1
+      - name: Сборка, тесты, архив / Build, tests, archive
+        working-directory: gran
+        run: bash tools/release/build_windows.sh ${{ matrix.mode }} ../beresta ../dist
+      - uses: actions/upload-artifact@v5
+        with:
+          name: dist-windows-x86_64-${{ matrix.mode }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  # ---- Контрольные суммы и релиз GitHub --------------------------------------------------
+  # ---- The checksums and the GitHub release --------------------------------------------------
+  release:
+    name: Релиз / Release
+    needs: [version, linux, windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      # Суммы считаются по именам без каталога: `sha256sum -c SHA256SUMS.txt` рядом с архивами
+      # The sums are computed over the names without a directory: `sha256sum -c SHA256SUMS.txt` next to the archives
+      - name: SHA-256
+        run: |
+          cd dist && sha256sum gran-ui-* > SHA256SUMS.txt && cat SHA256SUMS.txt
+      # Без тега (ручной запуск) архивы с суммами остаются артефактом прогона
+      # Without a tag (a manual run) the archives with the sums stay a run artifact
+      - uses: actions/upload-artifact@v5
+        if: github.ref_type != 'tag'
+        with:
+          name: release-preview
+          path: dist/*
+      # Релиз уже есть (перезапуск) — файлы заменяются; суффикс версии — предварительный выпуск
+      # The release exists (a re-run) — the files are replaced; a version suffix means a pre-release
+      - name: Релиз GitHub / GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/* --clobber
+          else
+            bash tools/release/release_notes.sh "${VERSION}" "${RUNNER_TEMP}/notes.md"
+            prerelease=""
+            case "${VERSION}" in *-*) prerelease="--prerelease" ;; esac
+            gh release create "${GITHUB_REF_NAME}" dist/* --title "Грань UI ${VERSION}" \
+              --notes-file "${RUNNER_TEMP}/notes.md" $prerelease
+          fi

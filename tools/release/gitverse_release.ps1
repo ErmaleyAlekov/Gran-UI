@@ -1,6 +1,7 @@
 ﻿# ============================================================================
 #  Создание релиза Грани UI на Gitverse через публичный API (https://api.gitverse.ru).
-#  Нужен, пока нет сборки выпуска по тегу (П.2), и когда веб-форма Gitverse отвечает
+#  Запасной путь: обычно релиз Gitverse с файлами делает .gitverse/workflows/release.yml.
+#  Скрипт нужен для правки описания и когда веб-форма Gitverse отвечает
 #  «Сервис временно недоступен»: API вернёт настоящую причину ошибки.
 #  Тег уже должен быть на Gitverse. Токен — «Настройки → Токены» на gitverse.ru с правом
 #  «Репозитории → Запись»; берётся из $env:GV_API_TOKEN или спрашивается скрытым вводом.
@@ -12,7 +13,8 @@
 #  Описание с разметкой правится только так: веб-редактор Gitverse экранирует Markdown при сохранении.
 #
 #  Creating a Gran UI release on Gitverse through the public API (https://api.gitverse.ru).
-#  It is needed until there is a release build by tag (P.2), and when the Gitverse web form answers
+#  A fallback: normally the Gitverse release with files is made by .gitverse/workflows/release.yml.
+#  The script is needed to edit the notes and when the Gitverse web form answers
 #  "the service is temporarily unavailable": the API returns the real cause of the error.
 #  The tag must already be on Gitverse. The token is "Settings → Tokens" on gitverse.ru with the
 #  "Repositories → Write" right; it is taken from $env:GV_API_TOKEN or asked with hidden input.

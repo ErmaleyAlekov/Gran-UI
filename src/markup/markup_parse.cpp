@@ -5,6 +5,8 @@
 
 #include "beresta.hpp"
 
+#include <filesystem>
+
 namespace gran::markup::internal
 {
     namespace
@@ -77,7 +79,9 @@ namespace gran::markup::internal
             return parseMarkupText(std::string_view(reinterpret_cast<const char*>(view.data), view.size));
         try
         {
-            dom = beresta::XmlParser(parserOptions(handler)).parseFile(path);
+            // API «Берёсты» принимает std::filesystem::path: u8path сохраняет UTF-8 и на Windows (не ANSI)
+            // The Beresta API takes std::filesystem::path: u8path keeps UTF-8 on Windows as well (not ANSI)
+            dom = beresta::XmlParser(parserOptions(handler)).parseFile(std::filesystem::u8path(path));
         }
         catch (const beresta::ParseException& error)
         {

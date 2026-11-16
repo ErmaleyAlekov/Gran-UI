@@ -4,8 +4,7 @@
 #include "gran/markup/components.hpp"
 #include "gran/markup/live_document.hpp"
 
-#include <filesystem>
-#include <fstream>
+#include "gran/utils/file_system.hpp"
 
 namespace gran
 {
@@ -28,13 +27,14 @@ namespace gran
         return markup::serializeMarkup(markupWindow(*_state, window).document);
     }
 
-    // Путь — UTF-8 (u8path), как у loadFile; файл пишется двоично: переводы строк — как в тексте
-    // The path is UTF-8 (u8path), as for loadFile; the file is written in binary: the line breaks are as in the text
+    // Путь — UTF-8, как у loadFile; файл пишется двоично: переводы строк — как в тексте
+    // The path is UTF-8, as for loadFile; the file is written in binary: the line breaks are as in the text
     void Application::saveMarkupFile(const std::string& path, const ui::Node* window) const
     {
         std::string text = saveMarkup(window);
-        std::ofstream file(std::filesystem::u8path(path), std::ios::binary | std::ios::trunc);
+        std::ofstream file;
 
+        fs::openFile(file, path);
         file.write(text.data(), static_cast<std::streamsize>(text.size()));
         file.close();
         if (!file)
