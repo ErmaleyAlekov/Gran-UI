@@ -44,17 +44,24 @@ gv_api() {
 release_id() {
     local tag="$1" notes="$2" out code body
     out="$(mktemp)"
+    body="$(mktemp)"
     code=$(gv_api GET "/releases/tags/${tag}" "$out")
     if [ "$code" != "200" ]; then
-        body=$("$PYTHON" -c 'import json,sys; print(json.dumps({"tag_name": sys.argv[1], "name": "Грань UI " + sys.argv[1].lstrip("v"), "body": open(sys.argv[2], encoding="utf-8").read()}))' "$tag" "$notes")
-        code=$(gv_api POST "/releases" "$out" -H 'Content-Type: application/json' --data "$body")
+        # Тело запроса — файлом (--data-binary @файл): описание в десятки КБ аргументом не влезает в командную
+        # строку Windows («Argument list too long»); json.dumps с ensure_ascii пишет чистый ASCII
+        # The request body goes as a file (--data-binary @file): notes of tens of KB do not fit the Windows command
+        # line as an argument ("Argument list too long"); json.dumps with ensure_ascii writes pure ASCII
+        "$PYTHON" -c 'import json,sys; open(sys.argv[3], "w", encoding="ascii").write(json.dumps({"tag_name": sys.argv[1], "name": "Грань UI " + sys.argv[1].lstrip("v"), "body": open(sys.argv[2], encoding="utf-8").read()}))' "$tag" "$notes" "$body"
+        code=$(gv_api POST "/releases" "$out" -H 'Content-Type: application/json' --data-binary "@${body}")
         if [ "$code" != "201" ]; then
             echo "Релиз не создан, HTTP ${code} / The release was not created: $(cat "$out")" >&2
             return 1
         fi
     fi
-    "$PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$out" | tr -d '\r'
-    rm -f "$out"
+    # Ответ API — UTF-8: без encoding Python на Windows читал бы его в cp1251 и падал
+    # The API answer is UTF-8: without encoding Python on Windows would read it as cp1251 and fail
+    "$PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["id"])' "$out" | tr -d '\r'
+    rm -f "$out" "$body"
 }
 
 # Удаляет у релиза файл с тем же именем, если он уже прикреплён
@@ -63,7 +70,7 @@ drop_asset() {
     local id="$1" name="$2" out asset
     out="$(mktemp)"
     gv_api GET "/releases/${id}/assets" "$out" > /dev/null
-    asset=$("$PYTHON" -c 'import json,sys; d=json.load(open(sys.argv[1])); d=d if isinstance(d, list) else d.get("assets", []); print(next((str(a["id"]) for a in d if a.get("name") == sys.argv[2]), ""))' "$out" "$name" 2> /dev/null | tr -d '\r' || true)
+    asset=$("$PYTHON" -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); d=d if isinstance(d, list) else d.get("assets", []); print(next((str(a["id"]) for a in d if a.get("name") == sys.argv[2]), ""))' "$out" "$name" 2> /dev/null | tr -d '\r' || true)
     if [ -n "$asset" ]; then
         gv_api DELETE "/releases/${id}/assets/${asset}" "$out" > /dev/null
     fi
