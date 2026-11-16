@@ -7,7 +7,8 @@
 > **This is a living document.** Here is only what has not been done yet and ideas for the future. The order of tasks, their composition
 > and deadlines **will change** as the engine develops: based on user feedback, what is discovered during implementation, and as new tasks appear. Dates are guidelines, not promises. Done items are moved to the [CHANGELOG](../CHANGELOG.en.md), versioning rules are in [docs/versioning.en.md](versioning.en.md).
 >
-> Updated: 2026-11-16 (0.2.0 is released; macOS M1–M6 are done, the direction is paused until a real Mac).
+> Updated: 2026-11-16 (0.2.0 is released; macOS M1–M6 are done, the direction is paused until a real Mac; the user-customizable
+> interface moved from the ideas into the plan — section "C", release 0.4.0).
 
 ## Table of Contents
 
@@ -17,13 +18,14 @@
 4. [Production Readiness](#production-readiness)
 5. [Architectural Risks](#architectural-risks)
 6. [Stage 2. Controls for Large Programs](#stage-2-controls-for-large-programs)
-7. [Stage 3. Appearance, Printing, Networking](#stage-3-appearance-printing-networking)
-8. [Stage 4. Russian OS](#stage-4-russian-os)
-9. [Stage 5. Interface in Games](#stage-5-interface-in-games)
-10. [Cross-cutting Tasks](#cross-cutting-tasks)
-11. [Follow-ups to Completed Work](#follow-ups-to-completed-work)
-12. [Postponed](#postponed)
-13. [Future Ideas](#future-ideas)
+7. [C. User-Customizable Interface](#c-user-customizable-interface)
+8. [Stage 3. Appearance, Printing, Networking](#stage-3-appearance-printing-networking)
+9. [Stage 4. Russian OS](#stage-4-russian-os)
+10. [Stage 5. Interface in Games](#stage-5-interface-in-games)
+11. [Cross-cutting Tasks](#cross-cutting-tasks)
+12. [Follow-ups to Completed Work](#follow-ups-to-completed-work)
+13. [Postponed](#postponed)
+14. [Future Ideas](#future-ideas)
 
 ## Direction
 
@@ -66,23 +68,27 @@ third-party library (the "no dependencies" rule), and on a runner without a GPU 
 
 How branches are structured and what is guaranteed on a release branch — in [docs/versioning.en.md](versioning.en.md).
 A minor version is released when its main plan item is ready; patch versions as fixes land
-(a serious bug is fixed within a week).
+(a serious bug is fixed within a week). The dates were recalculated on 2026-11-16 from the actual pace: stage 1
+(eight items) took about two weeks, 2.1 together with macOS M1–M6 — a week; a large stage 2 item takes about a week,
+the code editor (2.5) and the stabilization take longer. The manual checks set the pace too: a release waits for the
+"blocks the release" tasks.
 
 | Version | Target | Main Content |
 |---|---|---|
 | **0.1.0** | released 2026-11-09 | First release with a tag: stage 1 completely, semantic versions, `gran_export.h`, sanitizer builds, the first manual check tasks (P.16), `release/0.1` branch |
 | **0.2.0** | released 2026-11-16 | 2.1 Window frame; macOS without a Mac — M1–M6 (the Cocoa window is preliminary, checked only in CI); CI on every push (P.1) with sanitizers and GPU debug layers (P.16); the release build by tag with Windows and Linux archives (P.2); `release/0.2` branch |
-| **0.3.0** | January 2027 | 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
-| **0.4.0** | January–February 2027 | 2.3 Input fields and forms; fallback content for `<WebView>` without a browser (R.5) |
-| **0.5.0** | February 2027 | 2.4 Feedback (notifications, indicators, wizard) |
-| **0.6.0** | March 2027 | 2.5 Text for editing (formatted text editor, code editor, IME) |
-| **0.7.0** | March–April 2027 | 2.6 Charts for dashboards |
-| **0.8.0** | April 2027 | Stabilization: integration package (P.5), fuzzing and sanitizers (P.7), analyzers (P.8), wrapper versions (P.6) |
-| **1.0.0-rc.N** | May 2027 | Candidates: API and schema freeze, only fixes, testing on AMD/NVIDIA/Intel (P.12) |
-| **1.0.0** | Second quarter 2027 | First stable version: from here on, incompatible changes only in 2.0 |
-| **1.x** | mid-2027 | One minor version per item of stages 3–5, roughly every 6–8 weeks |
+| **0.3.0** | early December 2026 | 2.2 TreeView and DataGrid; ABI check on release branches (P.3, P.4); video memory accounting and a device loss test (R.2) |
+| **0.4.0** | mid-December 2026 | C. User-customizable interface: limits from the developer, an overlay patch, the edit mode, the palette and compound commands, user styles, profiles |
+| **0.5.0** | late December 2026 | 2.3 Input fields and forms; fallback content for `<WebView>` without a browser (R.5) |
+| **0.6.0** | early January 2027 | 2.4 Feedback (notifications, indicators, wizard) |
+| **0.7.0** | January 2027 | 2.5 Text for editing (formatted text editor, code editor, IME) |
+| **0.8.0** | late January 2027 | 2.6 Charts for dashboards |
+| **0.9.0** | February 2027 | Stabilization: integration package (P.5), fuzzing and sanitizers (P.7), analyzers (P.8), wrapper versions (P.6) |
+| **1.0.0-rc.N** | February–March 2027 | Candidates: API, schema and overlay format freeze, only fixes, testing on AMD/NVIDIA/Intel (P.12) |
+| **1.0.0** | March 2027 | First stable version: from here on, incompatible changes only in 2.0 |
+| **1.x** | from spring 2027 | One minor version per item of stages 3–5, roughly every 2–4 weeks |
 
-The condition for 1.0 release is not a date, but readiness: stage 2 is complete, items P.1–P.8 and P.16 are done, the architectural risk work marked "before 1.0" (R.1–R.3) is done,
+The condition for 1.0 release is not a date, but readiness: stage 2 and section C are complete, items P.1–P.8 and P.16 are done, the architectural risk work marked "before 1.0" (R.1–R.3) is done,
 manual check tasks marked "blocks the release" are closed, C-ABI and markup schema
 are reviewed for "what is shameful to freeze" (if necessary, ABI is increased to 2 **before** 1.0), and at least one
 minor version has lived without incompatible changes.
@@ -225,6 +231,53 @@ Steps (split on 2026-11-16; every step brings tests, snapshots, XSD, UIA, the C 
 - Line, bar, pie, area charts; real-time updates; axes, legend, tooltips.
 - Scales and indicators for industrial interfaces (HMI).
 
+## C. User-Customizable Interface
+
+Decision of 2026-11-16 (the user): moved from "Future Ideas" into the plan, release 0.4.0 — right after DataGrid.
+This is the showcase of the engine: every user of a program changes the interface to suit themselves — the placement,
+the functions and the styles — without touching XML and without breaking the program. Qt, WPF and Electron have nothing
+like it out of the box; for Gran UI it continues the fact that the interface is data checked by a schema.
+
+How the user sees it: a button or a key combination turns the edit mode on; right in the window they drag panels,
+buttons and tabs, hide what they do not need, add from the palette what the program can do, build compound buttons
+("save + format + send" in one click and one undo step), assign their own shortcuts, change colors, fonts, sizes and
+density — for the whole program or for one panel; keep several profiles ("work", "presentation", "large for eyesight")
+and pass a profile to a colleague as one file.
+
+Principles:
+
+- **The developer sets the limits instead of writing customization code.** What can be moved and hidden, what is in
+  the palette and which style tokens are open and within which bounds is declared in the markup; the engine does the rest.
+- **The schema protects the user from themselves.** The user's edits pass the same XSD 1.1 as the developer's markup,
+  including the `xs:assert` design rules (text contrast, the smallest touch size, labels for the screen reader): an edit
+  breaking a rule is shown with the reason and not applied.
+- **A program update does not wipe the customization.** What is stored is not a copy of the interface but an overlay patch
+  on top of the base markup by stable `id`s; a new version of the program adds its parts, the user's overlay stays;
+  a vanished `id` is skipped with a warning in the log.
+- **Data only, no code.** An overlay and a profile hold the layout, parameters, token values and references to registered
+  commands and templates. Someone else's profile executes nothing.
+- **It cannot be broken.** "Reset" — entirely and for one area; a safe start without the overlay (a key at startup and
+  a command line option); layout edits are undone by the same undo stack as the rest of the program.
+
+Ready building blocks: the live DOM with schema checking and rollback (1.4), commands and shortcuts (1.2), undo with
+macro steps (1.3), components as templates (1.6), settings in XML with an own schema (1.8), node dragging and drop
+zones (1.1), dockable panels with moving and floating (2.1).
+
+| Step | What |
+|---|---|
+| **C.1** | Limits from the developer: the `customizable` attribute (move, hide, restyle) inherited down the tree, `<Palette>` — commands and component templates with parameters, `<Token name type min max>` — open style tokens bounded by XSD facets; the schema, `gran_lint` checks of the limits |
+| **C.2** | The overlay: the `gran-overlay.xsd` format (move, hide, insert from the palette, set an attribute or a token — by `id`), applying to the live DOM at load and on the fly, schema checking with rollback, skipping unknown `id`s with a warning, storage in the OS settings folder, reset entirely and per area, safe start |
+| **C.3** | The edit mode: a layer over the window — frames, handles, insertion zones, snapping and minimum sizes; dragging panels, buttons, tabs, hiding; undo and redo of layout edits; editing from the keyboard and in UI Automation (the mode is available to the screen reader) |
+| **C.4** | The palette and compound commands: adding commands and templates from the palette, a compound button — a list of commands with a common undo step (no scripts), own shortcuts with conflict checking |
+| **C.5** | User styles: an editor of the open tokens (color, font, size, density, radii) for the whole program or an area; the `xs:assert` rules check the edits, a violation is shown with the reason; live preview |
+| **C.6** | Profiles: several overlay sets, switching on the fly, export and import as a file with schema checking on import |
+| **C.7** | The C interface and wrappers (turning the edit mode on, profiles, reset, layout change events), the RU/EN guide, an example — an editor with the edit mode, manual check tasks (live window, screen reader, a program update over an overlay) |
+
+Risks to think about in advance: the support load (so reset and safe start are in C.2, not at the end), the number of
+"markup × overlay" combinations in tests (an overlay is data, so it is checked by the schema and by snapshots over a corpus
+of overlays), the stability of `id`s as the program evolves (a `gran_lint` warning about a removed or renamed `id` that
+overlays might use).
+
 ## Stage 3. Appearance, Printing, Networking
 
 After this stage: programs that can be confidently handed over to government and large organizations.
@@ -363,24 +416,7 @@ Ideas discussed but not yet part of the plan. Their content may change significa
 
 ### User-Customizable Interface
 
-The end user of the program does not edit XML. A button or key combination puts the window into edit mode, and directly
-in it, buttons, panels, and other parts can be dragged and added, functions can be combined and split within the limits
-allowed by the program. Example for a code editor: combine several file actions into one button or add a sidebar for another
-assistant.
-
-This is possible because the Gran UI interface is declarative data checked by a schema. It is built from ready parts:
-
-1. **Edit Mode** — a layer above the window: selection frames, handles, insertion zones (node dragging and hit-test already exist).
-2. **Palette** — only what the program allows: registered `<Command>` and panel-component templates
-   (for example, an "assistant panel" with a "model" parameter). Adding what the program cannot do is not possible.
-3. **Compound Button** — a list of commands executed in sequence (without scripts), with a common undo step.
-4. **Changes** — live DOM editing with XSD validation and rollback, undo and redo of layout changes.
-5. **Saving** — not a copy of the interface, but a patch overlay on the base markup by stable `id`: program updates do not erase settings, unknown `id`s are skipped with a warning; stored in the user settings directory.
-6. **Security** — only layout, parameters, and links to registered commands and templates in the user file.
-   The developer of the program sets boundaries: which areas can be edited (an attribute like `customizable`)
-   and what is in the palette.
-
-Place in the plan — together with dockable panels (2.1) or a separate item after stage 2.
+Moved into the plan on 2026-11-16 — section [C](#c-user-customizable-interface), release 0.4.0.
 
 ### macOS
 
