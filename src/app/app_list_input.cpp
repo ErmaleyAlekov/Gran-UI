@@ -65,4 +65,13 @@ namespace gran::app
             rows->toggle(item.index);
         return true;
     }
+
+    // gran:sortColumn у заголовка столбца таблицы: сортировка через прокси (не прокси — ничего) / gran:sortColumn at a table column header: sorting through the proxy (not a proxy — nothing)
+    bool gridHeaderBuiltin(Application::State& state, const std::string& command, ui::Node& node)
+    {
+        if (command != "sortColumn")
+            return false;
+        state.lists.sortColumn(node);
+        return true;
+    }
 }

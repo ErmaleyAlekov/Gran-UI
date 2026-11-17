@@ -40,10 +40,12 @@ namespace gran::layout::internal
     }
 
     /*
-    ** Два последних измерения: гибкий стек меряет ребёнка дважды (гипотеза и итог). Грязный узел
+    ** Последние MEASURE_CACHE измерений: гибкий стек меряет ребёнка дважды (гипотеза и итог), при сжатии — ещё
+    ** и при нулевой высоте (автоминимум). Грязный узел
     ** в новом проходе начинает кэш заново — прежние записи описывают старое содержимое.
     **
-    ** The two last measurements: a flexible stack measures a child twice (the hypothesis and the final). A dirty node
+    ** The last MEASURE_CACHE measurements: a flexible stack measures a child twice (the hypothesis and the final), when shrinking
+    ** also at a zero height (the automatic minimum). A dirty node
     ** starts its cache anew in a new pass — the former entries describe the old content.
     */
     void storeCache(ui::Node& node, Size available, Size result, std::uint32_t generation) noexcept
@@ -52,10 +54,12 @@ namespace gran::layout::internal
             node.layout.cacheCount = 0;
         node.layout.generation = generation;
         std::uint8_t slot = node.layout.cacheCount;
-        if (slot >= 2)
+        // Полный кэш: самая старая запись уходит, остальные сдвигаются / A full cache: the oldest entry goes, the others shift
+        if (slot >= ui::MEASURE_CACHE)
         {
-            node.layout.cache[0] = node.layout.cache[1];
-            slot = 1;
+            for (std::size_t index = 1; index < ui::MEASURE_CACHE; ++index)
+                node.layout.cache[index - 1] = node.layout.cache[index];
+            slot = static_cast<std::uint8_t>(ui::MEASURE_CACHE - 1);
         }
         node.layout.cache[slot] = ui::MeasureEntry{available, result};
         node.layout.cacheCount = static_cast<std::uint8_t>(slot + 1);

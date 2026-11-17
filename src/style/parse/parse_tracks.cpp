@@ -29,35 +29,35 @@ namespace gran::style
                 throwValueError(i18n::Message::STYLE_BAD_TRACK, original);
             return bound;
         }
+    }
 
-        /*
-        ** Одна дорожка. "1fr" = minmax(auto, 1fr), остальные — minmax(v, v);
-        ** у minmax(min, max) минимум не может быть долей.
-        **
-        ** One track. "1fr" = minmax(auto, 1fr), the others are minmax(v, v);
-        ** in minmax(min, max) the minimum cannot be a fraction.
-        */
-        GridTrack parseTrack(std::string_view text)
+    /*
+    ** Одна дорожка. "1fr" = minmax(auto, 1fr), остальные — minmax(v, v);
+    ** у minmax(min, max) минимум не может быть долей.
+    **
+    ** One track. "1fr" = minmax(auto, 1fr), the others are minmax(v, v);
+    ** in minmax(min, max) the minimum cannot be a fraction.
+    */
+    GridTrack parseTrack(std::string_view text)
+    {
+        ValueScanner scanner(text);
+        std::string_view name = scanner.readIdentifier();
+        std::vector<std::string_view> arguments;
+        GridTrack track;
+
+        if (equalsIgnoreCase(name, "minmax"))
         {
-            ValueScanner scanner(text);
-            std::string_view name = scanner.readIdentifier();
-            std::vector<std::string_view> arguments;
-            GridTrack track;
-
-            if (equalsIgnoreCase(name, "minmax"))
-            {
-                if (!scanner.readArguments(arguments) || !scanner.atEnd() || arguments.size() != 2)
-                    throwValueError(i18n::Message::STYLE_BAD_TRACK, text);
-                track.min = parseBound(arguments[0], false, text);
-                track.max = parseBound(arguments[1], true, text);
-                return track;
-            }
-            track.max = parseBound(text, true, text);
-            track.min = track.max;
-            if (track.max.kind == TrackBoundKind::FRACTION)
-                track.min = TrackBound{TrackBoundKind::AUTO, 0.0f};
+            if (!scanner.readArguments(arguments) || !scanner.atEnd() || arguments.size() != 2)
+                throwValueError(i18n::Message::STYLE_BAD_TRACK, text);
+            track.min = parseBound(arguments[0], false, text);
+            track.max = parseBound(arguments[1], true, text);
             return track;
         }
+        track.max = parseBound(text, true, text);
+        track.min = track.max;
+        if (track.max.kind == TrackBoundKind::FRACTION)
+            track.min = TrackBound{TrackBoundKind::AUTO, 0.0f};
+        return track;
     }
 
     // Дорожки через запятые или пробелы (скобки minmax не делятся)

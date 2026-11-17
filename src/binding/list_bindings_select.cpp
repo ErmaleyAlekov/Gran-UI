@@ -86,6 +86,7 @@ namespace gran::binding
             std::size_t index = binding->indexOf(*current);
             if (index == data::NO_ROW)
                 return false;
+            gridPress(*binding, *current, hit);
             binding->selection()->activate(index, control, shift);
             return true;
         }
@@ -102,7 +103,7 @@ namespace gran::binding
             selection = binding->selection();
         if (selection == nullptr || binding->model().size() == 0)
             return false;
-        if (markKey(*selection, key, control))
+        if (markKey(*selection, key, control) || gridKey(*binding, key, control))
             return true;
         data::TreeList* rows = dynamic_cast<data::TreeList*>(&binding->model());
         if ((key == ListKey::LEFT || key == ListKey::RIGHT) && rows == nullptr)

@@ -1,4 +1,5 @@
 #include "gran/binding/internal/list_binding.hpp"
+#include "gran/ui/data_grid.hpp"
 
 namespace gran::binding
 {
@@ -65,6 +66,7 @@ namespace gran::binding
         if (_virtual)
             _extents.erase(index, count);
         _anchor = static_cast<std::size_t>(-1);
+        ui::forgetGridContent(_container);
         for (std::size_t record = index + count; record > index; --record)
         {
             if (record - 1 < _first)
@@ -87,6 +89,7 @@ namespace gran::binding
     */
     void ListBinding::changed(std::size_t index)
     {
+        ui::forgetGridContent(_container);
         if (index >= _first && index - _first < _items.size())
             applyFields(_items[index - _first].fields, _model.at(index));
         else if (_virtual)

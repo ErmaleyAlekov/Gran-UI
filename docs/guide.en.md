@@ -20,17 +20,18 @@
 12. [Undo and redo](#undo-and-redo)
 13. [Lists from data](#lists-from-data)
 14. [Models: tables, trees, sorting, selection](#models-tables-trees-sorting-selection)
-15. [Binding expressions](#binding-expressions)
-16. [Components](#components)
-17. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
-18. [Pop-up Layers](#popup-layers)
-19. [Window frame: menus, toolbars, status bar](#window-frame-menus-toolbars-status-bar)
-20. [Embedded browser: WebView](#embedded-browser-webview)
-21. [Accessibility](#accessibility)
-22. [Platform: windows, files, icons](#platform-windows-files-icons)
-23. [Windows and the program](#windows-and-the-program)
-24. [Errors and Message Language](#errors-and-message-language)
-25. [Custom window title bar](#custom-window-title-bar)
+15. [DataGrid table](#datagrid-table)
+16. [Binding expressions](#binding-expressions)
+17. [Components](#components)
+18. [Tabs, radio buttons, switches](#tabs-radio-buttons-switches)
+19. [Pop-up Layers](#popup-layers)
+20. [Window frame: menus, toolbars, status bar](#window-frame-menus-toolbars-status-bar)
+21. [Embedded browser: WebView](#embedded-browser-webview)
+22. [Accessibility](#accessibility)
+23. [Platform: windows, files, icons](#platform-windows-files-icons)
+24. [Windows and the program](#windows-and-the-program)
+25. [Errors and Message Language](#errors-and-message-language)
+26. [Custom window title bar](#custom-window-title-bar)
 
 ## Quick Start
 
@@ -197,7 +198,7 @@ Common attributes of all elements: `id`, `style`, `visible`, `enabled`, `tooltip
 
 Block model: `margin` (no collapsing) → `borderWidth` → `padding` → content. `width` and `height` are `auto`, pixels, or percentages; `minWidth`, `maxWidth`, `minHeight`, `maxHeight` are always respected. Spacing is written as in CSS: `padding="8"`, `"8 16"`, `"4 8 12 16"`.
 
-**Stack.** `orientation="vertical\|horizontal"`, `spacing` — gap between children. `justify` distributes children along the main axis (`start`, `center`, `end`, `space-between`, `space-around`, `space-evenly`), `align` along the cross axis (`start`, `center`, `end`, `stretch`). Children have `grow`, `shrink`, `alignSelf`. `wrap="true"` wraps children to a new line.
+**Stack.** `orientation="vertical\|horizontal"`, `spacing` — gap between children. `justify` distributes children along the main axis (`start`, `center`, `end`, `space-between`, `space-around`, `space-evenly`), `align` along the cross axis (`start`, `center`, `end`, `stretch`). Children have `grow`, `shrink`, `alignSelf`. `wrap="true"` wraps children to a new line. When shrinking vertically, a child does not become lower than its content (as `min-height: auto` in CSS): the room is given away by scrolls — `Scroll`, `DataGrid` and boxes with `overflow="hidden"` (this is also how to opt out of the minimum). Horizontally a child shrinks down to zero — a text wraps or is cut by an ellipsis.
 
 **Grid.** Tracks are listed with commas: number (pixels), `auto`, `1fr`, `minmax(100, 1fr)`.
 
@@ -246,11 +247,12 @@ Cascade, from weakest to strongest: engine defaults ← built-in theme (`schemas
 <Style name="ghost" basedOn="primary" background="transparent" borderWidth="1"/>
 ```
 
-- States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`, `DropTarget` (files are carried over an `onDrop` zone), `Open` (the layer of a menu item or a `ComboBox` is open). State change is smooth if the property
+- States: `Hover`, `Pressed`, `Focused`, `Checked`, `Disabled`, `DropTarget` (files are carried over an `onDrop` zone), `Open` (the layer of a menu item or a `ComboBox` is open), `Selected` (the record is marked by a selection model), `Current` (the current `DataGrid` cell). State change is smooth if the property
   has a `transition`; a state can also start an animation: `<Hover animation="wiggle 0.4s"/>`.
 - `basedOn` inherits another style. The default theme sets styles with element names (`Button`, `Input`,
   `TextArea`, `CheckBox`, `Slider`, `RadioButton`, `Switch`, `ProgressBar`, `Tabs`, `TabBar`, `TabHeader`, `Tab`,
-  `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`) — a `Style` with the same name replaces them.
+  `Scroll`, `Popup`, `MenuItem`, `Dialog`, `ComboBox`, `Tooltip`, `DataGrid`, `GridHeader`, `GridHeaderCell`, `GridRow`,
+  `GridCell`) — a `Style` with the same name replaces them.
 - Theme tokens (`<Token name="accent" value="#6d5dfc"/>`) are substituted into any value as `$accent`.
 - `color`, `accentColor`, the font and the font size are inherited by children, as in CSS.
 
@@ -668,6 +670,51 @@ flat tree, plus the list selection model. Code that removed a record through `it
 pointer to `data::ListModel*` (`dynamic_cast`) or works with `app.model(name)`. Example — `samples/models.xml`.
 
 ![Models: a tree from XML, a table from JSON with sorting and selection](images/models.png)
+
+## DataGrid table
+
+`<DataGrid>` shows a list of records as a table: the header row, the rows are the records of the `items` model (a storage,
+a `<SortFilter>` proxy or a flat tree), the columns are `<GridColumn>`. The engine builds the table parts: the header row,
+the scroll and the row list. The rows are virtual (as `virtual="true"` of a list, 2.2.1): only the visible records have
+copies, the rows may differ in height; `virtual="false"` — all rows at once.
+
+```xml
+<SortFilter name="visibleOrders" source="orders" sort="number:number"/>
+<Selection name="orderSel" model="visibleOrders" mode="extended"/>
+...
+<DataGrid items="visibleOrders" selection="orderSel" grow="1">
+  <GridColumn field="number" title="No." width="64" textAlign="end"/>
+  <GridColumn field="client" title="Client" width="1fr" minWidth="160"/>
+  <GridColumn field="city" title="City" width="auto" maxWidth="180"/>
+  <GridColumn field="status" title="Status" width="130">
+    <CellTemplate><Text style="badge">{status}</Text></CellTemplate>
+  </GridColumn>
+</DataGrid>
+```
+
+- **Column:** `field` is the record field (the cell text and the sort key), `title` is the header. `width` is a grid track:
+  a number (px), `auto` — by the widest content of the header and the shown rows (it does not narrow while scrolling, so that
+  the rows do not "jump"), `1fr` — a share of the rest (the default), `minmax(…, …)`; `minWidth` and `maxWidth` bound
+  the result. A share is not widened by the content: a long value is cut by an ellipsis. The text properties on `<GridColumn>`
+  (`textAlign`, `color`, `fontWeight`…) apply to the field cell text; `textAlign` aligns the header too.
+- **Own cell** — `<CellTemplate>` with one element, `{field}` placeholders and `{…}` expressions, as `<ItemTemplate>`.
+- **Selection** — `selection="…"` (a model of the same list): a click and the up/down arrows, PageUp/PageDown,
+  Ctrl+Home/Ctrl+End move the current row by the `<Selection>` rules; the left/right arrows, Home/End — the **current
+  cell** in the current row (the `<Current>` style state, an accent color frame in the theme). A click on a cell makes
+  its column current too.
+- **Sorting** — a click on a header (or Enter and space on a focused header) when `items` is a `<SortFilter>` proxy:
+  ascending, a repeated one — descending; the proxy keys are replaced by one key of the column. The comparison is `sortType`
+  (`text|number|natural`), by default by the source `<Column type>`; `sortable="false"` — the column is not sortable.
+  The sorted column has an arrow and the `<Checked>` header state; the initial proxy sort is marked by an arrow too.
+  The selection follows the records. Without a proxy a header click does nothing.
+- **Style** — the theme styles `DataGrid`, `GridHeader`, `GridHeaderCell` (`Hover`, `Pressed`, `Focused`, `Checked`),
+  `GridRow` (`Hover`, `Selected`), `GridCell` (`Current`); an own `<Style>` with such a name replaces the theme style.
+- A table is a scrolled box: its height is not above the room the parent gives (usually `grow="1"`).
+
+Next (plan 2.2.3–2.2.6): column width and order by the mouse, frozen columns, horizontal scrolling
+and column virtualization, cell editing, TreeGrid, UI Automation Grid/Table. The sample is `samples/grid.xml`.
+
+![DataGrid table: px, auto and fr columns, an own cell, sorting](images/grid.png)
 
 ## Binding expressions
 

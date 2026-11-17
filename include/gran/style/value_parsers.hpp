@@ -89,6 +89,9 @@ namespace gran::style
     // Дорожки сетки: "48, auto, 1fr, minmax(120, 2fr)" / Grid tracks: "48, auto, 1fr, minmax(120, 2fr)"
     std::vector<GridTrack> parseTracks(std::string_view text);
 
+    // Ровно одна дорожка (ширина столбца DataGrid); пусто или список — GranException STYLE_VALUE / Exactly one track (a DataGrid column width); empty or a list — GranException STYLE_VALUE
+    GridTrack parseTrack(std::string_view text);
+
     // ---- parse_keyword.cpp ----
 
     // Запись таблицы ключевых слов / A keyword table entry

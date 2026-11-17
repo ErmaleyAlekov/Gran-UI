@@ -22,30 +22,38 @@ namespace beresta
 
 namespace gran::ui
 {
+    struct GridState;
+
     /*
-    ** Вид элемента разметки. Виды до DOCK_PANEL включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** Вид элемента разметки. Виды до DATA_GRID включительно пишутся в разметке; TAB_BAR и TAB_HEADER
     ** строит движок (полоса заголовков <Tabs>), TOOL_MORE — кнопку «ещё» панели инструментов, SIZE_GRIP — ручку
     ** размера окна в строке состояния, SPLITTER_HANDLE — ручку разделителя, DOCK_STRIP, DOCK_TITLE и DOCK_HANDLE —
     ** полосы заголовков, заголовки и ручки краёв DockHost; у них только стили темы по их именам.
     **
-    ** The markup element kind. The kinds up to DOCK_PANEL inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** Таблица DataGrid пишется в разметке, а её части строит движок: строку заголовков GRID_HEADER с ячейками
+    ** GRID_HEADER_CELL, шаблон строки GRID_ROW с ячейками GRID_CELL (ui/data_grid.hpp).
+    **
+    ** The markup element kind. The kinds up to DATA_GRID inclusive are written in the markup; TAB_BAR and TAB_HEADER
     ** are built by the engine (the <Tabs> header strip), TOOL_MORE — the toolbar "more" button, SIZE_GRIP — the window size
     ** grip in the status bar, SPLITTER_HANDLE — the splitter handle, DOCK_STRIP, DOCK_TITLE and DOCK_HANDLE — the title
     ** strips, the titles and the edge handles of a DockHost; they have only the theme styles named after them.
+    ** A DataGrid table is written in the markup while the engine builds its parts: the GRID_HEADER header row with
+    ** the GRID_HEADER_CELL cells, the GRID_ROW row template with the GRID_CELL cells (ui/data_grid.hpp).
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
         DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR,
-        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, SPLITTER, DOCK_HOST, DOCK_PANEL, TAB_BAR, TAB_HEADER,
-        TOOL_MORE, SIZE_GRIP, SPLITTER_HANDLE, DOCK_STRIP, DOCK_TITLE, DOCK_HANDLE
+        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, SPLITTER, DOCK_HOST, DOCK_PANEL, DATA_GRID, TAB_BAR,
+        TAB_HEADER, TOOL_MORE, SIZE_GRIP, SPLITTER_HANDLE, DOCK_STRIP, DOCK_TITLE, DOCK_HANDLE, GRID_HEADER, GRID_HEADER_CELL,
+        GRID_ROW, GRID_CELL
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::DOCK_PANEL;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::DATA_GRID;
 
     // Последний вид вообще: по нему считается число видов (таблицы стилей и имён) / The last kind at all: the kind count is computed from it (the style and name tables)
-    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::DOCK_HANDLE;
+    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::GRID_CELL;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,
@@ -291,6 +299,9 @@ namespace gran::ui
         // Input, TextArea: the edit history for Ctrl+Z / Ctrl+Y; created on the first edit, reset by a value from code.
         // shared_ptr — for copying the content (the list template copies); a node copy does not share the history (copyTree drops it).
         std::shared_ptr<TextHistory> history;
+        // DataGrid: столбцы, их ширины, текущий столбец и сортировка (ui/data_grid.hpp); у прочих узлов — nullptr
+        // DataGrid: the columns, their widths, the current column and the sort (ui/data_grid.hpp); nullptr for other nodes
+        std::shared_ptr<GridState> grid;
         // Атрибуты с выражениями привязки {…} (копии шаблонов получают их вместе с содержимым)
         // The attributes with {…} binding expressions (the template copies get them together with the content)
         std::vector<AttributeBinding> bindings;
@@ -302,6 +313,10 @@ namespace gran::ui
         Size available;
         Size result;
     };
+
+    // Сколько измерений узла помнит проход: гипотеза и итог гибкого стека, автоминимум при сжатии
+    // How many node measurements a pass remembers: the flexible stack hypothesis and final, the automatic minimum when shrinking
+    constexpr std::size_t MEASURE_CACHE = 3;
 
     /*
     ** Результат компоновки: рамка блока (border box) в координатах окна, размер содержимого
@@ -315,7 +330,7 @@ namespace gran::ui
         Rect frame;
         Size contentSize;
         Vec2 scrollOffset;
-        MeasureEntry cache[2];
+        MeasureEntry cache[MEASURE_CACHE];
         std::uint32_t generation = 0;
         std::uint8_t cacheCount = 0;
     };

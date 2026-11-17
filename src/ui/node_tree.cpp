@@ -1,4 +1,4 @@
-#include "gran/ui/node.hpp"
+#include "gran/ui/data_grid.hpp"
 
 namespace gran::ui
 {
@@ -16,6 +16,9 @@ namespace gran::ui
             copy->content = node.content;
             // Шаги истории ссылаются на свой узел: копия начинает свою / The history steps refer to their own node: the copy starts its own
             copy->content.history.reset();
+            // Состояние таблицы своё у каждой копии (текущий столбец, ширины) / Each copy has its own table state (the current column, the widths)
+            if (node.content.grid)
+                copy->content.grid = std::make_shared<GridState>(*node.content.grid);
             copy->visible = node.visible;
             copy->enabled = node.enabled;
             copy->line = node.line;

@@ -192,6 +192,11 @@ namespace gran::markup::internal
     */
     void finishNode(const beresta::Element& element, ui::Node& node);
 
+    // ---- data_grid_read.cpp ----
+
+    // <DataGrid>: столбцы <GridColumn> и шаблоны ячеек, затем части таблицы (ui::buildDataGrid) / <DataGrid>: the <GridColumn> columns and the cell templates, then the table parts (ui::buildDataGrid)
+    void readDataGrid(const beresta::Element& element, ui::Node& node, BuildContext& context);
+
     // ---- dock_attributes.cpp ----
 
     // Атрибуты DockHost (sizes) и DockPanel (title, dock, size, active, hidden); false — не они

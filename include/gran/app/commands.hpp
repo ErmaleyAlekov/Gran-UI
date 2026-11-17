@@ -14,5 +14,8 @@ namespace gran::app
 
     // gran:expand, gran:collapse, gran:toggle у строки плоского дерева (app_list_input.cpp); true — выполнено / gran:expand, gran:collapse, gran:toggle at a flat tree row (app_list_input.cpp); true — done
     bool treeRowBuiltin(Application::State& state, const std::string& command, ui::Node& node);
+
+    // gran:sortColumn у заголовка столбца DataGrid (app_list_input.cpp); true — команда его / gran:sortColumn at a DataGrid column header (app_list_input.cpp); true — the command is its
+    bool gridHeaderBuiltin(Application::State& state, const std::string& command, ui::Node& node);
 }
 #endif

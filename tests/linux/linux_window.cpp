@@ -46,6 +46,7 @@ namespace linux_tests
         clipboard(*window);
         drop(*window);
         input(*window);
+        keypad(*window);
         gran::platform::Event event;
         checkWake(*window);
         require(window->clipboardText() == "Берёста: UTF-8", "clipboard UTF-8");

@@ -11,6 +11,12 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- The `<DataGrid>` table (step 2.2.2): `<GridColumn>` columns with a px, `auto`, `fr`, `minmax` width and the
+  `minWidth`/`maxWidth` limits, a header row, cells — a record field (a long value — with an ellipsis) or an own
+  `<CellTemplate>` cell, virtual rows of different heights, row selection by a `<Selection>` model, the current cell by the
+  left/right arrows and Home/End (the new `<Current>` style state), sorting by a header click through a `<SortFilter>` proxy
+  (a repeated click — the reverse order, a direction arrow), the `gran:sortColumn` built-in action, the theme styles
+  `DataGrid`, `GridHeader`, `GridHeaderCell`, `GridRow`, `GridCell`. The sample is `samples/grid.xml`.
 - The scroll bar of `Scroll` and `TextArea` works with the mouse: the thumb is grabbed and dragged (also outside the window),
   a press on the bar beside the thumb pages by the visible part. Previously the bar only showed the position, and scrolling
   was possible only with the wheel and the keyboard (found by the manual check T-58).
@@ -21,6 +27,15 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   and per record lookup by coordinate). Previously all records were taken as one average height — rows of different heights
   gave a wrong scroll bar and a jump to a record missed its target. The scroll anchor keeps the visible rows in place when
   an estimate is replaced by a measurement (like `overflow-anchor` in browsers). The first step of 2.2 (DataGrid and TreeView).
+
+### Fixed
+- Linux (X11): the keypad keys without NumLock — Home, End, PageUp, PageDown, the arrows, Insert, Delete — work
+  as navigation, with NumLock they give digits. Previously they arrived as an unknown key (found by the manual check T-62).
+- A vertical `Stack` no longer shrinks items below their content when a neighbor `Scroll` or `DataGrid`
+  with `grow="1"` takes all the room (an automatic minimum, as `min-height: auto` of CSS flex items): previously
+  the rows above a scroll were clipped, and the search field in `samples/models.xml` went past the panel top. Scrolled boxes
+  (`Scroll`, `DataGrid`, `overflow="hidden"`) still shrink down to zero; horizontally the behavior is unchanged —
+  a text shrinks and is cut by an ellipsis.
 
 ## [0.2.0] — 2026-11-16
 

@@ -1,8 +1,34 @@
 #include "gran/platform/x11/x11_window.hpp"
+#include <X11/Xutil.h>
 #include <X11/keysym.h>
 
 namespace gran::platform::x11
 {
+    namespace
+    {
+        /*
+        ** Символ клавиши цифрового блока по NumLock: выключен (или нажат Shift) — навигация (KP_Home, KP_Prior…,
+        ** первый столбец раскладки), включён — цифра (второй столбец). Раньше брался всегда первый столбец, а KP_Home
+        ** и соседей таблица не знала: Home, End, PageUp, PageDown цифрового блока не работали (ручная проверка Т-62).
+        **
+        ** The numeric keypad key symbol by NumLock: off (or Shift pressed) — navigation (KP_Home, KP_Prior…, the first
+        ** layout column), on — a digit (the second column). Previously the first column was always taken, and the table did not know
+        ** KP_Home and its neighbours: Home, End, PageUp, PageDown of the keypad did not work (the manual check T-62).
+        */
+        KeySym keypadSymbol(XKeyEvent& native)
+        {
+            KeySym symbol = XLookupKeysym(&native, 0);
+            bool digits = (native.state & Mod2Mask) != 0 && (native.state & ShiftMask) == 0;
+
+            if (!IsKeypadKey(symbol) || !digits)
+                return symbol;
+            KeySym digit = XLookupKeysym(&native, 1);
+            if (digit == NoSymbol)
+                return symbol;
+            return digit;
+        }
+    }
+
     /*
     ** Служебные клавиши, латинские буквы без учёта регистра, цифры и F1–F12: у букв, цифр и F-клавиш
     ** коды KeySym идут подряд, как и в Key, — сдвиг от первой.
@@ -16,6 +42,7 @@ namespace gran::platform::x11
         if (symbol >= XK_A && symbol <= XK_Z) return keyAfter(Key::A, static_cast<unsigned>(symbol - XK_A));
         if (symbol >= XK_0 && symbol <= XK_9) return keyAfter(Key::DIGIT_0, static_cast<unsigned>(symbol - XK_0));
         if (symbol >= XK_F1 && symbol <= XK_F12) return keyAfter(Key::F1, static_cast<unsigned>(symbol - XK_F1));
+        if (symbol >= XK_KP_0 && symbol <= XK_KP_9) return keyAfter(Key::DIGIT_0, static_cast<unsigned>(symbol - XK_KP_0));
         switch (symbol)
         {
             case XK_BackSpace: return Key::BACKSPACE; case XK_Tab: case XK_ISO_Left_Tab: return Key::TAB;
@@ -25,6 +52,11 @@ namespace gran::platform::x11
             case XK_End: return Key::END; case XK_Delete: return Key::DELETE_KEY;
             case XK_Page_Up: return Key::PAGE_UP; case XK_Page_Down: return Key::PAGE_DOWN;
             case XK_Insert: return Key::INSERT; case XK_Menu: return Key::CONTEXT_MENU;
+            // Цифровой блок без NumLock — те же клавиши навигации / The keypad without NumLock — the same navigation keys
+            case XK_KP_Left: return Key::LEFT; case XK_KP_Right: return Key::RIGHT; case XK_KP_Up: return Key::UP;
+            case XK_KP_Down: return Key::DOWN; case XK_KP_Home: return Key::HOME; case XK_KP_End: return Key::END;
+            case XK_KP_Page_Up: return Key::PAGE_UP; case XK_KP_Page_Down: return Key::PAGE_DOWN;
+            case XK_KP_Insert: return Key::INSERT; case XK_KP_Delete: return Key::DELETE_KEY;
             case XK_Alt_L: case XK_Alt_R: return Key::ALT;
             default: return Key::UNKNOWN;
         }
@@ -72,7 +104,7 @@ namespace gran::platform::x11
         Event event;
         event.kind = EventKind::KEY_UP;
         if (down) event.kind = EventKind::KEY_DOWN;
-        event.key = key(XLookupKeysym(&native, 0));
+        event.key = key(keypadSymbol(native));
         if (event.key == Key::UNKNOWN)
             event.key = physicalKey(native.keycode);
         event.modifiers = modifiers(native.state);

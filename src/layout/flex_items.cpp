@@ -56,6 +56,7 @@ namespace gran::layout::internal
             item.marginCross = insetsCross(child->computed.margin, horizontal);
             float main = childMainAvailable(*child, horizontal, mainAvailable - item.marginMain);
             float cross = std::fmax(0.0f, crossAvailable - item.marginCross);
+            item.crossRoom = cross;
             Size measured = measureNode(*child, sizeFrom(main, cross, horizontal), pass);
             item.base = mainOf(measured, horizontal);
             item.cross = crossOf(measured, horizontal);

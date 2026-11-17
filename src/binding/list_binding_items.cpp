@@ -6,10 +6,10 @@ namespace gran::binding
 {
     /*
     ** Копия шаблона заполняется до вставки (ещё вне дерева — без лишних пометок предков),
-    ** затем встаёт на место записи; вложенные списки копии привязываются уже в дереве.
+    ** затем встаёт на место записи; отметки и вложенные списки копии — уже в дереве.
     **
     ** The template copy is filled before insertion (still outside the tree — without extra ancestor marks),
-    ** then it takes the record place; the nested lists of the copy are bound already in the tree.
+    ** then it takes the record place; the marks and the nested lists of the copy — already in the tree.
     */
     void ListBinding::materialize(std::size_t record)
     {
@@ -18,10 +18,11 @@ namespace gran::binding
         BoundItem item{copy.get(), collectFields(*copy)};
 
         applyFields(item.fields, _model.at(record));
-        markSelection(item, record);
         std::size_t position = childPosition(local);
         _items.insert(_items.begin() + static_cast<std::ptrdiff_t>(local), std::move(item));
         ui::Node& added = ui::insertChild(_container, position, std::move(copy));
+        // Отметки — уже в дереве: текущей ячейке строки таблицы нужен подъём к таблице / The marks — already in the tree: the current cell of a table row needs the climb to the table
+        markSelection(_items[local], record);
         ui::markDirty(added, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         _owner.bind(added);
         if (_container.kind == ui::ElementKind::TABS)

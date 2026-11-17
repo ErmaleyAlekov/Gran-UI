@@ -125,6 +125,28 @@
       <Pressed background="#818cf8"/>
       <Focused background="#93c5fd"/>
     </Style>
+    <!-- Таблица DataGrid (части строит движок): строка заголовков — щелчок сортирует, строки с наведением и выделением, -->
+    <!-- текущая ячейка (Current) обведена. Ячейки не переносят текст: длинное значение обрезается многоточием -->
+    <!-- A DataGrid table (the engine builds the parts): the header row — a click sorts, the rows with hover and selection, -->
+    <!-- the current cell (Current) is outlined. The cells do not wrap the text: a long value is cut by an ellipsis -->
+    <Style name="DataGrid" spacing="0" background="#ffffff" borderWidth="1" borderColor="#e4e7ec" borderRadius="8"
+           overflow="hidden" fontSize="13.5"/>
+    <Style name="GridHeader" background="#f8f9fb" borderWidth="0 0 1 0" borderColor="#e4e7ec"/>
+    <Style name="GridHeaderCell" orientation="horizontal" align="center" spacing="4" padding="7 10" color="#475467"
+           fontWeight="600" textWrap="nowrap" overflow="hidden" cursor="pointer" transition="background 0.1s ease">
+      <Hover background="#eef2f6"/>
+      <Pressed background="#e4e7ec"/>
+      <Focused boxShadow="inset 0 0 0 2 rgba(37, 99, 235, 0.45)"/>
+      <Checked color="#1d4ed8"/>
+    </Style>
+    <Style name="GridRow" borderWidth="0 0 1 0" borderColor="#f2f4f7" transition="background 0.1s ease">
+      <Hover background="#f5f7fa"/>
+      <Selected background="#dbe4ff"/>
+    </Style>
+    <Style name="GridCell" orientation="horizontal" align="center" padding="6 10" borderWidth="1" borderColor="transparent"
+           textWrap="nowrap" overflow="hidden">
+      <Current borderColor="#2563eb"/>
+    </Style>
     <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
     <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->
     <Style name="ComboBox" basedOn="Input" padding="8 34 8 12" cursor="pointer" textWrap="nowrap" textOverflow="ellipsis"/>

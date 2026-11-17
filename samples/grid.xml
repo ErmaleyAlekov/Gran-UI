@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Таблица DataGrid (пункт 2.2.2): заказы из JSON в прокси сортировки и фильтра, столбцы px / auto / fr с пределами,
+  своя ячейка состояния (<CellTemplate>), выделение строк, текущая ячейка стрелками влево/вправо, сортировка
+  щелчком по заголовку (повторный щелчок — обратный порядок). Строки виртуальные: копии есть только у видимых.
+  Запуск: gran_snapshot samples/grid.xml grid.png или gran_gallery samples/grid.xml
+
+  A DataGrid table (item 2.2.2): orders from JSON in a sort and filter proxy, px / auto / fr columns with limits,
+  an own status cell (<CellTemplate>), row selection, the current cell by the left/right arrows, sorting
+  by a header click (a repeated click — the reverse order). The rows are virtual: only the visible ones have copies.
+  Run: gran_snapshot samples/grid.xml grid.png or gran_gallery samples/grid.xml
+-->
+<Window title="Gran UI — таблица" width="900" height="520" background="#f5f6f8">
+  <Resources>
+    <Style name="badge" padding="2 8" borderRadius="10" fontSize="12"/>
+    <Data name="orders" source="data/orders.json" select="orders">
+      <Column name="number" title="№" type="number"/>
+      <Column name="client" title="Клиент"/>
+      <Column name="city" title="Город"/>
+      <Column name="sum" title="Сумма" type="number"/>
+      <Column name="status" title="Состояние"/>
+      <Field name="number" path="number"/>
+      <Field name="client" path="client.name"/>
+      <Field name="city" path="client.city"/>
+      <Field name="sum" path="sum"/>
+      <Field name="status" path="status"/>
+    </Data>
+    <SortFilter name="visibleOrders" source="orders" sort="number:number"
+                filter="contains(@client, $query) or contains(@city, $query)"/>
+    <Selection name="orderSel" model="visibleOrders" mode="extended"/>
+    <Variable name="query"/>
+  </Resources>
+  <Stack padding="16" spacing="12">
+    <Stack orientation="horizontal" spacing="12" align="center">
+      <Text fontSize="18" fontWeight="700" grow="1">Заказы</Text>
+      <Input width="220" placeholder="Клиент или город" value="{$query}"/>
+    </Stack>
+    <DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1">
+      <GridColumn field="number" title="№" width="64" textAlign="end" color="#667085"/>
+      <GridColumn field="client" title="Клиент" width="1fr" minWidth="160"/>
+      <GridColumn field="city" title="Город" width="auto" maxWidth="180"/>
+      <GridColumn field="sum" title="Сумма" width="110" textAlign="end"/>
+      <GridColumn field="status" title="Состояние" width="130">
+        <CellTemplate>
+          <Text style="badge" background="{substring('#ecfdf3#fef3f2', 1 + 7 * (@status != 'оплачен'), 7)}"
+                color="{substring('#067647#b42318', 1 + 7 * (@status != 'оплачен'), 7)}">{status}</Text>
+        </CellTemplate>
+      </GridColumn>
+    </DataGrid>
+    <Text color="#667085" fontSize="13" >Показано {count(visibleOrders/Item)} из {count(orders/Item)}, выбрано {$orderSel.count} на сумму {sum(orderSel/Item/@sum)}</Text>
+  </Stack>
+</Window>

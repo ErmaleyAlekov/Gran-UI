@@ -7,18 +7,6 @@ namespace gran::layout::internal
 {
     namespace
     {
-        // Место для рамок элементов строки: без внешних отступов и промежутков
-        // The space for the line item frames: without the margins and the gaps
-        float lineSpace(const ui::Node& stack, const std::vector<FlexItem>& items, std::size_t first,
-            std::size_t last, float mainAvailable) noexcept
-        {
-            double space = static_cast<double>(mainAvailable) - stack.computed.spacing * static_cast<double>(last - first - 1);
-
-            for (std::size_t index = first; index < last; ++index)
-                space -= items[index].marginMain;
-            return static_cast<float>(space);
-        }
-
         // Поперечный размер строки — наибольший элемент с отступами / The line cross size is the largest item with margins
         float lineCross(const std::vector<FlexItem>& items, std::size_t first, std::size_t last) noexcept
         {
@@ -64,11 +52,7 @@ namespace gran::layout::internal
         if (items.empty())
             return Size{0.0f, 0.0f};
         std::vector<std::size_t> bounds = splitFlexLines(stack, items, mainAvailable);
-        for (std::size_t line = 0; line + 1 < bounds.size(); ++line)
-        {
-            float space = lineSpace(stack, items, bounds[line], bounds[line + 1], mainAvailable);
-            resolveFlexibleLengths(items, bounds[line], bounds[line + 1], space);
-        }
+        resolveFlexLines(stack, items, bounds, mainAvailable, pass);
         measureFlexCross(items, horizontal, crossOf(contentAvailable, horizontal), pass);
         for (std::size_t line = 0; line + 1 < bounds.size(); ++line)
         {
@@ -92,9 +76,7 @@ namespace gran::layout::internal
         if (items.empty())
             return;
         std::vector<std::size_t> bounds = splitFlexLines(stack, items, mainOf(available, horizontal));
-        for (std::size_t index = 0; index + 1 < bounds.size(); ++index)
-            resolveFlexibleLengths(items, bounds[index], bounds[index + 1],
-                lineSpace(stack, items, bounds[index], bounds[index + 1], mainOf(available, horizontal)));
+        resolveFlexLines(stack, items, bounds, mainOf(available, horizontal), pass);
         measureFlexCross(items, horizontal, crossOf(available, horizontal), pass);
         for (std::size_t index = 0; index + 1 < bounds.size(); ++index)
         {

@@ -208,6 +208,17 @@ namespace gran::binding
 
     // Подставить поля записи; изменившиеся узлы помечаются к перекомпоновке / Substitute the record fields; the changed nodes are marked for relayout
     void applyFields(const std::vector<FieldBinding>& fields, const data::Record& record);
+
+    // ---- list_bindings_grid.cpp: список строк таблицы DataGrid / the row list of a DataGrid table ----
+
+    // Клавиша текущего столбца (влево, вправо, Home, End); false — не таблица или клавиша не про столбцы / A current column key (left, right, Home, End); false — not a table or the key is not about columns
+    bool gridKey(ListBinding& binding, ListKey key, bool control);
+
+    // Нажатие в строку row: столбец ячейки под узлом hit становится текущим / A press in the row: the column of the cell under the hit node becomes current
+    void gridPress(ListBinding& binding, const ui::Node& row, const ui::Node& hit);
+
+    // Стрелка сортировки в заголовке по ключам прокси, на который смотрит таблица (после привязки) / The header sort arrow by the keys of the proxy the table looks at (after binding)
+    void syncGridSort(const ui::Node& rows, const data::ListSource& model);
 }
 
 #endif

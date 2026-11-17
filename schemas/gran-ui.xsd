@@ -175,6 +175,23 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Одна дорожка сетки (ширина столбца DataGrid) / One grid track (a DataGrid column width) -->
+  <xs:simpleType name="Track">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="auto|([0-9]+(\.[0-9]*)?|\.[0-9]+)(px|fr)?|minmax\([^(),]+,[^(),]+\)"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Сравнение при сортировке столбца: текст, число, «естественное» (группы цифр — как числа) -->
+  <!-- The comparison when sorting a column: a text, a number, "natural" (digit groups as numbers) -->
+  <xs:simpleType name="GridSortType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="number"/>
+      <xs:enumeration value="natural"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Переходы: "свойство длительность [кривая] [задержка], ..." / Transitions: "property duration [curve] [delay], ..." -->
   <xs:simpleType name="Transitions">
     <xs:restriction base="xs:string">
@@ -589,6 +606,8 @@
       <xs:element name="Dragging" type="StateType" minOccurs="0"/>
       <!-- Слой элемента открыт: меню пункта строки меню, подменю / The element layer is open: the menu of a menu bar item, a submenu -->
       <xs:element name="Open" type="StateType" minOccurs="0"/>
+      <!-- Текущая ячейка таблицы DataGrid (стиль темы GridCell) / The current cell of a DataGrid table (the GridCell theme style) -->
+      <xs:element name="Current" type="StateType" minOccurs="0"/>
     </xs:sequence>
   </xs:group>
 
@@ -626,6 +645,7 @@
       <xs:element name="StatusSection" type="ToolBarType"/>
       <xs:element name="Splitter" type="SplitterType"/>
       <xs:element name="DockHost" type="DockHostType"/>
+      <xs:element name="DataGrid" type="DataGridType"/>
       <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
       <xs:element name="Slot" type="SlotType"/>
       <!--
@@ -1256,6 +1276,57 @@
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
     </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Таблица DataGrid: строки — записи модели items (хранилище, прокси <SortFilter> или плоское дерево), столбцы —
+    <GridColumn>. Движок строит строку заголовков, прокрутку и виртуальный список строк (virtual="false" — все строки
+    сразу). selection — модель выделения того же списка: щелчок и стрелки выделяют строки, влево/вправо и Home/End —
+    текущая ячейка (состояние Current). Щелчок по заголовку сортирует прокси по полю столбца, повторный — в обратную сторону.
+    A DataGrid table: the rows are the records of the items model (a storage, a <SortFilter> proxy or a flat tree), the columns are
+    <GridColumn>. The engine builds the header row, the scroll and the virtual row list (virtual="false" — all rows
+    at once). selection is a selection model of the same list: a click and the arrows select rows, left/right and Home/End —
+    the current cell (the Current state). A click on a header sorts the proxy by the column field, a repeated one — the other way.
+  -->
+  <xs:complexType name="DataGridType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="GridColumn" type="GridColumnType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="items" type="ModelName" use="required"/>
+        <xs:attribute name="selection" type="ModelName"/>
+        <xs:attribute name="virtual" type="xs:boolean"/>
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Столбец таблицы: field — поле записи (текст ячейки и ключ сортировки), title — заголовок, width — дорожка сетки
+    (px, auto — по содержимому, fr — доля остатка, minmax; по умолчанию 1fr) и пределы minWidth/maxWidth, sortable,
+    sortType (по умолчанию — по типу <Column> источника). Свойства текста (textAlign, color…) — у текста ячеек поля.
+    <CellTemplate> — своя ячейка: один элемент интерфейса с подстановками {поле}, как <ItemTemplate>.
+    A table column: field is the record field (the cell text and the sort key), title is the header, width is a grid track
+    (px, auto — by content, fr — a share of the rest, minmax; 1fr by default) and the minWidth/maxWidth limits, sortable,
+    sortType (by default — by the source <Column> type). The text properties (textAlign, color…) go to the field cell text.
+    <CellTemplate> is an own cell: one UI element with {field} placeholders, as <ItemTemplate>.
+  -->
+  <xs:complexType name="GridColumnType">
+    <xs:sequence>
+      <xs:element name="CellTemplate" type="ItemTemplateType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="field" type="xs:string"/>
+    <xs:attribute name="title" type="xs:string"/>
+    <xs:attribute name="width" type="Track"/>
+    <xs:attribute name="minWidth" type="xs:decimal"/>
+    <xs:attribute name="maxWidth" type="xs:decimal"/>
+    <xs:attribute name="sortable" type="xs:boolean"/>
+    <xs:attribute name="sortType" type="GridSortType"/>
+    <xs:attributeGroup ref="TextAttributes"/>
+    <xs:assert test="exists(@field) or exists(CellTemplate)"/>
+    <xs:assert test="not(@minWidth and @maxWidth) or number(@minWidth) &lt;= number(@maxWidth)"/>
   </xs:complexType>
 
   <!--

@@ -193,6 +193,19 @@ namespace gran::binding
         */
         bool keyItem(const ui::Node& container, ListKey key, bool control, bool shift);
 
+        // ---- list_bindings_grid.cpp ----
+
+        /*
+        ** Щелчок по заголовку столбца таблицы DataGrid (встроенное действие gran:sortColumn): прокси сортировки,
+        ** на который смотрит таблица, сортируется по полю столбца; повторный щелчок меняет направление.
+        ** false — таблица смотрит не на прокси <SortFilter> или столбец не сортируется.
+        **
+        ** A click on a DataGrid column header (the gran:sortColumn built-in action): the sort proxy the table looks at
+        ** is sorted by the column field; a repeated click reverses the direction. false — the table does not look at
+        ** a <SortFilter> proxy or the column is not sortable.
+        */
+        bool sortColumn(const ui::Node& headerCell);
+
         // ---- list_bindings_adopt.cpp ----
 
         // Данные Resources: хранилища и деревья заменяют содержимое, представления создаются или перенастраиваются / The Resources data: the storages and the trees replace the contents, the views are created or reconfigured

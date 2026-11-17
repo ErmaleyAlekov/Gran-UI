@@ -14,9 +14,16 @@ namespace gran::layout::internal
                 || kind == ui::ElementKind::TAB || kind == ui::ElementKind::TAB_BAR || kind == ui::ElementKind::MENU_BAR
                 || kind == ui::ElementKind::TOOL_BAR || kind == ui::ElementKind::TOOL_GROUP || kind == ui::ElementKind::STATUS_BAR
                 || kind == ui::ElementKind::STATUS_SECTION || kind == ui::ElementKind::SPLITTER || kind == ui::ElementKind::DOCK_STRIP
-                || kind == ui::ElementKind::DOCK_PANEL || ui::isLayer(node))
+                || kind == ui::ElementKind::DOCK_PANEL || kind == ui::ElementKind::DATA_GRID || kind == ui::ElementKind::GRID_HEADER_CELL
+                || kind == ui::ElementKind::GRID_CELL || ui::isLayer(node))
                 return true;
             return node.kind == ui::ElementKind::BUTTON && !node.children.empty();
+        }
+
+        // Строка таблицы и строка заголовков раскладывают ячейки по столбцам таблицы / A table row and the header row lay out the cells by the table columns
+        bool isGridLine(const ui::Node& node) noexcept
+        {
+            return node.kind == ui::ElementKind::GRID_ROW || node.kind == ui::ElementKind::GRID_HEADER;
         }
     }
 
@@ -28,6 +35,11 @@ namespace gran::layout::internal
         // DockHost меряется по центру: края берут место у него при размещении / A DockHost is measured by the center: the edges take room from it at placement
         if (node.kind == ui::ElementKind::DOCK_HOST && ui::dockCenter(node) != nullptr)
             return measureNode(*ui::dockCenter(node), contentAvailable, pass);
+        // Таблица: сначала ширины столбцов, потом стек «заголовок + прокрутка» / A table: the column widths first, then the "header + scroll" stack
+        if (node.kind == ui::ElementKind::DATA_GRID)
+            return measureDataGrid(node, contentAvailable, pass);
+        if (isGridLine(node))
+            return measureGridRow(node, contentAvailable, pass);
         if (isStackLike(node))
             return measureStack(node, contentAvailable, pass);
         if (node.kind == ui::ElementKind::GRID)
@@ -50,12 +62,16 @@ namespace gran::layout::internal
         // A toolbar: first decide who goes into the "more" menu, then the stack and the mirror item visibility
         if (ui::toolBarMore(node) != nullptr)
             fitToolBar(node, content, pass);
+        if (node.kind == ui::ElementKind::DATA_GRID)
+            resolveGridColumns(node, content.width, pass);
         // Разделитель меряется стеком (полные длины панелей), а размещается по своему положению
         // A splitter is measured as a stack (the full pane lengths) but placed by its own position
         if (node.kind == ui::ElementKind::SPLITTER)
             arrangeSplitter(node, content, pass);
         else if (node.kind == ui::ElementKind::DOCK_HOST)
             arrangeDock(node, content, pass);
+        else if (isGridLine(node))
+            arrangeGridRow(node, content, pass);
         else if (isStackLike(node))
             arrangeStack(node, content, pass);
         if (ui::toolBarMore(node) != nullptr)

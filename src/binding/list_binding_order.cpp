@@ -1,4 +1,5 @@
 #include "gran/binding/internal/list_binding.hpp"
+#include "gran/ui/data_grid.hpp"
 #include "gran/data/internal/list_notify.hpp"
 
 #include <utility>
@@ -66,12 +67,14 @@ namespace gran::binding
         ui::markDirty(_container, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
     }
 
-    // Как состояния ввода: смена бита требует пересчёта стиля копии / As the input states: a bit change requires a style recompute of the copy
+    // Как состояния ввода: смена бита требует пересчёта стиля копии; у строки таблицы ещё и текущая ячейка
+    // As the input states: a bit change requires a style recompute of the copy; a table row also has the current cell
     void ListBinding::markSelection(const BoundItem& item, std::size_t record)
     {
         std::uint16_t bit = style::stateBit(style::State::SELECTED);
         std::uint16_t mask = static_cast<std::uint16_t>(item.root->stateMask & ~bit);
 
+        ui::markCurrentCell(*item.root, _selection != nullptr && _selection->current() == record);
         if (_selection != nullptr && _selection->isSelected(record))
             mask = static_cast<std::uint16_t>(mask | bit);
         if (mask == item.root->stateMask)

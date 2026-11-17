@@ -67,7 +67,7 @@ namespace gran::layout::internal
     */
     bool findCached(const ui::Node& node, Size available, std::uint32_t generation, Size& result) noexcept;
 
-    // Запомнить измерение (два последних размера доступного места) / Remember a measurement (the two last available sizes)
+    // Запомнить измерение (последние MEASURE_CACHE размеров доступного места) / Remember a measurement (the last MEASURE_CACHE available sizes)
     void storeCache(ui::Node& node, Size available, Size result, std::uint32_t generation) noexcept;
 
     /*
@@ -152,6 +152,8 @@ namespace gran::layout::internal
         float cross = 0.0f;
         float marginMain = 0.0f;
         float marginCross = 0.0f;
+        // Место по поперечной оси, в котором элемент мерялся (для автоминимума) / The cross room the item was measured in (for the automatic minimum)
+        float crossRoom = 0.0f;
         bool frozen = false;
     };
 
@@ -171,6 +173,18 @@ namespace gran::layout::internal
     ** for the item frames (already without the gaps and the margins).
     */
     void resolveFlexibleLengths(std::vector<FlexItem>& items, std::size_t first, std::size_t last, float available);
+
+    // ---- flex_lines.cpp ----
+
+    /*
+    ** Разрешение гибких длин по строкам [bounds[i], bounds[i + 1]). У вертикального стека при сжатии элемент
+    ** не становится ниже содержимого (min-height: auto в CSS); у прокручиваемых блоков минимум 0.
+    **
+    ** Resolving the flexible lengths by the lines [bounds[i], bounds[i + 1]). In a vertical stack when shrinking an item
+    ** does not become lower than its content (min-height: auto in CSS); scrolled boxes have a zero minimum.
+    */
+    void resolveFlexLines(const ui::Node& stack, std::vector<FlexItem>& items, const std::vector<std::size_t>& bounds,
+        float mainAvailable, LayoutPass& pass);
 
     // Поперечные размеры элементов после разрешения главных / The item cross sizes after the main ones are resolved
     void measureFlexCross(std::vector<FlexItem>& items, bool horizontal, float crossAvailable, LayoutPass& pass);
@@ -255,6 +269,34 @@ namespace gran::layout::internal
 
     // Размещение детей сетки / Placing the grid children
     void arrangeGrid(ui::Node& grid, Rect content, LayoutPass& pass);
+
+    // ---- data_grid_layout.cpp ----
+
+    /*
+    ** Ширины столбцов таблицы DataGrid при ширине содержимого width (ui::GridState::widths). Сменились —
+    ** строки, заголовок, список и прокрутка забывают измерения этого прохода и мерятся заново.
+    **
+    ** The DataGrid table column widths at the content width (ui::GridState::widths). If they changed —
+    ** the rows, the header, the list and the scroll forget the measurements of this pass and are measured anew.
+    */
+    void resolveGridColumns(ui::Node& grid, float width, LayoutPass& pass);
+
+    // Таблица: ширины столбцов, затем стек «заголовок + прокрутка» не выше доступного места / A table: the column widths, then the "header + scroll" stack not above the available room
+    Size measureDataGrid(ui::Node& grid, Size contentAvailable, LayoutPass& pass);
+
+    // ---- data_grid_widths.cpp ----
+
+    // Новые ширины столбцов таблицы: сменились (больше сотой пикселя) — строки, заголовок, список и прокрутка забывают
+    // измерения прохода / New table column widths: if they changed (by more than a hundredth of a pixel) — the rows, the header,
+    // the list and the scroll forget the pass measurements
+    void replaceGridWidths(ui::Node& grid, std::vector<float> widths);
+
+    // ---- grid_row_layout.cpp ----
+
+    // Строка таблицы или строка заголовков: ячейки по ширинам столбцов (вне таблицы — как стек)
+    // A table row or the header row: the cells by the column widths (outside a table — as a stack)
+    Size measureGridRow(ui::Node& row, Size contentAvailable, LayoutPass& pass);
+    void arrangeGridRow(ui::Node& row, Rect content, LayoutPass& pass);
 
     // ---- canvas_layout.cpp, scroll_layout.cpp ----
 

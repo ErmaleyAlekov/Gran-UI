@@ -3,6 +3,8 @@
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
 
+#include <vector>
+
 namespace linux_tests
 {
     namespace
@@ -46,5 +48,34 @@ namespace linux_tests
             control |= event.key == gran::platform::Key::C && (event.modifiers & gran::platform::MODIFIER_CONTROL);
         }
         require(character && enter && control, "X11 keyboard translation");
+    }
+
+    /*
+    ** Т-62: Home, End, PageUp, PageDown цифрового блока не работали — KP_Home и соседей не было в таблице клавиш.
+    ** Без NumLock клавиша 7 цифрового блока — HOME, 3 — PAGE_DOWN; с NumLock (Mod2) — цифра 7.
+    **
+    ** T-62: Home, End, PageUp, PageDown of the keypad did not work — KP_Home and its neighbours were not in the key table.
+    ** Without NumLock the keypad key 7 is HOME, 3 is PAGE_DOWN; with NumLock (Mod2) — the digit 7.
+    */
+    void keypad(gran::platform::Window& window)
+    {
+        Display* display = static_cast<Display*>(window.nativeDisplay());
+        unsigned seven = XKeysymToKeycode(display, XK_KP_Home);
+        unsigned three = XKeysymToKeycode(display, XK_KP_Next);
+        std::vector<gran::platform::Key> keys;
+        gran::platform::Event event;
+
+        require(seven != 0 && three != 0, "keypad keycodes");
+        sendKey(window, seven, 0);
+        sendKey(window, three, 0);
+        sendKey(window, seven, Mod2Mask);
+        XSync(display, False);
+        while (window.pollEvent(event))
+        {
+            if (event.kind == gran::platform::EventKind::KEY_DOWN)
+                keys.push_back(event.key);
+        }
+        require(keys.size() == 3 && keys[0] == gran::platform::Key::HOME && keys[1] == gran::platform::Key::PAGE_DOWN
+            && keys[2] == gran::platform::Key::DIGIT_7, "X11 keypad translation");
     }
 }

@@ -14,6 +14,8 @@ namespace linux_tests
     void backend();
     void window();
     void input(gran::platform::Window& window);
+    // Цифровой блок: без NumLock — навигация, с NumLock — цифры (Т-62) / The keypad: without NumLock — navigation, with NumLock — digits (T-62)
+    void keypad(gran::platform::Window& window);
     void clipboard(gran::platform::Window& window);
     int clipboardPeer();
     // Перетаскивание файлов по XDND и процесс-источник (linux_drop*.cpp)
