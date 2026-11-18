@@ -3,6 +3,7 @@
 
 #include "gran/markup/live_document.hpp"
 #include "gran/markup/markup_loader.hpp"
+#include "gran/ui/data_grid.hpp"
 
 #include <map>
 #include <string>
@@ -196,6 +197,14 @@ namespace gran::markup::internal
 
     // <DataGrid>: столбцы <GridColumn> и шаблоны ячеек, затем части таблицы (ui::buildDataGrid) / <DataGrid>: the <GridColumn> columns and the cell templates, then the table parts (ui::buildDataGrid)
     void readDataGrid(const beresta::Element& element, ui::Node& node, BuildContext& context);
+
+    // ---- data_grid_options.cpp ----
+
+    // Атрибуты вида таблицы (frozenColumns, reorderable, resizable, columnLayout, pinnedTop, pinnedBottom) / The table view attributes
+    ui::GridOptions readGridOptions(const beresta::Element& element);
+
+    // Атрибут вида у DataGrid читает readGridOptions: здесь он только признаётся своим (не свойство стиля) / A view attribute of DataGrid is read by readGridOptions: here it is only recognized as known (not a style property)
+    bool isGridAttribute(const ui::Node& node, std::string_view name) noexcept;
 
     // ---- dock_attributes.cpp ----
 

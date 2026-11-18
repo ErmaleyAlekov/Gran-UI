@@ -133,6 +133,14 @@ namespace gran::render::internal
     // Отсечение детей по внутреннему краю рамки (overflow: hidden, Scroll) / The children clip by the border inner edge
     PaintState clipChildren(const ui::Node& node, const PaintState& state, SceneContext& context);
 
+    // Новое отсечение: логическая область area с радиусами (с отсечением предка в тех же координатах) / A new clip: the logical area with the radii (with the ancestor clip in the same coordinates)
+    PaintState pushClip(const Rect& area, const CornerRadii& radii, const PaintState& state, SceneContext& context);
+
+    // ---- paint_grid.cpp ----
+
+    // Ячейки строки таблицы: видимые незакреплённые под отсечением, закреплённые поверх; false — узел не строка таблицы / The table line cells: the visible non-frozen ones under a clip, the frozen ones on top; false — the node is not a table line
+    bool paintGridLine(const ui::Node& line, const PaintState& inner, SceneContext& context);
+
     // ---- instance_place.cpp ----
 
     /*

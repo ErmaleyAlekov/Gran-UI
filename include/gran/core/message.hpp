@@ -160,6 +160,7 @@ namespace gran::i18n
         PLATFORM_NOT_BUILT,
         GPU_NO_WINDOW,
         PLATFORM_MENU_QUIT,
+        SETTINGS_ATTRIBUTE_SKIPPED,
         COUNT
     };
 }

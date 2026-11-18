@@ -78,13 +78,15 @@ namespace gran::ui
     }
 
     /*
-    ** Порядок детей таблицы: [0] строка заголовков, [1] прокрутка со списком строк — на него опираются
-    ** gridHeader и gridRows. Прокрутка растягивается на оставшуюся высоту таблицы (grow), заголовок не сжимается.
+    ** Порядок детей таблицы: [0] строка заголовков, затем прокрутка со списком строк — на него опираются
+    ** gridHeader и gridRows (закреплённые списки встают вокруг прокрутки в finishDataGrid). Прокрутка растягивается
+    ** на оставшуюся высоту таблицы (grow) и идёт в обе стороны: столбцы шире таблицы прокручиваются по горизонтали.
     **
-    ** The table children order: [0] the header row, [1] the scroll with the row list — gridHeader and gridRows
-    ** rely on it. The scroll stretches over the remaining table height (grow), the header does not shrink.
+    ** The table children order: [0] the header row, then the scroll with the row list — gridHeader and gridRows
+    ** rely on it (the pinned lists stand around the scroll in finishDataGrid). The scroll stretches over the remaining
+    ** table height (grow) and goes both ways: columns wider than the table scroll horizontally.
     */
-    void buildDataGrid(Node& grid, std::vector<GridColumnSpec>& specs)
+    void buildDataGrid(Node& grid, std::vector<GridColumnSpec>& specs, const GridOptions& options)
     {
         std::shared_ptr<GridState> state = std::make_shared<GridState>();
         std::unique_ptr<Node> header = makePart(grid, ElementKind::GRID_HEADER);
@@ -105,8 +107,10 @@ namespace gran::ui
         grid.content.grid = std::move(state);
         style::setDeclaration(header->declared.base, style::PropertyId::SHRINK, 0.0f);
         style::setDeclaration(scroll->declared.base, style::PropertyId::GROW, 1.0f);
+        scroll->content.direction = ScrollDirection::BOTH;
         appendChild(*scroll, std::move(rows));
         appendChild(grid, std::move(header));
         appendChild(grid, std::move(scroll));
+        finishDataGrid(grid, options);
     }
 }

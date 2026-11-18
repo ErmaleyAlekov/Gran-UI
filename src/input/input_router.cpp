@@ -89,6 +89,9 @@ namespace gran::input
             return platform::CursorShape::RESIZE_EW;
         if (grip)
             return platform::CursorShape::RESIZE_NS;
+        // Край заголовка столбца таблицы (и пока его тянут) / A table column header edge (and while it is dragged)
+        if (gridEdgeCursor(_state))
+            return platform::CursorShape::RESIZE_EW;
         if (_state.hover == nullptr)
             return platform::CursorShape::ARROW;
         if (_state.hover->computed.cursor == static_cast<int>(style::Cursor::DEFAULT)

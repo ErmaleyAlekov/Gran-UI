@@ -14,7 +14,8 @@ namespace gran::input
                 || kind == ui::ElementKind::SLIDER || ui::isTextField(node)
                 || kind == ui::ElementKind::MENU_ITEM || kind == ui::ElementKind::COMBO_BOX || kind == ui::ElementKind::TOOL_MORE
                 || kind == ui::ElementKind::SPLITTER_HANDLE || kind == ui::ElementKind::DOCK_TITLE
-                || kind == ui::ElementKind::DOCK_HANDLE || !node.content.onClick.empty() || ui::isWindowButton(node) || !node.content.selection.empty();
+                || kind == ui::ElementKind::DOCK_HANDLE || kind == ui::ElementKind::GRID_HEADER_CELL
+                || !node.content.onClick.empty() || ui::isWindowButton(node) || !node.content.selection.empty();
         }
     }
 

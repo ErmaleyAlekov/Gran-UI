@@ -291,6 +291,26 @@ namespace gran::layout::internal
     // the list and the scroll forget the pass measurements
     void replaceGridWidths(ui::Node& grid, std::vector<float> widths);
 
+    // Строки, заголовок, закреплённые списки, список строк и прокрутка забывают измерения прохода и размещаются заново
+    // The rows, the header, the pinned lists, the row list and the scroll forget the pass measurements and are placed anew
+    void forgetGridLines(ui::Node& grid);
+
+    // Остаток ширины width — последнему столбцу, когда долевых столбцов нет / The rest of the width goes to the last column when there are no share columns
+    void fillGridRest(const ui::GridState& state, std::vector<float>& widths, float width);
+
+    // ---- data_grid_view_layout.cpp ----
+
+    /*
+    ** Вид таблицы по горизонтали при ширине содержимого width (после ширин столбцов): смещение прокрутки в пределах
+    ** столбцов (ui::GridView::scrollX — по нему встают заголовок и закреплённые ячейки) и окно видимых столбцов
+    ** (виртуализация). Сменилось что-то — строки перекладываются (forgetGridLines).
+    **
+    ** The table horizontal view at the content width (after the column widths): the scroll offset within
+    ** the columns (ui::GridView::scrollX — the header and the frozen cells stand by it) and the visible column window
+    ** (virtualization). Something changed — the lines are laid out anew (forgetGridLines).
+    */
+    void updateGridView(ui::Node& grid, float width);
+
     // ---- grid_row_layout.cpp ----
 
     // Строка таблицы или строка заголовков: ячейки по ширинам столбцов (вне таблицы — как стек)

@@ -67,6 +67,9 @@ namespace suites
     void registerVariableListTests(test::TestRunner& runner);
     void registerScrollBarTests(test::TestRunner& runner);
     void registerDataGridTests(test::TestRunner& runner);
+    void registerGridLayoutTextTests(test::TestRunner& runner);
+    void registerGridColumnTests(test::TestRunner& runner);
+    void registerGridReviewTests(test::TestRunner& runner);
     void registerFlexAutoMinTests(test::TestRunner& runner);
     void registerLayoutCacheTests(test::TestRunner& runner);
     void registerInputBoundsTests(test::TestRunner& runner);

@@ -142,7 +142,8 @@ namespace gran::i18n
             {Message::APP_DRIVER_DETACHED, "AppDriver: the application is already destroyed (declare AppDriver after Application)"},
             {Message::PLATFORM_NOT_BUILT, "the {0} function is unavailable: the library is built without the OS platform and GPU (NATIVE=0), only AppOptions::headless works"},
             {Message::GPU_NO_WINDOW, "{0}: the window surface is not a CAMetalLayer (the Cocoa window nativeHandle)"},
-            {Message::PLATFORM_MENU_QUIT, "Quit {0}"}
+            {Message::PLATFORM_MENU_QUIT, "Quit {0}"},
+            {Message::SETTINGS_ATTRIBUTE_SKIPPED, "the saved attribute {1} of the node \"{0}\" is skipped: {2}"}
         };
     }
 

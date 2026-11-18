@@ -22,21 +22,48 @@ namespace gran::render::internal
 
     namespace
     {
-        // Прямоугольник отсечения в координатах экземпляра; в выровненном случае — пересечение с предком
-        // The clip rectangle in instance coordinates; in the aligned case — the intersection with the ancestor
-        Rect clipRect(const ui::Node& node, const PaintState& state, SceneContext& context, float& unit)
+        // Отсечение задано тем же обратным преобразованием (точное равенство: одно и то же значение состояния) / The clip has the same inverse transform (exact equality: one and the same state value)
+        bool sameInverse(const GpuClip& clip, const Affine2D& inverse) noexcept
         {
-            GpuInstance placed = placeInstance(state, rectDeflate(node.layout.frame, node.computed.borderWidth),
-                context.scale, unit);
-            Rect rect{placed.rect[0], placed.rect[1], placed.rect[2], placed.rect[3]};
-
-            if (state.snapped && state.clip != 0)
-            {
-                const GpuClip& outer = context.scene.clips[state.clip];
-                rect = rectIntersect(rect, Rect{outer.rect[0], outer.rect[1], outer.rect[2], outer.rect[3]});
-            }
-            return rect;
+            return clip.inverse[0] == inverse.a && clip.inverse[1] == inverse.b && clip.inverse[2] == inverse.c
+                && clip.inverse[3] == inverse.d && clip.inverseTranslate[0] == inverse.tx && clip.inverseTranslate[1] == inverse.ty;
         }
+    }
+
+    /*
+    ** Новое отсечение в сцене: логический прямоугольник area с радиусами radii. В выровненном случае
+    ** прямоугольник — в пикселях устройства; иначе — в логических координатах с обратным преобразованием.
+    **
+    ** A new clip in the scene: the logical rectangle area with the radii. In the aligned case the rectangle
+    ** is in device pixels; otherwise it is in logical coordinates with the inverse transform.
+    */
+    PaintState pushClip(const Rect& area, const CornerRadii& radii, const PaintState& state, SceneContext& context)
+    {
+        PaintState inner = state;
+        float unit = 1.0f;
+        Affine2D inverse;
+        GpuInstance placed = placeInstance(state, area, context.scale, unit);
+        Rect rect{placed.rect[0], placed.rect[1], placed.rect[2], placed.rect[3]};
+
+        if (!state.snapped)
+            affineInvert(state.transform, inverse);
+        // Отсечение предка учитывается, когда прямоугольники в одних координатах: выровненный случай (пиксели
+        // устройства) или то же обратное преобразование (предок и узел под одним поворотом) — иначе незакреплённые
+        // ячейки повёрнутой таблицы вылезали бы за неё (ревью Т-66)
+        // The ancestor clip is taken into account when the rectangles are in the same coordinates: the aligned case (device
+        // pixels) or the same inverse transform (the ancestor and the node under one rotation) — otherwise the non-frozen
+        // cells of a rotated table would stick out of it (review T-66)
+        if (state.clip != 0 && (state.snapped || sameInverse(context.scene.clips[state.clip], inverse)))
+        {
+            const GpuClip& outer = context.scene.clips[state.clip];
+            rect = rectIntersect(rect, Rect{outer.rect[0], outer.rect[1], outer.rect[2], outer.rect[3]});
+        }
+        CornerRadii fitted = fitRadii(radii, rect.width, rect.height, unit);
+        GpuClip clip{{rect.x, rect.y, rect.width, rect.height}, {fitted.topLeft, fitted.topRight, fitted.bottomRight,
+            fitted.bottomLeft}, {inverse.a, inverse.b, inverse.c, inverse.d}, {inverse.tx, inverse.ty}, {0.0f, 0.0f}};
+        inner.clip = static_cast<std::uint32_t>(context.scene.clips.size());
+        context.scene.clips.push_back(clip);
+        return inner;
     }
 
     /*
@@ -61,33 +88,14 @@ namespace gran::render::internal
         return state;
     }
 
-    /*
-    ** Отсечение по внутреннему краю рамки с внутренними радиусами. В выровненном случае
-    ** прямоугольник — в пикселях устройства и пересекается с отсечением предка; иначе —
-    ** в логических координатах с обратным преобразованием (отсечение предка не учитывается).
-    **
-    ** A clip by the border inner edge with the inner radii. In the aligned case the rectangle
-    ** is in device pixels and is intersected with the ancestor clip; otherwise it is
-    ** in logical coordinates with the inverse transform (the ancestor clip is not taken into account).
-    */
+    // Отсечение по внутреннему краю рамки с внутренними радиусами (overflow: hidden, Scroll) / A clip by the border inner edge with the inner radii (overflow: hidden, Scroll)
     PaintState clipChildren(const ui::Node& node, const PaintState& state, SceneContext& context)
     {
         const style::ComputedStyle& style = node.computed;
         bool clips = style.overflow == static_cast<int>(style::Overflow::HIDDEN) || node.kind == ui::ElementKind::SCROLL;
-        PaintState inner = state;
-        float unit = 1.0f;
-        Affine2D inverse;
 
         if (!clips)
-            return inner;
-        Rect rect = clipRect(node, state, context, unit);
-        if (!state.snapped)
-            affineInvert(state.transform, inverse);
-        CornerRadii radii = fitRadii(innerRadii(style), rect.width, rect.height, unit);
-        GpuClip clip{{rect.x, rect.y, rect.width, rect.height}, {radii.topLeft, radii.topRight, radii.bottomRight,
-            radii.bottomLeft}, {inverse.a, inverse.b, inverse.c, inverse.d}, {inverse.tx, inverse.ty}, {0.0f, 0.0f}};
-        inner.clip = static_cast<std::uint32_t>(context.scene.clips.size());
-        context.scene.clips.push_back(clip);
-        return inner;
+            return state;
+        return pushClip(rectDeflate(node.layout.frame, style.borderWidth), innerRadii(style), state, context);
     }
 }

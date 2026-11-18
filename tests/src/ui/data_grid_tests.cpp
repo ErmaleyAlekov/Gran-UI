@@ -38,18 +38,6 @@ namespace
         return numbers;
     }
 
-    gran::ui::Node* rowAt(const std::vector<gran::ui::Node*>& rows, std::size_t i)
-    {
-        for (const auto& row : rows) {
-            if (row->kind == gran::ui::ElementKind::GRID_ROW) {
-                if (i == 0) {
-                    return row;
-                }
-                --i;
-            }
-        }
-        return nullptr;
-    }
 
     // Тест: построение таблицы
     void testDataGridBuild()

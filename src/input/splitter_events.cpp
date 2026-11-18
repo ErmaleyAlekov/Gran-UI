@@ -37,6 +37,8 @@ namespace gran::input
             pressDockTitle(state, control, event);
         if (control.kind == ui::ElementKind::DOCK_HANDLE)
             state.drag = &control;
+        if (control.kind == ui::ElementKind::GRID_HEADER_CELL)
+            pressGridHeader(state, control, event);
         if (control.kind != ui::ElementKind::SLIDER)
             return;
         state.drag = &control;
@@ -61,6 +63,8 @@ namespace gran::input
             dragDock(state, control, point);
         else if (control.kind == ui::ElementKind::DOCK_HANDLE)
             dragDockHandle(control, point);
+        else if (control.kind == ui::ElementKind::GRID_HEADER_CELL)
+            dragGridHeader(state, control, point);
         else
             dragSlider(state, control, ui::windowToNode(control, point).x);
     }
@@ -71,6 +75,7 @@ namespace gran::input
         ui::Node* control = state.drag;
 
         state.drag = nullptr;
+        state.gridResize = static_cast<std::size_t>(-1);
         if (control != nullptr && control->kind == ui::ElementKind::SPLITTER_HANDLE && control->parent != nullptr)
             finishSplit(state, *control->parent);
         if (control != nullptr && control->kind == ui::ElementKind::TAB_HEADER)

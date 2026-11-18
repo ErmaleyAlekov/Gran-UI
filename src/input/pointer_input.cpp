@@ -93,8 +93,13 @@ namespace gran::input
             ui::Node* scroll = scrollOf(hit);
             if (scroll == nullptr)
                 return;
-            scroll->layout.scrollOffset.x -= event.wheel.x * platform::WHEEL_NOTCH_PIXELS;
-            scroll->layout.scrollOffset.y -= event.wheel.y * platform::WHEEL_NOTCH_PIXELS;
+            Vec2 wheel{event.wheel.x, event.wheel.y};
+            // Shift+колесо у прокрутки вбок — по горизонтали, как в браузерах и таблицах / Shift+wheel at a sideways scroll goes horizontally, as in browsers and spreadsheets
+            if ((event.modifiers & platform::MODIFIER_SHIFT) != 0 && wheel.x == 0.0f
+                && scroll->content.direction != ui::ScrollDirection::VERTICAL)
+                wheel = Vec2{wheel.y, 0.0f};
+            scroll->layout.scrollOffset.x -= wheel.x * platform::WHEEL_NOTCH_PIXELS;
+            scroll->layout.scrollOffset.y -= wheel.y * platform::WHEEL_NOTCH_PIXELS;
             ui::markDirty(*scroll, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         }
     }

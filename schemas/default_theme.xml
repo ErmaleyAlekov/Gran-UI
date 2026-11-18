@@ -147,6 +147,10 @@
            textWrap="nowrap" overflow="hidden">
       <Current borderColor="#2563eb"/>
     </Style>
+    <!-- Закреплённые строки таблицы (pinnedTop, pinnedBottom): свой фон и разделитель с прокручиваемой частью -->
+    <!-- The table pinned rows (pinnedTop, pinnedBottom): an own background and a divider with the scrolled part -->
+    <Style name="GridPinnedTop" background="#fafbfc" borderWidth="0 0 1 0" borderColor="#d0d5dd"/>
+    <Style name="GridPinnedBottom" background="#fafbfc" borderWidth="1 0 0 0" borderColor="#d0d5dd" fontWeight="600"/>
     <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
     <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->
     <Style name="ComboBox" basedOn="Input" padding="8 34 8 12" cursor="pointer" textWrap="nowrap" textOverflow="ellipsis"/>

@@ -41,27 +41,22 @@ namespace gran::layout::internal
         }
 
         /*
-        ** Наибольшее содержимое столбцов auto по заголовку и показанным строкам (у виртуальной таблицы — только
-        ** окно строк). Максимум копится: при прокрутке столбец не сужается, и строки на экране не «прыгают».
+        ** Наибольшее содержимое столбцов auto по заголовку, закреплённым и показанным строкам (у виртуальной таблицы —
+        ** только окно строк). Максимум копится: при прокрутке столбец не сужается, и строки на экране не «прыгают».
+        ** Ячейки auto меряются и вне окна видимых столбцов: иначе столбец получил бы ширину, только показавшись.
         **
-        ** The largest content of the auto columns by the header and the shown rows (for a virtual table — only
-        ** the row window). The maximum accumulates: while scrolling a column does not narrow, and the rows on the screen do not "jump".
+        ** The largest content of the auto columns by the header, the pinned and the shown rows (for a virtual table —
+        ** only the row window). The maximum accumulates: while scrolling a column does not narrow, and the rows on the screen do not "jump".
+        ** The auto cells are measured outside the visible column window too: otherwise a column would get its width only once shown.
         */
         void measureColumns(ui::Node& grid, ui::GridState& state, LayoutPass& pass)
         {
             const float unbounded = std::numeric_limits<float>::infinity();
-            std::vector<ui::Node*> lines{ui::gridHeader(grid)};
-            ui::Node* rows = ui::gridRows(grid);
 
             state.autoWidths.resize(state.columns.size(), 0.0f);
-            if (rows != nullptr)
+            for (ui::Node* line : ui::gridLines(grid))
             {
-                for (const std::unique_ptr<ui::Node>& row : rows->children)
-                    lines.push_back(row.get());
-            }
-            for (ui::Node* line : lines)
-            {
-                if (line == nullptr || !ui::inFlow(*line))
+                if (!ui::inFlow(*line))
                     continue;
                 for (std::size_t index = 0; index < line->children.size() && index < state.columns.size(); ++index)
                 {
@@ -102,20 +97,25 @@ namespace gran::layout::internal
         std::vector<float> widths = sizeTracks(tracks, contributions, width, 0.0f);
         for (std::size_t index = 0; index < widths.size(); ++index)
             widths[index] = clampSize(widths[index], state->columns[index].minWidth, state->columns[index].maxWidth);
+        fillGridRest(*state, widths, width);
         replaceGridWidths(grid, std::move(widths));
+        updateGridView(grid, width);
     }
 
     /*
-    ** Таблица — прокручиваемый блок: строки прокручиваются внутри, поэтому высота содержимого не больше доступной
-    ** (иначе родительский стек сжимал бы соседей таблицы, а внутри неё — строку заголовков).
+    ** Таблица — прокручиваемый блок: строки прокручиваются внутри в обе стороны, поэтому размер содержимого не больше
+    ** доступного (иначе родительский стек сжимал бы соседей таблицы, а внутри неё — строку заголовков; широкие
+    ** столбцы раздвигали бы таблицу вместо горизонтальной прокрутки).
     **
-    ** A table is a scrolled box: the rows scroll inside, so the content height is not above the available one
-    ** (otherwise the parent stack would shrink the table neighbors, and inside it — the header row).
+    ** A table is a scrolled box: the rows scroll inside both ways, so the content size is not above
+    ** the available one (otherwise the parent stack would shrink the table neighbors, and inside it — the header row; wide
+    ** columns would widen the table instead of the horizontal scrolling).
     */
     Size measureDataGrid(ui::Node& grid, Size contentAvailable, LayoutPass& pass)
     {
         resolveGridColumns(grid, contentAvailable.width, pass);
         Size size = measureStack(grid, contentAvailable, pass);
+        size.width = std::fmin(size.width, contentAvailable.width);
         size.height = std::fmin(size.height, contentAvailable.height);
         return size;
     }

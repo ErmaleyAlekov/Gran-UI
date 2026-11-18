@@ -1,4 +1,5 @@
 #include "gran/ui/style_pass.hpp"
+#include "gran/ui/data_grid.hpp"
 #include "gran/style/style_compare.hpp"
 
 #include <utility>
@@ -14,6 +15,33 @@ namespace gran::ui
             StyleObserver* observer;
         };
 
+        /*
+        ** Стиль темы по виду узла, а для частей, у которых вид общий, — по месту: пункт строки меню, кнопка панели
+        ** инструментов, закреплённый список строк таблицы (Stack-ребёнок DataGrid: до прокрутки — сверху, после — снизу).
+        **
+        ** The theme style by the node kind, and for the parts with a shared kind — by the place: a menu bar item, a toolbar
+        ** button, a table pinned row list (a Stack child of DataGrid: before the scroll — at the top, after it — at the bottom).
+        */
+        const style::StyleRule* defaultsFor(const Node& node, const KindStyles& defaults)
+        {
+            const Node* parent = node.parent;
+
+            if (defaults.menuBarItem != nullptr && isMenuBarItem(node))
+                return defaults.menuBarItem;
+            if (defaults.toolBarButton != nullptr && node.kind == ElementKind::BUTTON && parent != nullptr
+                && (parent->kind == ElementKind::TOOL_BAR || parent->kind == ElementKind::TOOL_GROUP))
+                return defaults.toolBarButton;
+            if (node.kind == ElementKind::STACK && parent != nullptr && parent->kind == ElementKind::DATA_GRID)
+            {
+                const style::StyleRule* pinned = defaults.gridPinnedBottom;
+                if (pinnedAbove(node))
+                    pinned = defaults.gridPinnedTop;
+                if (pinned != nullptr)
+                    return pinned;
+            }
+            return defaults.rules[static_cast<std::size_t>(node.kind)];
+        }
+
         // Новый вычисленный стиль узла; наблюдатель видит пересчёты и отдельно — первый расчёт
         // The new computed style of the node; the observer sees the recomputes and, separately, the first computation
         void recompute(Node& node, const style::ComputedStyle& parent, const StylePass& pass)
@@ -21,12 +49,7 @@ namespace gran::ui
             style::CascadeInput input;
 
             input.parent = &parent;
-            input.defaults = pass.defaults.rules[static_cast<std::size_t>(node.kind)];
-            if (pass.defaults.menuBarItem != nullptr && isMenuBarItem(node))
-                input.defaults = pass.defaults.menuBarItem;
-            if (pass.defaults.toolBarButton != nullptr && node.kind == ElementKind::BUTTON && node.parent != nullptr
-                && (node.parent->kind == ElementKind::TOOL_BAR || node.parent->kind == ElementKind::TOOL_GROUP))
-                input.defaults = pass.defaults.toolBarButton;
+            input.defaults = defaultsFor(node, pass.defaults);
             input.rule = node.rule;
             input.inlineBlock = &node.declared;
             input.stateMask = node.stateMask;

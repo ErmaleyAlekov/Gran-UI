@@ -709,12 +709,34 @@ copies, the rows may differ in height; `virtual="false"` — all rows at once.
   The selection follows the records. Without a proxy a header click does nothing.
 - **Style** — the theme styles `DataGrid`, `GridHeader`, `GridHeaderCell` (`Hover`, `Pressed`, `Focused`, `Checked`),
   `GridRow` (`Hover`, `Selected`), `GridCell` (`Current`); an own `<Style>` with such a name replaces the theme style.
-- A table is a scrolled box: its height is not above the room the parent gives (usually `grow="1"`).
+- A table is a box scrolled both ways: its size is not above the room the parent gives (usually
+  `grow="1"`); columns wider than the table scroll sideways (the scroll bar, Shift+wheel, a touchpad). The current column
+  chosen by the arrows, Home or End is scrolled into the visible part.
 
-Next (plan 2.2.3–2.2.6): column width and order by the mouse, frozen columns, horizontal scrolling
-and column virtualization, cell editing, TreeGrid, UI Automation Grid/Table. The sample is `samples/grid.xml`.
+### Column width, order and freezing
 
-![DataGrid table: px, auto and fr columns, an own cell, sorting](images/grid.png)
+```xml
+<DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1"
+          frozenColumns="1" pinnedTop="bigOrders" pinnedBottom="totals">
+  <GridColumn field="number" title="№" width="64" resizable="false"/>
+  <GridColumn id="who" field="client" title="Client" width="1fr"/>
+  ...
+</DataGrid>
+```
+
+- **Width by mouse:** the edge of the header (cursor ↔) drags the column width — it becomes pixel-based, within `minWidth`/`maxWidth` and not less than 24 px; a double-click on the edge — width by content (`auto`). From the keyboard: on the header in focus, Shift+←/→ — by 10 px. `resizable="false"` on the column or the table disables it.
+- **Order:** the header is dragged to another place (over the middle of the neighbor); from the keyboard — Ctrl+←/→ on the header in focus. Headers, cells of all rows, and templates are rearranged; the current and sorted columns follow their own. Dragging does not sort: only a click without a shift sorts. `reorderable="false"` on the table disables it.
+- **Saving:** in a table with `id` in a window with `layout`, the column layout is saved in the program settings itself (like the position of panels) — the `columnLayout="key[:width] …"` attribute: the order of columns and widths, changed by the user (`number client:180 sum:auto`). The column key is `id`, without it `field`. The layout is written only if the user changed it: otherwise the saved order would override a new markup order in the next program version. Unknown keys (column removed) are skipped, new columns follow in the markup order; a corrupted value in the settings file is skipped with a warning in the log, the program starts with the markup.
+- **Frozen columns:** `frozenColumns="N"` — the first N columns do not move when scrolled horizontally; the others go under them. A column dragged into the first N also becomes frozen.
+- **Pinned rows:** `pinnedTop` and `pinnedBottom` — models (storage or proxy) of rows above and below the scroll: totals, favorite or "big" records. The cells are the same columns and templates, the widths and the sideways shift are shared with the table; pinned rows are not virtual and cannot be selected; on a `<SortFilter>` proxy they are sorted by a header click
+  together with the table.
+- **The rest of the width:** if there are no share (`fr`) columns — for example, the user made the only such column
+  pixel-sized — the rest goes to the last column (within its `maxWidth`), and no empty strip stays on the right.
+- **Column virtualization:** cells of columns outside the visible part are not measured, not placed, and not drawn — a table with hundreds of columns scrolls as fast as one with ten. The row height — by visible cells; the column width `auto` is calculated by all cells of the window rows, not just the visible ones.
+
+Next (plan 2.2.4–2.2.6): cell editing, TreeView and TreeGrid, UI Automation Grid/Table. The sample is `samples/grid.xml`.
+
+![DataGrid table: px, auto and fr columns, an own cell, sorting, a frozen column and rows pinned at the top](images/grid.png)
 
 ## Binding expressions
 

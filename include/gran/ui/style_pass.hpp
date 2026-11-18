@@ -20,6 +20,10 @@ namespace gran::ui
         // Стиль темы ToolBarButton — кнопка в панели инструментов или её группе; nullptr — как Button
         // The theme ToolBarButton style — a button in a toolbar or its group; nullptr — as Button
         const style::StyleRule* toolBarButton = nullptr;
+        // Стили темы GridPinnedTop и GridPinnedBottom — закреплённые списки строк таблицы над и под прокруткой; nullptr — как Stack
+        // The theme GridPinnedTop and GridPinnedBottom styles — the table pinned row lists above and below the scroll; nullptr — as Stack
+        const style::StyleRule* gridPinnedTop = nullptr;
+        const style::StyleRule* gridPinnedBottom = nullptr;
     };
 
     /*

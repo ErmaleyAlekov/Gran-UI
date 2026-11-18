@@ -23,6 +23,27 @@ namespace gran::binding
         }
     }
 
+    /*
+    ** Закреплённые строки — свои списки над и под прокруткой. Если их модель — прокси <SortFilter>, щелчок по заголовку
+    ** сортирует и их тем же ключом: иначе закреплённые строки выглядят «сломанными» (ручная проверка Т-64).
+    ** Хранилище без прокси остаётся в своём порядке (итоги и т. п. сортировать нечего).
+    **
+    ** The pinned rows are lists of their own above and below the scroll. If their model is a <SortFilter> proxy, a header click
+    ** sorts them by the same key too: otherwise the pinned rows look "broken" (the manual check T-64).
+    ** A storage without a proxy keeps its own order (totals and the like have nothing to sort).
+    */
+    static void sortPinned(const ListBindings& bindings, const ui::Node& grid, const data::SortKeys& keys)
+    {
+        for (const std::unique_ptr<ui::Node>& child : grid.children)
+        {
+            data::SortFilterProxy* proxy = nullptr;
+            if (child->kind == ui::ElementKind::STACK && !child->content.items.empty())
+                proxy = dynamic_cast<data::SortFilterProxy*>(bindings.list(child->content.items));
+            if (proxy != nullptr)
+                proxy->setSort(keys);
+        }
+    }
+
     // Нажатие в ячейку строки делает её столбец текущим (сама строка выделяется как запись списка) / A press in a row cell makes its column current (the row itself is selected as a list record)
     void gridPress(ListBinding& binding, const ui::Node& row, const ui::Node& hit)
     {
@@ -33,6 +54,7 @@ namespace gran::binding
             return;
         if (ui::setGridColumn(*grid, column))
             binding.selectionChanged();
+        ui::revealGridColumn(*grid);
     }
 
     // Стрелка в заголовке по первому ключу прокси, если он — поле одного из столбцов / The header arrow by the first proxy key if it is the field of one of the columns
@@ -41,7 +63,9 @@ namespace gran::binding
         const data::SortFilterProxy* proxy = dynamic_cast<const data::SortFilterProxy*>(&model);
         ui::Node* grid = ui::gridOf(rows);
 
-        if (grid == nullptr || proxy == nullptr || proxy->sort().empty())
+        // Закреплённые строки — свой список со своей моделью: стрелку в заголовке ставит только основной список
+        // The pinned rows are a list of their own with their own model: only the main list sets the header arrow
+        if (grid == nullptr || proxy == nullptr || proxy->sort().empty() || ui::gridRows(*grid) != &rows)
             return;
         const data::SortKey& key = proxy->sort().front();
         const std::vector<ui::GridColumn>& columns = grid->content.grid->columns;
@@ -83,6 +107,7 @@ namespace gran::binding
         // после setSort уже не трогается (ревью Т-63) / The arrow goes before sorting: the proxy observers (program code)
         // may rebuild the tree, and the table node is not touched after setSort (review T-63)
         ui::markSortedColumn(*grid, column, descending);
+        sortPinned(*this, *grid, keys);
         proxy->setSort(std::move(keys));
         return true;
     }

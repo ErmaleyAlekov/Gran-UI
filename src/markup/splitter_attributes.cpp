@@ -67,7 +67,15 @@ namespace gran::markup::internal
 
 namespace gran::markup
 {
-    // Узлы без своего элемента DOM (построены движком) пропускаются; положение «пополам» не пишется / The nodes without their own DOM element (built by the engine) are skipped; the "in half" position is not written
+    /*
+    ** Узлы без своего элемента DOM (построены движком) пропускаются; положение «пополам» не пишется. Раскладка
+    ** столбцов таблицы пишется, только если её настраивал пользователь (или она уже пришла из настроек): иначе
+    ** сохранённый порядок перекрыл бы порядок разметки новой версии программы.
+    **
+    ** The nodes without their own DOM element (built by the engine) are skipped; the "in half" position is not written. The table
+    ** column layout is written only if the user customized it (or it already came from the settings): otherwise
+    ** the saved order would override the markup order of a new program version.
+    */
     void writeLiveAttributes(ui::Node& root)
     {
         beresta::Element* element = internal::editableElement(root);
@@ -77,6 +85,9 @@ namespace gran::markup
             collapsed = "true";
         if ((root.kind == ui::ElementKind::DOCK_PANEL || root.kind == ui::ElementKind::DOCK_HOST) && element != nullptr)
             internal::writeDockLive(root, *element);
+        if (root.kind == ui::ElementKind::DATA_GRID && element != nullptr && root.content.grid
+            && root.content.grid->view.customized)
+            element->setAttribute("columnLayout", ui::gridLayoutText(*root.content.grid));
         if (root.kind == ui::ElementKind::SPLITTER && element != nullptr)
         {
             if (root.content.split.position >= 0.0f)
@@ -87,9 +98,11 @@ namespace gran::markup
             writeLiveAttributes(*child);
     }
 
-    // Раскладка панелей сохраняется сама: программе не нужно перечислять persist у каждой панели / The panel layout is kept by itself: the program need not list persist on every panel
+    // Раскладка панелей и столбцов таблицы сохраняется сама: программе не нужно перечислять persist / The panel and table column layout is kept by itself: the program need not list persist
     std::string implicitPersist(const ui::Node& node)
     {
+        if (node.kind == ui::ElementKind::DATA_GRID)
+            return "columnLayout";
         return internal::dockPersistNames(node);
     }
 }

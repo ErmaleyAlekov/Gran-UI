@@ -252,6 +252,14 @@ namespace gran::input
         ui::Node* scrollDrag = nullptr;
         bool scrollVertical = true;
         float scrollGrab = 0.0f;
+        // Перетаскивание заголовка столбца таблицы (grid_header_input.cpp): абсцисса нажатия в строке заголовков,
+        // столбец, чью ширину тянут (NO_COLUMN — заголовок переставляют), его ширина при нажатии, прошёл ли порог
+        // Dragging a table column header (grid_header_input.cpp): the press abscissa in the header row,
+        // the column whose width is dragged (NO_COLUMN — the header is reordered), its width at the press, whether the threshold was passed
+        float gridOrigin = 0.0f;
+        std::size_t gridResize = static_cast<std::size_t>(-1);
+        float gridGrab = 0.0f;
+        bool gridMoved = false;
     };
 
     /*
@@ -693,6 +701,25 @@ namespace gran::input
 
     // Нажатие средней кнопкой: закрыть вкладку под указателем / A middle button press: close the tab under the pointer
     void middleClick(RouterState& state, ui::Node* hit);
+
+    // ---- grid_header_input.cpp ----
+
+    // Столбец, чей правый край под точкой окна у заголовка cell (ширину можно тянуть); NO_COLUMN — не у края / The column whose right edge is under the window point at the header cell (the width can be dragged); NO_COLUMN — not at an edge
+    std::size_t gridEdgeAt(const ui::Node& cell, Vec2 point) noexcept;
+
+    // Нажатие на заголовок столбца: у края — ширина (двойной щелчок — по содержимому), иначе — перестановка / A press on a column header: at the edge — the width (a double click — by the content), otherwise — reordering
+    void pressGridHeader(RouterState& state, ui::Node& cell, const platform::Event& event);
+
+    // Движение с нажатой кнопкой: новая ширина или перестановка за порогом (щелчок-сортировка тогда отменяется) / A move with the button held: a new width or reordering past the threshold (the sorting click is cancelled then)
+    void dragGridHeader(RouterState& state, ui::Node& cell, Vec2 point);
+
+    // ---- grid_header_keys.cpp ----
+
+    // Заголовок в фокусе: Ctrl+←/→ — переставить столбец, Shift+←/→ — ширина ∓10 px; true — обработано / The focused header: Ctrl+←/→ — move the column, Shift+←/→ — the width ∓10 px; true — handled
+    bool gridHeaderKey(ui::Node& cell, const platform::Event& event);
+
+    // Курсор «ширина»: указатель у края заголовка или ширину уже тянут / The "width" cursor: the pointer is at a header edge or the width is being dragged
+    bool gridEdgeCursor(const RouterState& state) noexcept;
 
     // ---- dock_input.cpp ----
 

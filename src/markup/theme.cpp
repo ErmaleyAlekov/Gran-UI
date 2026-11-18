@@ -20,6 +20,8 @@ namespace gran::markup
             theme->kinds.rules[kind] = theme->document.styles.find(ui::elementName(static_cast<ui::ElementKind>(kind)));
         theme->kinds.menuBarItem = theme->document.styles.find("MenuBarItem");
         theme->kinds.toolBarButton = theme->document.styles.find("ToolBarButton");
+        theme->kinds.gridPinnedTop = theme->document.styles.find("GridPinnedTop");
+        theme->kinds.gridPinnedBottom = theme->document.styles.find("GridPinnedBottom");
         theme->window.name = "Window";
         theme->window.block = theme->document.window.declared;
         return theme;

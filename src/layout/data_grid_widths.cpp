@@ -38,29 +38,53 @@ namespace gran::layout::internal
             }
             return true;
         }
+    }
 
-        /*
-        ** Новые ширины меняют размер строк при том же доступном месте — кэш измерений по доступному месту
-    ** этого не видит. Поэтому строки, заголовок, список и прокрутка забывают свои измерения.
+    /*
+    ** Новые ширины и сдвиг по горизонтали меняют размер и размещение строк при том же доступном месте — кэш
+    ** измерений по доступному месту этого не видит. Поэтому строки, заголовок, списки и прокрутка забывают измерения.
     **
-    ** New widths change the row size at the same available room — the measurement cache keyed by the available room
-    ** does not see it. So the rows, the header, the list and the scroll forget their measurements.
+    ** New widths and a horizontal shift change the row size and placement at the same available room — the measurement
+    ** cache keyed by the available room does not see it. So the rows, the header, the lists and the scroll forget their measurements.
     */
-        void forgetGridLines(ui::Node& grid) noexcept
+    void forgetGridLines(ui::Node& grid)
+    {
+        for (const std::unique_ptr<ui::Node>& child : grid.children)
         {
-            ui::Node* rows = ui::gridRows(grid);
-
-            forgetMeasure(ui::gridHeader(grid));
-            if (rows == nullptr)
-                return;
-            forgetMeasure(rows->parent);
-            forgetMeasure(rows);
-            for (const std::unique_ptr<ui::Node>& row : rows->children)
-            {
-                if (row->kind == ui::ElementKind::GRID_ROW)
-                    forgetMeasure(row.get());
-            }
+            if (child->kind == ui::ElementKind::STACK || child->kind == ui::ElementKind::SCROLL)
+                forgetMeasure(child.get());
+            if (child->kind == ui::ElementKind::SCROLL && !child->children.empty())
+                forgetMeasure(child->children.front().get());
         }
+        for (ui::Node* line : ui::gridLines(grid))
+            forgetMeasure(line);
+    }
+
+    /*
+    ** Остаток ширины — последнему столбцу, если долевых столбцов нет (как stretchLastSection в Qt): иначе, когда
+    ** пользователь сделал единственный столбец «1fr» пиксельным, справа оставалась пустая полоса (ручная проверка Т-64).
+    ** Предел maxWidth последнего столбца соблюдается; при бесконечной ширине (таблица в горизонтальной прокрутке) — ничего.
+    **
+    ** The rest of the width goes to the last column if there are no share columns (as stretchLastSection in Qt): otherwise, when
+    ** the user made the only "1fr" column pixel-sized, an empty strip stayed on the right (the manual check T-64).
+    ** The maxWidth limit of the last column is kept; at an infinite width (a table in a horizontal scroll) — nothing.
+    */
+    void fillGridRest(const ui::GridState& state, std::vector<float>& widths, float width)
+    {
+        float sum = 0.0f;
+
+        if (!std::isfinite(width) || widths.empty() || widths.size() != state.columns.size())
+            return;
+        for (std::size_t index = 0; index < widths.size(); ++index)
+        {
+            if (state.columns[index].width.max.kind == style::TrackBoundKind::FRACTION)
+                return;
+            sum += widths[index];
+        }
+        if (sum >= width)
+            return;
+        float& last = widths.back();
+        last = std::fmin(last + width - sum, std::fmax(last, state.columns.back().maxWidth));
     }
 
     // Те же ширины — ничего; новые — запомнить и сбросить измерения строк / The same widths — nothing; new ones — remember them and reset the row measurements

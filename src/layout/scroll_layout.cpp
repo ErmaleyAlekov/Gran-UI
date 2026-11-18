@@ -1,4 +1,5 @@
 #include "gran/layout/internal/layout_internal.hpp"
+#include "gran/ui/data_grid.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -20,6 +21,26 @@ namespace gran::layout::internal
             if (direction != ui::ScrollDirection::VERTICAL)
                 available.width = unbounded;
             return available;
+        }
+
+        /*
+        ** Прокрутка таблицы: содержимое не уже суммы столбцов, даже когда строк нет (пустой список имеет ширину 0).
+        ** Тогда предел смещения здесь не меньше, чем у вида таблицы (updateGridView), и заголовок, выставленный по
+        ** её смещению, не разъезжается со строками (ревью Т-66).
+        **
+        ** A table scroll: the content is not narrower than the column sum even when there are no rows (an empty list has width 0).
+        ** Then the offset limit here is not below the table view one (updateGridView), and the header placed by
+        ** its offset does not drift apart from the rows (review T-66).
+        */
+        float gridContentWidth(const ui::Node& scroll) noexcept
+        {
+            float sum = 0.0f;
+
+            if (scroll.parent == nullptr || scroll.parent->kind != ui::ElementKind::DATA_GRID || !scroll.parent->content.grid)
+                return 0.0f;
+            for (float width : scroll.parent->content.grid->widths)
+                sum += width;
+            return sum;
         }
 
         // Единственный видимый ребёнок прокрутки или nullptr / The single visible scroll child or nullptr
@@ -65,8 +86,8 @@ namespace gran::layout::internal
         const Insets& margin = child->computed.margin;
         Size size = measureNode(*child, shrinkAvailable(contentRoom(scroll, Size{content.width, content.height}),
             margin), pass);
-        size.width = clampSize(std::fmax(size.width, content.width - margin.left - margin.right),
-            child->computed.minWidth, child->computed.maxWidth);
+        size.width = clampSize(std::fmax(std::fmax(size.width, gridContentWidth(scroll)), content.width - margin.left
+            - margin.right), child->computed.minWidth, child->computed.maxWidth);
         size.height = clampSize(std::fmax(size.height, content.height - margin.top - margin.bottom),
             child->computed.minHeight, child->computed.maxHeight);
         scroll.layout.contentSize = Size{size.width + margin.left + margin.right, size.height + margin.top + margin.bottom};

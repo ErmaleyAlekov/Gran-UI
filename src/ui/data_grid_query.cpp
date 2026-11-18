@@ -22,15 +22,17 @@ namespace gran::ui
         return grid.children.front().get();
     }
 
-    // Второй ребёнок — прокрутка, в ней единственный ребёнок — список строк / The second child is the scroll, its only child is the row list
+    // Прокрутка — единственный ребёнок таблицы вида SCROLL (перед ней может стоять закреплённый список), в ней — список строк / The scroll is the only table child of the SCROLL kind (a pinned list may stand before it), inside it — the row list
     Node* gridRows(Node& grid) noexcept
     {
-        if (grid.kind != ElementKind::DATA_GRID || grid.children.size() < 2)
+        if (grid.kind != ElementKind::DATA_GRID)
             return nullptr;
-        Node& scroll = *grid.children[1];
-        if (scroll.kind != ElementKind::SCROLL || scroll.children.empty())
-            return nullptr;
-        return scroll.children.front().get();
+        for (const std::unique_ptr<Node>& child : grid.children)
+        {
+            if (child->kind == ElementKind::SCROLL && !child->children.empty())
+                return child->children.front().get();
+        }
+        return nullptr;
     }
 
     // Подъём от hit до прямого ребёнка строки; его место среди детей строки — номер столбца / The climb from hit to a direct row child; its place among the row children is the column index

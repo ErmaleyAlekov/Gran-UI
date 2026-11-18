@@ -58,6 +58,7 @@ namespace gran::binding
             return false;
         if (ui::setGridColumn(*grid, column))
             binding.selectionChanged();
+        ui::revealGridColumn(*grid);
         return true;
     }
 }

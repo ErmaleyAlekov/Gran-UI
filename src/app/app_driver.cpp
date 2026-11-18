@@ -5,6 +5,25 @@
 
 namespace gran
 {
+    namespace
+    {
+        /*
+        ** Шаг цикла; если он завершил приложение (закрыто главное окно) — состояние окон и настройки сохраняются,
+        ** как в конце run(). Раньше водитель этого не делал, и сохранение раскладки нельзя было проверить тестом.
+        **
+        ** A loop step; if it finished the application (the main window was closed) — the window state and the settings are saved,
+        ** as at the end of run(). Previously the driver did not do it, and saving the layout could not be checked by a test.
+        */
+        app::LoopStep stepOnce(Application::State& current)
+        {
+            app::LoopStep result = app::runLoopStep(current, false);
+
+            if (result == app::LoopStep::QUIT || current.quit)
+                app::saveSettings(current);
+            return result;
+        }
+    }
+
     // Как начало run(): без разметки — та же ошибка, затем окна и их первый кадр
     // As the start of run(): without markup — the same error, then the windows and their first frame
     void AppDriver::start()
@@ -26,7 +45,7 @@ namespace gran
 
         if (current.quit)
             return false;
-        return app::runLoopStep(current, false) != app::LoopStep::QUIT;
+        return stepOnce(current) != app::LoopStep::QUIT;
     }
 
     // Обычно хватает двух-трёх шагов: событие → кадр → кадр после отложенных уведомлений
@@ -39,7 +58,7 @@ namespace gran
         while (steps < limit && !current.quit)
         {
             ++steps;
-            if (app::runLoopStep(current, false) != app::LoopStep::BUSY)
+            if (stepOnce(current) != app::LoopStep::BUSY)
                 break;
         }
         return steps;

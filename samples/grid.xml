@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Таблица DataGrid (пункт 2.2.2): заказы из JSON в прокси сортировки и фильтра, столбцы px / auto / fr с пределами,
+  Таблица DataGrid (пункты 2.2.2–2.2.3): заказы из JSON в прокси сортировки и фильтра, столбцы px / auto / fr с пределами,
   своя ячейка состояния (<CellTemplate>), выделение строк, текущая ячейка стрелками влево/вправо, сортировка
   щелчком по заголовку (повторный щелчок — обратный порядок). Строки виртуальные: копии есть только у видимых.
+  Край заголовка тянет ширину (двойной щелчок — по содержимому), заголовок переставляет столбец; столбец «№»
+  закреплён (frozenColumns), крупные заказы закреплены сверху (pinnedTop). Раскладка столбцов сохраняется в настройках
+  окна layout="grid" (у gran_gallery — в настройках программы).
   Запуск: gran_snapshot samples/grid.xml grid.png или gran_gallery samples/grid.xml
 
-  A DataGrid table (item 2.2.2): orders from JSON in a sort and filter proxy, px / auto / fr columns with limits,
+  A DataGrid table (items 2.2.2–2.2.3): orders from JSON in a sort and filter proxy, px / auto / fr columns with limits,
   an own status cell (<CellTemplate>), row selection, the current cell by the left/right arrows, sorting
   by a header click (a repeated click — the reverse order). The rows are virtual: only the visible ones have copies.
+  A header edge drags the width (a double click — by the content), a header reorders the column; the "№" column
+  is frozen (frozenColumns), the big orders are pinned at the top (pinnedTop). The column layout is kept in the settings
+  of the window layout="grid" (for gran_gallery — in the program settings).
   Run: gran_snapshot samples/grid.xml grid.png or gran_gallery samples/grid.xml
 -->
-<Window title="Gran UI — таблица" width="900" height="520" background="#f5f6f8">
+<Window title="Gran UI — таблица" width="900" height="520" background="#f5f6f8" layout="grid">
   <Resources>
     <Style name="badge" padding="2 8" borderRadius="10" fontSize="12"/>
     <Data name="orders" source="data/orders.json" select="orders">
@@ -28,6 +34,7 @@
     <SortFilter name="visibleOrders" source="orders" sort="number:number"
                 filter="contains(@client, $query) or contains(@city, $query)"/>
     <Selection name="orderSel" model="visibleOrders" mode="extended"/>
+    <SortFilter name="bigOrders" source="orders" sort="sum:number desc" filter="@sum > 128000"/>
     <Variable name="query"/>
   </Resources>
   <Stack padding="16" spacing="12">
@@ -35,7 +42,7 @@
       <Text fontSize="18" fontWeight="700" grow="1">Заказы</Text>
       <Input width="220" placeholder="Клиент или город" value="{$query}"/>
     </Stack>
-    <DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1">
+    <DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1" frozenColumns="1" pinnedTop="bigOrders">
       <GridColumn field="number" title="№" width="64" textAlign="end" color="#667085"/>
       <GridColumn field="client" title="Клиент" width="1fr" minWidth="160"/>
       <GridColumn field="city" title="Город" width="auto" maxWidth="180"/>

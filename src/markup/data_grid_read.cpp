@@ -48,10 +48,14 @@ namespace gran::markup::internal
         {
             if (attribute.name == "field")
                 spec.column.field = attribute.value;
+            else if (attribute.name == "id")
+                spec.column.key = attribute.value;
             else if (attribute.name == "title")
                 spec.column.title = attribute.value;
             else if (attribute.name == "sortable")
                 spec.column.sortable = style::parseBoolean(attribute.value);
+            else if (attribute.name == "resizable")
+                spec.column.resizable = style::parseBoolean(attribute.value);
             else if (attribute.name == "sortType")
                 spec.column.sortType = sortTypeOf(attribute.value);
             else if (attribute.name == "width" || attribute.name == "minWidth" || attribute.name == "maxWidth")
@@ -81,19 +85,35 @@ namespace gran::markup::internal
         }
     }
 
-    // Таблица без virtual — виртуальная: таблицы обычно большие, а копии строк вне экрана не нужны / A table without virtual is virtual: tables are usually big, and row copies off the screen are not needed
+    /*
+    ** Таблица без virtual — виртуальная: таблицы обычно большие, а копии строк вне экрана не нужны. Ключ столбца
+    ** в сохранённой раскладке — id, без него field, без обоих — «#номер в разметке». Раскладка (columnLayout)
+    ** переставляет столбцы до построения: части таблицы сразу строятся в нужном порядке.
+    **
+    ** A table without virtual is virtual: tables are usually big, and row copies off the screen are not needed. The column key
+    ** in the saved layout is id, without it field, without both — "#index in the markup". The layout (columnLayout)
+    ** reorders the columns before building: the table parts are built in the right order at once.
+    */
     void readDataGrid(const beresta::Element& element, ui::Node& node, BuildContext& context)
     {
         std::vector<ui::GridColumnSpec> specs;
+        ui::GridOptions options = readGridOptions(element);
 
         for (const beresta::Element* child = firstElementChild(element); child != nullptr;
              child = nextElementSibling(*child))
         {
-            if (child->getLocalName() == "GridColumn")
-                specs.push_back(readColumn(*child, context));
+            if (child->getLocalName() != "GridColumn")
+                continue;
+            ui::GridColumnSpec spec = readColumn(*child, context);
+            if (spec.column.key.empty())
+                spec.column.key = spec.column.field;
+            if (spec.column.key.empty())
+                spec.column.key = "#" + std::to_string(specs.size());
+            specs.push_back(std::move(spec));
         }
         if (!element.hasAttribute("virtual"))
             node.content.virtualize = true;
-        ui::buildDataGrid(node, specs);
+        ui::applyGridLayout(specs, options.layout);
+        ui::buildDataGrid(node, specs, options);
     }
 }

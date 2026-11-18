@@ -83,8 +83,11 @@ namespace gran::render::internal
         paintBox(node, state, context);
         PaintState inner = clipChildren(node, state, context);
         paintContent(node, inner, context);
-        for (const ui::Node* child : paintOrder(node))
-            paintNode(*child, inner, context);
+        if (!paintGridLine(node, inner, context))
+        {
+            for (const ui::Node* child : paintOrder(node))
+                paintNode(*child, inner, context);
+        }
         if (node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::TEXT_AREA)
             paintScrollbars(node, inner, context);
         if (node.kind == ui::ElementKind::DOCK_HOST && node.content.dock.dropSide >= 0)

@@ -79,7 +79,7 @@ namespace gran::app
             ui::Node* node = ui::findNode(*win.document.root, attribute.node);
             if (node != nullptr && win.shared.settings.attribute({win.document.window.layout, attribute.node, attribute.name},
                 value.text))
-                application.setMarkupAttribute(*node, attribute.name, value.text);
+                restoreAttribute(application, *node, attribute.name, value.text);
         }
         for (const data::Variable& variable : win.persistedVariables)
         {

@@ -17,11 +17,23 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   left/right arrows and Home/End (the new `<Current>` style state), sorting by a header click through a `<SortFilter>` proxy
   (a repeated click — the reverse order, a direction arrow), the `gran:sortColumn` built-in action, the theme styles
   `DataGrid`, `GridHeader`, `GridHeaderCell`, `GridRow`, `GridCell`. The sample is `samples/grid.xml`.
+- `<DataGrid>`, step 2.2.3: the column width by the mouse (a header edge, the ↔ cursor; a double click — by the content)
+  and by Shift+←/→, the column order by dragging a header and by Ctrl+←/→ (a click without a shift still sorts);
+  the column layout is kept in the program settings by itself — the `columnLayout="key[:width] …"` attribute of a table
+  with an `id` (the key is the new `id` attribute of `<GridColumn>` or `field`); the bans `resizable="false"` (the table
+  and a column) and `reorderable="false"`. Horizontal table scrolling (columns wider than the table, Shift+wheel, the current
+  column is scrolled into view), frozen columns `frozenColumns="N"`, pinned rows `pinnedTop`/`pinnedBottom` (models above
+  and below the scroll — totals, favorites), column virtualization (the cells outside the visible part are not measured,
+  placed or painted). Without share columns the last column gets the rest of the width (as `stretchLastSection` in Qt);
+  pinned rows on a proxy are sorted by a header together with the table. `samples/grid.xml` shows a frozen "№" and the big
+  orders at the top.
 - The scroll bar of `Scroll` and `TextArea` works with the mouse: the thumb is grabbed and dragged (also outside the window),
   a press on the bar beside the thumb pages by the visible part. Previously the bar only showed the position, and scrolling
   was possible only with the wheel and the keyboard (found by the manual check T-58).
 
 ### Changed
+- Shift+mouse wheel scrolls a scroll with `direction="horizontal|both"` sideways (as in browsers and spreadsheets);
+  for a vertical scroll Shift+wheel still pages up and down.
 - A virtual list (`virtual="true"`) knows the size of every record: the measured records stand exactly in their places,
   the ones not seen yet take the average size of the measured ones (a size index on a Fenwick tree, O(log n) per measurement
   and per record lookup by coordinate). Previously all records were taken as one average height — rows of different heights
@@ -29,6 +41,11 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   an estimate is replaced by a measurement (like `overflow-anchor` in browsers). The first step of 2.2 (DataGrid and TreeView).
 
 ### Fixed
+- A clip (`overflow="hidden"`, `Scroll`) under a rotation or a scale is now intersected with the ancestor clip of the same
+  transform: previously the content could leave a rotated box (found by the review T-66).
+- A damaged `persist` attribute value in the settings file (for example `position="abc"` of a splitter) no longer prevents
+  the start: the attribute is skipped with a warning to the log, the window opens with the markup. Previously the schema
+  error left the window opening, and the program did not start (found while working on saving the columns, 2.2.3).
 - Linux (X11): the keypad keys without NumLock — Home, End, PageUp, PageDown, the arrows, Insert, Delete — work
   as navigation, with NumLock they give digits. Previously they arrived as an unknown key (found by the manual check T-62).
 - A vertical `Stack` no longer shrinks items below their content when a neighbor `Scroll` or `DataGrid`

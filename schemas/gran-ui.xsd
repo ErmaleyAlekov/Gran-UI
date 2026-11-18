@@ -182,6 +182,13 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Закреплённых столбцов таблицы / The frozen table columns -->
+  <xs:simpleType name="FrozenCount">
+    <xs:restriction base="xs:nonNegativeInteger">
+      <xs:maxInclusive value="1000"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Сравнение при сортировке столбца: текст, число, «естественное» (группы цифр — как числа) -->
   <!-- The comparison when sorting a column: a text, a number, "natural" (digit groups as numbers) -->
   <xs:simpleType name="GridSortType">
@@ -1287,6 +1294,16 @@
     <GridColumn>. The engine builds the header row, the scroll and the virtual row list (virtual="false" — all rows
     at once). selection is a selection model of the same list: a click and the arrows select rows, left/right and Home/End —
     the current cell (the Current state). A click on a header sorts the proxy by the column field, a repeated one — the other way.
+    Пункт 2.2.3: край заголовка тянет ширину (двойной щелчок — по содержимому), заголовок переставляет столбец
+    (reorderable, resizable — разрешения, по умолчанию true); frozenColumns — сколько первых столбцов не уезжает
+    при прокрутке вбок; columnLayout — порядок и изменённые ширины «ключ[:ширина] …» (движок сохраняет его в настройках
+    сам, у таблицы нужен id; разбор терпимый: неизвестные ключи и испорченные ширины пропускаются, поэтому без шаблона);
+    pinnedTop, pinnedBottom — модели закреплённых строк над и под прокруткой (итоги, избранное).
+    Item 2.2.3: a header edge drags the width (a double click — by the content), a header reorders the column
+    (reorderable, resizable are the permissions, true by default); frozenColumns — how many first columns do not move away
+    on sideways scrolling; columnLayout — the order and the changed widths "key[:width] …" (the engine keeps it in the settings
+    by itself, the table needs an id; the parsing is tolerant: unknown keys and damaged widths are skipped, hence no pattern);
+    pinnedTop, pinnedBottom — the models of the pinned rows above and below the scroll (totals, favorites).
   -->
   <xs:complexType name="DataGridType" mixed="true">
     <xs:complexContent>
@@ -1297,6 +1314,12 @@
         <xs:attribute name="items" type="ModelName" use="required"/>
         <xs:attribute name="selection" type="ModelName"/>
         <xs:attribute name="virtual" type="xs:boolean"/>
+        <xs:attribute name="frozenColumns" type="FrozenCount"/>
+        <xs:attribute name="reorderable" type="xs:boolean"/>
+        <xs:attribute name="resizable" type="xs:boolean"/>
+        <xs:attribute name="columnLayout" type="xs:string"/>
+        <xs:attribute name="pinnedTop" type="ModelName"/>
+        <xs:attribute name="pinnedBottom" type="ModelName"/>
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
@@ -1318,8 +1341,11 @@
       <xs:element name="CellTemplate" type="ItemTemplateType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="field" type="xs:string"/>
+    <!-- Имя столбца в сохранённой раскладке (по умолчанию — field) / The column name in the saved layout (field by default) -->
+    <xs:attribute name="id" type="xs:NCName"/>
     <xs:attribute name="title" type="xs:string"/>
     <xs:attribute name="width" type="Track"/>
+    <xs:attribute name="resizable" type="xs:boolean"/>
     <xs:attribute name="minWidth" type="xs:decimal"/>
     <xs:attribute name="maxWidth" type="xs:decimal"/>
     <xs:attribute name="sortable" type="xs:boolean"/>

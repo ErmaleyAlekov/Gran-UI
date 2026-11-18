@@ -339,6 +339,17 @@ namespace gran
         // Место окна, атрибуты persist, переменные persist — в настройки / The window place, the persist attributes, the persist variables into the settings
         void saveState(AppWindow& win);
 
+        // ---- window_restore.cpp ----
+
+        /*
+        ** Сохранённый атрибут persist → живая разметка узла. Файл настроек мог испортить кто угодно: значение, которое
+        ** не принимает схема или построитель, пропускается с предупреждением в журнал — программа запускается с разметкой.
+        **
+        ** A saved persist attribute → the live markup of the node. Anyone could damage the settings file: a value the schema
+        ** or the builder does not accept is skipped with a warning to the log — the program starts with the markup.
+        */
+        void restoreAttribute(Application& application, ui::Node& node, const std::string& name, const std::string& value);
+
         // ---- window_closing.cpp ----
 
         // Закрыть окна с флагом closing (с подчинёнными, onClosed); закрытие главного — выход из run()

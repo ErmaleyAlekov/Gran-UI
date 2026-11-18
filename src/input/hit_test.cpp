@@ -1,4 +1,5 @@
 #include "gran/input/input_router.hpp"
+#include "gran/ui/data_grid.hpp"
 
 namespace gran::input
 {
@@ -37,6 +38,10 @@ namespace gran::input
                 return nullptr;
             for (std::size_t index = node.children.size(); index > 0; --index)
             {
+                // Ячейка строки таблицы ловит мышь, только где видна (столбец вне окна прокрутки, под закреплёнными — нет)
+                // A table line cell catches the mouse only where it is visible (a column outside the scroll viewport, under the frozen ones — no)
+                if (!ui::gridCellVisibleAt(node, index - 1, point.x))
+                    continue;
                 ui::Node* hit = hitNode(*node.children[index - 1], point, layer);
                 if (hit != nullptr)
                     return hit;
