@@ -25,6 +25,16 @@ namespace gran::ui
             style::setDeclaration(list->declared.base, style::PropertyId::SHRINK, 0.0f);
             return list;
         }
+
+        // Место прокрутки среди детей таблицы (её точно нашёл gridRows) / The scroll place among the table children (gridRows has surely found it)
+        std::size_t scrollIndex(const Node& grid) noexcept
+        {
+            std::size_t index = 0;
+
+            while (index < grid.children.size() && grid.children[index]->kind != ElementKind::SCROLL)
+                ++index;
+            return index;
+        }
     }
 
     /*
@@ -49,8 +59,11 @@ namespace gran::ui
         grid.content.grid->undoStack = options.undoStack;
         if (rows == nullptr || !rows->itemTemplate)
             return;
+        // Сверху — прямо над прокруткой: под заголовками и строкой фильтров; место ищется, а не берётся «последним»
+        // (ревью Т-72) / At the top — right above the scroll: under the headers and the filter row; the place is searched
+        // for rather than taken as "the last" (review T-72)
         if (!options.pinnedTop.empty())
-            insertChild(grid, 1, makePinned(grid, *rows->itemTemplate, options.pinnedTop));
+            insertChild(grid, scrollIndex(grid), makePinned(grid, *rows->itemTemplate, options.pinnedTop));
         if (!options.pinnedBottom.empty())
             appendChild(grid, makePinned(grid, *rows->itemTemplate, options.pinnedBottom));
     }

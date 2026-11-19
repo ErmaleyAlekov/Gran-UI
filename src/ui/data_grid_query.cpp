@@ -23,6 +23,13 @@ namespace gran::ui
     }
 
     // Прокрутка — единственный ребёнок таблицы вида SCROLL (перед ней может стоять закреплённый список), в ней — список строк / The scroll is the only table child of the SCROLL kind (a pinned list may stand before it), inside it — the row list
+    Node* gridFilterRow(Node& grid) noexcept
+    {
+        if (gridHeader(grid) == nullptr || grid.children.size() < 2 || grid.children[1]->kind != ElementKind::GRID_HEADER)
+            return nullptr;
+        return grid.children[1].get();
+    }
+
     Node* gridRows(Node& grid) noexcept
     {
         if (grid.kind != ElementKind::DATA_GRID)

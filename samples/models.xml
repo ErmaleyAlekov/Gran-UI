@@ -3,13 +3,15 @@
   Модели (пункт 1.7): таблица заказов из JSON (свой разборщик, ленивая подгрузка порциями по 20 записей
   в виртуальном списке), прокси сортировки и фильтра (сумма по убыванию, поиск по клиенту и городу через
   $query), модель выделения (Ctrl/Shift, стрелки, итог по выделенным через orderSel/Item), дерево отделов
-  из XML (SAX «Берёсты», путь /org/dept) в плоском представлении TreeList с раскрытием и отступом по $depth.
+  из XML (SAX «Берёсты», путь /org/dept) в плоском представлении TreeList — дерево <TreeView> (пункт 2.2.5:
+  кнопка раскрытия, стрелки, двойной щелчок).
   Запуск: gran_snapshot samples/models.xml models.png или gran_gallery samples/models.xml
 
   Models (item 1.7): an orders table from JSON (an own parser, lazy loading by portions of 20 records
   in a virtual list), a sort and filter proxy (the sum descending, a search by the client and the city through
   $query), a selection model (Ctrl/Shift, arrows, a total of the selected ones through orderSel/Item), a department tree
-  from XML (Beresta SAX, the /org/dept path) in a flat TreeList view with expansion and an indent by $depth.
+  from XML (Beresta SAX, the /org/dept path) in a flat TreeList view — a <TreeView> tree (item 2.2.5:
+  an expander button, the arrows, a double click).
   Run: gran_snapshot samples/models.xml models.png or gran_gallery samples/models.xml
 -->
 <Window title="Gran UI — модели" width="920" height="560" background="#f5f6f8">
@@ -44,16 +46,14 @@
   <Stack orientation="horizontal" padding="16" spacing="16">
     <Stack style="panel" width="260">
       <Text fontSize="18" fontWeight="700">Отделы</Text>
-      <Stack items="orgRows" selection="deptSel" spacing="1">
+      <TreeView items="orgRows" selection="deptSel" grow="1" borderWidth="0">
         <ItemTemplate>
-          <Stack style="row" spacing="6">
-            <Box width="{$depth * 16}" height="1"/>
-            <Text width="14" onClick="gran:toggle">{substring(' +−', 1 + number($hasChildren) + number($expanded), 1)}</Text>
-            <Text grow="1">{name}</Text>
+          <Stack orientation="horizontal" align="center" spacing="6" grow="1">
+            <Text grow="1" textOverflow="ellipsis">{name}</Text>
             <Text style="muted">{staff}</Text>
           </Stack>
         </ItemTemplate>
-      </Stack>
+      </TreeView>
       <Text style="muted">Всего сотрудников: {sum(org/Item/@staff)}</Text>
     </Stack>
     <Stack style="panel" grow="1">

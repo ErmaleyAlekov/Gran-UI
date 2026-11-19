@@ -204,6 +204,20 @@ namespace gran::markup::internal
     ui::GridSortType gridSortType(std::string_view name) noexcept;
     ui::GridEditType gridEditType(std::string_view name) noexcept;
 
+    // ---- tree_view_read.cpp ----
+
+    // Атрибуты дерева у столбца (tree, indent, filterable); false — не они / The tree attributes of a column (tree, indent, filterable); false — not them
+    bool readTreeColumnAttribute(std::string_view name, const std::string& value, ui::GridColumn& column);
+
+    // Настройки <TreeView> (field, indent) / The <TreeView> settings (field, indent)
+    ui::TreeViewOptions readTreeViewOptions(const beresta::Element& element);
+
+    // Атрибут вида у TreeView читает readTreeViewOptions: здесь он только признаётся своим / A view attribute of TreeView is read by readTreeViewOptions: here it is only recognized as known
+    bool isTreeViewAttribute(const ui::Node& node, std::string_view name) noexcept;
+
+    // <TreeView>: части дерева после построения детей (ui::buildTreeView) / <TreeView>: the tree parts after building the children (ui::buildTreeView)
+    void readTreeView(const beresta::Element& element, ui::Node& node);
+
     // ---- data_grid_options.cpp ----
 
     // Атрибуты вида таблицы (frozenColumns, reorderable, resizable, columnLayout, pinnedTop, pinnedBottom, editable, undoStack) / The table view attributes

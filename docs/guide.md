@@ -874,7 +874,68 @@ app.loadData("rows", spec);
 - **Стиль** — поле ввода или список прямо в ячейке получает стиль темы `GridEditor` (без своей рамки и отступов:
   текст стоит там же, где стоял текст ячейки, рамка — у текущей ячейки). Свой `<Style name="GridEditor">` заменяет его.
 
-Дальше (план 2.2.5–2.2.6): TreeView и TreeGrid, UI Automation Grid/Table, Си-интерфейс правки. Пример — `samples/grid.xml`.
+### Дерево TreeView и таблица-дерево
+
+```xml
+<Tree name="org" source="data/departments.xml" select="/org/dept" children="dept"/>
+<TreeList name="orgRows" tree="org" expanded="1" sort="name"/>
+<Selection name="deptSel" model="orgRows" mode="single"/>
+...
+<TreeView items="orgRows" selection="deptSel" field="name" width="260"/>
+
+<TreeView items="orgRows" selection="deptSel" indent="20">
+  <ItemTemplate>
+    <Stack orientation="horizontal" spacing="6" grow="1">
+      <Text grow="1">{name}</Text>
+      <Text style="muted">{staff}</Text>
+    </Stack>
+  </ItemTemplate>
+</TreeView>
+
+<DataGrid items="orgRows" selection="deptSel" grow="1">
+  <GridColumn field="name" title="Отдел" tree="true" width="1fr"/>
+  <GridColumn field="staff" title="Сотрудников" width="110" textAlign="end"/>
+</DataGrid>
+```
+
+- **TreeView** показывает плоское дерево `<TreeList>`: строки — узлы раскрытых веток. Части строит движок: прокрутку
+  и виртуальный список строк (`virtual="false"` — все строки сразу). В строке — кнопка раскрытия со сдвигом `indent`
+  на уровень (по умолчанию 16) и подпись: поле `field` или своё содержимое `<ItemTemplate>` с `{поле}` и выражениями
+  строки `$depth`, `$expanded`, `$hasChildren`.
+- **Раскрытие:** щелчок по кнопке (стрелка вправо — ветка свёрнута, вниз — раскрыта; у листа стрелки нет), двойной
+  щелчок по строке, стрелки: вправо — раскрыть или перейти к первому ребёнку, влево — свернуть или перейти к родителю.
+  Выделение переживает свёртку ветки: ключ строки — её узел.
+- **Ленивые ветки:** узел с `setLazy(узел, true)` показывает кнопку раскрытия, а детей загружает подгрузчик
+  (`TreeModel::setFetcher`) при первом раскрытии — так строятся деревья папок и больших справочников.
+- **Таблица-дерево:** `tree="true"` у столбца таблицы над `<TreeList>` — в ячейках этого столбца кнопка раскрытия со
+  сдвигом по глубине (`indent` у столбца), стрелки влево/вправо в нём работают с деревом, двойной щелчок по строке
+  без правки раскрывает ветку. Без `tree` дерево по-прежнему ведёт первый столбец. Правка ячейки столбца-дерева
+  оставляет кнопку на месте — редактор встаёт на место текста.
+- **Стиль** — стили темы `TreeView`, `TreeRow` (`Hover`, `Selected`) и `TreeExpander` (`Hover`; размер кнопки —
+  `width`/`height`, цвет стрелки — `color`).
+
+### Строка фильтров
+
+```xml
+<DataGrid items="visibleOrders" selection="orderSel" filterRow="true" grow="1">
+  <GridColumn field="number" title="№" width="64" filterable="false"/>
+  <GridColumn field="client" title="Клиент" width="1fr"/>
+  <GridColumn field="sum" title="Сумма" width="110" type="number"/>
+</DataGrid>
+```
+
+- `filterRow="true"` — под заголовками строка с полем фильтра у каждого столбца с `field`; `filterable="false"`
+  у столбца — без поля. Набранное — подстрока без учёта регистра (латиница, кириллица, греческий). У числового столбца
+  (`sortType`/`type` или `<Column type="number">` источника) текст «>100», «>=10», «<5», «<=5», «=0», «<>3» сравнивает
+  числа; ячейка не числом в сравнение не проходит.
+- Условия всех столбцов складываются (И) и ставятся фильтром на прокси `<SortFilter>` или плоское дерево `<TreeList>`,
+  на которое смотрит таблица, — **поверх** их выражения `filter`: запись видна, если её пропускают оба. У дерева видны
+  подходящие узлы и их предки (предки раскрываются). Стёртые условия возвращают прежний фильтр. Таблица над хранилищем
+  без прокси не фильтруется.
+- Поле фильтра переезжает вместе со столбцом при перестановке; стиль — `GridFilterRow` (строка) и `GridFilter` (поле).
+
+Дальше (план 2.2.6): UI Automation Grid/Table/Tree, Си-интерфейс правки и дерева. Примеры — `samples/grid.xml`
+(строка фильтров) и `samples/models.xml` (TreeView, таблица-дерево).
 
 ![Таблица DataGrid: столбцы px, auto и fr, своя ячейка, сортировка, закреплённый столбец и строки сверху](images/grid.png)
 

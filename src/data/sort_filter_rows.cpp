@@ -37,4 +37,9 @@ namespace gran::data
             notifyRemoved(first, last - first + 1);
         }
     }
+
+    const std::shared_ptr<RecordFilter>& SortFilterProxy::filter() const noexcept
+    {
+        return _filter;
+    }
 }

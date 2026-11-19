@@ -36,6 +36,17 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   (`undoStack`, `undo="false"`), a step remembers the storage record and survives the proxy sorting; while the editor is open
   the records may be added, removed and sorted; closing the window (the cross, Alt+F4) writes the open edit before `onClose`.
   The `GridEditor` theme style — an input right in a cell without an own frame.
+- The `<TreeView>` tree (step 2.2.5) over a `<TreeList>` flat tree: an expander button shifted by `indent` per level
+  (a right arrow — collapsed, a down one — expanded), the label is the `field` or an own `<ItemTemplate>`, virtual rows,
+  expanding by a click on the button, a double click and the arrows, lazy branches are fetched on the first expansion; the
+  `TreeView`, `TreeRow`, `TreeExpander` theme styles. A table tree column is `tree="true"` at `<GridColumn>` (an expander
+  button in the cells, the left/right arrows in it go to the tree, a double click without editing expands the branch).
+- `<DataGrid filterRow="true">` — a filter row under the headers: an input at every column with `field`
+  (`filterable="false"` — no input), a case-insensitive substring, for numeric columns — the comparisons ">100", "<=5",
+  "=0", "<>3"; the conditions are put on the `<SortFilter>` proxy or the `<TreeList>` on top of their `filter` expression
+  (a tree shows the ancestors of the matching nodes). The `gran:filterColumn` built-in action, the `GridFilterRow` and
+  `GridFilter` theme styles; in code — `data::ColumnFilter` (a decorator over the former filter), `SortFilterProxy::filter()`
+  and `TreeList::filter()`.
 - The scroll bar of `Scroll` and `TextArea` works with the mouse: the thumb is grabbed and dragged (also outside the window),
   a press on the bar beside the thumb pages by the visible part. Previously the bar only showed the position, and scrolling
   was possible only with the wheel and the keyboard (found by the manual check T-58).

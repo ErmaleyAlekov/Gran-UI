@@ -25,35 +25,39 @@ namespace gran::ui
     struct GridState;
 
     /*
-    ** Вид элемента разметки. Виды до DATA_GRID включительно пишутся в разметке; TAB_BAR и TAB_HEADER
+    ** Вид элемента разметки. Виды до TREE_VIEW включительно пишутся в разметке; TAB_BAR и TAB_HEADER
     ** строит движок (полоса заголовков <Tabs>), TOOL_MORE — кнопку «ещё» панели инструментов, SIZE_GRIP — ручку
     ** размера окна в строке состояния, SPLITTER_HANDLE — ручку разделителя, DOCK_STRIP, DOCK_TITLE и DOCK_HANDLE —
     ** полосы заголовков, заголовки и ручки краёв DockHost; у них только стили темы по их именам.
     **
     ** Таблица DataGrid пишется в разметке, а её части строит движок: строку заголовков GRID_HEADER с ячейками
-    ** GRID_HEADER_CELL, шаблон строки GRID_ROW с ячейками GRID_CELL (ui/data_grid.hpp).
+    ** GRID_HEADER_CELL, шаблон строки GRID_ROW с ячейками GRID_CELL (ui/data_grid.hpp). Дерево TreeView — так же:
+    ** шаблон строки TREE_ROW и кнопку раскрытия TREE_EXPANDER строит движок (ui/tree_view.hpp); кнопка раскрытия
+    ** стоит и в ячейках столбца-дерева таблицы.
     **
-    ** The markup element kind. The kinds up to DATA_GRID inclusive are written in the markup; TAB_BAR and TAB_HEADER
+    ** The markup element kind. The kinds up to TREE_VIEW inclusive are written in the markup; TAB_BAR and TAB_HEADER
     ** are built by the engine (the <Tabs> header strip), TOOL_MORE — the toolbar "more" button, SIZE_GRIP — the window size
     ** grip in the status bar, SPLITTER_HANDLE — the splitter handle, DOCK_STRIP, DOCK_TITLE and DOCK_HANDLE — the title
     ** strips, the titles and the edge handles of a DockHost; they have only the theme styles named after them.
     ** A DataGrid table is written in the markup while the engine builds its parts: the GRID_HEADER header row with
-    ** the GRID_HEADER_CELL cells, the GRID_ROW row template with the GRID_CELL cells (ui/data_grid.hpp).
+    ** the GRID_HEADER_CELL cells, the GRID_ROW row template with the GRID_CELL cells (ui/data_grid.hpp). A TreeView tree is the same:
+    ** the engine builds the TREE_ROW row template and the TREE_EXPANDER expander button (ui/tree_view.hpp); the expander button
+    ** also stands in the cells of a table tree column.
     */
     enum class ElementKind : std::uint8_t
     {
         STACK, BOX, GRID, CANVAS, SCROLL, TEXT, IMAGE, BUTTON, INPUT, CHECKBOX, SLIDER, TEXT_AREA, SPAN, POPUP, MENU_ITEM, WEB_VIEW,
         DIALOG, COMBO_BOX, RADIO_BUTTON, SWITCH, PROGRESS_BAR, TABS, TAB, ICON, MENU_BAR,
-        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, SPLITTER, DOCK_HOST, DOCK_PANEL, DATA_GRID, TAB_BAR,
-        TAB_HEADER, TOOL_MORE, SIZE_GRIP, SPLITTER_HANDLE, DOCK_STRIP, DOCK_TITLE, DOCK_HANDLE, GRID_HEADER, GRID_HEADER_CELL,
-        GRID_ROW, GRID_CELL
+        TOOL_BAR, TOOL_GROUP, SEPARATOR, STATUS_BAR, STATUS_SECTION, SPLITTER, DOCK_HOST, DOCK_PANEL, DATA_GRID, TREE_VIEW,
+        TAB_BAR, TAB_HEADER, TOOL_MORE, SIZE_GRIP, SPLITTER_HANDLE, DOCK_STRIP, DOCK_TITLE, DOCK_HANDLE, GRID_HEADER,
+        GRID_HEADER_CELL, GRID_ROW, GRID_CELL, TREE_ROW, TREE_EXPANDER
     };
 
     // Последний вид, который пишется в разметке / The last kind written in the markup
-    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::DATA_GRID;
+    constexpr ElementKind LAST_MARKUP_KIND = ElementKind::TREE_VIEW;
 
     // Последний вид вообще: по нему считается число видов (таблицы стилей и имён) / The last kind at all: the kind count is computed from it (the style and name tables)
-    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::GRID_CELL;
+    constexpr ElementKind LAST_ELEMENT_KIND = ElementKind::TREE_EXPANDER;
 
     /*
     ** Клавиша отправки многострочного поля (onSubmit). CONTROL_ENTER: Enter — новая строка,

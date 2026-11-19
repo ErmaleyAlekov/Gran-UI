@@ -23,6 +23,7 @@ namespace gran::binding
 {
     class ListBinding;
     class ExpressionBindings;
+    class ExpressionFilter;
 
     /*
     ** Запись списка, к которой относится узел; model == nullptr — узел не из списка. model — источник
@@ -205,6 +206,23 @@ namespace gran::binding
         ** a <SortFilter> proxy or the column is not sortable.
         */
         bool sortColumn(const ui::Node& headerCell);
+
+        // ---- list_bindings_grid_filter.cpp ----
+
+        /*
+        ** Правка поля строки фильтров таблицы (встроенное действие gran:filterColumn): условие столбца запоминается,
+        ** условия всех столбцов становятся фильтром прокси <SortFilter> или плоского дерева <TreeList>, на которое смотрит
+        ** таблица, — поверх фильтра разметки. false — поле не из строки фильтров или таблица смотрит на хранилище.
+        **
+        ** An edit of a table filter row input (the gran:filterColumn built-in action): the column condition is remembered,
+        ** the conditions of all the columns become the filter of the <SortFilter> proxy or the <TreeList> flat tree the table looks at —
+        ** on top of the markup filter. false — the input is not from the filter row or the table looks at a storage.
+        */
+        bool filterColumn(const ui::Node& input);
+
+        // Перенос состояния полей закончен (перезагрузка, перестройка ветки): фильтры таблиц поддерева — по тексту их полей
+        // The input state transfer is over (a reload, a branch rebuild): the subtree table filters follow the text of their inputs
+        void refreshGridFilters(ui::Node& subtree);
 
         // ---- list_bindings_adopt.cpp ----
 

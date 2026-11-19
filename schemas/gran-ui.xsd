@@ -189,6 +189,14 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Отступ уровня дерева в логических пикселях (TreeView, столбец-дерево) / The tree level indent in logical pixels (TreeView, a tree column) -->
+  <xs:simpleType name="TreeIndent">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="200"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Сравнение при сортировке столбца: текст, число, «естественное» (группы цифр — как числа) -->
   <!-- The comparison when sorting a column: a text, a number, "natural" (digit groups as numbers) -->
   <xs:simpleType name="GridSortType">
@@ -665,6 +673,7 @@
       <xs:element name="Splitter" type="SplitterType"/>
       <xs:element name="DockHost" type="DockHostType"/>
       <xs:element name="DataGrid" type="DataGridType"/>
+      <xs:element name="TreeView" type="TreeViewType"/>
       <!-- Место для содержимого экземпляра — только в теле <Component> / A place for the instance content — only in a <Component> body -->
       <xs:element name="Slot" type="SlotType"/>
       <!--
@@ -1322,6 +1331,12 @@
     Item 2.2.4: editable="true" — the cells are editable (selection is needed): F2, Enter, a double click or typing a character
     open the current cell editor; Enter writes, Esc cancels, Tab — the next column; the value is checked by the column
     type. Every edit is an undo step in the undoStack stack (empty — the main gran:undo stack), undo="false" — no steps.
+    Пункт 2.2.5: filterRow="true" — под заголовками строка фильтров: поле у каждого столбца с field (filterable="false" —
+    без поля); набранное — подстрока без учёта регистра, у числового столбца также «&gt;100», «&lt;=5», «=0», «&lt;&gt;3». Фильтр
+    ставится на прокси <SortFilter> или плоское дерево <TreeList> поверх их выражения filter (у дерева видны и предки).
+    Item 2.2.5: filterRow="true" — a filter row under the headers: an input at every column with field (filterable="false" —
+    no input); the typed text is a case-insensitive substring, for a numeric column also "&gt;100", "&lt;=5", "=0", "&lt;&gt;3". The filter
+    is put on the <SortFilter> proxy or the <TreeList> flat tree on top of their filter expression (a tree shows the ancestors too).
   -->
   <xs:complexType name="DataGridType" mixed="true">
     <xs:complexContent>
@@ -1341,8 +1356,42 @@
         <xs:attribute name="editable" type="xs:boolean"/>
         <xs:attribute name="undoStack" type="xs:string"/>
         <xs:attribute name="undo" type="xs:boolean"/>
+        <xs:attribute name="filterRow" type="xs:boolean"/>
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!--
+    Дерево TreeView: строки — узлы плоского дерева items (<TreeList> над <Tree>), видны узлы раскрытых веток. Движок
+    строит прокрутку и виртуальный список строк (virtual="false" — все строки сразу); в строке — кнопка раскрытия
+    со сдвигом indent на уровень (по умолчанию 16) и подпись: поле field или своё содержимое <ItemTemplate> с {поле}
+    и выражениями строки $depth, $expanded, $hasChildren. Щелчок по кнопке или двойной щелчок по строке раскрывают
+    и сворачивают ветку; стрелки: вправо — раскрыть или к первому ребёнку, влево — свернуть или к родителю. Ленивый
+    узел подгружает детей при первом раскрытии. selection — модель выделения того же плоского дерева.
+    A TreeView tree: the rows are the nodes of the items flat tree (<TreeList> over <Tree>), the nodes of the expanded branches
+    are shown. The engine builds the scroll and the virtual row list (virtual="false" — all rows at once); a row has
+    an expander button shifted by indent per level (16 by default) and a label: the field or an own <ItemTemplate> content
+    with {field} and the $depth, $expanded, $hasChildren row expressions. A click on the button or a double click on the row
+    expands and collapses the branch; the arrows: right — expand or go to the first child, left — collapse or go to the parent.
+    A lazy node fetches its children on the first expansion. selection is a selection model of the same flat tree.
+  -->
+  <xs:complexType name="TreeViewType" mixed="true">
+    <xs:complexContent>
+      <xs:extension base="ElementBase">
+        <xs:sequence>
+          <xs:element name="ItemTemplate" type="ItemTemplateType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="items" type="ModelName" use="required"/>
+        <xs:attribute name="selection" type="ModelName"/>
+        <xs:attribute name="virtual" type="xs:boolean"/>
+        <xs:attribute name="field" type="xs:string"/>
+        <xs:attribute name="indent" type="TreeIndent"/>
+        <xs:attributeGroup ref="StackAttributes"/>
+        <xs:assert test="not(text()[normalize-space(.)])"/>
+        <!-- Подпись строки — поле или свой шаблон / The row label is a field or an own template -->
+        <xs:assert test="exists(@field) or exists(ItemTemplate)"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -1362,6 +1411,10 @@
     Editing: editable="false" forbids editing the column of a table with editable="true"; type is the value check and the default
     editor (text, number, date — an input, boolean — a check box); <EditTemplate> is an own editor: one element
     with {field} placeholders, the value is edited by the first input, combo box, check box, switch or slider inside.
+    Дерево: tree="true" — столбец-дерево таблицы над <TreeList> (кнопка раскрытия со сдвигом indent перед содержимым,
+    стрелки влево/вправо в нём — дереву); filterable="false" — без поля в строке фильтров (filterRow у DataGrid).
+    A tree: tree="true" — the tree column of a table over a <TreeList> (an expander button shifted by indent before the content,
+    the left/right arrows in it go to the tree); filterable="false" — no input in the filter row (filterRow of DataGrid).
   -->
   <xs:complexType name="GridColumnType">
     <xs:sequence>
@@ -1380,6 +1433,9 @@
     <xs:attribute name="sortType" type="GridSortType"/>
     <xs:attribute name="editable" type="xs:boolean"/>
     <xs:attribute name="type" type="GridEditType"/>
+    <xs:attribute name="tree" type="xs:boolean"/>
+    <xs:attribute name="indent" type="TreeIndent"/>
+    <xs:attribute name="filterable" type="xs:boolean"/>
     <xs:attributeGroup ref="TextAttributes"/>
     <xs:assert test="exists(@field) or exists(CellTemplate)"/>
     <!-- Редактору нужно поле записи, куда писать значение / The editor needs a record field to write the value into -->

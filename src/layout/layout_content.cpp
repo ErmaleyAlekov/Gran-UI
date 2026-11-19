@@ -15,7 +15,8 @@ namespace gran::layout::internal
                 || kind == ui::ElementKind::TOOL_BAR || kind == ui::ElementKind::TOOL_GROUP || kind == ui::ElementKind::STATUS_BAR
                 || kind == ui::ElementKind::STATUS_SECTION || kind == ui::ElementKind::SPLITTER || kind == ui::ElementKind::DOCK_STRIP
                 || kind == ui::ElementKind::DOCK_PANEL || kind == ui::ElementKind::DATA_GRID || kind == ui::ElementKind::GRID_HEADER_CELL
-                || kind == ui::ElementKind::GRID_CELL || ui::isLayer(node))
+                || kind == ui::ElementKind::GRID_CELL || kind == ui::ElementKind::TREE_VIEW || kind == ui::ElementKind::TREE_ROW
+                || ui::isLayer(node))
                 return true;
             return node.kind == ui::ElementKind::BUTTON && !node.children.empty();
         }

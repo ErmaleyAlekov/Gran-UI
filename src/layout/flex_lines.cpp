@@ -24,6 +24,7 @@ namespace gran::layout::internal
         bool scrollsContent(const ui::Node& node) noexcept
         {
             return node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::DATA_GRID
+                || node.kind == ui::ElementKind::TREE_VIEW
                 || node.computed.overflow != static_cast<int>(style::Overflow::VISIBLE);
         }
 

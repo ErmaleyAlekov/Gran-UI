@@ -782,7 +782,68 @@ copies, the rows may differ in height; `virtual="false"` — all rows at once.
 - **Style** — an input or a combo box right in a cell gets the `GridEditor` theme style (without an own frame and paddings:
   the text stands where the cell text stood, the frame is the current cell one). An own `<Style name="GridEditor">` replaces it.
 
-Next (plan 2.2.5–2.2.6): TreeView and TreeGrid, UI Automation Grid/Table, the C interface of editing. The sample is `samples/grid.xml`.
+### TreeView and the tree table
+
+```xml
+<Tree name="org" source="data/departments.xml" select="/org/dept" children="dept"/>
+<TreeList name="orgRows" tree="org" expanded="1" sort="name"/>
+<Selection name="deptSel" model="orgRows" mode="single"/>
+...
+<TreeView items="orgRows" selection="deptSel" field="name" width="260"/>
+
+<TreeView items="orgRows" selection="deptSel" indent="20">
+  <ItemTemplate>
+    <Stack orientation="horizontal" spacing="6" grow="1">
+      <Text grow="1">{name}</Text>
+      <Text style="muted">{staff}</Text>
+    </Stack>
+  </ItemTemplate>
+</TreeView>
+
+<DataGrid items="orgRows" selection="deptSel" grow="1">
+  <GridColumn field="name" title="Department" tree="true" width="1fr"/>
+  <GridColumn field="staff" title="Staff" width="110" textAlign="end"/>
+</DataGrid>
+```
+
+- **TreeView** shows a `<TreeList>` flat tree: the rows are the nodes of the expanded branches. The engine builds the parts:
+  the scroll and the virtual row list (`virtual="false"` — all rows at once). A row has an expander button shifted by `indent`
+  per level (16 by default) and a label: the `field` or an own `<ItemTemplate>` content with `{field}` and the `$depth`,
+  `$expanded`, `$hasChildren` row expressions.
+- **Expanding:** a click on the button (a right arrow — the branch is collapsed, a down one — expanded; a leaf has no arrow),
+  a double click on the row, the arrows: right — expand or go to the first child, left — collapse or go to the parent.
+  The selection survives collapsing a branch: the row key is its node.
+- **Lazy branches:** a node with `setLazy(node, true)` shows an expander button, and the fetcher (`TreeModel::setFetcher`)
+  loads its children on the first expansion — this is how folder trees and big reference books are built.
+- **The tree table:** `tree="true"` at a column of a table over a `<TreeList>` — the cells of this column get an expander button
+  shifted by the depth (`indent` of the column), the left/right arrows in it work with the tree, a double click on a row
+  without editing expands the branch. Without `tree` the first column still drives the tree. Editing a tree column cell
+  keeps the button in place — the editor takes the place of the text.
+- **Style** — the `TreeView`, `TreeRow` (`Hover`, `Selected`) and `TreeExpander` theme styles (`Hover`; the button size is
+  `width`/`height`, the arrow color is `color`).
+
+### Filter row
+
+```xml
+<DataGrid items="visibleOrders" selection="orderSel" filterRow="true" grow="1">
+  <GridColumn field="number" title="No." width="64" filterable="false"/>
+  <GridColumn field="client" title="Client" width="1fr"/>
+  <GridColumn field="sum" title="Sum" width="110" type="number"/>
+</DataGrid>
+```
+
+- `filterRow="true"` — a row under the headers with a filter input at every column with `field`; `filterable="false"`
+  at a column — no input. The typed text is a case-insensitive substring (Latin, Cyrillic, Greek). For a numeric column
+  (`sortType`/`type` or the source `<Column type="number">`) the text ">100", ">=10", "<5", "<=5", "=0", "<>3" compares
+  numbers; a cell that is not a number does not pass a comparison.
+- The conditions of all the columns are combined (AND) and set as the filter of the `<SortFilter>` proxy or the `<TreeList>`
+  flat tree the table looks at — **on top of** their `filter` expression: a record is shown if both pass it. A tree shows
+  the matching nodes and their ancestors (the ancestors expand). Erased conditions bring the former filter back. A table
+  over a storage without a proxy is not filtered.
+- The filter input moves together with its column on reordering; the style is `GridFilterRow` (the row) and `GridFilter` (the input).
+
+Next (plan 2.2.6): UI Automation Grid/Table/Tree, the C interface of editing and of the tree. The samples are `samples/grid.xml`
+(the filter row) and `samples/models.xml` (TreeView, the tree table).
 
 ![DataGrid table: px, auto and fr columns, an own cell, sorting, a frozen column and rows pinned at the top](images/grid.png)
 

@@ -8,6 +8,7 @@
   окна layout="grid" (у gran_gallery — в настройках программы).
   Пункт 2.2.4: ячейки правятся (editable) — F2, Enter, двойной щелчок или набор символа; Enter записывает, Esc отменяет,
   Tab — соседний столбец; сумма проверяется как число, состояние выбирается списком (<EditTemplate>), «№» не правится.
+  Пункт 2.2.5: строка фильтров (filterRow) — подстрока клиента или города, у суммы также «>1000», «<=500».
   Запуск: gran_snapshot samples/grid.xml grid.png или gran_gallery samples/grid.xml
 
   A DataGrid table (items 2.2.2–2.2.3): orders from JSON in a sort and filter proxy, px / auto / fr columns with limits,
@@ -18,6 +19,7 @@
   of the window layout="grid" (for gran_gallery — in the program settings).
   Item 2.2.4: the cells are editable (editable) — F2, Enter, a double click or typing a character; Enter writes, Esc cancels,
   Tab — the neighbor column; the sum is checked as a number, the status is chosen from a list (<EditTemplate>), "№" is not editable.
+  Item 2.2.5: the filter row (filterRow) — a substring of the client or the city, for the sum also ">1000", "<=500".
   Run: gran_snapshot samples/grid.xml grid.png or gran_gallery samples/grid.xml
 -->
 <Window title="Gran UI — таблица" width="900" height="520" background="#f5f6f8" layout="grid">
@@ -47,8 +49,8 @@
       <Input width="220" placeholder="Клиент или город" value="{$query}"/>
     </Stack>
     <DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1" frozenColumns="1" pinnedTop="bigOrders"
-              editable="true">
-      <GridColumn field="number" title="№" width="64" textAlign="end" color="#667085" editable="false"/>
+              editable="true" filterRow="true">
+      <GridColumn field="number" title="№" width="64" textAlign="end" color="#667085" editable="false" filterable="false"/>
       <GridColumn field="client" title="Клиент" width="1fr" minWidth="160"/>
       <GridColumn field="city" title="Город" width="auto" maxWidth="180"/>
       <GridColumn field="sum" title="Сумма" width="110" textAlign="end"/>

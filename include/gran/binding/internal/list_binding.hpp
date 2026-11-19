@@ -3,7 +3,9 @@
 
 #include "gran/binding/internal/extent_index.hpp"
 #include "gran/binding/list_bindings.hpp"
+#include "gran/data/column_filter.hpp"
 #include "gran/data/selection_model.hpp"
+#include "gran/ui/data_grid.hpp"
 
 #include <cstddef>
 #include <string>
@@ -219,6 +221,35 @@ namespace gran::binding
 
     // Стрелка сортировки в заголовке по ключам прокси, на который смотрит таблица (после привязки) / The header sort arrow by the keys of the proxy the table looks at (after binding)
     void syncGridSort(const ui::Node& rows, const data::ListSource& model);
+
+    // Способ сравнения столбца: явный sortType или тип <Column> источника (число — как число) / The column comparison: an explicit sortType or the source <Column> type (a number — as a number)
+    data::SortType gridSortTypeOf(const ui::GridColumn& column, const data::ListSource& source);
+
+    // ---- list_bindings_grid_filter.cpp ----
+
+    // Таблица со строкой фильтров привязана: условия модели — по полям строки (rows — список строк таблицы) / A table with a filter row is bound: the model conditions follow the row inputs (rows is the table row list)
+    void syncGridFilter(const ui::Node& rows, data::ListSource& model);
+
+    // Список строк — основной у таблицы со строкой фильтров: её условия стоят на его модели / The row list is the main one of a table with a filter row: its conditions stand on its model
+    bool ownsColumnFilter(const ui::Node& rows) noexcept;
+
+    // ---- column_filter_apply.cpp ----
+
+    // Модель фильтруется строкой фильтров: прокси <SortFilter> или плоское дерево / The model is filtered by a filter row: a <SortFilter> proxy or a flat tree
+    bool filtersColumns(data::ListSource& model) noexcept;
+
+    // Условия столбцов — фильтром модели поверх прежнего (декоратор data::ColumnFilter) / The column conditions as the model filter on top of the former one (the data::ColumnFilter decorator)
+    void applyColumnConditions(data::ListSource& model, const std::vector<data::ColumnCondition>& conditions);
+
+    /*
+    ** Новое выражение filter разметки у представления, над которым стоит фильтр строки фильтров: оно заменяет основу
+    ** декоратора, условия столбцов остаются. false — фильтра строки фильтров у представления нет.
+    **
+    ** A new markup filter expression of a view under a filter row filter: it replaces the decorator base,
+    ** the column conditions stay. false — the view has no filter row filter.
+    */
+    bool replaceColumnFilterBase(data::SortFilterProxy* rows, data::TreeList* nodes,
+        const std::shared_ptr<ExpressionFilter>& filter);
 }
 
 #endif

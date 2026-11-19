@@ -69,6 +69,9 @@ namespace gran::data
         bool canFetchMore() const override;
         void fetchMore() override;
 
+        // Нынешний фильтр (nullptr — все записи) / The current filter (nullptr — all records)
+        const std::shared_ptr<RecordFilter>& filter() const noexcept;
+
     private:
         // ---- sort_filter_events.cpp ----
         void inserted(std::size_t index, std::size_t count) override;

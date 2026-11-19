@@ -70,12 +70,17 @@ namespace gran::app
         return true;
     }
 
-    // gran:sortColumn у заголовка столбца таблицы: сортировка через прокси (не прокси — ничего) / gran:sortColumn at a table column header: sorting through the proxy (not a proxy — nothing)
+    // gran:sortColumn у заголовка столбца таблицы: сортировка через прокси (не прокси — ничего); gran:filterColumn у поля
+    // строки фильтров — фильтр прокси или плоского дерева / gran:sortColumn at a table column header: sorting through the proxy
+    // (not a proxy — nothing); gran:filterColumn at a filter row input — the filter of the proxy or the flat tree
     bool gridHeaderBuiltin(Application::State& state, const std::string& command, ui::Node& node)
     {
-        if (command != "sortColumn")
+        if (command == "sortColumn")
+            state.lists.sortColumn(node);
+        else if (command == "filterColumn")
+            state.lists.filterColumn(node);
+        else
             return false;
-        state.lists.sortColumn(node);
         return true;
     }
 }

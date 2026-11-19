@@ -51,7 +51,9 @@ namespace gran::app
         {
             for (const std::unique_ptr<ui::Node>& child : cell.children)
             {
-                if (!child->visible)
+                // Кнопка раскрытия столбца-дерева остаётся: редактор встаёт на место текста, а не на место отступа
+                // The tree column expander button stays: the editor takes the place of the text, not of the indent
+                if (!child->visible || child->kind == ui::ElementKind::TREE_EXPANDER)
                     continue;
                 child->visible = false;
                 hidden.push_back(child.get());

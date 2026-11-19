@@ -86,6 +86,8 @@ namespace gran::markup::internal
     ** and the list template, the {…} expressions in the texts; for a ComboBox — the list layer, for Tabs — the header strip.
     ** У DataGrid вместо детей — столбцы <GridColumn> (data_grid_read.cpp).
     ** A DataGrid has the <GridColumn> columns instead of children (data_grid_read.cpp).
+    ** TreeView строит свои части после <ItemTemplate> (tree_view_read.cpp).
+    ** A TreeView builds its parts after <ItemTemplate> (tree_view_read.cpp).
     ** The parser bounds the recursion depth (maxDepth = 256).
     ** Экземпляр компонента разворачивается в тело (component_expand.cpp).
     ** A component instance expands into the body (component_expand.cpp).
@@ -109,6 +111,8 @@ namespace gran::markup::internal
             readDataGrid(element, *node, context);
         else if (!readTagText(element, *node, context))
             buildChildren(element, *node, context);
+        if (node->kind == ui::ElementKind::TREE_VIEW)
+            readTreeView(element, *node);
         readTextBindings(element, *node);
         if (node->kind == ui::ElementKind::COMBO_BOX)
             wrapOptions(*node);

@@ -51,6 +51,7 @@ namespace gran::binding
                 {subtree.content.selection, subtree.content.items}));
         _bindings.push_back(std::make_unique<ListBinding>(*this, subtree, *source, chosen));
         syncGridSort(subtree, *source);
+        syncGridFilter(subtree, *source);
     }
 
     // Уничтожение привязки отписывает её от модели / Destroying a binding unsubscribes it from the model

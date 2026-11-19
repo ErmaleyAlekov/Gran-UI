@@ -84,6 +84,9 @@ namespace gran::data
         // Раскрыть узлы первых levels уровней, остальные свернуть (0 — всё свёрнуто) / Expand the nodes of the first levels levels, collapse the others (0 — everything is collapsed)
         void expandToDepth(std::size_t levels);
 
+        // Нынешний фильтр узлов (nullptr — все) / The current node filter (nullptr — all)
+        const std::shared_ptr<NodeFilter>& filter() const noexcept;
+
         // ---- tree_list_order.cpp ----
 
         // Ключи сортировки братьев / The sibling sort keys

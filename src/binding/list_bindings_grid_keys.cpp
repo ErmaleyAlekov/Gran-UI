@@ -6,20 +6,20 @@ namespace gran::binding
     namespace
     {
         /*
-        ** Таблица над плоским деревом (TreeList): в первом столбце стрелки — дереву, как в проводнике: влево — свернуть
+        ** Таблица над плоским деревом (TreeList): в столбце-дереве (tree, без него — первый) стрелки — дереву, как в проводнике: влево — свернуть
         ** или к родителю, вправо — раскрыть свёрнутую ветку; у раскрытой ветки и листа вправо идёт к следующему столбцу.
         ** Раньше таблица забирала влево/вправо целиком, и дерево в таблице не раскрывалось с клавиатуры (ревью Т-63).
         **
-        ** A table over a flat tree (TreeList): in the first column the arrows go to the tree, as in a file manager: left — collapse
+        ** A table over a flat tree (TreeList): in the tree column (tree, without one — the first) the arrows go to the tree, as in a file manager: left — collapse
         ** or go to the parent, right — expand a collapsed branch; for an expanded branch and a leaf right goes to the next column.
         ** Previously the table took left/right entirely, and the tree in a table did not expand from the keyboard (review T-63).
         */
-        bool treeOwnsKey(ListBinding& binding, ListKey key, std::size_t column)
+        bool treeOwnsKey(ListBinding& binding, ListKey key, const ui::GridState& state)
         {
             data::TreeList* tree = dynamic_cast<data::TreeList*>(&binding.model());
             std::size_t current = data::NO_ROW;
 
-            if (tree == nullptr || column != 0 || (key != ListKey::LEFT && key != ListKey::RIGHT))
+            if (tree == nullptr || state.current != ui::gridTreeColumn(state) || (key != ListKey::LEFT && key != ListKey::RIGHT))
                 return false;
             if (key == ListKey::LEFT)
                 return true;
@@ -44,7 +44,7 @@ namespace gran::binding
         if (grid == nullptr || (control && (key == ListKey::HOME || key == ListKey::END)))
             return false;
         column = grid->content.grid->current;
-        if (treeOwnsKey(binding, key, column))
+        if (treeOwnsKey(binding, key, *grid->content.grid))
             return false;
         if (key == ListKey::LEFT && column > 0)
             --column;

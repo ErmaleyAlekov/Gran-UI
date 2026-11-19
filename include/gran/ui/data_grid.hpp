@@ -4,6 +4,7 @@
 #include "gran/style/property.hpp"
 #include "gran/style/values.hpp"
 #include "gran/ui/node.hpp"
+#include "gran/ui/tree_view.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -43,6 +44,14 @@ namespace gran::ui
     **
     ** Editing (item 2.2.4): editable — the column is editable if the table allows editing; editType — the value check
     ** and the default editor; editTemplate — an own <EditTemplate> editor (shared by the column copies: it is only copied).
+    **
+    ** Пункт 2.2.5: tree — столбец-дерево (кнопка раскрытия со сдвигом indent на уровень перед содержимым ячейки, стрелки
+    ** влево/вправо в нём раскрывают и сворачивают ветки); filterable — у столбца есть поле в строке фильтров, filterText —
+    ** набранное в нём условие (переезжает вместе со столбцом при перестановке).
+    **
+    ** Item 2.2.5: tree — a tree column (an expander button shifted by indent per level before the cell content, the left/right
+    ** arrows in it expand and collapse branches); filterable — the column has an input in the filter row, filterText —
+    ** the condition typed in it (it moves together with the column on reordering).
     */
     struct GridColumn
     {
@@ -59,6 +68,10 @@ namespace gran::ui
         bool editable = true;
         GridEditType editType = GridEditType::AUTO;
         std::shared_ptr<const Node> editTemplate{};
+        bool tree = false;
+        float indent = TREE_INDENT;
+        bool filterable = true;
+        std::string filterText{};
     };
 
     // Самый узкий столбец, до которого его сужает пользователь (если minWidth меньше) / The narrowest column the user narrows it to (if minWidth is smaller)
@@ -136,6 +149,8 @@ namespace gran::ui
     **
     ** The table settings from the markup: the frozen columns, the permissions, the saved column layout
     ** (columnLayout: "key[:width] …" — the order and the changed widths) and the pinned row models at the top and the bottom.
+    ** filterRow — под заголовками строка фильтров (поле ввода у каждого столбца с полем записи и filterable).
+    ** filterRow — a filter row under the headers (an input at every column with a record field and filterable).
     */
     struct GridOptions
     {
@@ -147,6 +162,7 @@ namespace gran::ui
         std::string pinnedBottom;
         bool editable = false;
         std::string undoStack;
+        bool filterRow = false;
     };
 
     // ---- data_grid_build.cpp ----
@@ -173,6 +189,9 @@ namespace gran::ui
     // Строка заголовков и список строк таблицы (nullptr — не таблица или части не построены) / The table header row and row list (nullptr — not a table or the parts are not built)
     Node* gridHeader(Node& grid) noexcept;
     Node* gridRows(Node& grid) noexcept;
+
+    // Строка фильтров под заголовками (nullptr — у таблицы её нет) / The filter row under the headers (nullptr — the table has none)
+    Node* gridFilterRow(Node& grid) noexcept;
 
     // Номер ячейки строки row, внутри которой лежит узел hit; NO_COLUMN — узел не в ячейке строки / The index of the row cell holding the hit node; NO_COLUMN — the node is not in a row cell
     std::size_t cellColumn(const Node& row, const Node& hit) noexcept;
@@ -235,6 +254,25 @@ namespace gran::ui
 
     // Прокрутить таблицу по горизонтали, чтобы текущий столбец был виден целиком; true — смещение сменилось / Scroll the table horizontally so the current column is fully visible; true — the offset changed
     bool revealGridColumn(Node& grid);
+
+    // ---- data_grid_tree.cpp ----
+
+    // Столбец-дерево таблицы: первый с tree, без такого — первый столбец (раньше дерево было только в нём) / The table tree column: the first one with tree, without one — the first column (the tree used to be only there)
+    std::size_t gridTreeColumn(const GridState& state) noexcept;
+
+    /*
+    ** Строка фильтров: ячейка на столбец, у столбца с полем и filterable — поле ввода (действие gran:filterColumn при каждой
+    ** правке, имя для доступности — заголовок столбца). Строка — второй GRID_HEADER: раскладывается по столбцам,
+    ** уезжает вбок и переставляется вместе с заголовками.
+    **
+    ** The filter row: a cell per column, a column with a field and filterable gets an input (the gran:filterColumn action on every
+    ** edit, the accessible name is the column title). The row is a second GRID_HEADER: it is laid out by the columns,
+    ** moves sideways and is reordered together with the headers.
+    */
+    std::unique_ptr<Node> makeGridFilterRow(const Node& grid, const std::vector<GridColumn>& columns);
+
+    // Условия столбцов (filterText) — из текста полей строки фильтров (поле перенесло состояние или правилось кодом) / The column conditions (filterText) from the filter row input text (the input carried its state over or was edited by code)
+    void readGridFilterTexts(Node& grid) noexcept;
 
     // ---- data_grid_edit.cpp ----
 

@@ -159,6 +159,26 @@
     <!-- The table pinned rows (pinnedTop, pinnedBottom): an own background and a divider with the scrolled part -->
     <Style name="GridPinnedTop" background="#fafbfc" borderWidth="0 0 1 0" borderColor="#d0d5dd"/>
     <Style name="GridPinnedBottom" background="#fafbfc" borderWidth="1 0 0 0" borderColor="#d0d5dd" fontWeight="600"/>
+    <!-- Строка фильтров под заголовками (filterRow) и её поля: компактнее обычного Input, чтобы строка не была высокой -->
+    <!-- The filter row under the headers (filterRow) and its inputs: more compact than a usual Input so the row is not tall -->
+    <Style name="GridFilterRow" background="#ffffff" borderWidth="0 0 1 0" borderColor="#e4e7ec"/>
+    <Style name="GridFilter" basedOn="Input" padding="3 7" borderRadius="5" fontSize="12.5" fontWeight="400" minWidth="0">
+      <Focused borderColor="#2563eb" boxShadow="0 0 0 2 rgba(37, 99, 235, 0.2)"/>
+    </Style>
+    <!-- Дерево TreeView (части строит движок): строки с наведением и выделением, кнопка раскрытия — стрелка вправо -->
+    <!-- (ветка свёрнута) или вниз (раскрыта); у листа стрелки нет. Сдвиг по глубине — левое поле кнопки -->
+    <!-- A TreeView tree (the engine builds the parts): the rows with hover and selection, the expander button is a right arrow -->
+    <!-- (the branch is collapsed) or a down one (expanded); a leaf has no arrow. The depth shift is the button left margin -->
+    <Style name="TreeView" spacing="0" background="#ffffff" borderWidth="1" borderColor="#e4e7ec" borderRadius="8"
+           overflow="hidden" fontSize="13.5"/>
+    <Style name="TreeRow" orientation="horizontal" align="center" spacing="4" padding="3 8" textWrap="nowrap"
+           transition="background 0.1s ease">
+      <Hover background="#f5f7fa"/>
+      <Selected background="#dbe4ff"/>
+    </Style>
+    <Style name="TreeExpander" width="18" height="18" borderRadius="4" color="#475467" cursor="pointer">
+      <Hover background="#e4e7ec"/>
+    </Style>
     <!-- Выпадающий список: поле как у Input, справа место под стрелку (её рисует движок) -->
     <!-- A drop-down list: a field like Input, room for the arrow on the right (the engine draws it) -->
     <Style name="ComboBox" basedOn="Input" padding="8 34 8 12" cursor="pointer" textWrap="nowrap" textOverflow="ellipsis"/>

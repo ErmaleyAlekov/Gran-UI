@@ -112,6 +112,7 @@ namespace gran::app
         for (std::unique_ptr<ui::Node>& child : runtime)
             ui::appendChild(node, std::move(child));
         ui::Node* focus = ui::restoreState(node, saved, !keepOwnState);
+        win.shared.lists.refreshGridFilters(node);
         if (focus != nullptr && win.router && win.router->focused() != focus)
             win.router->focus(focus);
         win.changed = true;

@@ -161,6 +161,7 @@ namespace gran::i18n
         GPU_NO_WINDOW,
         PLATFORM_MENU_QUIT,
         SETTINGS_ATTRIBUTE_SKIPPED,
+        GRID_FILTER_PLACEHOLDER,
         COUNT
     };
 }

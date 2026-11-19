@@ -60,7 +60,13 @@ namespace gran::ui
             return cell;
         }
 
-        // Шаблон строки: ячейка на столбец — копия <CellTemplate> или текст «{поле}» / The row template: a cell per column — a <CellTemplate> copy or the "{field}" text
+        /*
+        ** Шаблон строки: ячейка на столбец — копия <CellTemplate> или текст «{поле}»; в столбце-дереве перед ними —
+        ** кнопка раскрытия со сдвигом по глубине строки.
+        **
+        ** The row template: a cell per column — a <CellTemplate> copy or the "{field}" text; in a tree column they are preceded
+        ** by the expander button shifted by the row depth.
+        */
         std::unique_ptr<Node> makeRowTemplate(const Node& grid, std::vector<GridColumnSpec>& specs)
         {
             std::unique_ptr<Node> row = makePart(grid, ElementKind::GRID_ROW);
@@ -68,6 +74,8 @@ namespace gran::ui
             for (GridColumnSpec& spec : specs)
             {
                 Node& cell = appendChild(*row, makePart(grid, ElementKind::GRID_CELL));
+                if (spec.column.tree)
+                    appendChild(cell, makeTreeExpander(grid, spec.column.indent));
                 if (spec.cellTemplate)
                     appendChild(cell, std::move(spec.cellTemplate));
                 else if (!spec.column.field.empty())
@@ -85,6 +93,7 @@ namespace gran::ui
     ** The table children order: [0] the header row, then the scroll with the row list — gridHeader and gridRows
     ** rely on it (the pinned lists stand around the scroll in finishDataGrid). The scroll stretches over the remaining
     ** table height (grow) and goes both ways: columns wider than the table scroll horizontally.
+    ** Строка фильтров (filterRow) — [1], сразу под заголовками / The filter row (filterRow) is [1], right under the headers.
     */
     void buildDataGrid(Node& grid, std::vector<GridColumnSpec>& specs, const GridOptions& options)
     {
@@ -110,6 +119,8 @@ namespace gran::ui
         scroll->content.direction = ScrollDirection::BOTH;
         appendChild(*scroll, std::move(rows));
         appendChild(grid, std::move(header));
+        if (options.filterRow)
+            appendChild(grid, makeGridFilterRow(grid, grid.content.grid->columns));
         appendChild(grid, std::move(scroll));
         finishDataGrid(grid, options);
     }

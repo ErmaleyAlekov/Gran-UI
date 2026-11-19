@@ -143,7 +143,8 @@ namespace gran::i18n
             {Message::PLATFORM_NOT_BUILT, "функция {0} недоступна: библиотека собрана без платформы ОС и GPU (NATIVE=0), работает только AppOptions::headless"},
             {Message::GPU_NO_WINDOW, "{0}: поверхность окна — не CAMetalLayer (nativeHandle окна Cocoa)"},
             {Message::PLATFORM_MENU_QUIT, "Завершить {0}"},
-            {Message::SETTINGS_ATTRIBUTE_SKIPPED, "сохранённый атрибут {1} узла \"{0}\" пропущен: {2}"}
+            {Message::SETTINGS_ATTRIBUTE_SKIPPED, "сохранённый атрибут {1} узла \"{0}\" пропущен: {2}"},
+            {Message::GRID_FILTER_PLACEHOLDER, "Фильтр"}
         };
     }
 

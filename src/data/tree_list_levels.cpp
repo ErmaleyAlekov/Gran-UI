@@ -34,4 +34,9 @@ namespace gran::data
         }
         refresh();
     }
+
+    const std::shared_ptr<NodeFilter>& TreeList::filter() const noexcept
+    {
+        return _filter;
+    }
 }

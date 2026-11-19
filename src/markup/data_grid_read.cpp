@@ -52,7 +52,7 @@ namespace gran::markup::internal
                 spec.column.editType = gridEditType(attribute.value);
             else if (attribute.name == "width" || attribute.name == "minWidth" || attribute.name == "maxWidth")
                 readColumnSize(element, attribute, spec.column, context);
-            else
+            else if (!readTreeColumnAttribute(attribute.name, attribute.value, spec.column))
                 readDeclaration(element, attribute, spec.cellStyle, context);
         }
 

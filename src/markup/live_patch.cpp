@@ -91,8 +91,8 @@ namespace gran::markup
         if (own == ui::ElementKind::TOOL_MORE || own == ui::ElementKind::SIZE_GRIP || own == ui::ElementKind::SPLITTER_HANDLE
             || own == ui::ElementKind::DOCK_STRIP || own == ui::ElementKind::DOCK_HANDLE)
             return false;
-        // Части таблицы DataGrid тоже строит построитель / The DataGrid table parts are built by the builder too
-        if (kind == ui::ElementKind::DATA_GRID || kind == ui::ElementKind::GRID_HEADER)
+        // Части таблицы DataGrid и дерева TreeView тоже строит построитель / The DataGrid table and TreeView tree parts are built by the builder too
+        if (kind == ui::ElementKind::DATA_GRID || kind == ui::ElementKind::GRID_HEADER || kind == ui::ElementKind::TREE_VIEW)
             return false;
         return kind != ui::ElementKind::TABS && kind != ui::ElementKind::COMBO_BOX && kind != ui::ElementKind::TEXT;
     }

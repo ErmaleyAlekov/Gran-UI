@@ -65,7 +65,10 @@ namespace gran::app
             ui::Node* focus = nullptr;
 
             if (win.document.root)
+            {
                 focus = ui::restoreState(*win.document.root, saved, false);
+                win.shared.lists.refreshGridFilters(*win.document.root);
+            }
             if (!win.window)
                 return;
             win.renderer = std::make_unique<render::Renderer>(*win.backend, win.shared.fonts, win.document.baseDirectory);

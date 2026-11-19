@@ -3,24 +3,20 @@
 
 namespace gran::binding
 {
-    namespace
+    data::SortType gridSortTypeOf(const ui::GridColumn& column, const data::ListSource& source)
     {
-        // Способ сравнения столбца: явный sortType или тип <Column> источника (число — как число) / The column comparison: an explicit sortType or the source <Column> type (a number — as a number)
-        data::SortType sortTypeOf(const ui::GridColumn& column, const data::ListSource& source)
-        {
-            if (column.sortType == ui::GridSortType::TEXT)
-                return data::SortType::TEXT;
-            if (column.sortType == ui::GridSortType::NUMBER)
-                return data::SortType::NUMBER;
-            if (column.sortType == ui::GridSortType::NATURAL)
-                return data::SortType::NATURAL;
-            for (const data::Column& described : source.columns())
-            {
-                if (described.name == column.field && described.type == data::ColumnType::NUMBER)
-                    return data::SortType::NUMBER;
-            }
+        if (column.sortType == ui::GridSortType::TEXT)
             return data::SortType::TEXT;
+        if (column.sortType == ui::GridSortType::NUMBER)
+            return data::SortType::NUMBER;
+        if (column.sortType == ui::GridSortType::NATURAL)
+            return data::SortType::NATURAL;
+        for (const data::Column& described : source.columns())
+        {
+            if (described.name == column.field && described.type == data::ColumnType::NUMBER)
+                return data::SortType::NUMBER;
         }
+        return data::SortType::TEXT;
     }
 
     /*
@@ -102,7 +98,7 @@ namespace gran::binding
             || state.columns[column].field.empty())
             return false;
         bool descending = state.sorted == column && !state.descending;
-        data::SortKeys keys{data::SortKey{state.columns[column].field, sortTypeOf(state.columns[column], *proxy), descending}};
+        data::SortKeys keys{data::SortKey{state.columns[column].field, gridSortTypeOf(state.columns[column], *proxy), descending}};
         // Стрелка — до сортировки: наблюдатели прокси (код программы) могут перестроить дерево, и узел таблицы
         // после setSort уже не трогается (ревью Т-63) / The arrow goes before sorting: the proxy observers (program code)
         // may rebuild the tree, and the table node is not touched after setSort (review T-63)

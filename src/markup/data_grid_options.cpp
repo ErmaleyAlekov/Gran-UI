@@ -47,6 +47,7 @@ namespace gran::markup::internal
         options.pinnedBottom = textOf(element, "pinnedBottom");
         options.editable = flagOf(element, "editable", false);
         options.undoStack = textOf(element, "undoStack");
+        options.filterRow = flagOf(element, "filterRow", false);
         return options;
     }
 
@@ -56,6 +57,6 @@ namespace gran::markup::internal
         if (node.kind != ui::ElementKind::DATA_GRID)
             return false;
         return name == "frozenColumns" || name == "reorderable" || name == "resizable" || name == "columnLayout"
-            || name == "pinnedTop" || name == "pinnedBottom" || name == "editable" || name == "undoStack";
+            || name == "pinnedTop" || name == "pinnedBottom" || name == "editable" || name == "undoStack" || name == "filterRow";
     }
 }

@@ -119,6 +119,9 @@ namespace gran::render::internal
     // Ручка размера окна строки состояния: точки к правому нижнему углу (paint_grip.cpp) / The status bar window size grip: dots toward the bottom-right corner (paint_grip.cpp)
     void paintGrip(const ui::Node& node, const PaintState& state, SceneContext& context);
 
+    // Стрелка кнопки раскрытия строки дерева: вправо — свёрнута, вниз — раскрыта, у листа нет (paint_expander.cpp) / The tree row expander arrow: right — collapsed, down — expanded, none for a leaf (paint_expander.cpp)
+    void paintExpander(const ui::Node& expander, const PaintState& state, SceneContext& context);
+
     // Крестик закрытия вкладки документа у правого края заголовка (paint_tab_close.cpp) / The document tab close cross at the header right edge (paint_tab_close.cpp)
     void paintTabClose(const ui::Node& header, const PaintState& state, SceneContext& context);
 

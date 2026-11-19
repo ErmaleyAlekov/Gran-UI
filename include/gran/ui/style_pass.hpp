@@ -29,6 +29,10 @@ namespace gran::ui
         // The theme GridEditor style — an input or a combo box right in a table cell (the cell editor): without an own frame and paddings,
         // the text stands where the cell text stood; nullptr — as Input or ComboBox
         const style::StyleRule* gridEditor = nullptr;
+        // Стили темы GridFilterRow и GridFilter — строка фильтров под заголовками таблицы и её поля; nullptr — как GridHeader и Input
+        // The theme GridFilterRow and GridFilter styles — the filter row under the table headers and its inputs; nullptr — as GridHeader and Input
+        const style::StyleRule* gridFilterRow = nullptr;
+        const style::StyleRule* gridFilter = nullptr;
     };
 
     /*

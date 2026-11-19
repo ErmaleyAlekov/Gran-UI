@@ -25,6 +25,8 @@ namespace gran::binding
             filter = _expressions->makeFilter(expression);
             filter->setTarget(rows, nodes);
         }
+        if (replaceColumnFilterBase(rows, nodes, filter))
+            return;
         if (rows != nullptr)
             rows->setFilter(filter);
         else
