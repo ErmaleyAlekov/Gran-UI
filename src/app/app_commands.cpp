@@ -66,6 +66,7 @@ namespace gran::app
 
     void AppWindow::editingChanged()
     {
+        gridEditFocusChanged(*this);
         refreshUndoCommands(shared, std::string());
     }
 

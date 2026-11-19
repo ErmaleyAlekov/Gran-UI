@@ -58,6 +58,7 @@ namespace suites
     void registerSelectionModelTests(test::TestRunner& runner);
     void registerTreeSelectionTests(test::TestRunner& runner);
     void registerSortFilterTests(test::TestRunner& runner);
+    void registerCellValueTests(test::TestRunner& runner);
     void registerDataSourceTests(test::TestRunner& runner);
     void registerModelMarkupTests(test::TestRunner& runner);
     void registerListBindingTests(test::TestRunner& runner);
@@ -70,6 +71,8 @@ namespace suites
     void registerGridLayoutTextTests(test::TestRunner& runner);
     void registerGridColumnTests(test::TestRunner& runner);
     void registerGridReviewTests(test::TestRunner& runner);
+    void registerGridEditTests(test::TestRunner& runner);
+    void registerGridEditMoreTests(test::TestRunner& runner);
     void registerFlexAutoMinTests(test::TestRunner& runner);
     void registerLayoutCacheTests(test::TestRunner& runner);
     void registerInputBoundsTests(test::TestRunner& runner);

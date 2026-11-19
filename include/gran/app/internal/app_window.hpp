@@ -4,6 +4,7 @@
 #include "gran/a11y/access_tree.hpp"
 #include "gran/animation/animator.hpp"
 #include "gran/app/application.hpp"
+#include "gran/app/internal/grid_edit.hpp"
 #include "gran/app/internal/web_slots.hpp"
 #include "gran/input/input_router.hpp"
 #include "gran/markup/theme.hpp"
@@ -87,6 +88,12 @@ namespace gran::app
         void listPress(ui::Node& container, ui::Node& hit, std::uint8_t modifiers) override;
         bool listKey(ui::Node& container, platform::Key key, std::uint8_t modifiers) override;
 
+        // ---- app_grid_input.cpp: правка ячеек таблицы / table cell editing ----
+
+        bool listText(ui::Node& container, const std::string& text) override;
+        void listDoubleClick(ui::Node& container, ui::Node& hit) override;
+        bool editorKey(ui::Node& focus, const platform::Event& event) override;
+
         // Общее состояние приложения / The shared application state
         Application::State& shared;
         markup::UiDocument document;
@@ -126,6 +133,10 @@ namespace gran::app
         // Окно — оторванная закрепляемая панель: её DockPanel в окне-хозяине (содержимое вернётся туда при закрытии)
         // The window is a torn-off dockable panel: its DockPanel in the home window (the content returns there on closing)
         ui::Node* floatingPanel = nullptr;
+        // Открытая правка ячейки таблицы этого окна (nullptr — нет); держит наблюдателя модели, поэтому уничтожается
+        // до моделей списков (~State) / The open table cell edit of this window (nullptr — none); it holds a model observer, so it is destroyed
+        // before the list models (~State)
+        std::unique_ptr<GridEdit> gridEdit;
         // Окну нужен кадр в этом проходе цикла / The window needs a frame in this loop pass
         bool changed = false;
         bool animating = false;

@@ -38,11 +38,15 @@ namespace gran::app
             (modifiers & platform::MODIFIER_SHIFT) != 0);
     }
 
+    // F2 и Enter у таблицы с правкой открывают редактор текущей ячейки / F2 and Enter at a table with editing open the current cell editor
     bool AppWindow::listKey(ui::Node& container, platform::Key key, std::uint8_t modifiers)
     {
         bool control = (modifiers & platform::MODIFIER_CONTROL) != 0;
         binding::ListKey list = binding::ListKey::UP;
 
+        if ((key == platform::Key::F2 || key == platform::Key::ENTER) && modifiers == 0
+            && beginGridEdit(*this, container, nullptr))
+            return true;
         if ((modifiers & platform::MODIFIER_ALT) != 0 || !listKeyOf(key, control, list))
             return false;
         return shared.lists.keyItem(container, list, control, (modifiers & platform::MODIFIER_SHIFT) != 0);

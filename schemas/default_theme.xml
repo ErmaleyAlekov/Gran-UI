@@ -23,6 +23,7 @@
       <Hover borderColor="#98a2b3"/>
       <Focused borderColor="#2563eb" boxShadow="0 0 0 3 rgba(37, 99, 235, 0.2)"/>
       <Disabled opacity="0.5"/>
+      <Invalid borderColor="#d92d20" boxShadow="0 0 0 3 rgba(217, 45, 32, 0.18)"/>
     </Style>
     <Style name="TextArea" basedOn="Input" lineHeight="1.4"/>
     <Style name="CheckBox" cursor="pointer">
@@ -146,6 +147,13 @@
     <Style name="GridCell" orientation="horizontal" align="center" padding="6 10" borderWidth="1" borderColor="transparent"
            textWrap="nowrap" overflow="hidden">
       <Current borderColor="#2563eb"/>
+    </Style>
+    <!-- Редактор ячейки (Input или ComboBox прямо в ячейке): текст на месте текста ячейки, рамка — у самой ячейки (Current); -->
+    <!-- значение с ошибкой проверки (Invalid) подчёркнуто красным -->
+    <!-- A cell editor (an Input or ComboBox right in a cell): the text in place of the cell text, the frame is the cell one (Current); -->
+    <!-- a value with a check error (Invalid) is underlined in red -->
+    <Style name="GridEditor" overflow="hidden" padding="0" borderWidth="0" background="transparent" cursor="text" minWidth="0">
+      <Invalid color="#b42318" boxShadow="inset 0 -2 0 0 #d92d20"/>
     </Style>
     <!-- Закреплённые строки таблицы (pinnedTop, pinnedBottom): свой фон и разделитель с прокручиваемой частью -->
     <!-- The table pinned rows (pinnedTop, pinnedBottom): an own background and a divider with the scrolled part -->

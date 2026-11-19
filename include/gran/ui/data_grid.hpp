@@ -18,6 +18,10 @@ namespace gran::ui
     // The comparison for sorting by a column; AUTO — by the source column type (<Column type>)
     enum class GridSortType : std::uint8_t { AUTO, TEXT, NUMBER, NATURAL };
 
+    // Тип значений столбца при правке; AUTO — по типу <Column> источника (без него — текст)
+    // The column value type for editing; AUTO — by the source <Column> type (without it — text)
+    enum class GridEditType : std::uint8_t { AUTO, TEXT, NUMBER, DATE, BOOLEAN };
+
     // «Нет столбца» (таблица не отсортирована) / "No column" (the table is not sorted)
     constexpr std::size_t NO_COLUMN = static_cast<std::size_t>(-1);
 
@@ -33,6 +37,12 @@ namespace gran::ui
     **
     ** key is the column name in the saved layout (columnLayout): the column id, without it — field. resizable — the width
     ** can be changed by the mouse and the keyboard; resized — the user has already changed the width (it goes into the layout).
+    **
+    ** Правка (пункт 2.2.4): editable — столбец правится, если правку разрешает таблица; editType — проверка значения
+    ** и редактор по умолчанию; editTemplate — свой редактор <EditTemplate> (общий у копий столбца: его только копируют).
+    **
+    ** Editing (item 2.2.4): editable — the column is editable if the table allows editing; editType — the value check
+    ** and the default editor; editTemplate — an own <EditTemplate> editor (shared by the column copies: it is only copied).
     */
     struct GridColumn
     {
@@ -46,6 +56,9 @@ namespace gran::ui
         bool resizable = true;
         bool resized = false;
         GridSortType sortType = GridSortType::AUTO;
+        bool editable = true;
+        GridEditType editType = GridEditType::AUTO;
+        std::shared_ptr<const Node> editTemplate{};
     };
 
     // Самый узкий столбец, до которого его сужает пользователь (если minWidth меньше) / The narrowest column the user narrows it to (if minWidth is smaller)
@@ -111,6 +124,10 @@ namespace gran::ui
         std::size_t sorted = NO_COLUMN;
         bool descending = false;
         GridView view;
+        // Правка ячеек разрешена (editable у DataGrid) и стек отмены её шагов (undoStack; пусто — основной)
+        // Cell editing is allowed (editable of DataGrid) and the undo stack of its steps (undoStack; empty — the main one)
+        bool editable = false;
+        std::string undoStack;
     };
 
     /*
@@ -128,6 +145,8 @@ namespace gran::ui
         std::string layout;
         std::string pinnedTop;
         std::string pinnedBottom;
+        bool editable = false;
+        std::string undoStack;
     };
 
     // ---- data_grid_build.cpp ----
@@ -216,6 +235,26 @@ namespace gran::ui
 
     // Прокрутить таблицу по горизонтали, чтобы текущий столбец был виден целиком; true — смещение сменилось / Scroll the table horizontally so the current column is fully visible; true — the offset changed
     bool revealGridColumn(Node& grid);
+
+    // ---- data_grid_edit.cpp ----
+
+    // Столбец правится: таблица разрешает правку, столбец — тоже, и у него есть поле записи / The column is editable: the table allows editing, the column too, and it has a record field
+    bool gridColumnEditable(const GridState& state, std::size_t column) noexcept;
+
+    // Ближайший правимый столбец после from (backward — до него); NO_COLUMN — такого нет / The nearest editable column after from (backward — before it); NO_COLUMN — none
+    std::size_t nextEditableColumn(const GridState& state, std::size_t from, bool backward) noexcept;
+
+    // Ячейка столбца column строки row (nullptr — нет такой) / The cell of the column in the row (nullptr — none)
+    Node* gridCell(Node& row, std::size_t column) noexcept;
+
+    /*
+    ** Сделать столбец текущим без клавиш списка (Tab в редакторе): отметка Current переходит в той строке, где она была,
+    ** таблица прокручивается к столбцу. Стрелки здесь не годятся: в таблице-дереве стрелка вправо раскрывает ветку.
+    **
+    ** Make the column current without the list keys (Tab in the editor): the Current mark moves within the row where it was,
+    ** the table scrolls to the column. The arrows do not fit here: in a tree table the right arrow expands a branch.
+    */
+    void moveGridCurrent(Node& grid, std::size_t column);
 
     // ---- data_grid_marks.cpp ----
 

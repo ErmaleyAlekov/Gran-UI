@@ -17,10 +17,12 @@ namespace gran::ui
 
         /*
         ** Стиль темы по виду узла, а для частей, у которых вид общий, — по месту: пункт строки меню, кнопка панели
-        ** инструментов, закреплённый список строк таблицы (Stack-ребёнок DataGrid: до прокрутки — сверху, после — снизу).
+        ** инструментов, закреплённый список строк таблицы (Stack-ребёнок DataGrid: до прокрутки — сверху, после — снизу),
+        ** редактор ячейки таблицы (Input или ComboBox прямо в GridCell — GridEditor).
         **
         ** The theme style by the node kind, and for the parts with a shared kind — by the place: a menu bar item, a toolbar
-        ** button, a table pinned row list (a Stack child of DataGrid: before the scroll — at the top, after it — at the bottom).
+        ** button, a table pinned row list (a Stack child of DataGrid: before the scroll — at the top, after it — at the bottom),
+        ** a table cell editor (an Input or ComboBox right in a GridCell — GridEditor).
         */
         const style::StyleRule* defaultsFor(const Node& node, const KindStyles& defaults)
         {
@@ -31,6 +33,9 @@ namespace gran::ui
             if (defaults.toolBarButton != nullptr && node.kind == ElementKind::BUTTON && parent != nullptr
                 && (parent->kind == ElementKind::TOOL_BAR || parent->kind == ElementKind::TOOL_GROUP))
                 return defaults.toolBarButton;
+            if (defaults.gridEditor != nullptr && parent != nullptr && parent->kind == ElementKind::GRID_CELL
+                && (node.kind == ElementKind::INPUT || node.kind == ElementKind::COMBO_BOX))
+                return defaults.gridEditor;
             if (node.kind == ElementKind::STACK && parent != nullptr && parent->kind == ElementKind::DATA_GRID)
             {
                 const style::StyleRule* pinned = defaults.gridPinnedBottom;

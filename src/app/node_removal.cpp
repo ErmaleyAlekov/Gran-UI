@@ -37,6 +37,7 @@ namespace gran
         app::forgetWebViews(*win, node);
         if (win->router)
             win->router->forget(node);
+        app::gridEditRemoving(*win, node);
         forgetAnimations(win->animator, node);
         if (insideTree(win->access.focus, node))
             win->access.focus = nullptr;

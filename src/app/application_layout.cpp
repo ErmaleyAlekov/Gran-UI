@@ -11,6 +11,25 @@ namespace gran::app
         // At most three fitting passes: a window converges in one, the margin is for nested lists and chains of size expressions
         // (an expression depending on its own size does not always converge — the limit breaks the loop)
         const int FIT_PASSES = 3;
+
+        // Компоновка и подгонка окон виртуальных списков и выражений от размеров / A layout and fitting the virtual list windows and the size expressions
+        void fitLayout(AppWindow& win, Size viewport)
+        {
+            ui::Node& root = *win.document.root;
+            const markup::Theme& theme = markup::defaultTheme();
+
+            layout::layoutTree(root, viewport, win.renderer->measurer());
+            for (int pass = 0; pass < FIT_PASSES; ++pass)
+            {
+                // Оба шага выполняются всегда: выражения с $id.width видят размеры этой компоновки / Both steps always run: the expressions with $id.width see the sizes of this layout
+                bool windows = win.shared.lists.updateVirtual();
+                bool expressions = win.shared.lists.updateExpressions();
+                if (!windows && !expressions)
+                    break;
+                ui::resolveStyles(root, win.windowStyle, theme.kinds, &win.animator);
+                layout::layoutTree(root, viewport, win.renderer->measurer());
+            }
+        }
     }
 
     /*
@@ -22,19 +41,12 @@ namespace gran::app
     */
     void layoutFrame(AppWindow& win, Size viewport)
     {
-        ui::Node& root = *win.document.root;
-        const markup::Theme& theme = markup::defaultTheme();
-
-        layout::layoutTree(root, viewport, win.renderer->measurer());
-        for (int pass = 0; pass < FIT_PASSES; ++pass)
-        {
-            // Оба шага выполняются всегда: выражения с $id.width видят размеры этой компоновки / Both steps always run: the expressions with $id.width see the sizes of this layout
-            bool windows = win.shared.lists.updateVirtual();
-            bool expressions = win.shared.lists.updateExpressions();
-            if (!windows && !expressions)
-                break;
-            ui::resolveStyles(root, win.windowStyle, theme.kinds, &win.animator);
-            layout::layoutTree(root, viewport, win.renderer->measurer());
-        }
+        fitLayout(win, viewport);
+        // Подгонка убрала строку с открытым редактором ячейки — значение записывается сейчас, и кадр показывает уже его
+        // The fitting removed the row with an open cell editor — the value is written now, and the frame shows it already
+        if (!settleGridEdit(win))
+            return;
+        ui::resolveStyles(*win.document.root, win.windowStyle, markup::defaultTheme().kinds, &win.animator);
+        fitLayout(win, viewport);
     }
 }

@@ -22,6 +22,7 @@ namespace gran::markup
         theme->kinds.toolBarButton = theme->document.styles.find("ToolBarButton");
         theme->kinds.gridPinnedTop = theme->document.styles.find("GridPinnedTop");
         theme->kinds.gridPinnedBottom = theme->document.styles.find("GridPinnedBottom");
+        theme->kinds.gridEditor = theme->document.styles.find("GridEditor");
         theme->window.name = "Window";
         theme->window.block = theme->document.window.declared;
         return theme;

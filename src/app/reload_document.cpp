@@ -42,6 +42,7 @@ namespace gran::app
             win.router.reset();
             win.renderer.reset();
             win.pendingFocus = nullptr;
+            win.gridEdit.reset();
             win.dropNode = nullptr;
             win.revealNode = nullptr;
             win.tooltip = nullptr;

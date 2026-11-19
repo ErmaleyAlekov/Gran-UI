@@ -45,6 +45,8 @@ namespace gran::ui
         view.reorderable = options.reorderable;
         view.resizable = options.resizable;
         view.customized = !options.layout.empty();
+        grid.content.grid->editable = options.editable;
+        grid.content.grid->undoStack = options.undoStack;
         if (rows == nullptr || !rows->itemTemplate)
             return;
         if (!options.pinnedTop.empty())

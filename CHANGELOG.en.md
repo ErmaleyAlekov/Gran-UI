@@ -27,6 +27,15 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   placed or painted). Without share columns the last column gets the rest of the width (as `stretchLastSection` in Qt);
   pinned rows on a proxy are sorted by a header together with the table. `samples/grid.xml` shows a frozen "№" and the big
   orders at the top.
+- `<DataGrid>`, step 2.2.4 — cell editing: `editable="true"` on the table (`editable="false"` on a column forbids it); the editor
+  is opened by F2, Enter, a double click or typing a character (it replaces the value); Enter writes, Esc cancels,
+  Tab/Shift+Tab write and edit the neighbor column, a click elsewhere writes too. The column type `type="text|number|date|boolean"`
+  (by default the source `<Column type>`): a number and a date are checked and normalized (`-3,5` → `-3.5`, `5.3.2024` → `2024-03-05`),
+  a boolean is a check box; a value with an error is not written, the editor gets the new `<Invalid>` style state.
+  An own editor is `<EditTemplate>` (an input, a combo box, a check box, a switch, a slider). Every edit is an undo step
+  (`undoStack`, `undo="false"`), a step remembers the storage record and survives the proxy sorting; while the editor is open
+  the records may be added, removed and sorted; closing the window (the cross, Alt+F4) writes the open edit before `onClose`.
+  The `GridEditor` theme style — an input right in a cell without an own frame.
 - The scroll bar of `Scroll` and `TextArea` works with the mouse: the thumb is grabbed and dragged (also outside the window),
   a press on the bar beside the thumb pages by the visible part. Previously the bar only showed the position, and scrolling
   was possible only with the wheel and the keyboard (found by the manual check T-58).

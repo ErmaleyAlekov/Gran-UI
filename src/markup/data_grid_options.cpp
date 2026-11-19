@@ -30,6 +30,8 @@ namespace gran::markup::internal
     **
     ** The frozen columns are a number 0…1000 (the schema); more than the existing columns cannot be frozen — the line
     ** applies the limit (ui::gridFrozen). By default the user can both reorder and resize the columns.
+    ** Правка ячеек — только по явному editable="true": таблица только для просмотра не должна править данные случайно.
+    ** Cell editing — only by an explicit editable="true": a view-only table must not edit the data by accident.
     */
     ui::GridOptions readGridOptions(const beresta::Element& element)
     {
@@ -43,6 +45,8 @@ namespace gran::markup::internal
         options.layout = textOf(element, "columnLayout");
         options.pinnedTop = textOf(element, "pinnedTop");
         options.pinnedBottom = textOf(element, "pinnedBottom");
+        options.editable = flagOf(element, "editable", false);
+        options.undoStack = textOf(element, "undoStack");
         return options;
     }
 
@@ -52,6 +56,6 @@ namespace gran::markup::internal
         if (node.kind != ui::ElementKind::DATA_GRID)
             return false;
         return name == "frozenColumns" || name == "reorderable" || name == "resizable" || name == "columnLayout"
-            || name == "pinnedTop" || name == "pinnedBottom";
+            || name == "pinnedTop" || name == "pinnedBottom" || name == "editable" || name == "undoStack";
     }
 }

@@ -24,6 +24,11 @@ namespace gran::ui
         // The theme GridPinnedTop and GridPinnedBottom styles — the table pinned row lists above and below the scroll; nullptr — as Stack
         const style::StyleRule* gridPinnedTop = nullptr;
         const style::StyleRule* gridPinnedBottom = nullptr;
+        // Стиль темы GridEditor — поле ввода или список прямо в ячейке таблицы (редактор ячейки): без своей рамки и отступов,
+        // текст стоит там же, где стоял текст ячейки; nullptr — как Input или ComboBox
+        // The theme GridEditor style — an input or a combo box right in a table cell (the cell editor): without an own frame and paddings,
+        // the text stands where the cell text stood; nullptr — as Input or ComboBox
+        const style::StyleRule* gridEditor = nullptr;
     };
 
     /*

@@ -6,6 +6,8 @@
   Край заголовка тянет ширину (двойной щелчок — по содержимому), заголовок переставляет столбец; столбец «№»
   закреплён (frozenColumns), крупные заказы закреплены сверху (pinnedTop). Раскладка столбцов сохраняется в настройках
   окна layout="grid" (у gran_gallery — в настройках программы).
+  Пункт 2.2.4: ячейки правятся (editable) — F2, Enter, двойной щелчок или набор символа; Enter записывает, Esc отменяет,
+  Tab — соседний столбец; сумма проверяется как число, состояние выбирается списком (<EditTemplate>), «№» не правится.
   Запуск: gran_snapshot samples/grid.xml grid.png или gran_gallery samples/grid.xml
 
   A DataGrid table (items 2.2.2–2.2.3): orders from JSON in a sort and filter proxy, px / auto / fr columns with limits,
@@ -14,6 +16,8 @@
   A header edge drags the width (a double click — by the content), a header reorders the column; the "№" column
   is frozen (frozenColumns), the big orders are pinned at the top (pinnedTop). The column layout is kept in the settings
   of the window layout="grid" (for gran_gallery — in the program settings).
+  Item 2.2.4: the cells are editable (editable) — F2, Enter, a double click or typing a character; Enter writes, Esc cancels,
+  Tab — the neighbor column; the sum is checked as a number, the status is chosen from a list (<EditTemplate>), "№" is not editable.
   Run: gran_snapshot samples/grid.xml grid.png or gran_gallery samples/grid.xml
 -->
 <Window title="Gran UI — таблица" width="900" height="520" background="#f5f6f8" layout="grid">
@@ -42,8 +46,9 @@
       <Text fontSize="18" fontWeight="700" grow="1">Заказы</Text>
       <Input width="220" placeholder="Клиент или город" value="{$query}"/>
     </Stack>
-    <DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1" frozenColumns="1" pinnedTop="bigOrders">
-      <GridColumn field="number" title="№" width="64" textAlign="end" color="#667085"/>
+    <DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1" frozenColumns="1" pinnedTop="bigOrders"
+              editable="true">
+      <GridColumn field="number" title="№" width="64" textAlign="end" color="#667085" editable="false"/>
       <GridColumn field="client" title="Клиент" width="1fr" minWidth="160"/>
       <GridColumn field="city" title="Город" width="auto" maxWidth="180"/>
       <GridColumn field="sum" title="Сумма" width="110" textAlign="end"/>
@@ -52,6 +57,14 @@
           <Text style="badge" background="{substring('#ecfdf3#fef3f2', 1 + 7 * (@status != 'оплачен'), 7)}"
                 color="{substring('#067647#b42318', 1 + 7 * (@status != 'оплачен'), 7)}">{status}</Text>
         </CellTemplate>
+        <EditTemplate>
+          <ComboBox>
+            <MenuItem value="ожидает" text="ожидает"/>
+            <MenuItem value="оплачен" text="оплачен"/>
+            <MenuItem value="отгружен" text="отгружен"/>
+            <MenuItem value="отменён" text="отменён"/>
+          </ComboBox>
+        </EditTemplate>
       </GridColumn>
     </DataGrid>
     <Text color="#667085" fontSize="13" >Показано {count(visibleOrders/Item)} из {count(orders/Item)}, выбрано {$orderSel.count} на сумму {sum(orderSel/Item/@sum)}</Text>

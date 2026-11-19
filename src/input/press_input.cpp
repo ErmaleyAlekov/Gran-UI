@@ -83,8 +83,13 @@ namespace gran::input
             return;
         if (pressed != nullptr && pressed == controlOf(hit) && pressed->kind != ui::ElementKind::SLIDER)
             activate(state, *pressed);
-        if (state.downClicks >= 2 && state.actions->treeVersion() == version)
-            firePointer(state, ui::EventType::DOUBLE_CLICK, hit, event);
+        if (state.downClicks < 2 || state.actions->treeVersion() != version
+            || !firePointer(state, ui::EventType::DOUBLE_CLICK, hit, event))
+            return;
+        // Двойной щелчок в списке с выделением, не отменённый обработчиком, — его действие по умолчанию (правка ячейки)
+        // A double click in a list with a selection not cancelled by a handler — its default action (a cell edit)
+        if (pressed != nullptr && hit != nullptr && pressed == controlOf(hit) && !pressed->content.selection.empty())
+            state.actions->listDoubleClick(*pressed, *hit);
     }
 
     // Данные по умолчанию: формат dragFormat (или "node"), данные dragData (или id); dragStart может их сменить

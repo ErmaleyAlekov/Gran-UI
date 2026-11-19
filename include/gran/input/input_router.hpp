@@ -114,6 +114,23 @@ namespace gran::input
 
         // Клавиша у такого контейнера в фокусе; true — обработана (стрелки, Home/End, пробел, Ctrl+A) / A key at such a focused container; true — handled (the arrows, Home/End, space, Ctrl+A)
         virtual bool listKey(ui::Node& container, platform::Key key, std::uint8_t modifiers);
+
+        // Печатный символ у такого контейнера в фокусе (таблица начинает с него правку ячейки); true — поглощён
+        // A printable character at such a focused container (a table starts a cell edit with it); true — consumed
+        virtual bool listText(ui::Node& container, const std::string& text);
+
+        // Двойной щелчок в таком контейнере (таблица открывает редактор ячейки); hit — узел под мышью
+        // A double click in such a container (a table opens the cell editor); hit is the node under the mouse
+        virtual void listDoubleClick(ui::Node& container, ui::Node& hit);
+
+        /*
+        ** Клавиша при фокусе внутри редактора ячейки таблицы — до обычной обработки (Esc иначе снял бы фокус,
+        ** Tab увёл бы его, Enter отправил бы поле). true — поглощена. По умолчанию — false.
+        **
+        ** A key with the focus inside a table cell editor — before the usual handling (Esc would otherwise drop the focus,
+        ** Tab would take it away, Enter would submit the field). true — consumed. By default — false.
+        */
+        virtual bool editorKey(ui::Node& focus, const platform::Event& event);
     };
 
     /*
@@ -798,6 +815,17 @@ namespace gran::input
 
     // Клавиши и символы; true — что-то изменилось / Keys and characters; true — something changed
     bool handleKeyboard(RouterState& state, const platform::Event& event);
+
+    // ---- character_input.cpp ----
+
+    /*
+    ** Символ (не буква доступа меню): в поле ввода в фокусе — набор; у списка с выделением в фокусе печатный
+    ** символ, кроме пробела (он отмечает строку), начинает правку ячейки таблицы. true — символ поглощён.
+    **
+    ** A character (not a menu access letter): into the focused input — typing; at a focused list with a selection a printable
+    ** character other than space (it marks the row) starts a table cell edit. true — the character is consumed.
+    */
+    bool typeCharacter(RouterState& state, const platform::Event& event);
 
     // ---- text_editing.cpp ----
 

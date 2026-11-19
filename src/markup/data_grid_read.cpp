@@ -9,18 +9,6 @@ namespace gran::markup::internal
 {
     namespace
     {
-        // Способ сравнения по имени (перечисление проверила схема) / The comparison by its name (the schema has checked the enumeration)
-        ui::GridSortType sortTypeOf(std::string_view name) noexcept
-        {
-            if (name == "text")
-                return ui::GridSortType::TEXT;
-            if (name == "number")
-                return ui::GridSortType::NUMBER;
-            if (name == "natural")
-                return ui::GridSortType::NATURAL;
-            return ui::GridSortType::AUTO;
-        }
-
         // Размер столбца: ширина — одна дорожка сетки, пределы — числа; подстановка темы ($токен) — как у свойств
         // A column size: the width is one grid track, the limits are numbers; the theme substitution ($token) — as for the properties
         void readColumnSize(const beresta::Element& element, const beresta::Attribute& attribute, ui::GridColumn& column,
@@ -57,7 +45,11 @@ namespace gran::markup::internal
             else if (attribute.name == "resizable")
                 spec.column.resizable = style::parseBoolean(attribute.value);
             else if (attribute.name == "sortType")
-                spec.column.sortType = sortTypeOf(attribute.value);
+                spec.column.sortType = gridSortType(attribute.value);
+            else if (attribute.name == "editable")
+                spec.column.editable = style::parseBoolean(attribute.value);
+            else if (attribute.name == "type")
+                spec.column.editType = gridEditType(attribute.value);
             else if (attribute.name == "width" || attribute.name == "minWidth" || attribute.name == "maxWidth")
                 readColumnSize(element, attribute, spec.column, context);
             else
@@ -65,11 +57,13 @@ namespace gran::markup::internal
         }
 
         /*
-        ** <GridColumn>: ширина по умолчанию — 1fr (таблица занимает всю ширину), шаблон <CellTemplate> —
-        ** ровно один элемент интерфейса (проверила схема); он строится как обычный узел со своими привязками.
+        ** <GridColumn>: ширина по умолчанию — 1fr (таблица занимает всю ширину), шаблоны <CellTemplate> (вид ячейки)
+        ** и <EditTemplate> (редактор) — ровно один элемент интерфейса (проверила схема); они строятся как обычные
+        ** узлы со своими привязками. Редактор только копируется при каждой правке — он общий у копий столбца.
         **
-        ** <GridColumn>: the default width is 1fr (the table takes the whole width), the <CellTemplate> template is
-        ** exactly one UI element (the schema has checked it); it is built as an ordinary node with its own bindings.
+        ** <GridColumn>: the default width is 1fr (the table takes the whole width), the <CellTemplate> (the cell look)
+        ** and <EditTemplate> (the editor) templates are exactly one UI element (the schema has checked it); they are built
+        ** as ordinary nodes with their own bindings. The editor is only copied on every edit — it is shared by the column copies.
         */
         ui::GridColumnSpec readColumn(const beresta::Element& element, BuildContext& context)
         {
@@ -78,9 +72,15 @@ namespace gran::markup::internal
             spec.column.width = style::parseTrack("1fr");
             for (const beresta::Attribute& attribute : element.getAttributes())
                 readColumnAttribute(element, attribute, spec, context);
-            const beresta::Element* cell = firstElementChild(element);
-            if (cell != nullptr && cell->getLocalName() == "CellTemplate" && firstElementChild(*cell) != nullptr)
-                spec.cellTemplate = buildNode(*firstElementChild(*cell), context);
+            for (const beresta::Element* child = firstElementChild(element); child != nullptr;
+                 child = nextElementSibling(*child))
+            {
+                const beresta::Element* root = firstElementChild(*child);
+                if (root != nullptr && child->getLocalName() == "CellTemplate")
+                    spec.cellTemplate = buildNode(*root, context);
+                else if (root != nullptr && child->getLocalName() == "EditTemplate")
+                    spec.column.editTemplate = buildNode(*root, context);
+            }
             return spec;
         }
     }

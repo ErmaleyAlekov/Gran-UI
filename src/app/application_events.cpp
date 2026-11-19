@@ -62,9 +62,12 @@ namespace gran::app
         // Окно под модальным: ввод не доходит до дерева / A window under a modal one: the input does not reach the tree
         if (dropBlockedInput(win, event))
             return false;
+        // Открытая правка ячейки записывается до onClose: обработчик сохраняет данные уже с набранным значением (Т-69)
+        // An open cell edit is written before onClose: the handler saves the data with the typed value already (T-69)
+        bool edited = win.gridEdit != nullptr;
         switch (event.kind)
         {
-            case platform::EventKind::CLOSE: requestClose(win); return false;
+            case platform::EventKind::CLOSE: commitGridEdit(win); requestClose(win); return edited;
             case platform::EventKind::RESIZE: resizeToWindow(win); break;
             case platform::EventKind::DPI_CHANGED: break;
             case platform::EventKind::EXPOSE: return true;
@@ -76,7 +79,13 @@ namespace gran::app
                     hideTooltip(win, true);
                 win.caretVisible = true;
                 win.caretToggle = now() + CARET_PERIOD;
-                return win.router->handle(event);
+                // До и после ввода — безопасные точки: отложенная правка ячейки (клавиша редактора, уход фокуса, код
+                // программы между событиями) заканчивается вне работы маршрутизатора (ревью Т-69)
+                // Before and after the input — safe points: a deferred cell edit (an editor key, the focus leaving, the program
+                // code between the events) finishes outside the router work (review T-69)
+                edited = settleGridEdit(win);
+                edited = win.router->handle(event) || edited;
+                return settleGridEdit(win) || edited;
         }
         ui::markDirty(*win.document.root, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         return true;

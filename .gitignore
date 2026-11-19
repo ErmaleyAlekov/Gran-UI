@@ -26,6 +26,8 @@
 # ---- Черновики вне сборки / Drafts outside the build ------------------------
 /staging/
 /scratchpad/
+# Копии файлов для ручного ревью кода (удаляются после разбора) / File copies for a manual code review (removed after the analysis)
+/tests/manual/review/
 *.dxbc
 
 # ---- Результаты сборки CMake / CMake build results --------------------------

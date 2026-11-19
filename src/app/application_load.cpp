@@ -43,6 +43,8 @@ namespace gran::app
             state.lists.forget(*win.document.root);
             forgetWebViews(win, *win.document.root);
         }
+        // Правка ячейки прежнего документа отменяется: её узлы и строки уходят / A cell edit of the former document is cancelled: its nodes and rows go away
+        win.gridEdit.reset();
         win.document = std::move(document);
         // Анимации прежнего документа ссылались на его узлы / The former document animations referred to its nodes
         win.animator = animation::Animator();

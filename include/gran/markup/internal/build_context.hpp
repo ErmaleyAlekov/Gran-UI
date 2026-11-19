@@ -198,9 +198,15 @@ namespace gran::markup::internal
     // <DataGrid>: столбцы <GridColumn> и шаблоны ячеек, затем части таблицы (ui::buildDataGrid) / <DataGrid>: the <GridColumn> columns and the cell templates, then the table parts (ui::buildDataGrid)
     void readDataGrid(const beresta::Element& element, ui::Node& node, BuildContext& context);
 
+    // ---- data_grid_types.cpp ----
+
+    // Способ сравнения столбца и тип значений для правки по имени из схемы (неизвестное — AUTO) / The column comparison and the value type for editing by the schema name (unknown — AUTO)
+    ui::GridSortType gridSortType(std::string_view name) noexcept;
+    ui::GridEditType gridEditType(std::string_view name) noexcept;
+
     // ---- data_grid_options.cpp ----
 
-    // Атрибуты вида таблицы (frozenColumns, reorderable, resizable, columnLayout, pinnedTop, pinnedBottom) / The table view attributes
+    // Атрибуты вида таблицы (frozenColumns, reorderable, resizable, columnLayout, pinnedTop, pinnedBottom, editable, undoStack) / The table view attributes
     ui::GridOptions readGridOptions(const beresta::Element& element);
 
     // Атрибут вида у DataGrid читает readGridOptions: здесь он только признаётся своим (не свойство стиля) / A view attribute of DataGrid is read by readGridOptions: here it is only recognized as known (not a style property)

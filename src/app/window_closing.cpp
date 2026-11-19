@@ -99,6 +99,8 @@ namespace gran
         {
             app::AppWindow& win = *windows[index - 1];
 
+            // Правка ячейки следит за моделью списка: отписаться, пока модели живы / A cell edit watches a list model: unsubscribe while the models are alive
+            win.gridEdit.reset();
             win.renderer.reset();
             win.backend.reset();
             win.webSlots.clear();

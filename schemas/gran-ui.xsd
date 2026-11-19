@@ -199,6 +199,16 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <!-- Тип значений столбца при правке (по умолчанию — тип <Column> источника) / The column value type for editing (by default — the source <Column> type) -->
+  <xs:simpleType name="GridEditType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="text"/>
+      <xs:enumeration value="number"/>
+      <xs:enumeration value="date"/>
+      <xs:enumeration value="boolean"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <!-- Переходы: "свойство длительность [кривая] [задержка], ..." / Transitions: "property duration [curve] [delay], ..." -->
   <xs:simpleType name="Transitions">
     <xs:restriction base="xs:string">
@@ -615,6 +625,8 @@
       <xs:element name="Open" type="StateType" minOccurs="0"/>
       <!-- Текущая ячейка таблицы DataGrid (стиль темы GridCell) / The current cell of a DataGrid table (the GridCell theme style) -->
       <xs:element name="Current" type="StateType" minOccurs="0"/>
+      <!-- Значение поля не прошло проверку (редактор ячейки таблицы) / The field value did not pass the check (a table cell editor) -->
+      <xs:element name="Invalid" type="StateType" minOccurs="0"/>
     </xs:sequence>
   </xs:group>
 
@@ -1304,6 +1316,12 @@
     on sideways scrolling; columnLayout — the order and the changed widths "key[:width] …" (the engine keeps it in the settings
     by itself, the table needs an id; the parsing is tolerant: unknown keys and damaged widths are skipped, hence no pattern);
     pinnedTop, pinnedBottom — the models of the pinned rows above and below the scroll (totals, favorites).
+    Пункт 2.2.4: editable="true" — ячейки правятся (нужен selection): F2, Enter, двойной щелчок или набор символа
+    открывают редактор текущей ячейки; Enter записывает, Esc отменяет, Tab — следующий столбец; значение проверяется по типу
+    столбца. Каждая правка — шаг отмены в стеке undoStack (пусто — основной стек gran:undo), undo="false" — без шагов.
+    Item 2.2.4: editable="true" — the cells are editable (selection is needed): F2, Enter, a double click or typing a character
+    open the current cell editor; Enter writes, Esc cancels, Tab — the next column; the value is checked by the column
+    type. Every edit is an undo step in the undoStack stack (empty — the main gran:undo stack), undo="false" — no steps.
   -->
   <xs:complexType name="DataGridType" mixed="true">
     <xs:complexContent>
@@ -1320,6 +1338,9 @@
         <xs:attribute name="columnLayout" type="xs:string"/>
         <xs:attribute name="pinnedTop" type="ModelName"/>
         <xs:attribute name="pinnedBottom" type="ModelName"/>
+        <xs:attribute name="editable" type="xs:boolean"/>
+        <xs:attribute name="undoStack" type="xs:string"/>
+        <xs:attribute name="undo" type="xs:boolean"/>
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
       </xs:extension>
@@ -1335,10 +1356,17 @@
     (px, auto — by content, fr — a share of the rest, minmax; 1fr by default) and the minWidth/maxWidth limits, sortable,
     sortType (by default — by the source <Column> type). The text properties (textAlign, color…) go to the field cell text.
     <CellTemplate> is an own cell: one UI element with {field} placeholders, as <ItemTemplate>.
+    Правка: editable="false" запрещает править столбец таблицы с editable="true"; type — проверка значения и редактор
+    по умолчанию (text, number, date — поле ввода, boolean — флажок); <EditTemplate> — свой редактор: один элемент
+    с подстановками {поле}, значение правит первое поле, список, флажок, переключатель или ползунок внутри.
+    Editing: editable="false" forbids editing the column of a table with editable="true"; type is the value check and the default
+    editor (text, number, date — an input, boolean — a check box); <EditTemplate> is an own editor: one element
+    with {field} placeholders, the value is edited by the first input, combo box, check box, switch or slider inside.
   -->
   <xs:complexType name="GridColumnType">
     <xs:sequence>
       <xs:element name="CellTemplate" type="ItemTemplateType" minOccurs="0"/>
+      <xs:element name="EditTemplate" type="ItemTemplateType" minOccurs="0"/>
     </xs:sequence>
     <xs:attribute name="field" type="xs:string"/>
     <!-- Имя столбца в сохранённой раскладке (по умолчанию — field) / The column name in the saved layout (field by default) -->
@@ -1350,8 +1378,12 @@
     <xs:attribute name="maxWidth" type="xs:decimal"/>
     <xs:attribute name="sortable" type="xs:boolean"/>
     <xs:attribute name="sortType" type="GridSortType"/>
+    <xs:attribute name="editable" type="xs:boolean"/>
+    <xs:attribute name="type" type="GridEditType"/>
     <xs:attributeGroup ref="TextAttributes"/>
     <xs:assert test="exists(@field) or exists(CellTemplate)"/>
+    <!-- Редактору нужно поле записи, куда писать значение / The editor needs a record field to write the value into -->
+    <xs:assert test="not(EditTemplate) or exists(@field)"/>
     <xs:assert test="not(@minWidth and @maxWidth) or number(@minWidth) &lt;= number(@maxWidth)"/>
   </xs:complexType>
 

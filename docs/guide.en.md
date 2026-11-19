@@ -734,7 +734,55 @@ copies, the rows may differ in height; `virtual="false"` — all rows at once.
   pixel-sized — the rest goes to the last column (within its `maxWidth`), and no empty strip stays on the right.
 - **Column virtualization:** cells of columns outside the visible part are not measured, not placed, and not drawn — a table with hundreds of columns scrolls as fast as one with ten. The row height — by visible cells; the column width `auto` is calculated by all cells of the window rows, not just the visible ones.
 
-Next (plan 2.2.4–2.2.6): cell editing, TreeView and TreeGrid, UI Automation Grid/Table. The sample is `samples/grid.xml`.
+### Cell editing
+
+```xml
+<DataGrid items="visibleOrders" selection="orderSel" editable="true" grow="1">
+  <GridColumn field="number" title="No." width="64" editable="false"/>
+  <GridColumn field="client" title="Client" width="1fr"/>
+  <GridColumn field="sum" title="Sum" width="110" type="number"/>
+  <GridColumn field="date" title="Date" width="110" type="date"/>
+  <GridColumn field="paid" title="Paid" width="90" type="boolean"/>
+  <GridColumn field="status" title="Status" width="130">
+    <EditTemplate>
+      <ComboBox>
+        <MenuItem value="new" text="New"/>
+        <MenuItem value="done" text="Done"/>
+      </ComboBox>
+    </EditTemplate>
+  </GridColumn>
+</DataGrid>
+```
+
+- **Enabling:** `editable="true"` on the table (by default a table only shows the data); `editable="false"` on a column
+  forbids editing it. A column without `field` is not editable. A `selection` model is needed — the current cell of the
+  current row is edited.
+- **Opening the editor:** F2 or Enter on the focused table, a double click on a cell or typing a character — then the
+  value is replaced by the typed one (as in spreadsheets). Space still marks the row.
+- **Finishing:** Enter writes the value, Esc cancels, Tab and Shift+Tab write and open the editor of the next (previous)
+  editable column of the same row. A click elsewhere (the focus left) and closing the window write too — the `onClose`
+  handler sees the typed value already. After Enter and Esc the focus returns
+  to the table — the arrows walk the cells again.
+- **Type and check** — the column `type` (`text`, `number`, `date`, `boolean`), by default the source `<Column type>`.
+  A number: digits with a dot or a comma and an exponent (`-3,5` is written as `-3.5`); a date: `YYYY-MM-DD` or
+  `DD.MM.YYYY` (written as `YYYY-MM-DD`, the date must exist); a boolean — a check box (`true`/`false`). An empty value
+  fits any type. A value with an error is not written: the editor stays open with the `<Invalid>` style state (a red
+  underline in the theme), Esc cancels. If the focus left while the value has an error, the edit is cancelled.
+- **Own editor** — `<EditTemplate>` with one element and `{field}` placeholders, as `<CellTemplate>`. The value is edited
+  by the first element inside it: an input, a multi-line input, a `ComboBox` (the value is the item `value`), a check box,
+  a switch or a slider. In a multi-line input Enter is a new line, writing is Ctrl+Enter (or Enter with
+  `submitKey="enter"`).
+- **Undo:** every written edit is a step of the undo stack (`gran:undo`, `Application::undo`); `undoStack="name"` — an own
+  table stack, `undo="false"` — no steps. A step remembers the record in the storage, not the row on the screen: undo
+  works after sorting or filtering the proxy too.
+- **What the model sees:** the value is written through the source `set` (a proxy writes into its storage) — the model
+  subscribers and the binding expressions get the usual `changed` notification. While the editor is open, the records may
+  be added, removed and sorted: the value goes into the same record; a removed record gets nothing. If the row with the
+  editor was removed by the virtual list scrolling, the typed value is written at once.
+- **Style** — an input or a combo box right in a cell gets the `GridEditor` theme style (without an own frame and paddings:
+  the text stands where the cell text stood, the frame is the current cell one). An own `<Style name="GridEditor">` replaces it.
+
+Next (plan 2.2.5–2.2.6): TreeView and TreeGrid, UI Automation Grid/Table, the C interface of editing. The sample is `samples/grid.xml`.
 
 ![DataGrid table: px, auto and fr columns, an own cell, sorting, a frozen column and rows pinned at the top](images/grid.png)
 

@@ -1,6 +1,5 @@
 #include "gran/input/input_router.hpp"
 #include "gran/input/internal/text_history.hpp"
-#include "gran/utils/utf8.hpp"
 
 namespace gran::input
 {
@@ -61,7 +60,9 @@ namespace gran::input
         {
             ui::Node* focus = state.focus;
 
-            if (popupKey(state, event) || menuBarKey(state, event) || tabsKey(state, event) || focusKey(state, event))
+            if (popupKey(state, event) || (focus != nullptr && state.actions->editorKey(*focus, event)))
+                return true;
+            if (menuBarKey(state, event) || tabsKey(state, event) || focusKey(state, event))
                 return true;
             if (focus == nullptr)
                 return state.selection != nullptr && navigateText(state, *state.selection, event);
@@ -99,8 +100,6 @@ namespace gran::input
     */
     bool handleKeyboard(RouterState& state, const platform::Event& event)
     {
-        std::string text;
-
         if (event.kind == platform::EventKind::KEY_DOWN)
         {
             if (dragKey(state, event))
@@ -120,15 +119,6 @@ namespace gran::input
         }
         if (event.kind != platform::EventKind::CHARACTER || state.suppressCharacter)
             return false;
-        if (mnemonicKey(state, event))
-            return true;
-        // Символ с Mod (без AltGr) или с META (Win/Super, физический Control на macOS) — не набор
-        // A character with Mod (without AltGr) or with META (Win/Super, the physical Control on macOS) is not typing
-        if (state.focus == nullptr || !ui::isTextField(*state.focus) || state.focus->content.readOnly
-            || ((event.modifiers & platform::MODIFIER_CONTROL) != 0 && (event.modifiers & platform::MODIFIER_ALT) == 0)
-            || (event.modifiers & platform::MODIFIER_META) != 0)
-            return false;
-        appendUtf8(text, event.character);
-        return internal::typeText(state, *state.focus, text);
+        return mnemonicKey(state, event) || typeCharacter(state, event);
     }
 }

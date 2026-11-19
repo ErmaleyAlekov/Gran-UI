@@ -11,4 +11,19 @@ namespace gran::input
     {
         return false;
     }
+
+    // Без приложения ни списков, ни правки ячеек нет / Without an application there are neither lists nor cell edits
+    bool ActionSink::listText(ui::Node&, const std::string&)
+    {
+        return false;
+    }
+
+    void ActionSink::listDoubleClick(ui::Node&, ui::Node&)
+    {
+    }
+
+    bool ActionSink::editorKey(ui::Node&, const platform::Event&)
+    {
+        return false;
+    }
 }
