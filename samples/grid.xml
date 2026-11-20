@@ -9,6 +9,8 @@
   Пункт 2.2.4: ячейки правятся (editable) — F2, Enter, двойной щелчок или набор символа; Enter записывает, Esc отменяет,
   Tab — соседний столбец; сумма проверяется как число, состояние выбирается списком (<EditTemplate>), «№» не правится.
   Пункт 2.2.5: строка фильтров (filterRow) — подстрока клиента или города, у суммы также «>1000», «<=500».
+  Пункт 2.2.6: правку проверяет код программы — событие cellEdit (onCellEdit="checkOrder", обработчик — в gran_gallery):
+  клиент не пустой (пробелы по краям срезаются), сумма от 1 до 10 000 000; отказ показывается подсказкой у поля.
   Запуск: gran_snapshot samples/grid.xml grid.png или gran_gallery samples/grid.xml
 
   A DataGrid table (items 2.2.2–2.2.3): orders from JSON in a sort and filter proxy, px / auto / fr columns with limits,
@@ -20,6 +22,8 @@
   Item 2.2.4: the cells are editable (editable) — F2, Enter, a double click or typing a character; Enter writes, Esc cancels,
   Tab — the neighbor column; the sum is checked as a number, the status is chosen from a list (<EditTemplate>), "№" is not editable.
   Item 2.2.5: the filter row (filterRow) — a substring of the client or the city, for the sum also ">1000", "<=500".
+  Item 2.2.6: the program code checks an edit — the cellEdit event (onCellEdit="checkOrder", the handler is in gran_gallery):
+  the client is not empty (the spaces at the edges are cut), the sum is from 1 to 10,000,000; a refusal is shown as the input tooltip.
   Run: gran_snapshot samples/grid.xml grid.png or gran_gallery samples/grid.xml
 -->
 <Window title="Gran UI — таблица" width="900" height="520" background="#f5f6f8" layout="grid">
@@ -42,14 +46,17 @@
     <Selection name="orderSel" model="visibleOrders" mode="extended"/>
     <SortFilter name="bigOrders" source="orders" sort="sum:number desc" filter="@sum > 128000"/>
     <Variable name="query"/>
+    <!-- Отмена правок ячеек вне редактора (в поле Ctrl+Z отменяет набор в поле) / Undoing cell edits outside the editor (in an input Ctrl+Z undoes the typing) -->
+    <Command id="undo" key="Mod+Z" action="gran:undo"/>
+    <Command id="redo" key="Mod+Y Mod+Shift+Z" action="gran:redo"/>
   </Resources>
   <Stack padding="16" spacing="12">
     <Stack orientation="horizontal" spacing="12" align="center">
       <Text fontSize="18" fontWeight="700" grow="1">Заказы</Text>
       <Input width="220" placeholder="Клиент или город" value="{$query}"/>
     </Stack>
-    <DataGrid id="orders" items="visibleOrders" selection="orderSel" grow="1" frozenColumns="1" pinnedTop="bigOrders"
-              editable="true" filterRow="true">
+    <DataGrid id="orders" accessibleName="Заказы" items="visibleOrders" selection="orderSel" grow="1" frozenColumns="1" pinnedTop="bigOrders"
+              editable="true" filterRow="true" onCellEdit="checkOrder">
       <GridColumn field="number" title="№" width="64" textAlign="end" color="#667085" editable="false" filterable="false"/>
       <GridColumn field="client" title="Клиент" width="1fr" minWidth="160"/>
       <GridColumn field="city" title="Город" width="auto" maxWidth="180"/>
@@ -69,6 +76,9 @@
         </EditTemplate>
       </GridColumn>
     </DataGrid>
-    <Text color="#667085" fontSize="13" >Показано {count(visibleOrders/Item)} из {count(orders/Item)}, выбрано {$orderSel.count} на сумму {sum(orderSel/Item/@sum)}</Text>
+    <Stack orientation="horizontal" spacing="16">
+      <Text color="#667085" fontSize="13" grow="1">Показано {count(visibleOrders/Item)} из {count(orders/Item)}, выбрано {$orderSel.count} на сумму {sum(orderSel/Item/@sum)}</Text>
+      <Text id="editStatus" color="#667085" fontSize="13"/>
+    </Stack>
   </Stack>
 </Window>

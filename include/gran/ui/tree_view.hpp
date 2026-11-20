@@ -38,15 +38,15 @@ namespace gran::ui
     void buildTreeView(Node& view, const TreeViewOptions& options);
 
     /*
-    ** Кнопка раскрытия строки плоского дерева: сдвиг слева — глубина × indent, отметка (checked) — ветка раскрыта,
-    ** значение (value) "true" — у узла есть дети (иначе стрелка не рисуется); всё это — выражения строки $depth,
-    ** $expanded, $hasChildren, которые пересчитывает привязка списка. Щелчок — встроенное действие gran:toggle.
-    ** owner — узел разметки, чьи место в файле получает кнопка (для сообщений об ошибках).
+    ** Кнопка раскрытия строки плоского дерева: сдвиг слева — глубина × indent (выражение строки $depth). Признаки
+    ** ветки (content.branch — у узла есть дети, иначе стрелка не рисуется) и раскрытия (checked) ставит сама привязка
+    ** списка, когда создаёт или обновляет копию строки (rowExpander), — без выражений и сравнения текста.
+    ** Щелчок — встроенное действие gran:toggle. owner — узел разметки, чьё место в файле получает кнопка (для сообщений об ошибках).
     **
-    ** The expander button of a flat tree row: the left shift is depth × indent, the mark (checked) — the branch is expanded,
-    ** the value "true" — the node has children (otherwise no arrow is painted); all of these are the $depth, $expanded,
-    ** $hasChildren row expressions the list binding recomputes. A click is the gran:toggle built-in action.
-    ** owner is the markup node whose file place the button gets (for error messages).
+    ** The expander button of a flat tree row: the left shift is depth × indent (the $depth row expression). The branch flag
+    ** (content.branch — the node has children, otherwise no arrow is painted) and the expanded one (checked) are set by
+    ** the list binding itself when it creates or updates the row copy (rowExpander) — without expressions and text comparison.
+    ** A click is the gran:toggle built-in action. owner is the markup node whose file place the button gets (for error messages).
     */
     std::unique_ptr<Node> makeTreeExpander(const Node& owner, float indent);
 
@@ -57,6 +57,10 @@ namespace gran::ui
 
     // У кнопки раскрытия есть ветка: стрелка рисуется, щелчок раскрывает / The expander button has a branch: the arrow is painted, a click expands
     bool expanderHasBranch(const Node& expander) noexcept;
+
+    // Кнопка раскрытия строки списка: ребёнок строки (TreeView) или первый ребёнок её ячейки (таблица-дерево); nullptr — нет
+    // The list row expander button: a row child (TreeView) or the first child of its cell (a tree table); nullptr — none
+    Node* rowExpander(Node& row) noexcept;
 }
 
 #endif

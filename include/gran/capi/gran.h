@@ -146,6 +146,12 @@ typedef struct gran_input_event {
     int32_t clicks;
     int32_t modifiers;
     int32_t dropped;
+    /* cellEdit (2.2.6): номер записи, поле, прежнее и новое значения ячейки; у других событий — SIZE_MAX и "".
+     * cellEdit (2.2.6): the record index, the field, the former and the new cell values; other events — SIZE_MAX and "". */
+    size_t cell_row;
+    const char* cell_field;
+    const char* cell_old;
+    const char* cell_value;
 } gran_input_event;
 enum { GRAN_EVENT_PREVENT_DEFAULT = 1, GRAN_EVENT_STOP_PROPAGATION = 2, GRAN_EVENT_STOP_IMMEDIATE = 4 };
 /* Биты modifiers. GRAN_MODIFIER_MOD — основной модификатор сочетаний: Ctrl в Windows и Linux, Cmd на macOS
@@ -174,6 +180,13 @@ GRAN_API gran_status gran_app_listen(gran_app* app, const char* target, const ch
 GRAN_API gran_status gran_app_unlisten(gran_app* app, const char* target, uint64_t listener);
 GRAN_API gran_status gran_app_dispatch(gran_app* app, const char* target, const char* type, const char* detail,
     int32_t* allowed);
+/* Ответ обработчика cellEdit (только внутри callback, event — его снимок): value != NULL — записать это значение
+ * (оно снова проверяется типом столбца), error != NULL и не пусто — отказать с этим текстом (подсказка у поля).
+ * Отказ без текста — флаг GRAN_EVENT_PREVENT_DEFAULT. Снимок не из текущего callback — GRAN_ERROR_ARGUMENT.
+ * The cellEdit handler answer (only inside the callback, event is its snapshot): value != NULL — write this value
+ * (it is checked by the column type again), error != NULL and not empty — refuse with this text (a tooltip at the input).
+ * A refusal without a text is the GRAN_EVENT_PREVENT_DEFAULT flag. A snapshot not of the current callback — GRAN_ERROR_ARGUMENT. */
+GRAN_API gran_status gran_event_set_cell(const gran_input_event* event, const char* value, const char* error);
 GRAN_API gran_status gran_model_count(gran_app* app, const char* model, size_t* result);
 GRAN_API gran_status gran_model_read(gran_app* app, const char* model, size_t index, const char* field, char** result);
 /* insert: index == SIZE_MAX добавляет в конец; set меняет поля одной записи за вызов.

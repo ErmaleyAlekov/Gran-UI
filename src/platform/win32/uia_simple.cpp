@@ -36,16 +36,36 @@ namespace gran::platform::win32
         return S_OK;
     }
 
-    // Неподдержанное свойство — VT_EMPTY и S_OK (UI Automation возьмёт значение по умолчанию)
-    // An unsupported property — VT_EMPTY and S_OK (UI Automation takes the default value)
+    /*
+    ** Неподдержанное свойство — VT_EMPTY и S_OK (UI Automation возьмёт значение по умолчанию). describe и перевод
+    ** в UTF-16 собирают строки и могут бросить: исключение не уходит в UI Automation (ревью Т-75), уже выделенная
+    ** строка BSTR освобождается.
+    **
+    ** An unsupported property — VT_EMPTY and S_OK (UI Automation takes the default value). describe and the UTF-16
+    ** conversion build strings and may throw: the exception does not leave into UI Automation (review T-75), an already
+    ** allocated BSTR string is freed.
+    */
     HRESULT STDMETHODCALLTYPE UiaElement::GetPropertyValue(PROPERTYID property, VARIANT* value)
     {
         if (value == nullptr)
             return E_POINTER;
-        value->vt = VT_EMPTY;
-        if (!alive())
+        VariantInit(value);
+        Presence state = presence();
+        if (state == Presence::VIRTUAL)
+            virtualProperty(property, value);
+        if (state == Presence::VIRTUAL)
+            return S_OK;
+        if (state == Presence::GONE)
             return static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE);
-        nodeProperty(*_host, *_node, property, value);
+        try
+        {
+            nodeProperty(*_host, *_node, property, value);
+        }
+        catch (...)
+        {
+            VariantClear(value);
+            return E_OUTOFMEMORY;
+        }
         return S_OK;
     }
 

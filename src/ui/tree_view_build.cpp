@@ -68,8 +68,6 @@ namespace gran::ui
         expander->content.onClick = "gran:toggle";
         expander->content.bindings.push_back(
             AttributeBinding{"margin", "{concat('0 0 0 ', $depth * " + indentText(indent) + ")}"});
-        expander->content.bindings.push_back(AttributeBinding{"checked", "{$expanded}"});
-        expander->content.bindings.push_back(AttributeBinding{"value", "{$hasChildren}"});
         style::setDeclaration(expander->declared.base, style::PropertyId::SHRINK, 0.0f);
         return expander;
     }

@@ -67,6 +67,7 @@ namespace gran::app
         restorePlacement(win);
         win.window->setLiveResize(liveResizeCallback(win));
         win.access.root = win.document.root.get();
+        win.access.items = &win.shared.accessItems;
         win.window->setAccessTree(&win.access);
         createBackend(win);
         win.router = std::make_unique<input::InputRouter>(*win.document.root, win, win.window.get(), win);

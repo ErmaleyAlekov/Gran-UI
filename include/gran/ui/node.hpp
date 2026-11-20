@@ -239,6 +239,9 @@ namespace gran::ui
         // Наименьшее число видимых строк TextArea (как rows у <textarea>) / The least visible line count of a TextArea (as rows of <textarea>)
         std::size_t rows = 2;
         bool checked = false;
+        // Кнопка раскрытия TREE_EXPANDER: у строки дерева есть ветка (checked — ветка раскрыта); ставит привязка списка
+        // The TREE_EXPANDER expander button: the tree row has a branch (checked — the branch is expanded); the list binding sets it
+        bool branch = false;
         bool password = false;
         bool readOnly = false;
         // Input, TextArea: undo="false" — правки не записываются в историю (Ctrl+Z ничего не отменяет)
@@ -339,6 +342,11 @@ namespace gran::ui
         std::uint8_t cacheCount = 0;
     };
 
+    // ---- node_serial.cpp ----
+
+    // Следующий порядковый номер узла (с 1, не повторяется за время работы процесса) / The next node serial number (from 1, never repeats while the process runs)
+    std::uint64_t nextNodeSerial() noexcept;
+
     /*
     ** Узел дерева интерфейса. Родитель владеет детьми (unique_ptr), ребёнок знает
     ** родителя невладеющим указателем — как в «Берёсте», без циклов владения.
@@ -348,6 +356,14 @@ namespace gran::ui
     */
     struct Node
     {
+        /*
+        ** Порядковый номер узла: адрес удалённого узла может занять новый, а номер — нет. По нему внешние
+        ** клиенты (UI Automation) отличают узел от его преемника по тому же адресу (RuntimeId, «жив ли элемент»).
+        **
+        ** The node serial number: a removed node address may be taken by a new node, the number may not. By it external
+        ** clients (UI Automation) tell the node from its successor at the same address (RuntimeId, "is the element alive").
+        */
+        std::uint64_t serial = nextNodeSerial();
         ElementKind kind = ElementKind::BOX;
         std::string id;
         const style::StyleRule* rule = nullptr;

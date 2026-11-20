@@ -12,23 +12,15 @@ namespace gran::platform::win32
     */
     IUnknown* UiaElement::patternFor(PATTERNID pattern) noexcept
     {
-        std::uint8_t patterns = 0;
+        std::uint16_t bit = patternBit(pattern);
+        Presence state = presence();
 
-        if (alive())
-            patterns = a11y::patternsOf(*_node);
-        if (pattern == UIA_InvokePatternId && (patterns & a11y::PATTERN_INVOKE) != 0)
-            return static_cast<IInvokeProvider*>(this);
-        if (pattern == UIA_TogglePatternId && (patterns & a11y::PATTERN_TOGGLE) != 0)
-            return static_cast<IToggleProvider*>(this);
-        if (pattern == UIA_SelectionItemPatternId && (patterns & a11y::PATTERN_SELECT) != 0)
-            return static_cast<ISelectionItemProvider*>(this);
-        if (pattern == UIA_ValuePatternId && (patterns & a11y::PATTERN_TEXT) != 0)
-            return static_cast<IValueProvider*>(this);
-        if (pattern == UIA_RangeValuePatternId && (patterns & a11y::PATTERN_RANGE) != 0)
-            return static_cast<IRangeValueProvider*>(this);
-        if (pattern == UIA_ExpandCollapsePatternId && (patterns & a11y::PATTERN_EXPAND) != 0)
-            return static_cast<IExpandCollapseProvider*>(this);
-        return nullptr;
+        // У строки без копии — только «показать» / A row without a copy has only "show"
+        if (pattern == UIA_VirtualizedItemPatternId && state == Presence::VIRTUAL)
+            return static_cast<IVirtualizedItemProvider*>(this);
+        if (bit == 0 || state != Presence::ALIVE || (a11y::patternsOf(*_node) & bit) == 0)
+            return nullptr;
+        return interfaceOf(pattern);
     }
 
     // QueryInterface по IID шаблона — тот же ответ, что у GetPatternProvider / QueryInterface by the pattern IID gives the same answer as GetPatternProvider
@@ -38,7 +30,11 @@ namespace gran::platform::win32
             {&__uuidof(IInvokeProvider), UIA_InvokePatternId}, {&__uuidof(IToggleProvider), UIA_TogglePatternId},
             {&__uuidof(ISelectionItemProvider), UIA_SelectionItemPatternId},
             {&__uuidof(IValueProvider), UIA_ValuePatternId}, {&__uuidof(IRangeValueProvider), UIA_RangeValuePatternId},
-            {&__uuidof(IExpandCollapseProvider), UIA_ExpandCollapsePatternId}};
+            {&__uuidof(IExpandCollapseProvider), UIA_ExpandCollapsePatternId},
+            {&__uuidof(IGridProvider), UIA_GridPatternId}, {&__uuidof(ITableProvider), UIA_TablePatternId},
+            {&__uuidof(IGridItemProvider), UIA_GridItemPatternId}, {&__uuidof(ITableItemProvider), UIA_TableItemPatternId},
+            {&__uuidof(ISelectionProvider), UIA_SelectionPatternId},
+            {&__uuidof(IVirtualizedItemProvider), UIA_VirtualizedItemPatternId}};
 
         for (const auto& entry : PATTERNS)
         {
@@ -49,7 +45,7 @@ namespace gran::platform::win32
     }
 
     // Клиент мог держать шаблон дольше узла или после смены вида узла / A client may hold a pattern longer than the node or after the node kind changed
-    HRESULT UiaElement::check(std::uint8_t pattern) const noexcept
+    HRESULT UiaElement::check(std::uint16_t pattern) const noexcept
     {
         if (!alive())
             return static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE);

@@ -12,7 +12,9 @@ namespace gran::platform::win32
                 UIA_SliderControlTypeId, UIA_MenuControlTypeId, UIA_MenuItemControlTypeId, UIA_WindowControlTypeId,
                 UIA_ComboBoxControlTypeId, UIA_RadioButtonControlTypeId, UIA_TabControlTypeId, UIA_TabItemControlTypeId,
                 UIA_ProgressBarControlTypeId, UIA_MenuBarControlTypeId, UIA_ToolBarControlTypeId, UIA_SeparatorControlTypeId,
-                UIA_StatusBarControlTypeId, UIA_ThumbControlTypeId, UIA_PaneControlTypeId};
+                UIA_StatusBarControlTypeId, UIA_ThumbControlTypeId, UIA_PaneControlTypeId, UIA_DataGridControlTypeId,
+                UIA_HeaderControlTypeId, UIA_HeaderItemControlTypeId, UIA_DataItemControlTypeId, UIA_DataItemControlTypeId,
+                UIA_TreeControlTypeId, UIA_TreeItemControlTypeId};
 
             return TYPES[static_cast<std::size_t>(role)];
         }
@@ -79,7 +81,8 @@ namespace gran::platform::win32
                 if (node.kind == ui::ElementKind::STATUS_SECTION)
                     value->lVal = Polite;
                 return node.kind == ui::ElementKind::STATUS_SECTION;
-            default: return false;
+            // Уровень строки дерева, место строки таблицы / The tree row level, the table row place
+            default: return itemProperty(host, node, property, value);
         }
     }
 

@@ -143,6 +143,12 @@ alias `CONTROL`; 4 `ALT` — Alt/Option; 8 `META` — Win/Super, the physical Co
 `preventDefault()`, `stop_propagation()` and `stop_immediate_propagation()` set flags that are sent to the core
 after the handler returns (in C ABI — return value `GRAN_EVENT_*`). The `listen` listener lives in the node and is removed with it; `dispatch` works even before `run`.
 
+A table cell edit (`onCellEdit`, the `cellEdit` event) adds the record and the values to the snapshot: `cell_row` /
+`CellRow` / `cellRow` (for other events — `None` / `null` / `-1`), `cell_field`, `cell_old`, `cell_value`. A handler
+changes the value by an assignment (`event.cell_value = …`, `e.CellValue = …`, `event.cellValue = …`) or refuses by
+`refuse("text")` / `Refuse("text")` — the text becomes the input tooltip, the editor stays open. In the C ABI — a call of
+`gran_event_set_cell(event, value, error)` inside the handler.
+
 ### Undo and redo
 
 The application undo stacks (see "Undo and redo" in the [guide](guide.en.md#undo-and-redo)); the stack name

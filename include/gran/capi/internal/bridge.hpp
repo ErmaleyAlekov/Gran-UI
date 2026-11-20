@@ -119,6 +119,9 @@ namespace gran::capi
     // Модель и номер записи списка, к которой относится узел (index == SIZE_MAX — не из списка)
     // The model and the number of the list record the node belongs to (index == SIZE_MAX — not from a list)
     void listPosition(gran_app* app, const ui::Node* node, std::string& model, size_t& index);
+
+    // Событие ядра снимка текущего callback этого потока (nullptr — снимок чужой или устарел) / The core event of the current callback snapshot on this thread (nullptr — an alien or stale snapshot)
+    ui::UiEvent* eventOf(const gran_input_event* snapshot) noexcept;
     struct Task
     {
         gran_task_fn callback;

@@ -45,4 +45,52 @@ namespace gran::a11y
             return tree.root;
         return hit;
     }
+
+    /*
+    ** Общий предок прежнего контейнера и родителя уходящего узла. Прежний контейнер мог быть удалён в обход
+    ** уведомления (поле живёт до конца кадра) — тогда он не в дереве, и контейнером становится сам родитель.
+    **
+    ** The common ancestor of the former container and the parent of the leaving node. The former container might be removed bypassing
+    ** the notification (the field lives until the end of the frame) — then it is not in the tree, and the parent itself becomes the container.
+    */
+    void noteRemoval(AccessTree& tree, const ui::Node& node) noexcept
+    {
+        const ui::Node* parent = node.parent;
+
+        if (parent == nullptr || tree.root == nullptr)
+            return;
+        if (tree.changed == nullptr || !contains(tree, tree.changed))
+        {
+            tree.changed = parent;
+            return;
+        }
+        for (const ui::Node* candidate = tree.changed; candidate != nullptr; candidate = candidate->parent)
+        {
+            for (const ui::Node* up = parent; up != nullptr; up = up->parent)
+            {
+                if (up == candidate)
+                {
+                    tree.changed = candidate;
+                    return;
+                }
+            }
+        }
+        tree.changed = tree.root;
+    }
+
+    // Нехватка памяти на список — не беда: событие контейнера всё равно уйдёт / Out of memory for the list is no trouble: the container event goes anyway
+    void noteAddition(AccessTree& tree, const ui::Node& node) noexcept
+    {
+        noteRemoval(tree, node);
+        if (tree.added.size() >= ADDED_LIMIT)
+            return;
+        try
+        {
+            tree.added.push_back(&node);
+        }
+        catch (...)
+        {
+            tree.added.clear();
+        }
+    }
 }

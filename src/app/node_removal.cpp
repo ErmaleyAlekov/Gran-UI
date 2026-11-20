@@ -34,6 +34,8 @@ namespace gran
         treeVersion++;
         if (win == nullptr)
             return;
+        // Клиентам доступности — что дети контейнера сменились (событие — после кадра) / To the accessibility clients — that the container children changed (the event — after the frame)
+        a11y::noteRemoval(win->access, node);
         app::forgetWebViews(*win, node);
         if (win->router)
             win->router->forget(node);
@@ -45,5 +47,14 @@ namespace gran
             win->pendingFocus = nullptr;
         if (insideTree(win->dropNode, node))
             win->dropNode = nullptr;
+    }
+
+    // Тот же путь, что у удаления: окно узла и его дерево доступности / The same path as for a removal: the node window and its accessibility tree
+    void Application::State::nodeAdded(const ui::Node& node) noexcept
+    {
+        app::AppWindow* win = app::findWindow(*this, node);
+
+        if (win != nullptr)
+            a11y::noteAddition(win->access, node);
     }
 }

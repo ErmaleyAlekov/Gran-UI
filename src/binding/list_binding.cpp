@@ -40,6 +40,7 @@ namespace gran::binding
     */
     void ListBinding::inserted(std::size_t index, std::size_t count)
     {
+        ++_version;
         if (_virtual)
             _extents.insert(index, count);
         _anchor = static_cast<std::size_t>(-1);
@@ -63,6 +64,7 @@ namespace gran::binding
     // С конца, чтобы номера ещё не удалённых записей не сдвигались / From the end, so that the indices of the records not yet removed do not shift
     void ListBinding::removed(std::size_t index, std::size_t count)
     {
+        ++_version;
         if (_virtual)
             _extents.erase(index, count);
         _anchor = static_cast<std::size_t>(-1);
@@ -91,7 +93,10 @@ namespace gran::binding
     {
         ui::forgetGridContent(_container);
         if (index >= _first && index - _first < _items.size())
+        {
             applyFields(_items[index - _first].fields, _model.at(index));
+            markTree(_items[index - _first], index);
+        }
         else if (_virtual)
             _extents.forget(index);
     }

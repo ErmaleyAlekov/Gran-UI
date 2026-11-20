@@ -37,6 +37,10 @@ namespace gallery
     // Удаление заметки с отменой и «*» в заголовке при несохранённых изменениях / Deleting a note with undo and "*" in the title with unsaved changes
     void registerNotes(gran::Application& application);
 
+    // ---- gallery_grid.cpp ----
+    // Проверка правки ячеек таблицы заказов (onCellEdit="checkOrder" в samples/grid.xml) / Checking the orders table cell edits (onCellEdit="checkOrder" in samples/grid.xml)
+    void registerGrid(gran::Application& application);
+
     // ---- gallery_web.cpp ----
 
     // Страница <WebView onMessage="fromPage">: статус в окне и ответ обратно в страницу

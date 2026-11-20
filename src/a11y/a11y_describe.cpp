@@ -1,9 +1,44 @@
 #include "gran/a11y/access_tree.hpp"
 #include "gran/input/input_router.hpp"
+#include "gran/ui/data_grid.hpp"
 #include "gran/utils/utf8.hpp"
 
 namespace gran::a11y
 {
+    namespace
+    {
+        /*
+        ** Части таблицы и дерева, чья роль зависит от места: своя прокрутка таблицы и дерева — оформление (строки
+        ** читаются прямо как дети таблицы), первая строка GRID_HEADER — заголовки, вторая (строка фильтров) — группа
+        ** полей; GRID_CELL в строке данных — ячейка, в строке фильтров — группа. false — вид без особого случая.
+        **
+        ** The table and tree parts whose role depends on the place: the own scroll of a table and a tree is layout (the rows
+        ** are read right as the table children), the first GRID_HEADER line is the headers, the second (the filter row) is a group
+        ** of inputs; a GRID_CELL in a data row is a cell, in the filter row — a group. false — a kind without a special case.
+        */
+        bool partRole(const ui::Node& node, Role& role) noexcept
+        {
+            using K = ui::ElementKind;
+            const ui::Node* parent = node.parent;
+            bool own = parent != nullptr && (parent->kind == K::DATA_GRID || parent->kind == K::TREE_VIEW);
+
+            role = Role::GROUP;
+            if (node.kind == K::SCROLL)
+                return own;
+            if (node.kind == K::GRID_HEADER)
+            {
+                if (own && ui::gridHeader(const_cast<ui::Node&>(*parent)) == &node)
+                    role = Role::HEADER;
+                return true;
+            }
+            if (node.kind != K::GRID_CELL)
+                return false;
+            if (parent != nullptr && parent->kind == K::GRID_ROW)
+                role = Role::CELL;
+            return true;
+        }
+    }
+
     /*
     ** Встроенные виды — свои роли (таблица), остальные контейнеры — группа. Переключатель — флажок с другим видом
     ** (как role="switch" поверх checkbox), кнопка «ещё» панели — кнопка.
@@ -22,10 +57,15 @@ namespace gran::a11y
             {K::MENU_ITEM, Role::MENU_ITEM}, {K::DIALOG, Role::DIALOG}, {K::COMBO_BOX, Role::COMBO_BOX},
             {K::MENU_BAR, Role::MENU_BAR}, {K::TOOL_BAR, Role::TOOL_BAR}, {K::SEPARATOR, Role::SEPARATOR},
             {K::TOOL_MORE, Role::BUTTON}, {K::STATUS_BAR, Role::STATUS_BAR}, {K::STATUS_SECTION, Role::TEXT},
-            {K::SPLITTER_HANDLE, Role::THUMB}, {K::DOCK_PANEL, Role::PANE}, {K::DOCK_TITLE, Role::BUTTON}};
+            {K::SPLITTER_HANDLE, Role::THUMB}, {K::DOCK_PANEL, Role::PANE}, {K::DOCK_TITLE, Role::BUTTON},
+            {K::DATA_GRID, Role::DATA_GRID}, {K::GRID_HEADER_CELL, Role::HEADER_ITEM}, {K::GRID_ROW, Role::DATA_ITEM},
+            {K::TREE_VIEW, Role::TREE}, {K::TREE_ROW, Role::TREE_ITEM}};
+        Role part = Role::GROUP;
 
         if (ui::isWindowButton(node))
             return Role::BUTTON;
+        if (partRole(node, part))
+            return part;
         for (const auto& entry : ROLES)
         {
             if (entry.kind == node.kind)
@@ -72,10 +112,14 @@ namespace gran::a11y
         info.help = content.tooltip;
         info.accessKey = accessKeyOf(node);
         info.enabled = !input::disabled(&node);
-        info.checked = content.checked;
+        info.checked = isSelected(node);
+        info.expand = expandStateOf(node);
         info.focusable = isFocusable(node);
         info.readOnly = isReadOnly(node);
-        info.decorative = info.role == Role::GROUP && content.onClick.empty();
+        // Кнопка раскрытия строки — тоже оформление: раскрывает сама строка (шаблон ExpandCollapse); пустой текст и стрелка — тоже
+        // The row expander button is layout too: the row itself expands (the ExpandCollapse pattern); an empty text and an arrow too
+        info.decorative = hiddenText(node)
+            || (info.role == Role::GROUP && (content.onClick.empty() || node.kind == ui::ElementKind::TREE_EXPANDER));
         if ((info.role == Role::EDIT && !content.password) || info.role == Role::COMBO_BOX)
             info.value = content.text;
         info.minimum = content.minimum;

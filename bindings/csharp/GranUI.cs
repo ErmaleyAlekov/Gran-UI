@@ -28,7 +28,15 @@ public sealed class UiEvent
     public nuint Index, RelatedIndex;
     public double X, Y, WindowX, WindowY, WheelX, WheelY;
     public bool Dropped;
+    // cellEdit: запись (null — другое событие), поле, прежнее и новое значения; обработчик меняет CellValue или
+    // отказывает Refuse("текст") — ответ уходит ядру после возврата.
+    // cellEdit: the record (null — another event), the field, the former and the new values; a handler changes CellValue or
+    // refuses by Refuse("text") — the answer goes to the core after the return.
+    public nuint? CellRow;
+    public string CellField = "", CellOld = "", CellValue = "", CellError = "";
+    internal string OriginalValue = "";
     internal int Flags;
+    public void Refuse(string error = "") { CellError = error; Flags |= 1; }
     public void PreventDefault() => Flags |= 1;
     public void StopPropagation() => Flags |= 2;
     public void StopImmediatePropagation() => Flags |= 6;
@@ -58,6 +66,7 @@ internal static class Native
         internal nuint Index, RelatedIndex;
         internal double X, Y, WindowX, WindowY, WheelX, WheelY;
         internal int Button, Clicks, Modifiers, Dropped;
+        internal nuint CellRow; internal IntPtr CellField, CellOld, CellValue;
     }
     [StructLayout(LayoutKind.Sequential)] internal struct Options {
         internal uint Size; internal int Backend, Debug, Warp, Watch, NoVsync; internal double ExitAfter;
@@ -83,6 +92,7 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_event(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, EventFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_listen(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, int capture, EventFn callback, IntPtr user, out ulong result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_unlisten(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, ulong listener);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_event_set_cell(IntPtr e, [MarshalAs(UnmanagedType.LPUTF8Str)] string? value, [MarshalAs(UnmanagedType.LPUTF8Str)] string? error);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_dispatch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, [MarshalAs(UnmanagedType.LPUTF8Str)] string? detail, out int allowed);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_timer(IntPtr app, ref Timer timer, out ulong result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_clear_timer(IntPtr app, ulong timer);
@@ -242,12 +252,24 @@ public sealed partial class Application : IDisposable
                 Key=String(n.Key), Detail=String(n.Detail), DragFormat=String(n.DragFormat), DragData=String(n.DragData),
                 Model=String(n.Model), RelatedModel=String(n.RelatedModel), Phase=n.Phase, Button=n.Button, Clicks=n.Clicks,
                 Modifiers=n.Modifiers, Index=n.Index, RelatedIndex=n.RelatedIndex, X=n.X, Y=n.Y, WindowX=n.WindowX,
-                WindowY=n.WindowY, WheelX=n.WheelX, WheelY=n.WheelY, Dropped=n.Dropped != 0 };
+                WindowY=n.WindowY, WheelX=n.WheelX, WheelY=n.WheelY, Dropped=n.Dropped != 0,
+                CellField=String(n.CellField), CellOld=String(n.CellOld), CellValue=String(n.CellValue) };
+            if (n.CellRow != nuint.MaxValue) e.CellRow = n.CellRow;
+            e.OriginalValue = e.CellValue;
             Protect(() => callback(e));
+            if (e.CellRow != null && (e.CellValue != e.OriginalValue || e.CellError.Length > 0))
+                Protect(() => AnswerCell(pointer, e));
             return e.Flags;
         };
         callbacks.Add(native);
         return native;
+    }
+    // Ответ cellEdit ядру — внутри callback, пока снимок события жив / The cellEdit answer to the core — inside the callback while the event snapshot lives
+    void AnswerCell(IntPtr pointer, UiEvent e) {
+        string? value = null, error = null;
+        if (e.CellValue != e.OriginalValue) value = e.CellValue;
+        if (e.CellError.Length > 0) error = e.CellError;
+        Check(Native.gran_event_set_cell(pointer, value, error));
     }
     public void OnEvent(string name, Action<UiEvent> callback) =>
         Check(Native.gran_app_on_event(Handle, Arguments.Text(name), EventEntry(callback), IntPtr.Zero));

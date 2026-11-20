@@ -68,7 +68,8 @@ class _InputEvent(C.Structure):
                 "type", "target", "current", "related", "key", "detail", "drag_format", "drag_data", "model",
                 "related_model")] + [("index", C.c_size_t), ("related_index", C.c_size_t)] + [(name, C.c_double)
                 for name in ("x", "y", "window_x", "window_y", "wheel_x", "wheel_y")] + [(name, C.c_int32)
-                for name in ("button", "clicks", "modifiers", "dropped")]
+                for name in ("button", "clicks", "modifiers", "dropped")] + [("cell_row", C.c_size_t)] + [
+                (name, C.c_char_p) for name in ("cell_field", "cell_old", "cell_value")]
 
 _EventFn = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.POINTER(_InputEvent))
 
@@ -85,6 +86,22 @@ class Event:
         for field in self._NUMBERS:
             setattr(self, field, getattr(native, field))
         self.dropped, self.flags = bool(native.dropped), 0
+        # cellEdit: запись (None — другое событие), поле, прежнее и новое значения; обработчик может сменить
+        # cell_value или задать cell_error (отказ с подсказкой у поля) — ответ уходит ядру после возврата.
+        # cellEdit: the record (None — another event), the field, the former and the new values; a handler may change
+        # cell_value or set cell_error (a refusal with an input tooltip) — the answer goes to the core after the return.
+        self.cell_row = native.cell_row
+        if self.cell_row == C.c_size_t(-1).value:
+            self.cell_row = None
+        self.cell_field = (native.cell_field or b"").decode("utf-8")
+        self.cell_old = (native.cell_old or b"").decode("utf-8")
+        self.cell_value = self._cell_value = (native.cell_value or b"").decode("utf-8")
+        self.cell_error = ""
+
+    def refuse(self, error=""):
+        """Отказать в правке ячейки (cellEdit) с текстом ошибки. / Refuse a cell edit (cellEdit) with an error text."""
+        self.cell_error = error
+        self.flags |= 1
 
     def prevent_default(self):
         self.flags |= 1
@@ -164,6 +181,7 @@ def _configure(lib):
         "app_listen": (C.c_int32, [p, s, s, C.c_int32, _EventFn, p, C.POINTER(C.c_uint64)]),
         "app_unlisten": (C.c_int32, [p, s, C.c_uint64]),
         "app_dispatch": (C.c_int32, [p, s, s, s, C.POINTER(C.c_int32)]),
+        "event_set_cell": (C.c_int32, [C.POINTER(_InputEvent), s, s]),
         "app_timer": (C.c_int32, [p, C.POINTER(_Timer), C.POINTER(C.c_uint64)]),
         "app_undo_push": (C.c_int32, [p, s, C.POINTER(_UndoStep)]),
         "app_undo_state": (C.c_int32, [p, s, C.POINTER(C.c_uint32)]),
@@ -349,10 +367,21 @@ class Application:
         def invoke(user, pointer):
             event = Event(pointer.contents)
             self._protect(callback, event)
+            if event.cell_row is not None and (event.cell_value != event._cell_value or event.cell_error):
+                self._protect(self._answer_cell, pointer, event)
             return event.flags
         wrapped = _EventFn(invoke)
         self._callbacks.append(wrapped)
         return wrapped
+
+    def _answer_cell(self, pointer, event):
+        # Ответ cellEdit ядру — внутри callback, пока снимок события жив / The cellEdit answer to the core — inside the callback while the event snapshot lives
+        value, error = None, None
+        if event.cell_value != event._cell_value:
+            value = _encode(event.cell_value)
+        if event.cell_error:
+            error = _encode(event.cell_error)
+        self._check(self._lib.gran_event_set_cell(pointer, value, error))
 
     def on_event(self, name, callback):
         """Обработчик имени из разметки (onPointerDown="name"). / A markup name handler (onPointerDown="name")."""

@@ -72,5 +72,6 @@ namespace gallery
         registerKeys(application);
         registerWeb(application);
         registerCommands(application);
+        registerGrid(application);
     }
 }

@@ -12,13 +12,29 @@ namespace gran::ui
         return scroll.children.front().get();
     }
 
-    /*
-    ** Привязка пишет в value кнопки текст логического выражения $hasChildren: «true» или «false».
-    **
-    ** The binding writes the text of the $hasChildren boolean expression into the button value: "true" or "false".
-    */
+    // Признак ставит привязка списка по плоскому дереву (ListBinding::markTree) / The list binding sets the flag by the flat tree (ListBinding::markTree)
     bool expanderHasBranch(const Node& expander) noexcept
     {
-        return expander.kind == ElementKind::TREE_EXPANDER && expander.content.option == "true";
+        return expander.kind == ElementKind::TREE_EXPANDER && expander.content.branch;
+    }
+
+    /*
+    ** Кнопка стоит первой: в строке TreeView — её ребёнок, в таблице-дереве — первый ребёнок ячейки столбца-дерева.
+    ** Глубже не ищем: вложенные списки шаблона строки — чужие строки со своими кнопками.
+    **
+    ** The button stands first: in a TreeView row it is a row child, in a tree table — the first child of the tree column cell.
+    ** No deeper search: the nested lists of the row template are other rows with their own buttons.
+    */
+    Node* rowExpander(Node& row) noexcept
+    {
+        for (const std::unique_ptr<Node>& child : row.children)
+        {
+            if (child->kind == ElementKind::TREE_EXPANDER)
+                return child.get();
+            if (child->kind == ElementKind::GRID_CELL && !child->children.empty()
+                && child->children.front()->kind == ElementKind::TREE_EXPANDER)
+                return child->children.front().get();
+        }
+        return nullptr;
     }
 }

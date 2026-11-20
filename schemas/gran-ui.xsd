@@ -510,6 +510,8 @@
     <xs:attribute name="onDropCapture" type="Action"/>
     <xs:attribute name="onDragEnd" type="Action"/>
     <xs:attribute name="onDragEndCapture" type="Action"/>
+    <xs:attribute name="onCellEdit" type="Action"/>
+    <xs:attribute name="onCellEditCapture" type="Action"/>
     <xs:attribute name="on" type="CustomEvents"/>
     <xs:attribute name="draggable" type="xs:boolean"/>
     <xs:attribute name="dragFormat" type="xs:NCName"/>

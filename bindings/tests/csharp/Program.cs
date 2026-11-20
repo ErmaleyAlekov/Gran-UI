@@ -25,6 +25,31 @@ class Program
         return 3;
     }
 
+    // Правка ячейки живыми клавишами: обработчик onCellEdit видит запись и значения и заменяет значение
+    // A cell edit by live keys: the onCellEdit handler sees the record and the values and replaces the value
+    static void CellEdit()
+    {
+        using var grid = new GranUI.Application(backend:Backend(), exitAfter:3.0, warp:true);
+        var seen = new List<string>();
+        grid.OnEvent("check", e => { seen.Add(e.CellRow + ":" + e.CellField + ":" + e.CellOld + ":" + e.CellValue); e.CellValue += "!"; });
+        grid.LoadString("<Window title=\"BindingsGridCs\" width=\"320\" height=\"200\"><Resources><Data name=\"rows\"><Item name=\"Анна\"/></Data>"
+            + "<Selection name=\"sel\" model=\"rows\"/></Resources><Stack><DataGrid id=\"g\" items=\"rows\" selection=\"sel\" editable=\"true\" "
+            + "onCellEdit=\"check\" height=\"150\"><GridColumn field=\"name\" width=\"1fr\"/></DataGrid></Stack></Window>");
+        grid.Timer(0.1, () =>
+        {
+            IntPtr window = FindWindowW(null, "BindingsGridCs");
+            Assert(window != IntPtr.Zero);
+            foreach (nuint key in new nuint[] { 9, 0x28, 0x71 })
+                Assert(PostMessageW(window, 0x100, key, 0));
+            Assert(PostMessageW(window, 0x102, 'Z', 0));
+            Assert(PostMessageW(window, 0x100, 13, 0));
+            grid.Timer(0.3, () => grid.Command("close"));
+        });
+        grid.Run();
+        Assert(seen.Count == 1 && seen[0] == "0:name:Анна:Z");
+        Assert(grid.ModelRead("rows", 0, "name") == "Z!");
+    }
+
     static void Main()
     {
         GC.Collect();
@@ -245,6 +270,8 @@ class Program
             Assert(tasks.PreviousCrash() == "");
 
             app.Dispose();
+            if (Windows)
+                CellEdit();
         }
         catch (Exception ex)
         {

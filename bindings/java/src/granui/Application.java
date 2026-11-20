@@ -208,14 +208,22 @@ public final class Application implements AutoCloseable {
         public static final int SHIFT = 1, MOD = 2, CONTROL = 2, ALT = 4, META = 8;
         private Modifiers() {}
     }
-    // Снимок события интерфейса (gran_input_event, 168 байт); методы ставят флаги, которые уходят ядру после возврата.
-    // A UI event snapshot (gran_input_event, 168 bytes); the methods set flags that go to the core after the return.
+    // Снимок события интерфейса (gran_input_event, 200 байт); методы ставят флаги, которые уходят ядру после возврата.
+    // cellEdit: запись (-1 — другое событие), поле, прежнее и новое значения; обработчик меняет cellValue или
+    // отказывает refuse("текст") — ответ уходит ядру после возврата.
+    // A UI event snapshot (gran_input_event, 200 bytes); the methods set flags that go to the core after the return.
+    // cellEdit: the record (-1 — another event), the field, the former and the new values; a handler changes cellValue or
+    // refuses by refuse("text") — the answer goes to the core after the return.
     public static final class UiEvent {
         public final String type, target, current, related, key, detail, dragFormat, dragData, model, relatedModel;
         public final int phase, button, clicks, modifiers;
         public final long index, relatedIndex;
         public final double x, y, windowX, windowY, wheelX, wheelY;
         public final boolean dropped;
+        public final long cellRow;
+        public final String cellField, cellOld;
+        public String cellValue, cellError = "";
+        final String originalValue;
         int flags;
         UiEvent(MemorySegment e) {
             phase=e.get(JAVA_INT,4); type=text(e.get(ADDRESS,8)); target=text(e.get(ADDRESS,16));
@@ -226,7 +234,10 @@ public final class Application implements AutoCloseable {
             x=e.get(JAVA_DOUBLE,104); y=e.get(JAVA_DOUBLE,112); windowX=e.get(JAVA_DOUBLE,120); windowY=e.get(JAVA_DOUBLE,128);
             wheelX=e.get(JAVA_DOUBLE,136); wheelY=e.get(JAVA_DOUBLE,144);
             button=e.get(JAVA_INT,152); clicks=e.get(JAVA_INT,156); modifiers=e.get(JAVA_INT,160); dropped=e.get(JAVA_INT,164)!=0;
+            cellRow=e.get(JAVA_LONG,168); cellField=text(e.get(ADDRESS,176)); cellOld=text(e.get(ADDRESS,184));
+            cellValue=text(e.get(ADDRESS,192)); originalValue=cellValue;
         }
+        public void refuse(String error) { cellError = Objects.requireNonNullElse(error, ""); flags |= 1; }
         public void preventDefault() { flags |= 1; }
         public void stopPropagation() { flags |= 2; }
         public void stopImmediatePropagation() { flags |= 6; }
@@ -235,9 +246,20 @@ public final class Application implements AutoCloseable {
         private final Consumer<UiEvent> handler;
         EventCallback(Consumer<UiEvent> handler) { this.handler=handler; }
         int event(MemorySegment user, MemorySegment pointer) {
-            UiEvent event=new UiEvent(pointer.reinterpret(168));
+            UiEvent event=new UiEvent(pointer.reinterpret(200));
             protect(() -> handler.accept(event));
+            if (event.cellRow != -1 && (!Objects.equals(event.cellValue, event.originalValue) || !event.cellError.isEmpty()))
+                protect(() -> answerCell(pointer, event));
             return event.flags;
+        }
+    }
+    // Ответ cellEdit ядру — внутри callback, пока снимок события жив / The cellEdit answer to the core — inside the callback while the event snapshot lives
+    private void answerCell(MemorySegment pointer, UiEvent event) {
+        try (Arena scope=Arena.ofConfined()) {
+            MemorySegment value=MemorySegment.NULL, error=MemorySegment.NULL;
+            if (!Objects.equals(event.cellValue, event.originalValue)) value=utf8(scope,event.cellValue);
+            if (!event.cellError.isEmpty()) error=utf8(scope,event.cellError);
+            check((int)invoke("gran_event_set_cell",JAVA_INT,pointer,value,error));
         }
     }
     private MemorySegment eventStub(Consumer<UiEvent> handler) {

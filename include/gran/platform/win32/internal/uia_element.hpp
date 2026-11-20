@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace gran::platform::win32
 {
@@ -36,6 +37,7 @@ namespace gran::platform::win32
     {
         const ui::Node* node = nullptr;
         bool checked = false;
+        a11y::ExpandState expand = a11y::ExpandState::NONE;
         float current = 0.0f;
         std::string value;
     };
@@ -58,6 +60,32 @@ namespace gran::platform::win32
     };
 
     /*
+    ** Ключ элемента строки или ячейки списка: список строк (с номером узла — список мог смениться), номер записи
+    ** и (у ячейки) столбец. Копии строк виртуальный список строит и удаляет при прокрутке — элемент, привязанный
+    ** к записи, находит новую копию сам, а без копии отвечает как виртуальный (как элементы строк WPF и WinUI).
+    ** list = nullptr — элемент не строка списка.
+    **
+    ** The key of a list row or cell element: the row list (with the node serial — the list might change), the record index
+    ** and (for a cell) the column. A virtual list builds and removes row copies on scrolling — an element bound
+    ** to the record finds the new copy itself, and without a copy answers as a virtual one (as the WPF and WinUI row elements).
+    ** list = nullptr — the element is not a list row.
+    */
+    // Жив ли элемент: узел в дереве, строка вне видимой части виртуального списка, элемента нет / Whether the element is alive: the node is in the tree, a row outside the visible part of a virtual list, no element
+    enum class Presence : std::uint8_t { ALIVE, VIRTUAL, GONE };
+
+    struct ItemKey
+    {
+        const ui::Node* list = nullptr;
+        std::uint64_t listSerial = 0;
+        std::size_t record = 0;
+        std::size_t column = static_cast<std::size_t>(-1);
+        a11y::Role role = a11y::Role::GROUP;
+        // Версия записей списка: другая — номер записи мог стать чужим, элемент больше не перепривязывается
+        // The list record version: another one — the record index may belong to another record, the element no longer rebinds
+        std::uint64_t version = 0;
+    };
+
+    /*
     ** Элемент UI Automation для одного узла (паттерн Adapter над a11y::describe и a11y::navigate).
     ** Один класс реализует простой провайдер, фрагмент, (для корня дерева) корень фрагментов и шаблоны
     ** управления: GetPatternProvider отдаёт сам элемент, если узел поддерживает шаблон (a11y::patternsOf).
@@ -75,7 +103,9 @@ namespace gran::platform::win32
     class UiaElement final : public IRawElementProviderSimple, public IRawElementProviderFragment,
                              public IRawElementProviderFragmentRoot, public IInvokeProvider, public IToggleProvider,
                              public IValueProvider, public IRangeValueProvider, public ISelectionItemProvider,
-                             public IExpandCollapseProvider
+                             public IExpandCollapseProvider, public IGridProvider, public ITableProvider,
+                             public IGridItemProvider, public ITableItemProvider, public ISelectionProvider,
+                             public IVirtualizedItemProvider
     {
     public:
         // ---- uia_element.cpp ----
@@ -98,11 +128,11 @@ namespace gran::platform::win32
         HRESULT STDMETHODCALLTYPE Navigate(NavigateDirection direction, IRawElementProviderFragment** result) override;
         HRESULT STDMETHODCALLTYPE GetRuntimeId(SAFEARRAY** id) override;
         HRESULT STDMETHODCALLTYPE get_BoundingRectangle(UiaRect* rect) override;
-        HRESULT STDMETHODCALLTYPE GetEmbeddedFragmentRoots(SAFEARRAY** roots) override;
         HRESULT STDMETHODCALLTYPE SetFocus() override;
 
         // ---- uia_root.cpp ----
         HRESULT STDMETHODCALLTYPE get_FragmentRoot(IRawElementProviderFragmentRoot** root) override;
+        HRESULT STDMETHODCALLTYPE GetEmbeddedFragmentRoots(SAFEARRAY** roots) override;
         HRESULT STDMETHODCALLTYPE ElementProviderFromPoint(double x, double y, IRawElementProviderFragment** result) override;
         HRESULT STDMETHODCALLTYPE GetFocus(IRawElementProviderFragment** result) override;
 
@@ -136,6 +166,51 @@ namespace gran::platform::win32
         HRESULT STDMETHODCALLTYPE Collapse() override;
         HRESULT STDMETHODCALLTYPE get_ExpandCollapseState(ExpandCollapseState* state) override;
 
+        // ---- uia_grid.cpp: Grid (таблица: ячейка по строке и столбцу) / Grid (a table: a cell by the row and the column) ----
+        HRESULT STDMETHODCALLTYPE GetItem(int row, int column, IRawElementProviderSimple** item) override;
+        HRESULT STDMETHODCALLTYPE get_RowCount(int* count) override;
+        HRESULT STDMETHODCALLTYPE get_ColumnCount(int* count) override;
+
+        // ---- uia_table.cpp: Table (заголовки столбцов) / Table (the column headers) ----
+        HRESULT STDMETHODCALLTYPE GetRowHeaders(SAFEARRAY** headers) override;
+        HRESULT STDMETHODCALLTYPE GetColumnHeaders(SAFEARRAY** headers) override;
+        HRESULT STDMETHODCALLTYPE get_RowOrColumnMajor(enum RowOrColumnMajor* major) override;
+
+        // ---- uia_table_item.cpp: TableItem (заголовок столбца ячейки) / TableItem (the cell column header) ----
+        HRESULT STDMETHODCALLTYPE GetRowHeaderItems(SAFEARRAY** headers) override;
+        HRESULT STDMETHODCALLTYPE GetColumnHeaderItems(SAFEARRAY** headers) override;
+
+        // ---- uia_grid_item.cpp: GridItem (ячейка таблицы) / GridItem (a table cell) ----
+        HRESULT STDMETHODCALLTYPE get_Row(int* row) override;
+        HRESULT STDMETHODCALLTYPE get_Column(int* column) override;
+        HRESULT STDMETHODCALLTYPE get_RowSpan(int* span) override;
+        HRESULT STDMETHODCALLTYPE get_ColumnSpan(int* span) override;
+        HRESULT STDMETHODCALLTYPE get_ContainingGrid(IRawElementProviderSimple** grid) override;
+
+        // ---- uia_selection_list.cpp: Selection (таблица и дерево) и контейнер строки / Selection (a table and a tree) and the row container ----
+        HRESULT STDMETHODCALLTYPE GetSelection(SAFEARRAY** selection) override;
+        HRESULT STDMETHODCALLTYPE get_CanSelectMultiple(BOOL* multiple) override;
+        HRESULT STDMETHODCALLTYPE get_IsSelectionRequired(BOOL* required) override;
+
+        // ---- uia_virtual.cpp: VirtualizedItem (строка вне видимой части виртуального списка) / VirtualizedItem (a row outside the visible part of a virtual list) ----
+        HRESULT STDMETHODCALLTYPE Realize() override;
+
+        // Свойства виртуальной строки: тип, «вне экрана»; false — не поддержано / The virtual row properties: the type, "offscreen"; false — not supported
+        bool virtualProperty(PROPERTYID property, VARIANT* value) const noexcept;
+
+        // ---- uia_item_key.cpp ----
+
+        /*
+        ** Состояние элемента одним вызовом: alive() может перепривязать элемент к новой копии строки, поэтому методы
+        ** спрашивают один раз и дальше смотрят на ответ (ревью Т-75). VIRTUAL — только у строки: у ячейки строки вне
+        ** видимой части нет места в дереве (у виртуальной строки детей нет), она GONE.
+        **
+        ** The element state by one call: alive() may rebind the element to a new row copy, so the methods
+        ** ask once and then look at the answer (review T-75). VIRTUAL is only for a row: a cell of a row outside
+        ** the visible part has no place in the tree (a virtual row has no children), it is GONE.
+        */
+        Presence presence() const noexcept;
+
         // ---- uia_patterns.cpp ----
 
         // Интерфейс шаблона pattern (UIA_*PatternId), если узел его поддерживает; иначе nullptr / The pattern interface (UIA_*PatternId) if the node supports it; otherwise nullptr
@@ -151,7 +226,7 @@ namespace gran::platform::win32
 
         // Узел жив и поддерживает шаблон (биты a11y::Pattern): S_OK или код ошибки UI Automation
         // The node is alive and supports the pattern (a11y::Pattern bits): S_OK or a UI Automation error code
-        HRESULT check(std::uint8_t pattern) const noexcept;
+        HRESULT check(std::uint16_t pattern) const noexcept;
 
         // Запрос в очередь дерева; отключённый узел — UIA_E_ELEMENTNOTENABLED / A request into the tree queue; a disabled node — UIA_E_ELEMENTNOTENABLED
         HRESULT post(const a11y::AccessRequest& request) noexcept;
@@ -159,8 +234,30 @@ namespace gran::platform::win32
         // Число диапазона из a11y::describe (поле field) / A range number from a11y::describe (the field)
         HRESULT rangeNumber(double* result, float a11y::AccessibleInfo::* field) const noexcept;
 
+        // ---- uia_pattern_table.cpp ----
+
+        // Интерфейс шаблона этим элементом (без проверки поддержки); nullptr — шаблон неизвестен / The pattern interface of this element (without the support check); nullptr — an unknown pattern
+        IUnknown* interfaceOf(PATTERNID pattern) noexcept;
+
+        // ---- uia_grid.cpp ----
+
+        // Список строк таблицы и сведения о строках (nullptr — части не построены) / The table row list and the row facts (nullptr — the parts are not built)
+        const ui::Node* rowList() const noexcept;
+
+        // ---- uia_item_key.cpp ----
+
+        // Найти нынешнюю копию строки (ячейки) записи ключа и привязаться к ней; false — копии нет / Find the current row (cell) copy of the key record and bind to it; false — no copy
+        bool rebind() const noexcept;
+
+        // Ключ строки (не ячейки) ещё указывает на запись живого списка той же версии; узел не проверяется / The row (not cell) key still points to a record of an alive list of the same version; the node is not checked
+        bool virtualRow() const noexcept;
+
         std::shared_ptr<UiaHost> _host;
-        const ui::Node* _node;
+        // Узел и его номер; у строки списка меняются при перепривязке к новой копии записи / The node and its serial; for a list row they change on rebinding to a new record copy
+        mutable const ui::Node* _node;
+        // Номер узла при создании элемента: узел по тому же адресу с другим номером — уже не этот / The node serial at the element creation: a node at the same address with another serial is no longer this one
+        mutable std::uint64_t _serial;
+        ItemKey _key;
         std::atomic<ULONG> _references{1};
     };
 
@@ -168,6 +265,33 @@ namespace gran::platform::win32
 
     // Новый элемент узла (ссылка 1 — её забирает вызывающий) или nullptr / A new node element (reference 1 — the caller takes it) or nullptr
     UiaElement* elementFor(const std::shared_ptr<UiaHost>& host, const ui::Node* node) noexcept;
+
+    // ---- uia_item_key.cpp ----
+
+    // Ключ строки или ячейки списка для узла (пустой — узел не из строк списка) / The list row or cell key for the node (empty — not from list rows)
+    ItemKey itemKeyOf(const UiaHost& host, const ui::Node* node) noexcept;
+
+    // ---- uia_pattern_table.cpp ----
+
+    // Бит a11y::Pattern шаблона UI Automation (0 — шаблон не поддерживается движком) / The a11y::Pattern bit of a UI Automation pattern (0 — the engine does not support the pattern)
+    std::uint16_t patternBit(PATTERNID pattern) noexcept;
+
+    // ---- uia_table.cpp ----
+
+    // Заголовки столбцов таблицы по порядку на экране; column = ui::NO_COLUMN — все, иначе только этого столбца
+    // The table column headers in the screen order; column = ui::NO_COLUMN — all, otherwise only that column
+    std::vector<const ui::Node*> columnHeaders(const ui::Node& grid, std::size_t column);
+
+    // ---- uia_selection_list.cpp ----
+
+    // Массив элементов узлов для клиента (SAFEARRAY из IRawElementProviderSimple); false — не хватило памяти
+    // An array of the node elements for the client (a SAFEARRAY of IRawElementProviderSimple); false — out of memory
+    bool elementArray(const std::shared_ptr<UiaHost>& host, const std::vector<const ui::Node*>& nodes, SAFEARRAY** result) noexcept;
+
+    // ---- uia_item_properties.cpp ----
+
+    // Свойства строк таблицы и дерева: уровень, место в наборе; false — не поддержано / The table and tree row properties: the level, the place in the set; false — not supported
+    bool itemProperty(const UiaHost& host, const ui::Node& node, PROPERTYID property, VARIANT* value) noexcept;
 
     // ---- uia_properties.cpp ----
 
@@ -181,6 +305,20 @@ namespace gran::platform::win32
 
     // Сверка узла в фокусе с прошлым состоянием и события изменения свойств / Comparing the focused node with the former state and the property change events
     void raiseStateChanges(const std::shared_ptr<UiaHost>& host) noexcept;
+
+    // ---- uia_events_items.cpp ----
+
+    // Смена раскрытия узла в фокусе — событие свойства ExpandCollapseState / A change of the focused node expansion — the ExpandCollapseState property event
+    void raiseExpandChange(UiaElement* element, a11y::ExpandState before, a11y::ExpandState after) noexcept;
+
+    // Состояние раскрытия для UI Automation / The expansion state for UI Automation
+    ExpandCollapseState expandCollapseOf(a11y::ExpandState state) noexcept;
+
+    // После удаления узлов — StructureChanged (дети перечитываются) у их общего контейнера / After a node removal — StructureChanged (the children are reread) at their common container
+    void raiseStructureChange(const std::shared_ptr<UiaHost>& host) noexcept;
+
+    // Построенные строки (tree->added) — ChildrenInvalidated у каждой / The built rows (tree->added) — ChildrenInvalidated at each
+    void raiseRealizedRows(const std::shared_ptr<UiaHost>& host) noexcept;
 }
 
 #endif

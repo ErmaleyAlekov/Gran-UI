@@ -7,7 +7,7 @@
 > **This is a living document.** Here is only what has not been done yet and ideas for the future. The order of tasks, their composition
 > and deadlines **will change** as the engine develops: based on user feedback, what is discovered during implementation, and as new tasks appear. Dates are guidelines, not promises. Done items are moved to the [CHANGELOG](../CHANGELOG.en.md), versioning rules are in [docs/versioning.en.md](versioning.en.md).
 >
-> Updated: 2026-11-19 (step 2.2.5 — TreeView, the tree table and the filter row — is done; earlier 2.2.3 and 2.2.4; 0.2.0 is released; macOS M1–M6 are done,
+> Updated: 2026-11-20 (step 2.2.6 — table and tree accessibility, a check of edits by code — is done; earlier 2.2.3–2.2.5; 0.2.0 is released; macOS M1–M6 are done,
 > the direction is paused until a real Mac; the user-customizable interface is section "C", release 0.4.0).
 
 ## Table of Contents
@@ -205,9 +205,9 @@ Steps (split on 2026-11-16; every step brings tests, snapshots, XSD, UIA, the C 
 | **2.2.1** ✓ | Done 2026-11-16: a virtual list with rows of different heights — a record size index (a Fenwick tree: measured ones exactly, unmeasured ones by the average) instead of the average size, a scroll anchor (the visible rows do not jump when an estimate is replaced by a measurement), going to a record by the index |
 | **2.2.2** ✓ | Done 2026-11-17: `<DataGrid>` — columns `<GridColumn field title width>` (px, `auto`, `fr`, `minmax`, `minWidth`/`maxWidth`; the table layout computes the widths, `auto` does not narrow while scrolling), a header row, cells — a field with an ellipsis or `<CellTemplate>`, virtual rows (2.2.1), row selection and the current cell (the arrows, Home/End, the `Current` state), sorting by a header click through a proxy with a direction arrow |
 | **2.2.3** ✓ | Done 2026-11-18: column width by the mouse (a header edge, a double click — by the content) and Shift+←/→, the order by dragging a header and Ctrl+←/→, the `columnLayout` layout is kept in the settings by itself, horizontal scrolling, frozen columns `frozenColumns`, pinned rows `pinnedTop`/`pinnedBottom` (own models above and below the scroll), column virtualization |
-| **2.2.4** ✓ | Done 2026-11-18 ([guide](guide.en.md#cell-editing)): cell editing — F2, Enter, double click, typing; the editor — `<EditTemplate>` or by the column type (`text`, `number`, `date`, `boolean`) with a check and the `<Invalid>` state; Enter, Esc, Tab; an undo step per edit, the record is tracked through sorting and model edits. Left for 2.2.6: edit events for a check by the program code and the C interface |
+| **2.2.4** ✓ | Done 2026-11-18 ([guide](guide.en.md#cell-editing)): cell editing — F2, Enter, double click, typing; the editor — `<EditTemplate>` or by the column type (`text`, `number`, `date`, `boolean`) with a check and the `<Invalid>` state; Enter, Esc, Tab; an undo step per edit, the record is tracked through sorting and model edits. The edit events for a check by code and the C interface — in 2.2.6 |
 | **2.2.5** ✓ | Done 2026-11-19 ([guide](guide.en.md#treeview-and-the-tree-table)): `<TreeView>` over `TreeList` — an expander button shifted per level, a label by a field or `<ItemTemplate>`, expanding by a click, a double click and the arrows, lazy branches; a tree column `tree="true"` in `DataGrid` (TreeGrid); the `filterRow` filter row — a substring and number comparisons on top of the proxy or tree filter |
-| **2.2.6** | UI Automation Grid, Table, GridItem, TableItem, Tree, TreeItem, ExpandCollapse, Selection; the C interface and wrappers; the guide and the `samples/grid.xml` example |
+| **2.2.6** ✓ | Done 2026-11-20 ([guide](guide.en.md#accessibility)): UI Automation — DataGrid (Grid, Table, Selection), the rows and cells (SelectionItem, GridItem, TableItem, the "row N of M" place), Tree and TreeItem (the level, ExpandCollapse, a leaf); the screen reader focus is the current row or cell; the `cellEdit` event — checking and replacing an edit value by the program code, the C interface and the Python, C#, Java wrappers; the `samples/grid.xml` sample |
 
 ### 2.3 Input Fields and Forms
 

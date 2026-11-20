@@ -11,10 +11,12 @@ namespace gran::a11y
     ** are toggled, a radio button and a tab are selected, an input and a ComboBox have a text value,
     ** a slider and a progress bar have a number in the range. Any other node with onClick is pressed too.
     */
-    std::uint8_t patternsOf(const ui::Node& node) noexcept
+    std::uint16_t patternsOf(const ui::Node& node) noexcept
     {
         switch (roleOf(node))
         {
+            case Role::DATA_GRID: case Role::TREE: case Role::DATA_ITEM: case Role::TREE_ITEM: case Role::CELL:
+                return collectionPatterns(node);
             case Role::MENU_ITEM:
                 if (ui::submenuOf(node) != nullptr)
                     return PATTERN_INVOKE | PATTERN_EXPAND;
@@ -26,7 +28,7 @@ namespace gran::a11y
             case Role::SLIDER: case Role::PROGRESS_BAR: case Role::THUMB: return PATTERN_RANGE;
             default: break;
         }
-        if (!node.content.onClick.empty())
+        if (!node.content.onClick.empty() && node.kind != ui::ElementKind::TREE_EXPANDER)
             return PATTERN_INVOKE;
         return 0;
     }
@@ -38,6 +40,9 @@ namespace gran::a11y
         {
             case Role::BUTTON: case Role::EDIT: case Role::CHECK_BOX: case Role::SLIDER: case Role::MENU_ITEM:
             case Role::COMBO_BOX: case Role::RADIO_BUTTON: case Role::TAB_ITEM: case Role::THUMB:
+            // Строку и ячейку «фокусирует» текущая запись списка в фокусе (app::accessFocusOf)
+            // A row and a cell are "focused" by the current record of the focused list (app::accessFocusOf)
+            case Role::DATA_ITEM: case Role::CELL: case Role::TREE_ITEM:
                 return true;
             default:
                 return false;

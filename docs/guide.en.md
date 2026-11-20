@@ -401,6 +401,7 @@ app.onEvent("padMenu", [&](gran::ui::Node&, gran::UiEvent& event) {
 | `wheel` | `onWheel` | node under the mouse | scrolling |
 | `focus` / `blur` | `onFocus` / `onBlur` | receiving / losing focus | — (do not bubble; `related` — second node) |
 | `contextMenu` | `onContextMenu` | right-click, menu key, Shift+F10 | built-in text and field menu |
+| `cellEdit` | `onCellEdit` | the `DataGrid` cell whose edit is being written (`event.cell`) | writing the value: the editor stays with `<Invalid>` ([cell editing](#cell-editing)) |
 | custom | `on="name:action …"` | `Application::dispatchEvent` | by application agreement |
 
 Non-cancelable events (`pointerEnter/Leave`, `focus/blur`, `dragEnter/Leave`, `dragEnd`) ignore `preventDefault`. Notifications `focus`, `blur`, `pointerEnter`, `pointerLeave` arrive after the built-in window event handling (order as in the browser: `pointerDown`, `blur`, `focus`, `pointerUp`, `onClick`). Keys — `event.key` (`platform::Key`: letters A–Z by physical key, digits, F1–F12, arrows…), name — `platform::keyName(key)` («A», «Enter», «ArrowLeft», «F5»), modifiers — `event.modifiers`.
@@ -781,6 +782,24 @@ copies, the rows may differ in height; `virtual="false"` — all rows at once.
   editor was removed by the virtual list scrolling, the typed value is written at once.
 - **Style** — an input or a combo box right in a cell gets the `GridEditor` theme style (without an own frame and paddings:
   the text stands where the cell text stood, the frame is the current cell one). An own `<Style name="GridEditor">` replaces it.
+- **A check by the program code** (2.2.6) — the `cellEdit` event: it comes when the value has passed the column type check
+  but is not written yet. The target is the cell and the event bubbles to the table, so the handler is set at the table
+  (`onCellEdit="action"` or `addEventListener(table, "cellEdit", …)`). `event.cell` holds `row` (the record index
+  in the table source), `field`, `oldValue`, `value`. A handler may replace `value` (the new value is checked by the type
+  again) or refuse: `preventDefault()` or a `cell.error` text — it becomes the input tooltip, the editor stays open
+  with `<Invalid>`. If the edit ends by the focus leaving, a refusal cancels it.
+
+```cpp
+app.onEvent("checkOrder", [](gran::ui::Node&, gran::ui::UiEvent& event) {
+    if (event.cell.field == "sum" && std::stod(event.cell.value) > 10000000)
+        event.cell.error = "The sum is at most 10,000,000";
+});
+```
+
+C interface: `gran_input_event` has the `cell_row`, `cell_field`, `cell_old`, `cell_value` fields; the answer inside the handler is
+`gran_event_set_cell(event, value, error)`. In the wrappers: Python — `event.cell_value = …` or `event.refuse("…")`,
+C# — `e.CellValue = …` / `e.Refuse("…")`, Java — `event.cellValue = …` / `event.refuse("…")`. Sample — `samples/grid.xml`
+(the `checkOrder` handler is in `gran_gallery`).
 
 ### TreeView and the tree table
 
@@ -842,7 +861,7 @@ copies, the rows may differ in height; `virtual="false"` — all rows at once.
   over a storage without a proxy is not filtered.
 - The filter input moves together with its column on reordering; the style is `GridFilterRow` (the row) and `GridFilter` (the input).
 
-Next (plan 2.2.6): UI Automation Grid/Table/Tree, the C interface of editing and of the tree. The samples are `samples/grid.xml`
+Tables and trees are available to screen readers — see "[Accessibility](#accessibility)". The samples are `samples/grid.xml`
 (the filter row) and `samples/models.xml` (TreeView, the tree table).
 
 ![DataGrid table: px, auto and fr columns, an own cell, sorting, a frozen column and rows pinned at the top](images/grid.png)
@@ -1348,12 +1367,30 @@ Control patterns are what a client can do with the element by itself:
 | `RadioButton`, a tab header | SelectionItem | select (the group neighbors are cleared, onChange) |
 | `Input`, `TextArea`, `ComboBox` | Value | read the text; for a field — replace it (as "select all and paste", with `maxLength` and onChange) |
 | `Slider`, `ProgressBar` | RangeValue | read the number, minimum, maximum and step; for a slider — set it (with the step and onChange) |
+| `DataGrid` | Grid, Table, Selection | the row count (all the source records) and the column count, a cell by the row and column, the column headers, the selected rows, whether several can be selected |
+| a `DataGrid` row, a `TreeView` row | SelectionItem, ExpandCollapse (in a tree) | select (as a click), add to the selection and drop (as Ctrl+click), expand and collapse the branch |
+| a `DataGrid` cell | GridItem, TableItem | the row and column numbers, the owning table, the column header; a tree column cell also expands the branch |
+| `TreeView` | Selection | the selected rows, whether several can be selected |
 
 A `readOnly` field, `ComboBox` and `ProgressBar` answer "read-only". Client actions run in the application loop
 through the same functions as human input: a disabled element (`enabled="false"`, including through an ancestor)
 and the elements under an open dialog are not pressed. A client can move the focus to an element that takes it
 with Tab. Changes of the mark, the text and the number of the focused element are reported to screen readers as
 events — they read the new value at once. A password is not disclosed: the value of a `password="true"` field is empty.
+
+**Tables and trees** (item 2.2.6). `DataGrid` is a DataGrid element: the header row (Header, the column headers are
+HeaderItem, a sortable one is pressed by Invoke), the rows are DataItem, the cells are DataItem with the GridItem and
+TableItem patterns; the table's own scroll and the filter row are not shown to screen readers (the filter inputs are named
+by the column titles). `TreeView` is a Tree, its rows are TreeItem with the nesting level (the Level property, from 1); the
+expander button is not a separate element — the row itself expands. A row without children is a "leaf" (ExpandCollapse
+LeafNode) and cannot be expanded. A table row reports its place among all the records ("row 5 of 1000": PositionInSet and SizeOfSet).
+
+The input focus stays at the row list (the keys go to it), while for screen readers the focus is the current tree row or
+the current table cell: when the arrows move the current record or column, the screen reader reads the new row (cell)
+with the column header. The expansion and the selection of the current row are reported by events. A virtual table builds
+row copies only near the visible area: Grid gives the count of all records, and the cell of a record outside that area as
+an empty answer (not an error); the selected rows (Selection) are among the built ones. The client actions go the same
+ways as the mouse: selecting — as a click on the row, adding and dropping — as Ctrl+click, expanding — as the expander button.
 
 The window thread enters a COM single-threaded apartment (as for `WebView`): this way UI Automation calls the provider
 on the window thread, through its message queue, and the tree is never read in parallel with changes. If the program

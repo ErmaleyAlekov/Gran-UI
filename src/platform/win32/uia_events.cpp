@@ -14,6 +14,7 @@ namespace gran::platform::win32
 
             snapshot.node = &node;
             snapshot.checked = info.checked;
+            snapshot.expand = info.expand;
             snapshot.current = info.current;
             snapshot.value = std::move(info.value);
             return snapshot;
@@ -35,7 +36,7 @@ namespace gran::platform::win32
         ** The mark: for a check box and a switch — ToggleState, for a radio button and a tab — IsSelected
         ** and the "element selected" event (the screen reader reads the new choice by it).
         */
-        void raiseChecked(UiaElement* element, std::uint8_t patterns, bool checked) noexcept
+        void raiseChecked(UiaElement* element, std::uint16_t patterns, bool checked) noexcept
         {
             VARIANT before;
             VARIANT after;
@@ -67,12 +68,14 @@ namespace gran::platform::win32
         // Разница прошлого и нового состояния — события тех шаблонов, что есть у узла / The difference of the former and the new state — the events of the patterns the node has
         void raiseDifferences(UiaElement* element, const AccessSnapshot& old, const AccessSnapshot& now)
         {
-            std::uint8_t patterns = a11y::patternsOf(*now.node);
+            std::uint16_t patterns = a11y::patternsOf(*now.node);
             VARIANT before;
             VARIANT after;
 
             if (old.checked != now.checked && (patterns & (a11y::PATTERN_TOGGLE | a11y::PATTERN_SELECT)) != 0)
                 raiseChecked(element, patterns, now.checked);
+            if ((patterns & a11y::PATTERN_EXPAND) != 0)
+                raiseExpandChange(element, old.expand, now.expand);
             if (old.value != now.value && (patterns & a11y::PATTERN_TEXT) != 0)
             {
                 VariantInit(&before);

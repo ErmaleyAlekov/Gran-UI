@@ -243,6 +243,8 @@ public class Smoke {
                 localStaticCheck(logs.previousCrash().isEmpty());
             }
 
+            if (WINDOWS) cellEdit(libraryPath);
+
             // Print success message
             System.out.println("Java smoke OK");
 
@@ -253,6 +255,36 @@ public class Smoke {
             System.err.println("An error occurred: " + e.getMessage());
             System.exit(1);
         }
+    }
+
+    // Правка ячейки живыми клавишами: обработчик onCellEdit видит запись и значения и заменяет значение
+    // A cell edit by live keys: the onCellEdit handler sees the record and the values and replaces the value
+    private static void cellEdit(String libraryPath) {
+        try (Application grid=new Application(libraryPath,backend(),3.0,true)) {
+            List<String> seen=new ArrayList<>();
+            grid.onEvent("check",event -> { seen.add(event.cellRow+":"+event.cellField+":"+event.cellOld+":"+event.cellValue); event.cellValue=event.cellValue+"!"; });
+            grid.loadString("<Window title=\"BindingsGridJava\" width=\"320\" height=\"200\"><Resources><Data name=\"rows\"><Item name=\"Анна\"/></Data>"
+                +"<Selection name=\"sel\" model=\"rows\"/></Resources><Stack><DataGrid id=\"g\" items=\"rows\" selection=\"sel\" editable=\"true\" "
+                +"onCellEdit=\"check\" height=\"150\"><GridColumn field=\"name\" width=\"1fr\"/></DataGrid></Stack></Window>");
+            grid.timer(0.1,() -> { postKeys("BindingsGridJava",new long[]{9,0x28,0x71},'Z'); grid.timer(0.3,() -> grid.command("close")); });
+            grid.run();
+            localStaticCheck(seen.size()==1 && seen.get(0).equals("0:name:Анна:Z"));
+            localStaticCheck(grid.modelRead("rows",0,"name").equals("Z!"));
+        }
+    }
+
+    // Клавиши keys, затем символ и Enter в окно title / The keys, then a character and Enter into the title window
+    private static void postKeys(String title, long[] keys, char character) {
+        try (Arena scope=Arena.ofConfined()) {
+            var lookup=SymbolLookup.libraryLookup("user32",scope);
+            var find=Linker.nativeLinker().downcallHandle(lookup.find("FindWindowW").orElseThrow(),FunctionDescriptor.of(ADDRESS,ADDRESS,ADDRESS));
+            var post=Linker.nativeLinker().downcallHandle(lookup.find("PostMessageW").orElseThrow(),FunctionDescriptor.of(JAVA_INT,ADDRESS,JAVA_INT,JAVA_LONG,JAVA_LONG));
+            MemorySegment window=(MemorySegment)find.invokeExact(MemorySegment.NULL,scope.allocateFrom(JAVA_CHAR,(title+" ").toCharArray()));
+            localStaticCheck(window.address()!=0);
+            for (long key:keys) localStaticCheck((int)post.invokeExact(window,0x100,key,0L)!=0);
+            localStaticCheck((int)post.invokeExact(window,0x102,(long)character,0L)!=0);
+            localStaticCheck((int)post.invokeExact(window,0x100,13L,0L)!=0);
+        } catch (Throwable error) { throw new IllegalStateException(error); }
     }
 
     private static void localStaticCheck(boolean condition) throws AssertionError {

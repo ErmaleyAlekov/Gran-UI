@@ -50,7 +50,7 @@ Retained mode: each stage is recalculated only by dirty flags (`STYLE_DIRTY` →
 | `animation/` | property transitions and keyframe animations (`<Keyframes>` + `animation`), curves (`cubic-bezier`, ease, linear, steps), frame clock |
 | `undo/` | the undo stack (as `QUndoStack`): `UndoStep` steps with merging, the position, the clean state, the limit; used by the input fields and the application stacks |
 | `input/` | hit-test (considering transform), focus, event routing, text editing and selection, clipboard, the field edit history (Ctrl+Z/Ctrl+Y) |
-| `a11y/` | accessibility: roles, names, control patterns, tree navigation, the client request queue (neutral); UI Automation provider in `platform/win32/uia_*`, the requests are performed by `InputRouter::perform` |
+| `a11y/` | accessibility: roles, names, control patterns, tree navigation, the client request queue (neutral); the list row facts (the record index, the record count, the selection mode, the depth) — the `ItemSource` interface implemented by `app::AccessItems` over the bindings; UI Automation provider in `platform/win32/uia_*`, the requests are performed by `InputRouter::perform` |
 | `render/` | rendering list, instance packing, clips, segments, glyph cache |
 | `rhi/` | backend interface, `null/` (the empty backend without a GPU, `BackendKind::NONE`), `dx12/`, `vulkan/`, generated shaders `shaders_gen/` |
 | `platform/` | window and events: `win32/`, `x11/`, `cocoa/` (macOS), `headless/` (without an OS, for tests); the embedded browser `webview2/` (optional) |

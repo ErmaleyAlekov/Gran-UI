@@ -46,7 +46,7 @@
   <Stack orientation="horizontal" padding="16" spacing="16">
     <Stack style="panel" width="260">
       <Text fontSize="18" fontWeight="700">Отделы</Text>
-      <TreeView items="orgRows" selection="deptSel" grow="1" borderWidth="0">
+      <TreeView accessibleName="Отделы" items="orgRows" selection="deptSel" grow="1" borderWidth="0">
         <ItemTemplate>
           <Stack orientation="horizontal" align="center" spacing="6" grow="1">
             <Text grow="1" textOverflow="ellipsis">{name}</Text>

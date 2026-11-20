@@ -23,8 +23,10 @@ namespace gran::binding
         ui::Node& added = ui::insertChild(_container, position, std::move(copy));
         // Отметки — уже в дереве: текущей ячейке строки таблицы нужен подъём к таблице / The marks — already in the tree: the current cell of a table row needs the climb to the table
         markSelection(_items[local], record);
+        markTree(_items[local], record);
         ui::markDirty(added, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         _owner.bind(added);
+        _owner.itemAdded(added);
         if (_container.kind == ui::ElementKind::TABS)
             _owner.resyncTabs(_container);
     }

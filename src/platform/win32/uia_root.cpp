@@ -10,9 +10,23 @@ namespace gran::platform::win32
         if (root == nullptr)
             return E_POINTER;
         *root = nullptr;
-        if (!alive())
+        // Виртуальной строке корень тоже нужен: по нему UI Automation собирает RuntimeId и мост MSAA (Т-73)
+        // A virtual row needs the root too: UI Automation builds the RuntimeId and the MSAA bridge through it (T-73)
+        if (presence() == Presence::GONE)
             return static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE);
         *root = elementFor(_host, _host->tree->root);
+        // Корень у живого дерева есть всегда: пустой ответ — только нехватка памяти (ревью Т-75) / An alive tree always has the root: an empty answer is only out of memory (review T-75)
+        if (*root == nullptr)
+            return E_OUTOFMEMORY;
+        return S_OK;
+    }
+
+    // Вложенных корней (чужих окон внутри) нет / There are no embedded roots (foreign windows inside)
+    HRESULT STDMETHODCALLTYPE UiaElement::GetEmbeddedFragmentRoots(SAFEARRAY** roots)
+    {
+        if (roots == nullptr)
+            return E_POINTER;
+        *roots = nullptr;
         return S_OK;
     }
 

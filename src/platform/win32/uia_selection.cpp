@@ -2,12 +2,25 @@
 
 namespace gran::platform::win32
 {
+    namespace
+    {
+        // Строка таблицы или дерева: выделение ведёт модель выделения списка / A table or tree row: the list selection model keeps the selection
+        bool listItem(const ui::Node& node) noexcept
+        {
+            a11y::Role role = a11y::roleOf(node);
+
+            return role == a11y::Role::DATA_ITEM || role == a11y::Role::TREE_ITEM;
+        }
+    }
+
     /*
     ** Выбор радиокнопки или вкладки (как щелчок): соседи по группе снимаются, onChange. Уже выбранный
-    ** узел запроса не ставит — выбор не меняется.
+    ** узел запроса не ставит — выбор не меняется. Строка списка выбирается всегда (как щелчок): выделение
+    ** нескольких строк сменится одной этой.
     **
     ** Selecting a radio button or a tab (as a click): the group neighbors are cleared, onChange. An already selected
-    ** node queues no request — the choice does not change.
+    ** node queues no request — the choice does not change. A list row is always selected (as a click): a selection
+    ** of several rows becomes this one.
     */
     HRESULT STDMETHODCALLTYPE UiaElement::Select()
     {
@@ -15,36 +28,52 @@ namespace gran::platform::win32
 
         if (FAILED(status))
             return status;
-        if (_node->content.checked)
+        if (a11y::isSelected(*_node) && !listItem(*_node))
             return S_OK;
         return post(a11y::AccessRequest{a11y::Request::SELECT, _node, std::string(), 0.0f});
     }
 
-    // Группа выбирает ровно один: добавить к выбору можно только уже выбранный / The group selects exactly one: only the already selected one can be added
+    /*
+    ** Группа радиокнопок выбирает ровно один: добавить можно только уже выбранный. Строка списка с выделением
+    ** нескольких добавляется (как Ctrl+щелчок); при выделении одной — только если ничего не выделено.
+    **
+    ** A radio group selects exactly one: only the already selected one can be added. A list row with a multiple
+    ** selection is added (as Ctrl+click); with a single selection — only if nothing is selected.
+    */
     HRESULT STDMETHODCALLTYPE UiaElement::AddToSelection()
     {
         HRESULT status = check(a11y::PATTERN_SELECT);
 
         if (FAILED(status))
             return status;
-        if (!_node->content.checked)
+        if (a11y::isSelected(*_node))
+            return S_OK;
+        if (!listItem(*_node))
             return static_cast<HRESULT>(UIA_E_INVALIDOPERATION);
-        return S_OK;
+        if (_host->tree->items != nullptr && _host->tree->items->multipleSelection(*_node->parent))
+            return post(a11y::AccessRequest{a11y::Request::ADD_SELECT, _node, std::string(), 0.0f});
+        const ui::Node* collection = a11y::collectionOf(*_node);
+        // Без вектора: исключение нехватки памяти не должно уйти в UI Automation (найдено при разборе Т-75) / Without a vector: an out-of-memory exception must not leave into UI Automation (found while handling T-75)
+        if (collection != nullptr && a11y::anySelected(*collection))
+            return static_cast<HRESULT>(UIA_E_INVALIDOPERATION);
+        return post(a11y::AccessRequest{a11y::Request::SELECT, _node, std::string(), 0.0f});
     }
 
-    // Снять выбор с радиокнопки или вкладки нельзя (только выбрать другую) / A radio button or a tab cannot be deselected (only another one selected)
+    // Снять выбор с радиокнопки или вкладки нельзя (только выбрать другую); строку списка — можно (как Ctrl+щелчок) / A radio button or a tab cannot be deselected (only another one selected); a list row can (as Ctrl+click)
     HRESULT STDMETHODCALLTYPE UiaElement::RemoveFromSelection()
     {
         HRESULT status = check(a11y::PATTERN_SELECT);
 
         if (FAILED(status))
             return status;
-        if (_node->content.checked)
+        if (!a11y::isSelected(*_node))
+            return S_OK;
+        if (!listItem(*_node))
             return static_cast<HRESULT>(UIA_E_INVALIDOPERATION);
-        return S_OK;
+        return post(a11y::AccessRequest{a11y::Request::REMOVE_SELECT, _node, std::string(), 0.0f});
     }
 
-    // Выбран — отмечен (у заголовка вкладки отметка — выбранная страница) / Selected means checked (for a tab header the mark is the selected page)
+    // Выбран — отмечен (у заголовка вкладки отметка — выбранная страница) или выделен моделью выделения / Selected means checked (for a tab header the mark is the selected page) or marked by the selection model
     HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelected(BOOL* selected)
     {
         HRESULT status = check(a11y::PATTERN_SELECT);
@@ -54,25 +83,8 @@ namespace gran::platform::win32
         *selected = FALSE;
         if (FAILED(status))
             return status;
-        if (_node->content.checked)
+        if (a11y::isSelected(*_node))
             *selected = TRUE;
-        return S_OK;
-    }
-
-    /*
-    ** Контейнера с шаблоном Selection у группы нет (радиокнопки группируются по имени, а не по узлу),
-    ** поэтому ответ пустой — UI Automation это допускает.
-    **
-    ** A group has no container with the Selection pattern (radio buttons are grouped by name, not by a node),
-    ** so the answer is empty — UI Automation allows it.
-    */
-    HRESULT STDMETHODCALLTYPE UiaElement::get_SelectionContainer(IRawElementProviderSimple** container)
-    {
-        if (container == nullptr)
-            return E_POINTER;
-        *container = nullptr;
-        if (!alive())
-            return static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE);
         return S_OK;
     }
 }

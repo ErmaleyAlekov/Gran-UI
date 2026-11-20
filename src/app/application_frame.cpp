@@ -46,7 +46,8 @@ namespace gran
             // tree (a change is an event for screen readers)
             void syncAfterFrame(AppWindow& win)
             {
-                const ui::Node* focus = win.router->focused();
+                // У списка строк таблицы и дерева дикторам — текущая строка или ячейка / For a table and tree row list the screen readers get the current row or cell
+                const ui::Node* focus = accessFocusOf(win, win.router->focused());
 
                 // Менеджер ждёт этот кадр: ответ — когда кадр уже в окне (Т-24)
                 // The manager waits for this frame: the answer when the frame is already in the window (T-24)
@@ -106,6 +107,8 @@ namespace gran
             checkGraphicsDiagnostics(win);
             syncAfterFrame(win);
             win.window->accessRefresh();
+            win.access.changed = nullptr;
+            win.access.added.clear();
             announceStatus(win);
             syncWebViews(win);
             syncDropZones(win);

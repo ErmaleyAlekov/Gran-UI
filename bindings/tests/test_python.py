@@ -82,6 +82,37 @@ class TestApplication(unittest.TestCase):
         self.app.unlisten("root", number)
         self.assertTrue(self.app.dispatch("inner", "ping"))
 
+    def test_cell_edit_event(self):
+        # Правка ячейки живыми клавишами: обработчик onCellEdit видит запись и значения и заменяет значение
+        # A cell edit by live keys: the onCellEdit handler sees the record and the values and replaces the value
+        seen = []
+        def check(event):
+            seen.append((event.cell_row, event.cell_field, event.cell_old, event.cell_value))
+            event.cell_value = event.cell_value + "!"
+        self.app.on_event("check", check)
+        def keys():
+            user32 = C.windll.user32
+            user32.FindWindowW.argtypes = [C.c_wchar_p, C.c_wchar_p]
+            user32.FindWindowW.restype = C.c_void_p
+            user32.PostMessageW.argtypes = [C.c_void_p, C.c_uint, C.c_size_t, C.c_ssize_t]
+            user32.PostMessageW.restype = C.c_bool
+            hwnd = user32.FindWindowW(None, "BindingsGrid")
+            self.assertTrue(hwnd)
+            for key in (9, 0x28, 0x71):
+                self.assertTrue(user32.PostMessageW(hwnd, 0x0100, key, 0))
+            self.assertTrue(user32.PostMessageW(hwnd, 0x0102, ord("Z"), 0))
+            self.assertTrue(user32.PostMessageW(hwnd, 0x0100, 13, 0))
+            self.app.timer(0.3, lambda: self.app.command("close"))
+        self.app.timer(0.1, keys)
+        self.app.load_string('<Window title="BindingsGrid" width="320" height="200"><Resources><Data name="rows">'
+                             '<Item name="Анна"/></Data><Selection name="sel" model="rows"/></Resources><Stack>'
+                             '<DataGrid id="g" items="rows" selection="sel" editable="true" onCellEdit="check" height="150">'
+                             '<GridColumn field="name" width="1fr"/></DataGrid></Stack></Window>')
+        gc.collect()
+        self.app.run()
+        self.assertEqual(seen, [(0, "name", "Анна", "Z")])
+        self.assertEqual(self.app.model_read("rows", 0, "name"), "Z!")
+
     def test_invalid_id_errors(self):
         with self.assertRaises(RuntimeError):
             self.app.read("invalid_id", "property")

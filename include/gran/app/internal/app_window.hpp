@@ -91,6 +91,11 @@ namespace gran::app
         // ---- app_grid_input.cpp: правка ячеек таблицы / table cell editing ----
 
         bool listText(ui::Node& container, const std::string& text) override;
+
+        // ---- access_focus.cpp ----
+
+        // Клиент доступности просит показать запись (VirtualizedItem.Realize) / An accessibility client asks to show a record (VirtualizedItem.Realize)
+        bool listReveal(ui::Node& container, std::size_t index) override;
         void listDoubleClick(ui::Node& container, ui::Node& hit) override;
         bool editorKey(ui::Node& focus, const platform::Event& event) override;
 

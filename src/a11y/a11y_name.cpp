@@ -26,12 +26,24 @@ namespace gran::a11y
         {
             for (const std::unique_ptr<ui::Node>& child : node.children)
             {
-                if (!child->visible)
+                if (!child->visible || hiddenText(*child))
                     continue;
                 if (!child->content.text.empty() && !out.empty())
                     out += ' ';
                 out += child->content.text;
                 appendTexts(*child, out);
+            }
+        }
+
+        // Имя из текстов детей: кнопка и части таблицы и дерева / The name from the children texts: a button and the table and tree parts
+        bool namedByChildren(const ui::Node& node) noexcept
+        {
+            switch (roleOf(node))
+            {
+                case Role::BUTTON: case Role::HEADER_ITEM: case Role::DATA_ITEM: case Role::CELL: case Role::TREE_ITEM:
+                    return true;
+                default:
+                    return false;
             }
         }
 
@@ -94,7 +106,9 @@ namespace gran::a11y
         // The WebView text is the page HTML, not a name: a screen reader would speak the markup
         else if (node.kind != ui::ElementKind::WEB_VIEW)
             name = node.content.text;
-        if (name.empty() && node.kind == ui::ElementKind::BUTTON)
+        // Кнопка, заголовок столбца, строка и ячейка таблицы, строка дерева без своего текста — тексты детей
+        // A button, a column header, a table row and cell, a tree row without own text — the children texts
+        if (name.empty() && namedByChildren(node))
             appendTexts(node, name);
         if (name.empty())
             name = node.content.tooltip;

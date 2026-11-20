@@ -133,6 +133,20 @@ namespace gran::app
     */
     bool finishGridEdit(AppWindow& win, bool commit);
 
+    // ---- grid_edit_event.cpp ----
+
+    /*
+    ** Спросить код программы событием cellEdit, записывать ли значение text (обработчик может его заменить).
+    ** false — отказ: поле значения получает состояние Invalid и подсказку с текстом ошибки, редактор остаётся.
+    **
+    ** Ask the program code by the cellEdit event whether to write the value text (a handler may replace it).
+    ** false — a refusal: the value node gets the Invalid state and a tooltip with the error text, the editor stays.
+    */
+    bool approveCellEdit(AppWindow& win, std::string& text);
+
+    // Состояние Invalid узла значения редактора: стиль темы показывает ошибку / The Invalid state of the editor value node: the theme style shows the error
+    void markGridEditInvalid(ui::Node& value, bool invalid);
+
     // ---- grid_edit_settle.cpp ----
 
     // Безопасная точка: отложенное окончание правки, после Tab — правка соседнего столбца; true — дерево изменилось / The safe point: a deferred edit finish, after Tab — editing the neighbor column; true — the tree changed

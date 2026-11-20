@@ -50,6 +50,20 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 - The scroll bar of `Scroll` and `TextArea` works with the mouse: the thumb is grabbed and dragged (also outside the window),
   a press on the bar beside the thumb pages by the visible part. Previously the bar only showed the position, and scrolling
   was possible only with the wheel and the keyboard (found by the manual check T-58).
+- Table and tree accessibility (step 2.2.6, UI Automation): `DataGrid` is a DataGrid element with the Grid, Table
+  and Selection patterns (the count of all records, a cell by the row and column, the column headers, the selected rows), the rows
+  are DataItem with SelectionItem and the "row N of M" place, the cells are GridItem and TableItem (the screen reader reads the
+  column header); `TreeView` is a Tree, its rows are TreeItem with the level and ExpandCollapse (a leaf is LeafNode). The focus for
+  screen readers is the current tree row or the current table cell (the input focus stays at the list); selecting, Ctrl-selecting
+  and expanding by a client go the same ways as the mouse. The sort direction is a header property (`AriaProperties: sort=…`, as aria-sort),
+  empty texts and the sort arrow are not shown to screen readers. A row and cell element is bound to the record, not to the row copy:
+  in a virtual table it does not vanish on scrolling but becomes "offscreen" with the VirtualizedItem pattern (`Realize`
+  scrolls to the record); when the rows change, the clients get the StructureChanged event. In code — `a11y::ItemSource` (the list row facts, the application implements it).
+- Checking a cell edit by the program code: the `cellEdit` event (the `onCellEdit` attribute, an `addEventListener` listener) —
+  the record, the field, the former and the new values in `UiEvent::cell`; a handler may replace the value or refuse
+  (`preventDefault()` or a `cell.error` text — it becomes the input tooltip, the editor stays with `<Invalid>`).
+  C interface: the `cell_row`, `cell_field`, `cell_old`, `cell_value` fields of `gran_input_event` and `gran_event_set_cell`;
+  the Python, C# and Java wrappers — the same. Sample — `samples/grid.xml` (the client is not empty, the sum is from 1 to 10,000,000).
 
 ### Changed
 - Shift+mouse wheel scrolls a scroll with `direction="horizontal|both"` sideways (as in browsers and spreadsheets);
@@ -59,6 +73,9 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   and per record lookup by coordinate). Previously all records were taken as one average height — rows of different heights
   gave a wrong scroll bar and a jump to a record missed its target. The scroll anchor keeps the visible rows in place when
   an estimate is replaced by a measurement (like `overflow-anchor` in browsers). The first step of 2.2 (DataGrid and TreeView).
+- The tree row expander button gets the "has a branch" and "expanded" flags right from the list binding (the new
+  `NodeContent::branch` field) rather than through the `{$hasChildren}`/`{$expanded}` expressions: the arrow is visible from
+  the first frame, and the branch flag is no longer kept as a "true" text in an alien field.
 
 ### Fixed
 - A clip (`overflow="hidden"`, `Scroll`) under a rotation or a scale is now intersected with the ancestor clip of the same
@@ -73,6 +90,10 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
   the rows above a scroll were clipped, and the search field in `samples/models.xml` went past the panel top. Scrolled boxes
   (`Scroll`, `DataGrid`, `overflow="hidden"`) still shrink down to zero; horizontally the behavior is unchanged —
   a text shrinks and is cut by an ellipsis.
+- Windows, UI Automation: running out of memory while reading an element property (`GetPropertyValue`) or selecting a row
+  (`AddToSelection`) no longer lets a C++ exception out into UI Automation — the client gets `E_OUTOFMEMORY`. A C ABI
+  callback that throws a C++ exception no longer leaves `gran_event_set_cell` a reference to a gone event
+  (found by the review T-75).
 
 ## [0.2.0] — 2026-11-16
 

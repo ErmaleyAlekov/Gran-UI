@@ -56,6 +56,10 @@ namespace gran::binding
 
         // Поддерево node сейчас будет уничтожено / The node subtree is about to be destroyed
         virtual void nodeRemoving(const ui::Node& node) noexcept = 0;
+    
+        // Привязка построила копию записи (узел уже в дереве): клиенты доступности перечитают её детей
+        // The binding built a record copy (the node is already in the tree): the accessibility clients reread its children
+        virtual void nodeAdded(const ui::Node& node) noexcept = 0;
     };
 
     /*
@@ -109,6 +113,26 @@ namespace gran::binding
 
         // Запись ближайшего списка, из копии шаблона которой узел / The record of the nearest list whose template copy holds the node
         ItemRef itemOf(const ui::Node& node) const noexcept;
+
+        // ---- list_bindings_items.cpp ----
+
+        // Модель и выделение привязанного контейнера (index — текущая запись, NO_ROW — нет); model == nullptr — не привязан
+        // The model and the selection of a bound container (index — the current record, NO_ROW — none); model == nullptr — not bound
+        ItemRef listOf(const ui::Node& container) const noexcept;
+
+        // Копия записи index контейнера (nullptr — не привязан или запись вне окна виртуального списка)
+        // The copy of the container record index (nullptr — not bound or the record is outside the virtual list window)
+        ui::Node* itemNode(const ui::Node& container, std::size_t index) const noexcept;
+
+        // Прокрутить ближайший Scroll к записи index контейнера; false — не привязан или записи нет
+        // Scroll the nearest Scroll to the container record index; false — not bound or no such record
+        bool revealItem(const ui::Node& container, std::size_t index);
+
+        // Копия записи построена (вызывает привязка списка): сообщить слушателю / A record copy was built (the list binding calls it): tell the listener
+        void itemAdded(const ui::Node& node) noexcept;
+
+        // Версия состава и порядка записей контейнера (0 — не привязан) / The container record set and order version (0 — not bound)
+        std::uint64_t listVersion(const ui::Node& container) const noexcept;
 
         // ---- list_bindings_window.cpp ----
 

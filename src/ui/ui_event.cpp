@@ -9,7 +9,7 @@ namespace gran::ui
         // Имена в порядке EventType (без CUSTOM) / The names in the EventType order (without CUSTOM)
         const char* const NAMES[] = {"keyDown", "keyUp", "pointerDown", "pointerMove", "pointerUp", "pointerEnter",
             "pointerLeave", "doubleClick", "wheel", "focus", "blur", "contextMenu", "dragStart", "dragEnter", "dragOver",
-            "dragLeave", "drop", "dragEnd"};
+            "dragLeave", "drop", "dragEnd", "cellEdit"};
 
         // Номер имени — значение EventType (static_cast в eventType): таблица и перечисление меняются вместе
         // The name number is the EventType value (static_cast in eventType): the table and the enumeration change together

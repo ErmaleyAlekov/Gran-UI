@@ -66,20 +66,6 @@ namespace gran::app
             pushCellStep(win, edit, index, before, text);
             source.set(index, edit.field, text);
         }
-
-        // Состояние Invalid узла значения: стиль темы показывает ошибку / The Invalid state of the value node: the theme style shows the error
-        void markInvalid(ui::Node& value, bool invalid)
-        {
-            std::uint16_t bit = style::stateBit(style::State::INVALID);
-            std::uint16_t mask = static_cast<std::uint16_t>(value.stateMask & ~bit);
-
-            if (invalid)
-                mask = static_cast<std::uint16_t>(mask | bit);
-            if (mask == value.stateMask)
-                return;
-            value.stateMask = mask;
-            ui::markDirty(value, ui::DIRTY_STYLE | ui::DIRTY_PAINT);
-        }
     }
 
     /*
@@ -100,9 +86,15 @@ namespace gran::app
         if (!edit.lost && edit.value != nullptr)
             text = readEditorValue(*edit.value);
         bool valid = data::normalizeValue(edit.type, text);
+        // Код программы проверяет значение событием cellEdit; его обработчик мог сам закончить сеанс (замена документа)
+        // The program code checks the value by the cellEdit event; its handler might end the session itself (a document replacement)
+        if (commit && valid)
+            valid = approveCellEdit(win, text);
+        if (win.gridEdit.get() != &edit)
+            return true;
         if (commit && !valid && edit.value != nullptr)
         {
-            markInvalid(*edit.value, true);
+            markGridEditInvalid(*edit.value, true);
             return false;
         }
         std::unique_ptr<GridEdit> done = std::move(win.gridEdit);

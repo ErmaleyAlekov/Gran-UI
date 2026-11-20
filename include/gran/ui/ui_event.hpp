@@ -4,6 +4,7 @@
 #include "gran/platform/window.hpp"
 #include "gran/utils/geometry.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -24,7 +25,7 @@ namespace gran::ui
     enum class EventType : std::uint8_t
     {
         KEY_DOWN, KEY_UP, POINTER_DOWN, POINTER_MOVE, POINTER_UP, POINTER_ENTER, POINTER_LEAVE, DOUBLE_CLICK, WHEEL,
-        FOCUS, BLUR, CONTEXT_MENU, DRAG_START, DRAG_ENTER, DRAG_OVER, DRAG_LEAVE, DROP, DRAG_END, CUSTOM
+        FOCUS, BLUR, CONTEXT_MENU, DRAG_START, DRAG_ENTER, DRAG_OVER, DRAG_LEAVE, DROP, DRAG_END, CELL_EDIT, CUSTOM
     };
 
     /*
@@ -47,6 +48,24 @@ namespace gran::ui
     {
         std::string format;
         std::string data;
+    };
+
+    /*
+    ** Правка ячейки таблицы (событие cellEdit, пункт 2.2.6): row — номер записи в источнике таблицы, field — поле,
+    ** oldValue — значение до правки, value — новое (уже приведённое типом столбца). Обработчик может заменить value
+    ** (оно снова проверяется типом) или отказать: preventDefault() либо текст error (он станет подсказкой у поля).
+    **
+    ** A table cell edit (the cellEdit event, item 2.2.6): row is the record index in the table source, field is the field,
+    ** oldValue is the value before the edit, value is the new one (already normalized by the column type). A handler may replace value
+    ** (it is checked by the type again) or refuse: preventDefault() or an error text (it becomes the input tooltip).
+    */
+    struct CellEdit
+    {
+        std::size_t row = 0;
+        std::string field;
+        std::string oldValue;
+        std::string value;
+        std::string error;
     };
 
     /*
@@ -99,6 +118,8 @@ namespace gran::ui
         // Строка своего события (dispatchEvent) / The custom event string (dispatchEvent)
         std::string detail;
         DragData drag;
+        // cellEdit: запись, поле, значения и ответ обработчика / cellEdit: the record, the field, the values and the handler answer
+        CellEdit cell;
         // dragEnd: перетаскивание закончилось сбросом в зону (false — отмена или зона отказала)
         // dragEnd: the drag ended with a drop into a zone (false — cancelled or the zone refused)
         bool dropped = false;

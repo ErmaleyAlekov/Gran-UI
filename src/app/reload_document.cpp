@@ -38,6 +38,8 @@ namespace gran::app
                 win.window->setAccessTree(nullptr);
             win.access.root = nullptr;
             win.access.focus = nullptr;
+            win.access.changed = nullptr;
+            win.access.added.clear();
             win.access.requests.clear();
             win.router.reset();
             win.renderer.reset();

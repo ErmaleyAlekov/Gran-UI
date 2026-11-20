@@ -123,6 +123,12 @@ namespace gran::input
         // A double click in such a container (a table opens the cell editor); hit is the node under the mouse
         virtual void listDoubleClick(ui::Node& container, ui::Node& hit);
 
+        // ---- action_sink_reveal.cpp ----
+
+        // Прокрутить список к записи index (клиент доступности просит показать строку); true — запись есть. По умолчанию — false
+        // Scroll the list to the record index (an accessibility client asks to show the row); true — the record exists. By default — false
+        virtual bool listReveal(ui::Node& container, std::size_t index);
+
         /*
         ** Клавиша при фокусе внутри редактора ячейки таблицы — до обычной обработки (Esc иначе снял бы фокус,
         ** Tab увёл бы его, Enter отправил бы поле). true — поглощена. По умолчанию — false.
@@ -514,6 +520,19 @@ namespace gran::input
 
     // Активация элемента: клик кнопки, переключение флажка (с действиями) / Activating a control: a button click, a check box toggle (with actions)
     void activate(RouterState& state, ui::Node& control);
+
+    // ---- access_items.cpp ----
+
+    /*
+    ** Запрос клиента доступности к строке таблицы или дерева и к ячейке: выбрать, добавить к выделению и снять
+    ** (как щелчок и щелчок с Ctrl), фокус (как щелчок), раскрыть и свернуть (как кнопка раскрытия). false — узел
+    ** не строка и не ячейка или запрос не про них: его выполняет обычный путь; changed — что-то изменилось.
+    **
+    ** An accessibility client request to a table or tree row and to a cell: select, add to the selection and drop
+    ** (as a click and a click with Ctrl), the focus (as a click), expand and collapse (as the expander button). false — the node
+    ** is neither a row nor a cell or the request is not about them: the ordinary path performs it; changed — something changed.
+    */
+    bool itemRequest(RouterState& state, ui::Node& node, const a11y::AccessRequest& request, bool& changed);
 
     // ---- choice_input.cpp ----
 

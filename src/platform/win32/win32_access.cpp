@@ -55,8 +55,10 @@ namespace gran::platform::win32
     // The changes of the focused node mark, text and number go to the screen readers (the comparison is in uia_events.cpp)
     void Win32Window::accessRefresh()
     {
-        if (access)
-            raiseStateChanges(access);
+        if (!access)
+            return;
+        raiseStateChanges(access);
+        raiseStructureChange(access);
     }
 
     // Живая область: диктор перечитает имя узла (LiveSetting = Polite у секции строки состояния) / A live region: the screen reader rereads the node name (LiveSetting = Polite on a status section)

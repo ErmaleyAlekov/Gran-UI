@@ -109,6 +109,12 @@ namespace gran::input
 
         if (!reachable(_state, node))
             return false;
+        // Строки и ячейки таблицы и дерева — через привязку списка, как мышью / The table and tree rows and cells — through the list binding, as with the mouse
+        if (itemRequest(_state, node, request, changed))
+        {
+            flushEvents(_state);
+            return changed;
+        }
         if (request.kind == a11y::Request::FOCUS)
             focus(&node);
         else if (request.kind == a11y::Request::INVOKE)
@@ -119,8 +125,10 @@ namespace gran::input
             changed = replaceText(_state, node, request.text);
         else if (request.kind == a11y::Request::EXPAND || request.kind == a11y::Request::COLLAPSE)
             changed = expandItem(_state, node, request.kind == a11y::Request::EXPAND);
-        else
+        else if (request.kind == a11y::Request::SET_VALUE)
             changed = setRangeValue(_state, node, request.value);
+        else
+            changed = false;
         // Фокус и выбор могли поставить уведомления focus/blur в очередь / The focus and the choice might queue focus/blur notifications
         flushEvents(_state);
         return changed;

@@ -76,6 +76,9 @@ namespace suites
     void registerColumnFilterTests(test::TestRunner& runner);
     void registerTreeViewTests(test::TestRunner& runner);
     void registerTreeGridTests(test::TestRunner& runner);
+    void registerGridAccessTests(test::TestRunner& runner);
+    void registerUiaGridTests(test::TestRunner& runner);
+    void registerCellEditEventTests(test::TestRunner& runner);
     void registerFlexAutoMinTests(test::TestRunner& runner);
     void registerLayoutCacheTests(test::TestRunner& runner);
     void registerInputBoundsTests(test::TestRunner& runner);

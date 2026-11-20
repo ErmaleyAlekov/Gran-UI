@@ -49,3 +49,19 @@ gran_status gran_app_dispatch(gran_app* app, const char* target, const char* typ
     if (allowed != nullptr && !result) *allowed = 0;
     GRAN_CAPI_END
 }
+
+// Ответ меняет событие ядра: значение уйдёт в запись после возврата callback, ошибка — отказ с подсказкой.
+// The answer changes the core event: the value goes into the record after the callback returns, an error is a refusal with a tooltip.
+gran_status gran_event_set_cell(const gran_input_event* event, const char* value, const char* error)
+{
+    GRAN_CAPI_TRY
+    gran::ui::UiEvent* core = gran::capi::eventOf(event);
+    gran::capi::require(core != nullptr && core->type == gran::ui::EventType::CELL_EDIT);
+    if (value != nullptr) core->cell.value = value;
+    if (error != nullptr && error[0] != '\0')
+    {
+        core->cell.error = error;
+        core->preventDefault();
+    }
+    GRAN_CAPI_END
+}

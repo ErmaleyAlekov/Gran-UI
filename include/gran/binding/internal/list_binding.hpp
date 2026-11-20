@@ -110,6 +110,12 @@ namespace gran::binding
         // Прокрутить ближайший Scroll так, чтобы запись index была видна (по вертикали) / Scroll the nearest Scroll so that the record index is visible (vertically)
         void reveal(std::size_t index);
 
+        // ---- list_binding_tree.cpp ----
+
+        // Версия состава и порядка записей: растёт при вставке, удалении и перестановке (не при прокрутке и правке полей)
+        // The record set and order version: it grows on insertion, removal and permutation (not on scrolling and field edits)
+        std::uint64_t version() const noexcept;
+
     private:
         // ---- list_binding_order.cpp ----
 
@@ -118,6 +124,11 @@ namespace gran::binding
 
         // Состояние Selected копии по модели выделения / The Selected state of a copy by the selection model
         void markSelection(const BoundItem& item, std::size_t record);
+
+        // ---- list_binding_tree.cpp ----
+
+        // Признаки ветки и раскрытия у кнопки раскрытия копии по плоскому дереву (долг 2.2.5) / The branch and expanded flags of the copy expander by the flat tree (2.2.5 debt)
+        void markTree(const BoundItem& item, std::size_t record);
 
         // ---- list_binding_items.cpp ----
 
@@ -199,6 +210,7 @@ namespace gran::binding
         double _anchorAt = 0.0;
         // Источник отказал при подгрузке — больше не просить / The source failed while fetching — do not ask any more
         bool _fetchFailed = false;
+        std::uint64_t _version = 0;
         ui::Node* _lead = nullptr;
         ui::Node* _trail = nullptr;
     };

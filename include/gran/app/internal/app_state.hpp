@@ -2,6 +2,7 @@
 #define GRAN_APP_INTERNAL_APP_STATE_HPP
 
 #include "gran/app/application.hpp"
+#include "gran/app/internal/access_items.hpp"
 #include "gran/app/internal/app_window.hpp"
 #include "gran/app/internal/task_pool.hpp"
 
@@ -67,6 +68,9 @@ namespace gran
         // Снять ссылки ввода, анимаций и доступности на поддерево перед его удалением / Drop the input, animation and accessibility references to the subtree before removing it
         void nodeRemoving(const ui::Node& node) noexcept override;
 
+        // Копия строки списка построена: дикторы узнают, что у неё снова есть дети / A list row copy was built: the screen readers learn it has children again
+        void nodeAdded(const ui::Node& node) noexcept override;
+
         // ---- window_closing.cpp ----
 
         // Графика окон уходит с конца списка (подчинённые раньше владельцев) / The window graphics go from the list end (the owned ones before the owners)
@@ -80,6 +84,8 @@ namespace gran
         // Модели списков и привязки items="…" всех окон; слушатель удаления — само состояние
         // The list models and the items="…" bindings of all the windows; the removal listener is the state itself
         binding::ListBindings lists{this};
+        // Сведения о строках списков для дикторов (поверх lists — объявлено после них) / The list row facts for screen readers (over lists — declared after them)
+        app::AccessItems accessItems{lists};
         std::vector<app::WebMessage> webInbox;
         std::map<std::string, WebMessageHandler> webHandlers;
         std::map<std::string, FileDropHandler> dropHandlers;

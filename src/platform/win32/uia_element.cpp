@@ -6,8 +6,11 @@ namespace gran::platform::win32
 {
     // Элемент рождается со ссылкой 1 (её получает тот, кто его создал) / The element is born with reference 1 (its creator gets it)
     UiaElement::UiaElement(std::shared_ptr<UiaHost> host, const ui::Node* node)
-        : _host(std::move(host)), _node(node)
+        : _host(std::move(host)), _node(node), _serial(0)
     {
+        if (_node != nullptr)
+            _serial = _node->serial;
+        _key = itemKeyOf(*_host, _node);
     }
 
     // Корень фрагментов отдаётся только элементом корня дерева, шаблоны — только поддерживающим узлом
@@ -52,6 +55,12 @@ namespace gran::platform::win32
     // Узел ещё в дереве (окно не закрыто, узел не удалён и видим) / The node is still in the tree (the window is open, the node is not removed and visible)
     bool UiaElement::alive() const noexcept
     {
-        return _host->tree != nullptr && a11y::contains(*_host->tree, _node);
+        if (_host->tree == nullptr)
+            return false;
+        // Узел разыменовывается только после contains: до этого адрес мог освободиться / The node is dereferenced only after contains: before it the address might have been freed
+        if (a11y::contains(*_host->tree, _node) && _node->serial == _serial)
+            return true;
+        // Копию строки построили заново (прокрутка, перестройка окна строк) — та же запись, новый узел / The row copy was built anew (scrolling, rebuilding the row window) — the same record, a new node
+        return rebind();
     }
 }
