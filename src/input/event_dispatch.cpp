@@ -6,6 +6,19 @@ namespace gran::input
 {
     namespace
     {
+        // Фаза и текущий узел действуют только во время доставки.
+        // The phase and current node only apply during dispatch.
+        struct DeliveryScope
+        {
+            ui::UiEvent& event;
+
+            ~DeliveryScope()
+            {
+                event.current = nullptr;
+                event.phase = ui::EventPhase::NONE;
+            }
+        };
+
         /*
         ** Подходит ли обработчик (из разметки или кода — поля одинаковые): вид, фаза и, у своего события, имя.
         ** Шаблон, а не две копии условия: EventBinding и EventListener различаются только способом вызова.
@@ -97,21 +110,29 @@ namespace gran::input
     */
     bool dispatchEvent(ui::UiEvent& event, ActionSink& sink)
     {
+        DeliveryScope scope{event};
         std::vector<ui::Node*> path;
+        ui::Node* fast = event.target;
         std::uint32_t version = sink.treeVersion();
 
         if (event.target == nullptr)
             return true;
         for (ui::Node* node = event.target; node != nullptr; node = node->parent)
+        {
             path.push_back(node);
+            if (fast != nullptr)
+                fast = fast->parent;
+            if (fast != nullptr)
+                fast = fast->parent;
+            if (fast != nullptr && fast == node->parent)
+                return false;
+        }
         for (std::size_t index = path.size(); index > 1 && !event.propagationStopped; --index)
             visit(*path[index - 1], event, sink, ui::EventPhase::CAPTURE, version);
         if (!event.propagationStopped)
             visit(*path[0], event, sink, ui::EventPhase::TARGET, version);
         for (std::size_t index = 1; index < path.size() && event.bubbles && !event.propagationStopped; ++index)
             visit(*path[index], event, sink, ui::EventPhase::BUBBLE, version);
-        event.current = nullptr;
-        event.phase = ui::EventPhase::NONE;
         return !event.defaultPrevented;
     }
 }

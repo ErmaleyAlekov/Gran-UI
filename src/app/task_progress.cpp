@@ -27,6 +27,11 @@ namespace gran
                     info = record->latest;
                     record->progressQueued = false;
                 }
+                {
+                    std::lock_guard<std::mutex> lock(record->delivery->mutex);
+                    if (!record->delivery->pool)
+                        return;
+                }
                 if (!record->finished && record->progress)
                     record->progress(info);
             }
@@ -57,7 +62,17 @@ namespace gran
                 queue = true;
             }
         }
-        if (queue)
-            _record.pool->post(DeliverProgress{_record.shared_from_this()});
+        if (!queue)
+            return;
+        try
+        {
+            if (_record.pool->post(DeliverProgress{_record.shared_from_this()}))
+                return;
+        }
+        catch (const std::bad_alloc&)
+        {
+        }
+        std::lock_guard<std::mutex> lock(_record.progressMutex);
+        _record.progressQueued = false;
     }
 }

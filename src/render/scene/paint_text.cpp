@@ -1,6 +1,7 @@
 #include "gran/render/internal/scene_internal.hpp"
 
 #include <cmath>
+#include <limits>
 
 namespace gran::render::internal
 {
@@ -42,7 +43,7 @@ namespace gran::render::internal
                 column += 1.0f;
             }
             text::GlyphKey key{glyph.face, glyph.glyph, scale.quarter, static_cast<std::uint8_t>(subpixel)};
-            const text::AtlasEntry* entry = context.resources.atlas.glyph(key);
+            const text::AtlasEntry* entry = context.resources.atlas.glyph(key, context.resources.preserveLayout);
             if (entry == nullptr)
                 return;
             instance.rect[0] = column + entry->left;
@@ -61,7 +62,7 @@ namespace gran::render::internal
             GpuInstance& instance, SceneContext& context)
         {
             const text::AtlasEntry* entry = context.resources.atlas.glyph(
-                text::GlyphKey{glyph.face, glyph.glyph, scale.quarter, 0});
+                text::GlyphKey{glyph.face, glyph.glyph, scale.quarter, 0}, context.resources.preserveLayout);
 
             if (entry == nullptr)
                 return;
@@ -83,7 +84,10 @@ namespace gran::render::internal
         float unit = 1.0f;
         GpuInstance instance = placeInstance(state, Rect{0.0f, 0.0f, 1.0f, 1.0f}, context.scale, unit);
 
-        scale.quarter = static_cast<std::uint16_t>(std::lround(paint.size * scale.device * 4.0f));
+        float quarter = std::round(paint.size * scale.device * 4.0f);
+        if (!(quarter >= 1.0f && quarter <= std::numeric_limits<std::uint16_t>::max()))
+            return;
+        scale.quarter = static_cast<std::uint16_t>(quarter);
         instance.kind = KIND_GLYPH;
         instance.fill = colorPackPremultiplied(paint.color);
         for (const text::PositionedGlyph& glyph : layout.glyphs)

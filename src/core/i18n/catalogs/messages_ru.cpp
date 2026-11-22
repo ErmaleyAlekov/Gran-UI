@@ -95,6 +95,8 @@ namespace gran::i18n
             {Message::MARKUP_UNKNOWN_SLOT, "у компонента {0} нет слота «{1}»"},
             {Message::MARKUP_NO_DEFAULT_SLOT, "у компонента {0} нет безымянного слота <Slot/>: содержимому без slot=\"…\" некуда встать"},
             {Message::MARKUP_SLOT_OUTSIDE, "<Slot> работает только в теле компонента <Component>"},
+            {Message::MARKUP_DUPLICATE_SLOT, "компонент {0} повторно объявляет безымянный слот"},
+            {Message::MARKUP_EXPANSION_LIMIT, "при развёртке компонента {0} превышен предел глубины или числа экземпляров"},
             {Message::MARKUP_SLOT_ROOT, "корень тела компонента {0} — <Slot>: нужен элемент интерфейса"},
             {Message::MARKUP_PARAM_RESERVED, "параметр {0} компонента {1}: имя занято атрибутом экземпляра (id, visible, enabled, slot, style, размеры и расположение) или привязкой (index, self, parent, selected, current, depth, expanded, hasChildren)"},
             {Message::MARKUP_UNKNOWN_STYLE, "стиль «{0}» не объявлен ни в компоненте, ни в его библиотеке, ни в окне"},

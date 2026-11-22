@@ -1,4 +1,8 @@
 #include "gran/style/style_sheet.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
+
+#include <vector>
 
 namespace gran::style
 {
@@ -11,24 +15,35 @@ namespace gran::style
                 applyDeclaration(style, declaration);
         }
 
-        /*
-        ** Цепочка basedOn от самого дальнего предка к правилу: ближний стиль перекрывает
-        ** дальний. state < 0 — основные объявления, иначе — объявления состояния.
-        ** Глубина цепочки ограничена: циклы отвергает загрузчик разметки.
-        **
-        ** The basedOn chain from the farthest ancestor to the rule: a nearer style overrides
-        ** a farther one. state < 0 — the base declarations, otherwise the state declarations.
-        ** The chain depth is bounded: the markup loader rejects cycles.
-        */
+        // Сохраняем предков для обратного обхода, проверяя цикл двумя указателями.
+        // Save ancestors for reverse traversal and detect cycles with two pointers.
         void applyRuleChain(ComputedStyle& style, const StyleRule* rule, int state)
         {
-            if (rule == nullptr)
-                return;
-            applyRuleChain(style, rule->basedOn, state);
-            if (state < 0)
-                applySet(style, rule->block.base);
-            else
-                applySet(style, rule->block.states[state]);
+            std::vector<const StyleRule*> children;
+            const StyleRule* fast = rule;
+
+            while (rule != nullptr && rule->basedOn != nullptr)
+            {
+                children.push_back(rule);
+                rule = rule->basedOn;
+                if (fast != nullptr)
+                    fast = fast->basedOn;
+                if (fast != nullptr)
+                    fast = fast->basedOn;
+                if (rule == fast)
+                    throw GranException(ErrorCode::RESOURCE, i18n::format(i18n::Message::RESOURCE_STYLE_CYCLE, {rule->name}));
+            }
+            while (rule != nullptr)
+            {
+                if (state < 0)
+                    applySet(style, rule->block.base);
+                else
+                    applySet(style, rule->block.states[state]);
+                if (children.empty())
+                    break;
+                rule = children.back();
+                children.pop_back();
+            }
         }
     }
 

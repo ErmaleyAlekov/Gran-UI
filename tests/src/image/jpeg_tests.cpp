@@ -4,6 +4,7 @@
 #include "gran/image/image.hpp"
 #include "support/jpeg_samples.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 
 namespace
@@ -50,6 +51,30 @@ namespace
         gran::image::Image imageJpeg = gran::image::decodeJpeg(jpeg_samples::BASELINE_420, jpeg_samples::BASELINE_420_SIZE, "test");
         gran::image::Image imageAny = gran::image::decodeImage(jpeg_samples::BASELINE_420, jpeg_samples::BASELINE_420_SIZE, "test");
         TEST_ASSERT(imageJpeg.pixels == imageAny.pixels);
+    }
+
+    // Повторяем номер компоненты в заголовке SOS, оставляя данные скана прежними.
+    // Repeat a component identifier in the SOS header while leaving the scan data intact.
+    void testDuplicateScanComponent()
+    {
+        std::vector<std::uint8_t> bytes(jpeg_samples::BASELINE_420,
+            jpeg_samples::BASELINE_420 + jpeg_samples::BASELINE_420_SIZE);
+        const std::uint8_t marker[] = {0xFF, 0xDA};
+        auto scan = std::search(bytes.begin(), bytes.end(), marker, marker + 2);
+        bool rejected = false;
+
+        TEST_ASSERT(bytes.end() - scan >= 8);
+        TEST_ASSERT(scan[4] >= 2);
+        scan[7] = scan[5];
+        try
+        {
+            gran::image::decodeJpeg(bytes.data(), bytes.size(), "test");
+        }
+        catch (const gran::GranException& error)
+        {
+            rejected = error.getMessage().find("SOS component") != std::string::npos;
+        }
+        TEST_ASSERT(rejected);
     }
 
     void testExceptions()
@@ -109,6 +134,7 @@ namespace suites
         runner.add("image: decodeJpeg baseline 444 restart", testBaseline444Restart);
         runner.add("image: decodeJpeg progressive gray", testProgressiveGray);
         runner.add("image: decodeImage baseline 420", testDecodeImageBaseline420);
+        runner.add("image: decodeJpeg rejects a duplicate scan component", testDuplicateScanComponent);
         runner.add("image: exceptions", testExceptions);
     }
 }

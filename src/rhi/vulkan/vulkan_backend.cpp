@@ -33,7 +33,7 @@ namespace gran::rhi::vk
         createPipelines();
         createFrames();
         createTargets();
-        createSwapchain();
+        _recreate = !createSwapchain();
         nameStatics();
     }
 
@@ -53,15 +53,17 @@ namespace gran::rhi::vk
             return;
         if (width > 16384 || height > 16384)
             invalid("viewport");
+        _recreate = true;
         waitFrames();
+        _targetsDirty = _targetsDirty || width != _options.width || height != _options.height;
         _options.width = width;
         _options.height = height;
         _hasFrame = false;
         _waitId = 0; // Номер кадра старой цепочки новой цепочке не принадлежит / The old chain frame number does not belong to the new chain
         if (width == 0 || height == 0)
             return;
-        createTargets();
-        createSwapchain();
-        _recreate = false;
+        if (_targetsDirty) createTargets();
+        _targetsDirty = false;
+        _recreate = !createSwapchain();
     }
 }

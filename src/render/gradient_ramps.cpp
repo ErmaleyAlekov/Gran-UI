@@ -32,7 +32,7 @@ namespace gran::render
 
     // Известный набор — его строка; новый — следующая свободная (при нехватке — рост)
     // A known set — its row; a new one — the next free row (growing when short)
-    std::uint32_t GradientRamps::rowFor(const style::Gradient& gradient)
+    std::uint32_t GradientRamps::rowFor(const style::Gradient& gradient, bool preserveRows)
     {
         std::string key = rampKey(gradient);
         auto found = _rows.find(key);
@@ -40,7 +40,11 @@ namespace gran::render
         if (found != _rows.end())
             return found->second;
         if (_used == _capacity)
+        {
+            if (preserveRows)
+                return _capacity;
             growOrReset();
+        }
         std::uint32_t row = _used++;
         fillRow(row, gradient);
         _rows.emplace(key, row);

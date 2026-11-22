@@ -80,6 +80,9 @@ namespace suites
     void registerUiaGridTests(test::TestRunner& runner);
     void registerCellEditEventTests(test::TestRunner& runner);
     void registerFlexAutoMinTests(test::TestRunner& runner);
+    void registerFlexFreeSpaceTests(test::TestRunner& runner);
+    void registerEarlyReviewTests(test::TestRunner& runner);
+    void registerAtlasUploadTests(test::TestRunner& runner);
     void registerLayoutCacheTests(test::TestRunner& runner);
     void registerInputBoundsTests(test::TestRunner& runner);
     void registerTimerQueueTests(test::TestRunner& runner);

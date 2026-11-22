@@ -1,20 +1,21 @@
 #include "gran/rhi/vulkan/internal/vulkan_backend_impl.hpp"
-#include <algorithm>
+#include "gran/rhi/vulkan/internal/swap_extent.hpp"
 
 namespace gran::rhi::vk
 {
     // Пересоздание после ожидания всей очереди; старые семафоры больше не используются presentation engine.
     // Recreate after waiting for the whole queue; old semaphores are no longer used by the presentation engine.
-    void VulkanBackend::createSwapchain()
+    bool VulkanBackend::createSwapchain()
     {
-        if (_surface.get() == VK_NULL_HANDLE) return;
+        if (_surface.get() == VK_NULL_HANDLE) return true;
         VkSurfaceCapabilitiesKHR caps{};
         GRAN_CHECK_VK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_physical, _surface.get(), &caps));
         if (!(caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) invalid("surface transfer");
-        _swapExtent = caps.currentExtent;
-        if (_swapExtent.width == UINT32_MAX)
-            _swapExtent = {std::clamp(_options.width, caps.minImageExtent.width, caps.maxImageExtent.width),
-                std::clamp(_options.height, caps.minImageExtent.height, caps.maxImageExtent.height)};
+        if (!chooseSwapExtent(caps, {_options.width, _options.height}, _swapExtent))
+        {
+            _swapchain.reset();
+            return false;
+        }
         unsigned count = caps.minImageCount + 1;
         if (caps.maxImageCount != 0) count = std::min(count, caps.maxImageCount);
         VkSurfaceFormatKHR format = surfaceFormat();
@@ -29,6 +30,7 @@ namespace gran::rhi::vk
         GRAN_CHECK_VK(vkCreateSwapchainKHR(_device.get(), &info, nullptr,
             _swapchain.put(std::bind(vkDestroySwapchainKHR, _device.get(), std::placeholders::_1, nullptr))));
         swapchainImages();
+        return true;
     }
 
     // Семафор finished принадлежит изображению: acquire гарантирует завершение прежнего present.
@@ -50,7 +52,7 @@ namespace gran::rhi::vk
     // OUT_OF_DATE leaves no reset fence; SUBOPTIMAL completes the frame and schedules recreation.
     bool VulkanBackend::acquire()
     {
-        if (_swapchain.get() == VK_NULL_HANDLE) return true;
+        if (_swapchain.get() == VK_NULL_HANDLE) return _surface.get() == VK_NULL_HANDLE;
         VkResult result = vkAcquireNextImageKHR(_device.get(), _swapchain.get(), UINT64_MAX,
             _frames[_current].acquired.get(), VK_NULL_HANDLE, &_swapIndex);
         if (result == VK_ERROR_OUT_OF_DATE_KHR) { _recreate = true; return false; }

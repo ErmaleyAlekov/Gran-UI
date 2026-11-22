@@ -30,7 +30,7 @@ namespace gran::markup::internal
         {
             bool assigned = false;
 
-            context.scope = scope.outer;
+            ScopedComponent active(context, scope.outer, false);
             for (const beresta::Element* child = firstElementChild(*scope.instance); child != nullptr;
                  child = nextElementSibling(*child))
             {
@@ -42,7 +42,6 @@ namespace gran::markup::internal
                 else
                     ui::appendChild(node, buildNode(*child, context));
             }
-            context.scope = &scope;
             return assigned;
         }
     }
@@ -54,7 +53,11 @@ namespace gran::markup::internal
         {
             const std::string* name = findAttribute(*child, "name");
             if (isSlotElement(*child) && name == nullptr)
+            {
+                if (spec.defaultSlot)
+                    throwElementError(*child, i18n::format(i18n::Message::MARKUP_DUPLICATE_SLOT, {spec.name}));
                 spec.defaultSlot = true;
+            }
             else if (isSlotElement(*child))
                 spec.slots.push_back(*name);
             collectSlots(*child, spec);

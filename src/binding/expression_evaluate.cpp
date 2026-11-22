@@ -99,18 +99,18 @@ namespace gran::binding
         const beresta::Node& node = contextNode(scope, binding, context);
         bool boolean = booleanTarget(binding.attribute);
         std::string result;
+        std::vector<std::string> values;
 
         fillVariables(scope, binding, context);
         for (const CompiledPart& part : binding.parts)
         {
-            if (!part.expression)
-            {
-                result += part.literal;
-                continue;
-            }
-            std::string text = valueText(part.expression->evaluate(node, context), boolean);
-            result += scope.bindings.toView(part.converter, text);
+            if (part.expression)
+                values.push_back(valueText(part.expression->evaluate(node, context), boolean));
+            else
+                values.push_back(part.literal);
         }
+        for (std::size_t i = 0; i < values.size() && binding.node; ++i)
+            result += scope.bindings.toView(binding.parts[i].converter, values[i]);
         return result;
     }
 }

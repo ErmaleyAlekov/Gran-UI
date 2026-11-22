@@ -3,6 +3,7 @@
 #include "gran/app/application.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/markup/components.hpp"
+#include "gran/markup/internal/components.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -36,6 +37,16 @@ namespace
   </Component>
   <Component name="Loop">
     <Stack><t:Loop/></Stack>
+  </Component>
+  <Component name="Relay">
+    <Param name="title"/>
+    <Stack><Input id="field" value="{$title}"/>
+      <t:Card id="card" title="Inner"><Slot><Text id="fallback">{$field.text}</Text></Slot></t:Card>
+    </Stack>
+  </Component>
+  <Component name="Numeric">
+    <Param name="amount" type="number"/>
+    <Text>{1 + $amount}</Text>
   </Component>
 </Library>)";
 
@@ -111,6 +122,96 @@ namespace
         const gran::ui::Node* card = app.find("p.inner")->parent;
         TEST_ASSERT(card->id.rfind("p.Card-", 0) == 0);
         TEST_ASSERT(app.find(card->id + ".caption")->content.text == "L");
+    }
+
+    // Пересланный слот сохраняет ссылки автора, даже если получатель использует такое же локальное имя.
+    // A forwarded slot preserves the author's references even if the receiver uses the same local name.
+    void testComponentForwardedSlot()
+    {
+        writeLibrary();
+        gran::Application app;
+
+        app.loadString(window(R"(<Stack><Input id="field" value="Window"/>
+            <t:Relay id="a" title="Outer"><Text id="assigned">{$field.text}</Text></t:Relay>
+            <t:Relay id="b" title="Other"/><t:Relay id="c"/><t:Relay id="d" title=""/></Stack>)"));
+        TEST_ASSERT(app.find("assigned")->parent == app.find("a.card"));
+        TEST_ASSERT(app.find("assigned")->content.text == "Window");
+        TEST_ASSERT(app.find("b.fallback")->parent == app.find("b.card"));
+        TEST_ASSERT(app.find("b.fallback")->content.text == "Other");
+        TEST_ASSERT(!app.markupAttribute(*app.find("c.field"), "value").has_value());
+        TEST_ASSERT(app.markupAttribute(*app.find("d.field"), "value") == "");
+    }
+
+    // Числовой параметр принимает знак плюс, но значение по умолчанию не может быть выражением без скобок.
+    // A number parameter accepts a leading plus, but its default cannot be an expression without braces.
+    void testComponentNumberParameter()
+    {
+        writeLibrary();
+        gran::Application app;
+
+        app.loadString(window(R"(<t:Numeric id="number" amount="+2.5"/>)"));
+        TEST_ASSERT(app.find("number")->content.text == "3.5");
+        std::ofstream("scratchpad/components/lib.xml", std::ios::binary | std::ios::trunc)
+            << R"XML(<Library namespace="urn:test"><Component name="Numeric">
+                <Param name="amount" type="number" default="1 + 2"/>
+                <Text>{1 + $amount}</Text></Component></Library>)XML";
+        TEST_ASSERT_THROWS(app.loadString(window(R"(<t:Numeric/>)")), gran::MarkupException);
+    }
+
+    // Два объявления одного слота не должны создавать две копии переданного узла.
+    // Two declarations of one slot must not create two copies of the supplied node.
+    void testComponentDuplicateSlots()
+    {
+        std::filesystem::create_directories("scratchpad/components");
+        std::ofstream("scratchpad/components/lib.xml", std::ios::binary | std::ios::trunc)
+            << R"(<Library namespace="urn:test"><Component name="Duplicate"><Stack><Slot/><Slot/>)"
+            << R"(</Stack></Component></Library>)";
+        TEST_ASSERT(loadError(window(R"(<t:Duplicate/>)")).find("Duplicate") != std::string::npos);
+    }
+
+    // Цепочка разных компонентов не ограничивается проверкой циклов в исходной разметке.
+    // A chain of distinct components is not bounded by cycle detection in the source markup.
+    void testComponentExpansionLimits()
+    {
+        std::filesystem::create_directories("scratchpad/components");
+        std::ofstream file("scratchpad/components/lib.xml", std::ios::binary | std::ios::trunc);
+
+        file << R"(<Library namespace="urn:test" xmlns:t="urn:test">)";
+        for (int depth = 0; depth < 65; ++depth)
+            file << "<Component name=\"Part" << depth << "\"><t:Part" << depth + 1 << "/></Component>";
+        file << R"(<Component name="Part65"><Stack/></Component></Library>)";
+        file.close();
+        TEST_ASSERT(gran::markup::loadMarkupString(window("<t:Part2/>"), {}).root != nullptr);
+        TEST_ASSERT_THROWS(gran::markup::loadMarkupString(window("<t:Part1/>"), {}), gran::MarkupException);
+        TEST_ASSERT_THROWS(gran::markup::loadMarkupString(window("<t:Part63/>"), {"", 2}), gran::MarkupException);
+    }
+
+    // Ошибка построения тела должна вернуть контекст к области вызывающего компонента.
+    // An error while building the body must restore the calling component's scope.
+    void testComponentRestoresScopeOnError()
+    {
+        namespace markup = gran::markup;
+        namespace internal = gran::markup::internal;
+        writeLibrary();
+        markup::UiDocument document = markup::loadMarkupString(window(R"(<t:Card title="T"/>)"), {});
+        const markup::LoadOptions options{"", 1};
+        const internal::ComponentScope scope;
+        internal::BuildContext context{options, document, document.tokens, 1};
+        bool nodeLimitReached = false;
+
+        context.scope = &scope;
+        context.expansionDepth = 3;
+        try
+        {
+            internal::expandComponent(*document.root->domElement, context);
+        }
+        catch (const gran::MarkupException& error)
+        {
+            nodeLimitReached = error.getCode() == gran::ErrorCode::LIMIT_EXCEEDED && context.nodeCount == 2;
+        }
+        TEST_ASSERT(nodeLimitReached);
+        TEST_ASSERT(context.scope == &scope);
+        TEST_ASSERT(context.expansionDepth == 3);
     }
 
     void testComponentErrors()
@@ -242,6 +343,11 @@ namespace suites
         runner.add("ComponentTests_Expands", testComponentExpands);
         runner.add("ComponentTests_DefaultsAndSlots", testComponentDefaultsAndSlots);
         runner.add("ComponentTests_Nested", testComponentNested);
+        runner.add("ComponentTests_ForwardedSlot", testComponentForwardedSlot);
+        runner.add("ComponentTests_NumberParameter", testComponentNumberParameter);
+        runner.add("ComponentTests_DuplicateSlots", testComponentDuplicateSlots);
+        runner.add("ComponentTests_ExpansionLimits", testComponentExpansionLimits);
+        runner.add("ComponentTests_RestoresScopeOnError", testComponentRestoresScopeOnError);
         runner.add("ComponentTests_Errors", testComponentErrors);
         runner.add("ComponentTests_LibraryErrors", testComponentLibraryErrors);
         runner.add("ComponentTests_SchemaText", testComponentSchemaText);

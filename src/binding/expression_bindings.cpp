@@ -23,6 +23,8 @@ namespace gran::binding
     // Вычисление откладывается до update: копия шаблона ещё не знает своей записи, пока привязка списка строится / The evaluation is put off until update: a template copy does not know its record yet while the list binding is being built
     void ExpressionBindings::bindNode(ui::Node& node)
     {
+        ++_treeVersion;
+        if (!node.content.bindings.empty()) _snapshot.reset();
         for (const ui::AttributeBinding& source : node.content.bindings)
             _bindings.push_back(compileBinding(node, source));
     }
@@ -30,13 +32,18 @@ namespace gran::binding
     // Поддерево ещё целое: подъём по родителям от узла привязки безопасен / The subtree is still whole: climbing the parents from the binding node is safe
     void ExpressionBindings::forget(const ui::Node& subtree)
     {
+        ++_treeVersion;
+        _snapshot.reset();
         for (std::size_t index = 0; index < _bindings.size();)
         {
             bool inside = false;
             for (const ui::Node* current = _bindings[index]->node; current != nullptr && !inside; current = current->parent)
                 inside = current == &subtree;
             if (inside)
+            {
+                _bindings[index]->node = nullptr;
                 _bindings.erase(_bindings.begin() + static_cast<std::ptrdiff_t>(index));
+            }
             else
                 ++index;
         }
@@ -44,6 +51,10 @@ namespace gran::binding
 
     void ExpressionBindings::clear() noexcept
     {
+        ++_treeVersion;
+        _snapshot.reset();
+        for (const auto& binding : _bindings)
+            binding->node = nullptr;
         _bindings.clear();
     }
 }

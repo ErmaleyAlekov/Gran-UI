@@ -248,7 +248,7 @@ namespace gran::binding
         std::string name;
         std::string value;
         data::VariableType type = data::VariableType::STRING;
-        ItemRef item;
+        const ExpressionBinding* binding = nullptr;
     };
 
     // Всё, что нужно для вычисления: владелец, зеркало, переменные, преобразователи, поиск узлов по id / Everything an evaluation needs: the owner, the mirror, the variables, the converters, the node lookup by id
@@ -467,11 +467,18 @@ namespace gran::binding
         DataMirror _mirror;
         std::map<std::string, VariableSlot, std::less<>> _variables;
         std::map<std::string, Converter, std::less<>> _converters;
-        std::vector<std::unique_ptr<ExpressionBinding>> _bindings;
+        using BindingList = std::vector<std::shared_ptr<ExpressionBinding>>;
+        BindingList _bindings;
+        // Снимок живёт до конца обхода, даже если обработчик меняет дерево.
+        // A pass keeps its snapshot alive when a callback changes the tree.
+        std::shared_ptr<const BindingList> _snapshot;
+        std::shared_ptr<const BindingList> snapshot();
+        void writeChanges();
         // Фильтры живут в представлениях; здесь — слабые ссылки для пересчёта / The filters live in the views; here are weak references for the recomputation
         std::vector<std::weak_ptr<ExpressionFilter>> _filters;
         // Счётчик версий переменных (общий: новая переменная не совпадёт с прежней версией) / The variable version counter (shared: a new variable does not match a former version)
         std::uint64_t _clock = 0;
+        std::uint64_t _treeVersion = 0;
     };
 }
 

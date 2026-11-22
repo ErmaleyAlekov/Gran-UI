@@ -46,6 +46,7 @@ namespace gran::rhi::vk
         try
         {
             if (_recreate) resize(_options.width, _options.height);
+            if (_recreate) return FrameStatus::OCCLUDED;
             beginFrame();
             // Окно успело сменить размер после resize: цепочка пересоздаётся и кадр повторяется сразу,
             // иначе он пропадал, а нового кадра без следующего события не было — окно оставалось чёрным

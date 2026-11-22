@@ -26,7 +26,9 @@ namespace gran::render
         explicit GradientRamps(std::uint32_t rows = 32);
 
         // Строка набора опорных точек градиента / The row of the gradient stop set
-        std::uint32_t rowFor(const style::Gradient& gradient);
+        // При закреплённых строках capacity() означает, что места нет.
+        // With rows pinned, capacity() means that no row is available.
+        std::uint32_t rowFor(const style::Gradient& gradient, bool preserveRows = false);
 
         // Изменённые строки с прошлого вызова; false — изменений нет / The rows changed since the last call; false — no changes
         bool takeDirty(std::uint32_t& firstRow, std::uint32_t& rowCount);

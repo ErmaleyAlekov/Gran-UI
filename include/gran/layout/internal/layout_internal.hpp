@@ -157,6 +157,20 @@ namespace gran::layout::internal
         bool frozen = false;
     };
 
+    // Пространство строки до и после начальной заморозки.
+    // Line space before and after the initial freeze.
+    struct FlexSpace
+    {
+        float available;
+        float initial;
+        bool growing;
+    };
+
+    // Коэффициент без учёта базы и один шаг распределения.
+    // The unscaled factor and one distribution step.
+    float flexFactor(const FlexItem& item, bool growing) noexcept;
+    void distributeFree(std::vector<FlexItem>& items, std::size_t first, std::size_t last, const FlexSpace& space);
+
     // Видимые дети стека с гипотетическими размерами / The visible stack children with their hypothetical sizes
     void collectFlexItems(ui::Node& stack, Size contentAvailable, std::vector<FlexItem>& items, LayoutPass& pass);
 

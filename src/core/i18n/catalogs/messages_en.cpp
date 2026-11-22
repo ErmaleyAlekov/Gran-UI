@@ -95,6 +95,8 @@ namespace gran::i18n
             {Message::MARKUP_UNKNOWN_SLOT, "the component {0} has no slot \"{1}\""},
             {Message::MARKUP_NO_DEFAULT_SLOT, "the component {0} has no unnamed slot <Slot/>: the content without slot=\"…\" has nowhere to go"},
             {Message::MARKUP_SLOT_OUTSIDE, "<Slot> works only in a <Component> body"},
+            {Message::MARKUP_DUPLICATE_SLOT, "component {0} declares the unnamed slot twice"},
+            {Message::MARKUP_EXPANSION_LIMIT, "component expansion depth or instance limit exceeded at {0}"},
             {Message::MARKUP_SLOT_ROOT, "the body root of the component {0} is <Slot>: a UI element is needed"},
             {Message::MARKUP_PARAM_RESERVED, "the parameter {0} of the component {1}: the name is taken by an instance attribute (id, visible, enabled, slot, style, the size and placement) or by the binding (index, self, parent, selected, current, depth, expanded, hasChildren)"},
             {Message::MARKUP_UNKNOWN_STYLE, "the style \"{0}\" is declared neither in the component, nor in its library, nor in the window"},

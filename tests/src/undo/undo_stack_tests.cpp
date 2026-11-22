@@ -1,6 +1,8 @@
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
 #include "gran/undo/undo_stack.hpp"
+
+#include <limits>
 #include <memory>
 
 namespace
@@ -128,6 +130,26 @@ namespace
         TEST_ASSERT(stack.count() == 1);
     }
 
+    // Максимальный предел сохраняет шаги по обе стороны курсора и отметку сохранения.
+    // The maximum limit preserves steps on both sides of the cursor and the clean mark.
+    void testUndoStackMaximumLimit()
+    {
+        int value = 0;
+        gran::undo::UndoStack stack;
+        stack.push(std::make_unique<IntStep>(value, 0, 1, -1));
+        stack.push(std::make_unique<IntStep>(value, 1, 2, -1));
+        stack.setClean();
+        TEST_ASSERT(stack.undo());
+        TEST_ASSERT(value == 1);
+        stack.setLimit(std::numeric_limits<std::size_t>::max());
+        TEST_ASSERT(stack.count() == 2);
+        TEST_ASSERT(stack.canUndo());
+        TEST_ASSERT(stack.canRedo());
+        TEST_ASSERT(stack.redo());
+        TEST_ASSERT(value == 2);
+        TEST_ASSERT(stack.isClean());
+    }
+
     // Шаг, который во время своей отмены пытается писать в стек и отменять снова / A step that tries to push and undo again during its own undo
     class BusyStep : public gran::undo::UndoStep
     {
@@ -225,6 +247,7 @@ namespace suites
         runner.add("undo: merge steps", testUndoStackMergeSteps);
         runner.add("undo: set clean", testUndoStackSetClean);
         runner.add("undo: limit", testUndoStackLimit);
+        runner.add("undo: maximum limit preserves redo and clean state", testUndoStackMaximumLimit);
         runner.add("undo: busy", testUndoStackBusy);
         runner.add("undo: observer", testUndoStackObserver);
         runner.add("undo: action step", testUndoStackActionStep);

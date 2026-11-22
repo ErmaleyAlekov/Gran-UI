@@ -36,6 +36,27 @@ namespace gran::image::internal
                 throwBadImage(*frame.source, "SOS spectral");
         }
 
+        // Каждая компонента появляется в SOS ровно один раз.
+        // Each component selected by SOS occurs exactly once.
+        void readComponents(JpegFrame& frame, const std::uint8_t* segment, JpegScan& scan)
+        {
+            unsigned seen = 0;
+            scan.count = segment[0];
+            for (std::size_t index = 0; index < scan.count; ++index)
+            {
+                const std::uint8_t* bytes = segment + 1 + 2 * index;
+                const auto number = componentIndex(frame, bytes[0]);
+                JpegComponent& component = frame.components[number];
+
+                if ((seen & (1u << number)) != 0)
+                    throwBadImage(*frame.source, "SOS component");
+                seen |= 1u << number;
+                scan.components[index] = number;
+                component.dcTable = static_cast<std::uint8_t>((bytes[1] >> 4) & 3);
+                component.acTable = static_cast<std::uint8_t>(bytes[1] & 3);
+            }
+        }
+
         // Нужные скану таблицы Хаффмана на месте / The Huffman tables the scan needs are present
         void checkTables(const JpegFrame& frame, const JpegScan& scan)
         {
@@ -64,16 +85,7 @@ namespace gran::image::internal
         if (!frame.frameRead || length < 1 || segment[0] < 1 || segment[0] > frame.componentCount
             || length < 4 + 2 * static_cast<std::size_t>(segment[0]))
             throwBadImage(*frame.source, "SOS");
-        scan.count = segment[0];
-        for (std::size_t index = 0; index < scan.count; ++index)
-        {
-            const std::uint8_t* bytes = segment + 1 + 2 * index;
-            JpegComponent& component = frame.components[componentIndex(frame, bytes[0])];
-
-            scan.components[index] = componentIndex(frame, bytes[0]);
-            component.dcTable = static_cast<std::uint8_t>((bytes[1] >> 4) & 3);
-            component.acTable = static_cast<std::uint8_t>(bytes[1] & 3);
-        }
+        readComponents(frame, segment, scan);
         segment += 1 + 2 * scan.count;
         scan.spectralStart = segment[0];
         scan.spectralEnd = segment[1];

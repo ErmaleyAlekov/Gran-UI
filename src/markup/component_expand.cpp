@@ -38,8 +38,15 @@ namespace gran::markup::internal
         }
 
         // Компонент уже разворачивается выше по телам — бесконечная развёртка / The component is already being expanded higher up the bodies — an endless expansion
-        void checkRecursion(const ComponentSpec& spec, const beresta::Element& instance, const BuildContext& context)
+        void checkRecursion(const ComponentSpec& spec, const beresta::Element& instance, BuildContext& context)
         {
+            if (context.expansionDepth >= 64 || context.expansionCount >= context.options.maxNodes)
+            {
+                const auto& location = instance.getSourceLocation();
+                throw MarkupException(ErrorCode::LIMIT_EXCEEDED, i18n::format(i18n::Message::MARKUP_EXPANSION_LIMIT,
+                    {spec.name}), location.line, location.column);
+            }
+            ++context.expansionCount;
             for (const ComponentScope* scope = context.scope; scope != nullptr; scope = scope->outer)
             {
                 if (scope->spec == &spec)
@@ -77,14 +84,13 @@ namespace gran::markup::internal
         try
         {
             shadow = makeShadow(instance, makeSubstitution(instance, spec, context));
-            context.scope = &scope;
+            ScopedComponent active(context, &scope, true);
             node = buildNode(*shadow->getRoot(), context);
         }
         catch (const MarkupException& error)
         {
             rethrowAtInstance(error, instance, spec);
         }
-        context.scope = scope.outer;
         node->domElement = &instance;
         node->line = instance.getSourceLocation().line;
         node->column = instance.getSourceLocation().column;

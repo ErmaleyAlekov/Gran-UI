@@ -37,6 +37,9 @@ namespace gran::render
         const ui::Node* selection = nullptr;
         // Подчёркивать букву доступа пунктов меню / Underline the access letter of the menu items
         bool mnemonics = false;
+        // При повторном обходе координаты выданных глифов и градиентов должны остаться действительными.
+        // On a second traversal previously issued glyph and gradient coordinates must remain valid.
+        bool preserveLayout = false;
     };
 
     // Результат: экземпляры, отсечения (0 — «без отсечения»), сегменты, цвет фона

@@ -15,7 +15,7 @@ namespace gran::binding
     void ExpressionBindings::setConverter(const std::string& name, Converter converter)
     {
         _converters[name] = std::move(converter);
-        for (std::unique_ptr<ExpressionBinding>& binding : _bindings)
+        for (const auto& binding : _bindings)
             binding->forced = true;
     }
 

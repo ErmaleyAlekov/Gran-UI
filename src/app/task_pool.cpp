@@ -31,6 +31,7 @@ namespace gran::app
     {
         unsigned cores = std::thread::hardware_concurrency();
 
+        _delivery->pool = this;
         if (_threadCount != 0)
             return;
         _threadCount = 1;
@@ -47,6 +48,10 @@ namespace gran::app
     */
     TaskPool::~TaskPool()
     {
+        {
+            std::lock_guard<std::mutex> lock(_delivery->mutex);
+            _delivery->pool = nullptr;
+        }
         {
             std::lock_guard<std::mutex> lock(_mutex);
             _stopping = true;
@@ -76,6 +81,7 @@ namespace gran::app
     {
         std::shared_ptr<TaskRecord> record = std::make_shared<TaskRecord>();
 
+        record->delivery = _delivery;
         record->pool = this;
         record->work = std::move(work);
         record->done = std::move(done);

@@ -9,6 +9,10 @@ namespace gran::rhi::dx12
     // Новая текстура в таблице / A new texture in the table
     std::uint32_t Dx12Backend::createTexture(const TextureDesc& desc)
     {
+        std::vector<std::uint32_t> freed;
+
+        _releases.collect(_fence.completed(), freed);
+        _textures.reclaim(_context.device.get(), freed);
         return _textures.create(_context.device.get(), desc);
     }
 

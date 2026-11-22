@@ -17,6 +17,13 @@ namespace gran::app
 {
     class TaskPool;
 
+    // Защищает доступ доставки к пулу при остановке / Guards delivery access to the pool during shutdown
+    struct TaskDelivery
+    {
+        std::mutex mutex;
+        TaskPool* pool = nullptr;
+    };
+
     // Задача для потока интерфейса (как Application::Task) / A task for the UI thread (as Application::Task)
     using UiTask = std::function<void()>;
 
@@ -34,6 +41,7 @@ namespace gran::app
     */
     struct TaskRecord : std::enable_shared_from_this<TaskRecord>
     {
+        std::shared_ptr<TaskDelivery> delivery;
         TaskPool* pool = nullptr;
         BackgroundWork work;
         TaskDone done;
@@ -85,7 +93,7 @@ namespace gran::app
         void finish(const std::shared_ptr<TaskRecord>& record) noexcept;
 
         // Отправить в поток интерфейса произвольную задачу (доставка прогресса) / Send an arbitrary task to the UI thread (the progress delivery)
-        void post(UiTask task) noexcept;
+        bool post(UiTask task) noexcept;
 
         // Итог доставлен: задача больше не числится (поток интерфейса) / The outcome is delivered: the task is no longer counted (the UI thread)
         void forget(TaskId id);
@@ -102,6 +110,7 @@ namespace gran::app
         // Потоки — при первой задаче (под замком) / The threads — on the first task (under the lock)
         void start();
 
+        std::shared_ptr<TaskDelivery> _delivery = std::make_shared<TaskDelivery>();
         TaskPoster _poster;
         unsigned _threadCount;
         mutable std::mutex _mutex;

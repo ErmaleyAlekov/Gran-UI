@@ -13,7 +13,7 @@ namespace gran::image::internal
         // Позиция байта 0xFF следующего маркера с длиной или EOI; нет — size / The position of the 0xFF byte of the next marker with a length or EOI; none — size
         std::size_t nextMarker(const std::uint8_t* data, std::size_t size, std::size_t pos) noexcept
         {
-            while (pos + 1 < size)
+            while (pos < size && size - pos >= 2)
             {
                 if (data[pos] == 0xFF && !standalone(data[pos + 1]))
                     return pos;
@@ -59,14 +59,17 @@ namespace gran::image::internal
     {
         std::size_t pos = nextMarker(data, size, 2);
 
-        while (pos + 1 < size && data[pos + 1] != 0xD9)
+        while (pos < size && size - pos >= 2 && data[pos + 1] != 0xD9)
         {
             std::uint8_t marker = data[pos + 1];
             std::size_t length = 0;
 
-            if (pos + 4 > size || readWord(data + pos + 2) < 2 || pos + 2 + readWord(data + pos + 2) > size)
+            if (size - pos < 4)
                 throwBadImage(*frame.source, "segment length");
-            length = readWord(data + pos + 2) - 2;
+            length = readWord(data + pos + 2);
+            if (length < 2 || length > size - pos - 2)
+                throwBadImage(*frame.source, "segment length");
+            length -= 2;
             if (marker == 0xDA)
                 pos = readScan(frame, data, size, pos + 4);
             else

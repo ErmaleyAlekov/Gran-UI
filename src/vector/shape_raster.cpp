@@ -1,4 +1,4 @@
-#include "gran/vector/shape.hpp"
+#include "gran/vector/internal/shape_frame.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -7,12 +7,6 @@ namespace gran::vector
 {
     namespace
     {
-        // Предел стороны растра иконки (как у глифов) / The icon raster side limit (as for glyphs)
-        constexpr int MAX_RASTER = 2048;
-
-        // Точек у шага контура в порядке Verb / The points of a contour step in the Verb order
-        const std::size_t POINT_COUNTS[] = {1, 1, 2, 3, 0};
-
         /*
         ** Кубическая кривая отрезками. Число шагов — по вторым разностям контрольных точек:
         ** отклонение ломаной не больше 0,05 px (оценка ¾·d/n²), но не больше 64 шагов.
@@ -75,31 +69,6 @@ namespace gran::vector
                     current = points[next - 1];
             }
             accumulator.addLine(current, start);
-        }
-
-        // Точки всех контуров в пикселях растра и рамка растра с запасом в пиксель / The points of all contours in raster pixels and the raster frame with a pixel margin
-        bool frameShape(const Shape& shape, const Affine2D& toPixels, std::vector<std::vector<Vec2>>& points,
-            text::GlyphBitmap& bitmap)
-        {
-            Vec2 low{1e30f, 1e30f};
-            Vec2 high{-1e30f, -1e30f};
-
-            for (const Path& path : shape.paths)
-            {
-                points.emplace_back();
-                for (const Vec2& source : path.points)
-                {
-                    Vec2 point = affineApply(toPixels, source);
-                    low = Vec2{std::min(low.x, point.x), std::min(low.y, point.y)};
-                    high = Vec2{std::max(high.x, point.x), std::max(high.y, point.y)};
-                    points.back().push_back(point);
-                }
-            }
-            bitmap.left = static_cast<int>(std::floor(low.x)) - 1;
-            bitmap.top = static_cast<int>(std::floor(low.y)) - 1;
-            bitmap.width = static_cast<int>(std::ceil(high.x)) + 2 - bitmap.left;
-            bitmap.height = static_cast<int>(std::ceil(high.y)) + 2 - bitmap.top;
-            return high.x >= low.x && bitmap.width <= MAX_RASTER && bitmap.height <= MAX_RASTER;
         }
 
         // Объединение покрытий: a + b − a·b (так же, как источник поверх источника) / Uniting the coverages: a + b − a·b (as a source over a source)

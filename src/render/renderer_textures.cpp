@@ -10,7 +10,10 @@ namespace gran::render
             const std::uint8_t* pixels, std::uint32_t rowPitch)
         {
             if (mirror.slot != NO_TEXTURE)
+            {
                 backend.releaseTexture(mirror.slot);
+                mirror.slot = NO_TEXTURE;
+            }
             mirror.slot = backend.createTexture(desc);
             backend.updateTexture(mirror.slot, rhi::TextureRegion{0, 0, desc.width, desc.height}, pixels, rowPitch);
         }
@@ -30,9 +33,12 @@ namespace gran::render
             _atlas.takeDirty(dirty.x, dirty.y, dirty.width, dirty.height);
             return;
         }
-        if (_atlas.takeDirty(dirty.x, dirty.y, dirty.width, dirty.height))
+        if (_atlas.dirtyRegion(dirty.x, dirty.y, dirty.width, dirty.height))
+        {
             _backend.updateTexture(_atlasTexture.slot, dirty, _atlas.pixels() + static_cast<std::size_t>(dirty.y) * size + dirty.x,
                 size);
+            _atlas.takeDirty(dirty.x, dirty.y, dirty.width, dirty.height);
+        }
     }
 
     // Рампы RGBA8: по 256 текселей в строке / The RGBA8 ramps: 256 texels per row

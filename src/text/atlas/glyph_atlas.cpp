@@ -31,7 +31,7 @@ namespace gran::text
 
     // Найденный глиф — сразу; новый растеризуется и вставляется; пустой запоминается с нулевой шириной
     // A found glyph — at once; a new one is rasterized and inserted; an empty one is remembered with zero width
-    const AtlasEntry* GlyphAtlas::glyph(const GlyphKey& key)
+    const AtlasEntry* GlyphAtlas::glyph(const GlyphKey& key, bool preserveLayout)
     {
         auto found = _entries.find(key);
         GlyphBitmap bitmap;
@@ -47,18 +47,14 @@ namespace gran::text
             _entries[key] = AtlasEntry{};
             return nullptr;
         }
-        return insert(key, bitmap);
+        return insert(key, bitmap, preserveLayout);
     }
 
     // Изменённая область и её сброс / The changed area and clearing it
     bool GlyphAtlas::takeDirty(std::uint32_t& x, std::uint32_t& y, std::uint32_t& width, std::uint32_t& height)
     {
-        if (_dirtyRight <= _dirtyLeft || _dirtyBottom <= _dirtyTop)
+        if (!dirtyRegion(x, y, width, height))
             return false;
-        x = _dirtyLeft;
-        y = _dirtyTop;
-        width = _dirtyRight - _dirtyLeft;
-        height = _dirtyBottom - _dirtyTop;
         _dirtyLeft = _size;
         _dirtyTop = _size;
         _dirtyRight = 0;

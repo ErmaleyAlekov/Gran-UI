@@ -47,7 +47,7 @@ namespace gran::markup::internal
             if (param.type == ParamType::NUMBER && text.empty())
                 return "0";
             if (param.type == ParamType::NUMBER)
-                return text;
+                return decimalLiteral(param, text, substitution);
             if (param.type != ParamType::BOOLEAN)
                 return quoteXPath(text);
             if (text == "true" || text == "1")

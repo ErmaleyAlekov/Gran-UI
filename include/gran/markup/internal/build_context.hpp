@@ -37,6 +37,8 @@ namespace gran::markup::internal
         std::size_t nodeCount = 0;
         // Развёртка компонента, тело которой строится сейчас (nullptr — разметка окна) / The component expansion whose body is being built now (nullptr — the window markup)
         const ComponentScope* scope = nullptr;
+        std::size_t expansionDepth = 0;
+        std::size_t expansionCount = 0;
     };
 
     // ---- markup_parse.cpp ----

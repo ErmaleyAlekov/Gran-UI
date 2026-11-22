@@ -95,6 +95,21 @@ namespace gran::markup::internal
         const ComponentScope* outer = nullptr;
     };
 
+    // Область построения и глубина восстанавливаются при выходе / Restore scope and depth on every exit
+    class ScopedComponent
+    {
+    public:
+        ScopedComponent(BuildContext& context, const ComponentScope* next, bool expanding);
+        ~ScopedComponent();
+        ScopedComponent(const ScopedComponent&) = delete;
+        ScopedComponent& operator=(const ScopedComponent&) = delete;
+
+    private:
+        BuildContext& _context;
+        const ComponentScope* _previous;
+        std::size_t _depth;
+    };
+
     /*
     ** Подстановки одной развёртки: значения заданных параметров (атрибут экземпляра или default),
     ** локальные id тела → полные («id экземпляра.id»), тема и набор стилей документа.
@@ -196,6 +211,8 @@ namespace gran::markup::internal
     const ComponentParam* wholeParameter(std::string_view expression, const Substitution& substitution) noexcept;
 
         // Значение параметра внутри выражения XPath: строка в кавычках, число, true()/false() или (выражение) / A parameter value inside an XPath expression: a quoted string, a number, true()/false() or (an expression)
+    std::string decimalLiteral(const ComponentParam& param, std::string text, const Substitution& substitution);
+
     std::string parameterExpression(const ComponentParam& param, const Substitution& substitution);
 }
 

@@ -71,10 +71,13 @@ namespace gran::text
         // ---- glyph_atlas.cpp ----
         explicit GlyphAtlas(std::uint32_t size = 1024);
 
-        // Растр глифа; nullptr — глиф пуст (пробел) / The glyph raster; nullptr — the glyph is empty (a space)
-        const AtlasEntry* glyph(const GlyphKey& key);
+        // При preserveLayout место выделяется без роста и сброса; nullptr — глиф пуст или не поместился.
+        // With preserveLayout, allocate without growth or a reset; nullptr means an empty glyph or no room.
+        const AtlasEntry* glyph(const GlyphKey& key, bool preserveLayout = false);
 
-        // Изменённая область с прошлого вызова; false — изменений нет / The changed area since the last call; false — no changes
+        // dirtyRegion читает изменённую область, takeDirty также сбрасывает её.
+        // dirtyRegion reads the changed area, takeDirty also clears it.
+        bool dirtyRegion(std::uint32_t& x, std::uint32_t& y, std::uint32_t& width, std::uint32_t& height) const noexcept;
         bool takeDirty(std::uint32_t& x, std::uint32_t& y, std::uint32_t& width, std::uint32_t& height);
 
         // Сторона квадрата атласа и пиксели / The atlas square side and the pixels
@@ -88,14 +91,14 @@ namespace gran::text
 
         // ---- atlas_insert.cpp ----
 
-        // Растр не из шрифта по ключу; source вызывается только при промахе; nullptr — растр пуст
-        // A raster not from a font by the key; source is called only on a miss; nullptr — the raster is empty
-        const AtlasEntry* raster(const GlyphKey& key, RasterSource& source);
+        // Внешний растр по ключу. При промахе проверяем данные источника и применяем те же ограничения, что для глифов.
+        // An external raster by key. On a miss, validate the source data and apply the same constraints as for glyphs.
+        const AtlasEntry* raster(const GlyphKey& key, RasterSource& source, bool preserveLayout = false);
 
     private:
         // ---- atlas_insert.cpp ----
         // Новая запись: место, копия пикселей, грязная область / A new entry: a place, a pixel copy, the dirty area
-        const AtlasEntry* insert(const GlyphKey& key, const GlyphBitmap& bitmap);
+        const AtlasEntry* insert(const GlyphKey& key, const GlyphBitmap& bitmap, bool preserveLayout);
 
         // ---- atlas_packing.cpp ----
         // Место под растр на полке; false — места нет / A place for a raster on a shelf; false — no room
@@ -119,6 +122,7 @@ namespace gran::text
         std::vector<Shelf> _shelves;
         std::vector<std::uint8_t> _pixels;
         std::uint32_t _size;
+        static constexpr std::uint32_t MAX_SIZE = 4096;
         std::uint32_t _generation = 1;
         std::uint32_t _dirtyLeft;
         std::uint32_t _dirtyTop;

@@ -4,12 +4,6 @@
 
 namespace gran::text
 {
-    namespace
-    {
-        // Наибольшая сторона атласа (16 МБ на CPU) / The largest atlas side (16 MB on the CPU)
-        constexpr std::uint32_t MAX_SIZE = 4096;
-    }
-
     // Поколение атласа / The atlas generation
     std::uint32_t GlyphAtlas::generation() const noexcept
     {
@@ -52,10 +46,9 @@ namespace gran::text
     // The old atlas rows move into the larger one; the glyph coordinates stay the same
     bool GlyphAtlas::grow()
     {
-        std::uint32_t larger = _size * 2;
-
-        if (larger > MAX_SIZE)
+        if (_size >= MAX_SIZE)
             return false;
+        std::uint32_t larger = std::clamp(_size * 2, 1u, MAX_SIZE);
         std::vector<std::uint8_t> pixels(static_cast<std::size_t>(larger) * larger, 0);
         for (std::uint32_t row = 0; row < _size; ++row)
             std::copy_n(_pixels.begin() + static_cast<std::ptrdiff_t>(row) * _size, _size,

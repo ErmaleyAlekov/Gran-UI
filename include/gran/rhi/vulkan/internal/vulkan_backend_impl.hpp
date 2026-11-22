@@ -133,7 +133,7 @@ namespace gran::rhi::vk
         void imageView(Image& image, VkFormat format, bool target);
         void barrier(Image& image, VkImageLayout layout);
         void createTargets();
-        void createSwapchain();
+        bool createSwapchain();
         VkSurfaceFormatKHR surfaceFormat();
         VkPresentModeKHR presentMode();
         void swapchainImages();
@@ -189,6 +189,7 @@ namespace gran::rhi::vk
         unsigned _swapIndex = 0;
         VkExtent2D _swapExtent{};
         bool _recreate = false;
+        bool _targetsDirty = false;
         bool _hasFrame = false;
         bool _syncValidation = false;
         bool _debugEnabled = false;

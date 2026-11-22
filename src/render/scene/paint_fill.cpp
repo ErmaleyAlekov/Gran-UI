@@ -62,7 +62,14 @@ namespace gran::render::internal
         if (paint.kind != style::PaintKind::GRADIENT)
             return;
         const style::Gradient& gradient = paint.gradient;
-        instance.paint[1] = context.resources.ramps.rowFor(gradient);
+        auto row = context.resources.ramps.rowFor(gradient, context.resources.preserveLayout);
+        if (row == context.resources.ramps.capacity())
+        {
+            if (!gradient.stops.empty())
+                instance.fill = colorPackPremultiplied(gradient.stops.front().color);
+            return;
+        }
+        instance.paint[1] = row;
         if (gradient.kind == style::GradientKind::LINEAR)
         {
             instance.paint[2] = PAINT_LINEAR;

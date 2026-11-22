@@ -35,22 +35,18 @@ namespace gran::binding
         std::map<std::pair<const ui::Node*, std::string>, ui::Node*> found;
         EvaluationScope scope{_owner, _mirror, *this, found};
         bool changed = false;
-        std::vector<PendingWrite> writes;
-
-        for (std::size_t index = 0; index < _bindings.size(); ++index)
-        {
-            if (!_bindings[index]->stale && _bindings[index]->source != SourceKind::NONE)
-                collectWrite(*_bindings[index], writes);
-        }
-        for (const PendingWrite& write : writes)
-            applyWrite(write);
+        writeChanges();
         refreshFilters();
         _mirror.flush();
-        for (std::size_t index = 0; index < _bindings.size(); ++index)
+        const auto readers = snapshot();
+        for (const auto& reader : *readers)
         {
-            ExpressionBinding& binding = *_bindings[index];
+            if (!reader->node) continue;
+            const auto version = _treeVersion;
+            ExpressionBinding& binding = *reader;
             if (binding.stale || binding.forced || dependenciesChanged(scope, binding))
                 changed = refresh(scope, binding) || changed;
+            if (version != _treeVersion) found.clear();
         }
         return changed;
     }
@@ -64,7 +60,8 @@ namespace gran::binding
     */
     bool ExpressionBindings::refresh(EvaluationScope& scope, ExpressionBinding& binding)
     {
-        bool first = binding.stale || binding.forced;
+        const bool stale = binding.stale;
+        bool first = stale || binding.forced;
         std::string value;
 
         binding.stale = false;
@@ -75,9 +72,11 @@ namespace gran::binding
         }
         catch (const std::exception&)
         {
+            binding.stale = stale;
+            binding.forced = true;
             return false;
         }
-        if (!first && value == binding.applied)
+        if (!binding.node || (!first && value == binding.applied))
             return false;
         bool changed = applyTarget(*binding.node, binding.attribute, value);
         binding.applied = value;
@@ -101,21 +100,27 @@ namespace gran::binding
             if (part.expression && !part.converter.empty() && !toSource(part.converter, current, write.value))
                 return;
         }
+        if (!binding.node) return;
         write.source = binding.source;
         write.name = binding.sourceName;
         write.type = targetType(*binding.node, binding.attribute);
-        write.item = _owner.itemOf(*binding.node);
+        write.binding = &binding;
         writes.push_back(std::move(write));
     }
 
     // Новая переменная получает тип по полю, которое её создало / A new variable gets the type by the control that created it
     void ExpressionBindings::applyWrite(const PendingWrite& write)
     {
+        if (!write.binding->node) return;
         if (write.source == SourceKind::VARIABLE && variable(write.name) == nullptr)
             setVariable(data::Variable{write.name, write.type, write.value});
         else if (write.source == SourceKind::VARIABLE)
             setVariableText(write.name, write.value);
-        else if (write.item.model != nullptr && write.item.index < write.item.model->size())
-            write.item.model->set(write.item.index, write.name, write.value);
+        else
+        {
+            const ItemRef item = _owner.itemOf(*write.binding->node);
+            if (item.model && item.index < item.model->size())
+                item.model->set(item.index, write.name, write.value);
+        }
     }
 }

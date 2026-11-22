@@ -6,19 +6,12 @@ namespace gran::layout::internal
 {
     namespace
     {
-        // Коэффициент гибкости: grow при росте, shrink × base при сжатии (CSS «scaled flex shrink factor»)
-        // The flex factor: grow when growing, shrink × base when shrinking (the CSS "scaled flex shrink factor")
-        float flexFactor(const FlexItem& item, bool growing) noexcept
-        {
-            if (growing)
-                return item.node->computed.grow;
-            return item.node->computed.shrink * item.base;
-        }
-
         // Начальная заморозка: нулевой коэффициент или размер уже за пределом
         // The initial freezing: a zero factor or a size already beyond its limit
-        void freezeInflexible(std::vector<FlexItem>& items, std::size_t first, std::size_t last, bool growing)
+        float freezeInflexible(std::vector<FlexItem>& items, std::size_t first, std::size_t last, bool growing)
         {
+            float used = 0.0f;
+
             for (std::size_t index = first; index < last; ++index)
             {
                 FlexItem& item = items[index];
@@ -27,35 +20,9 @@ namespace gran::layout::internal
                     || (!growing && item.base < item.minMain);
                 if (item.frozen)
                     item.target = clampSize(item.base, item.minMain, item.maxMain);
+                used += item.target;
             }
-        }
-
-        // Свободное место делится между незамороженными пропорционально коэффициентам
-        // The free space is shared between the unfrozen items in proportion to their factors
-        void distributeFree(std::vector<FlexItem>& items, std::size_t first, std::size_t last,
-            float available, bool growing)
-        {
-            float used = 0.0f;
-            float factors = 0.0f;
-
-            for (std::size_t index = first; index < last; ++index)
-            {
-                if (items[index].frozen)
-                    used += items[index].target;
-                else
-                {
-                    used += items[index].base;
-                    factors += flexFactor(items[index], growing);
-                }
-            }
-            float free = available - used;
-            if (growing && factors < 1.0f)
-                free *= factors;
-            for (std::size_t index = first; index < last; ++index)
-            {
-                if (!items[index].frozen && factors > 0.0f)
-                    items[index].target = items[index].base + free * flexFactor(items[index], growing) / factors;
-            }
+            return used;
         }
 
         /*
@@ -113,10 +80,10 @@ namespace gran::layout::internal
         if (std::fabs(available - sumBase) <= 1.0e-6 * std::fabs(sumBase) + 0.01)
             return;
         bool growing = available >= sumBase;
-        freezeInflexible(items, first, last, growing);
+        FlexSpace space{available, available - freezeInflexible(items, first, last, growing), growing};
         for (std::size_t iteration = first; iteration <= last; ++iteration)
         {
-            distributeFree(items, first, last, available, growing);
+            distributeFree(items, first, last, space);
             if (!freezeViolations(items, first, last))
                 break;
         }

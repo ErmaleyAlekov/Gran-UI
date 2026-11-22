@@ -177,6 +177,83 @@ namespace
         TEST_ASSERT(finished.load());
         TEST_ASSERT(journal.outcomes.empty());
     }
+
+    // Доставка из очереди после остановки пула не вызывает обработчики.
+    // Dispatching the UI queue after pool shutdown leaves the callbacks untouched.
+    void testDispatchAfterShutdown()
+    {
+        Inbox inbox;
+        Journal journal;
+        {
+            gran::app::TaskPool pool(Poster{&inbox}, 1);
+            pool.submit(Work{5, nullptr}, Record{&journal}, Record{&journal});
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+            for (;;)
+            {
+                {
+                    std::lock_guard<std::mutex> lock(inbox.mutex);
+                    if (inbox.tasks.size() == 2)
+                        break;
+                }
+                TEST_ASSERT(std::chrono::steady_clock::now() < deadline);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        }
+        for (const auto& task : inbox.tasks)
+            task();
+        TEST_ASSERT(journal.outcomes.empty());
+        TEST_ASSERT(journal.steps.empty());
+    }
+
+    // Первый вызов poster теряется, а следующие поступают в обычную очередь.
+    // The first poster call fails, and subsequent calls reach the normal inbox.
+    struct RejectFirstPost
+    {
+        Inbox* inbox;
+        bool rejected = false;
+
+        void operator()(gran::app::UiTask task)
+        {
+            if (!rejected)
+            {
+                rejected = true;
+                throw std::runtime_error("post failed");
+            }
+            Poster{inbox}(std::move(task));
+        }
+    };
+
+    // После отказа poster следующий progress снова ставит доставку в очередь.
+    // After the poster fails, the next progress queues another delivery.
+    void testProgressAfterPostFailure()
+    {
+        Inbox inbox;
+        Journal journal;
+        gran::app::TaskPool pool(RejectFirstPost{&inbox}, 1);
+
+        pool.submit(Work{5, nullptr}, Record{&journal}, Record{&journal});
+        drain(inbox, journal, 1);
+        TEST_ASSERT(journal.outcomes.size() == 1);
+        TEST_ASSERT(journal.outcomes[0].status == gran::TaskStatus::DONE);
+        TEST_ASSERT(!journal.steps.empty());
+        TEST_ASSERT(journal.steps.back() == 1.0);
+    }
+
+    // Неотправленный итог снимается с учёта, а работник продолжает обрабатывать очередь.
+    // An undelivered outcome is removed from accounting and the worker continues processing.
+    void testDonePostFailureClearsActive()
+    {
+        Inbox inbox;
+        Journal journal;
+        gran::app::TaskPool pool(RejectFirstPost{&inbox}, 1);
+
+        pool.submit(Work{0, nullptr}, Record{&journal}, gran::TaskProgress());
+        const auto delivered = pool.submit(Work{0, nullptr}, Record{&journal}, gran::TaskProgress());
+        drain(inbox, journal, 1);
+        TEST_ASSERT(journal.outcomes.size() == 1);
+        TEST_ASSERT(journal.outcomes[0].id == delivered);
+        TEST_ASSERT(pool.active() == 0);
+    }
 }
 
 namespace suites
@@ -187,5 +264,8 @@ namespace suites
         runner.add("task pool: cancel queued and running", testCancelQueuedAndRunning);
         runner.add("task pool: progress merged", testProgressMerged);
         runner.add("task pool: destructor cancels and joins", testDestructorCancels);
+        runner.add("task pool: dispatch after shutdown", testDispatchAfterShutdown);
+        runner.add("task pool: progress after post failure", testProgressAfterPostFailure);
+        runner.add("task pool: done post failure clears active", testDonePostFailureClearsActive);
     }
 }

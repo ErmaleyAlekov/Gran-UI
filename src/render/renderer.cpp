@@ -30,28 +30,21 @@ namespace gran::render
         return _sizer;
     }
 
-    /*
-    ** Сцена строится не больше двух раз: если за первую попытку атлас или рампа сменили
-    ** поколение, ранние экземпляры ссылаются на старые места текстуры. Вторая попытка
-    ** идёт с уже заполненным атласом и в обычной жизни поколение не меняет.
-    **
-    ** The scene is built at most twice: if during the first attempt the atlas or the ramp changed
-    ** its generation, the early instances refer to old texture places. The second attempt
-    ** runs with the already filled atlas and in normal life does not change the generation.
-    */
+    // После смены поколения повторяем построение с закреплёнными координатами атласа.
+    // After a generation change rebuild with stable atlas coordinates.
     rhi::FrameStatus Renderer::render(const ui::Node& root, const style::ComputedStyle& window, float scale,
         const FrameMarks& marks)
     {
         SceneResources resources{_text, _atlas, _ramps, _images, marks.caret, marks.selection, marks.mnemonics};
         rhi::FrameData frame;
 
-        for (int attempt = 0; attempt < 2; ++attempt)
+        std::uint32_t atlasGeneration = _atlas.generation();
+        std::uint32_t rampGeneration = _ramps.generation();
+        buildScene(root, window, scale, resources, _scene);
+        if (atlasGeneration != _atlas.generation() || rampGeneration != _ramps.generation())
         {
-            std::uint32_t atlasGeneration = _atlas.generation();
-            std::uint32_t rampGeneration = _ramps.generation();
+            resources.preserveLayout = true;
             buildScene(root, window, scale, resources, _scene);
-            if (atlasGeneration == _atlas.generation() && rampGeneration == _ramps.generation())
-                break;
         }
         syncAtlas();
         syncRamps();

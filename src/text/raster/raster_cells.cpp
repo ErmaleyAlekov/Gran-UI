@@ -22,7 +22,8 @@ namespace gran::text
         void addNarrow(std::vector<float>& cells, std::size_t index, float middle, float delta)
         {
             cells[index] += delta - delta * middle;
-            cells[index + 1] += delta * middle;
+            if (middle != 0.0f)
+                cells[index + 1] += delta * middle;
         }
 
         // Широкий отрезок: трапеции на краях, равные доли в середине (алгоритм font-rs)
@@ -50,11 +51,11 @@ namespace gran::text
 
     /*
     ** Площадь, которую отрезок высотой |delta| от x до xNext отсекает справа в строке,
-    ** раскладывается по ячейкам. Вызывающий гарантирует 0 ≤ x, xNext < ширина − 1,
+    ** раскладывается по ячейкам. Вызывающий гарантирует 0 ≤ x, xNext ≤ ширина,
     ** поэтому индексы не выходят из строки.
     **
     ** The area the segment of height |delta| from x to xNext cuts off to the right in the row
-    ** is spread over the cells. The caller guarantees 0 ≤ x, xNext < width − 1,
+    ** is spread over the cells. The caller guarantees 0 ≤ x, xNext ≤ width,
     ** so the indices do not leave the row.
     */
     void CoverageAccumulator::addRowSpan(std::size_t rowStart, float x, float xNext, float delta)

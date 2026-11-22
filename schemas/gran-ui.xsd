@@ -774,7 +774,7 @@
         <!-- A virtual list: copies only for the visible records (needs items, records of about the same height) -->
         <xs:attribute name="virtual" type="xs:boolean"/>
         <xs:assert test="exists(@items) = exists(ItemTemplate)"/>
-        <xs:assert test="not(@virtual = 'true' or @virtual = '1') or exists(@items)"/>
+        <xs:assert test="not(@virtual = true()) or exists(@items)"/>
         <xs:assert test="not(@selection) or exists(@items)"/>
       </xs:extension>
     </xs:complexContent>
@@ -1171,7 +1171,7 @@
         <xs:attribute name="onChange" type="Action"/>
         <xs:attributeGroup ref="StackAttributes"/>
         <xs:assert test="not(text()[normalize-space(.)])"/>
-        <xs:assert test="not(@collapsed = 'true') or @collapse != 'none'"/>
+        <xs:assert test="not(@collapsed = true()) or @collapse != 'none'"/>
       </xs:extension>
     </xs:complexContent>
   </xs:complexType>
@@ -1855,7 +1855,7 @@
     <xs:attribute name="required" type="xs:boolean"/>
     <xs:attribute name="default" type="xs:string"/>
     <xs:attribute name="values" type="ParamValues"/>
-    <xs:assert test="not((@required = 'true' or @required = '1') and exists(@default))"/>
+    <xs:assert test="not(@required = true() and exists(@default))"/>
     <xs:assert test="not(@values) or not(@type) or @type = 'string'"/>
     <xs:assert test="not(@type = 'boolean') or not(@default) or @default = 'true' or @default = 'false'"/>
   </xs:complexType>

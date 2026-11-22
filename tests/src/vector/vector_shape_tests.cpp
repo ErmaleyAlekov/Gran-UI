@@ -130,6 +130,71 @@ namespace
         TEST_ASSERT(gran::vector::rasterizeShape(shape, 24, 24, bitmap));
         TEST_ASSERT(coverageAt(bitmap, 12, 12) == 255);
     }
+
+    // Последний столбец и строка сохраняют дробные площади при обоих направлениях обхода.
+    // The last column and row retain their fractional coverage in both winding directions.
+    void testRasterEdgeCoverage()
+    {
+        const gran::Vec2 corners[] = {{1.25f, 1}, {2.5f, 1}, {2.5f, 2.5f}, {1.25f, 2.5f}};
+        gran::text::CoverageAccumulator forward(3, 3);
+        gran::text::CoverageAccumulator reverse(3, 3);
+        std::vector<std::uint8_t> coverage;
+        std::vector<std::uint8_t> reversed;
+
+        for (std::size_t index = 0; index < 4; ++index)
+        {
+            const std::size_t next = (index + 1) % 4;
+            forward.addLine(corners[index], corners[next]);
+            reverse.addLine(corners[next], corners[index]);
+        }
+        forward.resolve(coverage);
+        reverse.resolve(reversed);
+        TEST_ASSERT((coverage == std::vector<std::uint8_t>{0, 0, 0, 0, 191, 128, 0, 96, 64}));
+        TEST_ASSERT(reversed == coverage);
+    }
+
+    // Правая граница растра шириной в один пиксель не влияет на следующую строку.
+    // The right edge of a one-pixel-wide raster does not affect its next row.
+    void testSingleColumnRaster()
+    {
+        gran::text::CoverageAccumulator accumulator(1, 2);
+        std::vector<std::uint8_t> coverage;
+
+        accumulator.addLine({0.5f, 1}, {0.5f, 0});
+        accumulator.addLine({1, 0}, {1, 1});
+        accumulator.resolve(coverage);
+        TEST_ASSERT((coverage == std::vector<std::uint8_t>{128, 0}));
+    }
+
+    // Открытые поля Path допускают повреждённый ввод в обход разбора SVG.
+    // Path's public fields allow malformed input to bypass SVG parsing.
+    void testMalformedRasterPath()
+    {
+        using gran::vector::Path;
+        using gran::vector::Verb;
+        gran::vector::Shape shape;
+        gran::text::GlyphBitmap bitmap;
+
+        shape.paths = {Path{{Verb::MOVE, Verb::CUBIC}, {{1, 1}, {2, 2}}}};
+        TEST_ASSERT(!gran::vector::rasterizeShape(shape, 24, 24, bitmap));
+        shape.paths = {Path{{Verb::LINE}, {{2, 2}}}};
+        TEST_ASSERT(!gran::vector::rasterizeShape(shape, 24, 24, bitmap));
+        shape.paths = {Path{{Verb::CUBIC}, {}}};
+        TEST_ASSERT(!gran::vector::rasterizeShape(shape, 24, 24, bitmap));
+    }
+
+    // После CLOSE следующая команда использует начало замкнутого подконтура.
+    // After CLOSE, the next command starts from the closed subpath's origin.
+    void testRasterPathAfterClose()
+    {
+        gran::vector::Shape shape;
+        gran::text::GlyphBitmap bitmap;
+
+        shape.paths.emplace_back();
+        shape.paths.push_back(gran::vector::parsePathData("M1 1 Z Z H5 V5 H1 Z"));
+        TEST_ASSERT(gran::vector::rasterizeShape(shape, 24, 24, bitmap));
+        TEST_ASSERT(coverageAt(bitmap, 2, 2) == 255);
+    }
 }
 
 namespace suites
@@ -140,5 +205,9 @@ namespace suites
         runner.add("vector: parseViewBox", testParseViewBox);
         runner.add("vector: rasterizeShape", testRasterizeShape);
         runner.add("vector: evenOdd", testEvenOdd);
+        runner.add("raster: reversed coverage at the right and bottom edges", testRasterEdgeCoverage);
+        runner.add("raster: one column with an exact right edge", testSingleColumnRaster);
+        runner.add("vector: malformed raster path", testMalformedRasterPath);
+        runner.add("vector: raster path after close", testRasterPathAfterClose);
     }
 }

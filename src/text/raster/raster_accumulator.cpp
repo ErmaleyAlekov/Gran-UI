@@ -8,7 +8,7 @@ namespace gran::text
     // Ячейки обнулены; лишний столбец справа принимает «перелив» последнего пикселя строки
     // The cells are zeroed; an extra column on the right takes the "overflow" of the last pixel of a row
     CoverageAccumulator::CoverageAccumulator(int width, int height)
-        : _width(width), _height(height), _cells(static_cast<std::size_t>(width) * height + 2, 0.0f)
+        : _width(width), _height(height), _cells((static_cast<std::size_t>(width) + 1) * height, 0.0f)
     {
     }
 
@@ -24,7 +24,7 @@ namespace gran::text
     void CoverageAccumulator::addLine(Vec2 from, Vec2 to)
     {
         float direction = 1.0f;
-        float limit = static_cast<float>(_width) - 1.001f;
+        float limit = static_cast<float>(_width);
 
         if (from.y == to.y)
             return;
@@ -41,7 +41,7 @@ namespace gran::text
         {
             float span = std::min(row + 1.0f, bottom) - std::max(row, top);
             float next = x + slope * span;
-            addRowSpan(static_cast<std::size_t>(row) * _width, std::min(std::max(x, 0.0f), limit),
+            addRowSpan(static_cast<std::size_t>(row) * (_width + 1u), std::min(std::max(x, 0.0f), limit),
                 std::min(std::max(next, 0.0f), limit), span * direction);
             x = next;
         }
@@ -79,7 +79,7 @@ namespace gran::text
             for (int column = 0; column < _width; ++column)
             {
                 std::size_t index = static_cast<std::size_t>(row) * _width + column;
-                sum += _cells[index];
+                sum += _cells[index + static_cast<std::size_t>(row)];
                 float value = std::min(1.0f, std::fabs(sum));
                 // Чётно-нечётно: обмотка 2 снова пуста — «пила» с периодом 2 / Even-odd: winding 2 is empty again — a "saw" of period 2
                 if (evenOdd)

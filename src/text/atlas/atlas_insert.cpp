@@ -5,24 +5,34 @@
 
 namespace gran::text
 {
-    /*
-    ** Место на полке (нет места — рост, затем полный сброс), копия строк растра и
-    ** расширение грязной области. Растр не больше 2048 (предел растеризатора) меньше
-    ** наименьшего атласа после роста, поэтому цикл всегда завершается.
-    **
-    ** A place on a shelf (no room — growing, then a full reset), a copy of the raster rows and
-    ** widening of the dirty area. A raster of at most 2048 (the rasterizer limit) is smaller
-    ** than the atlas after growing, so the loop always ends.
-    */
-    const AtlasEntry* GlyphAtlas::insert(const GlyphKey& key, const GlyphBitmap& bitmap)
+    // Область для загрузки; сброс после успешной передачи / Upload region, cleared after successful transfer
+    bool GlyphAtlas::dirtyRegion(std::uint32_t& x, std::uint32_t& y, std::uint32_t& width, std::uint32_t& height) const noexcept
+    {
+        if (_dirtyRight <= _dirtyLeft || _dirtyBottom <= _dirtyTop)
+            return false;
+        x = _dirtyLeft;
+        y = _dirtyTop;
+        width = _dirtyRight - _dirtyLeft;
+        height = _dirtyBottom - _dirtyTop;
+        return true;
+    }
+
+    // Проверяем размеры до упаковки и копирования строк.
+    // Validate dimensions before packing and copying rows.
+    const AtlasEntry* GlyphAtlas::insert(const GlyphKey& key, const GlyphBitmap& bitmap, bool preserveLayout)
     {
         std::uint32_t width = static_cast<std::uint32_t>(bitmap.width);
         std::uint32_t height = static_cast<std::uint32_t>(bitmap.height);
         std::uint32_t x = 0;
         std::uint32_t y = 0;
 
+        if (bitmap.width <= 0 || width >= MAX_SIZE || bitmap.height <= 0 || height > MAX_SIZE
+            || bitmap.coverage.size() < static_cast<std::size_t>(width) * height)
+            return nullptr;
         while (!pack(width, height, x, y))
         {
+            if (preserveLayout)
+                return nullptr;
             if (!grow())
                 reset();
         }
@@ -41,7 +51,7 @@ namespace gran::text
     }
 
     // Как glyph(), но растр даёт источник; пустой растр тоже запоминается / As glyph(), but the source gives the raster; an empty raster is remembered too
-    const AtlasEntry* GlyphAtlas::raster(const GlyphKey& key, RasterSource& source)
+    const AtlasEntry* GlyphAtlas::raster(const GlyphKey& key, RasterSource& source, bool preserveLayout)
     {
         auto found = _entries.find(key);
         GlyphBitmap bitmap;
@@ -57,6 +67,6 @@ namespace gran::text
             _entries[key] = AtlasEntry{};
             return nullptr;
         }
-        return insert(key, bitmap);
+        return insert(key, bitmap, preserveLayout);
     }
 }

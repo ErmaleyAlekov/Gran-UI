@@ -382,11 +382,11 @@ namespace gran::input
     /*
     ** Доставка события по пути цели: захват (корень → родитель цели), цель, всплытие (если bubbles) —
     ** обработчики разметки узла, затем слушатели кода. Удаление узлов обработчиком (treeVersion) прекращает
-    ** доставку. true — действие по умолчанию не отменено.
+    ** доставку. Циклический путь отклоняется до доставки с результатом false. Иначе true — действие по умолчанию не отменено.
     **
     ** Delivering the event along the target path: capture (the root → the target parent), the target, bubbling (if bubbles) —
     ** the node markup handlers, then the code listeners. Removing nodes by a handler (treeVersion) stops
-    ** the delivery. true — the default action is not cancelled.
+    ** the delivery. A cyclic path returns false before delivery. Otherwise true means the default action was not cancelled.
     */
     bool dispatchEvent(ui::UiEvent& event, ActionSink& sink);
 

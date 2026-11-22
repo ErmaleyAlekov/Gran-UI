@@ -69,6 +69,23 @@ namespace render_tests
             for (unsigned slot : {atlas, ramp, red, green}) backend.releaseTexture(slot);
             return passed;
         }
+        // После завершения кадра слоты можно переиспользовать без новых кадров.
+        // Once the frame completes, slots can be reused without submitting another frame.
+        bool reusesCompletedTextureSlots(gran::rhi::RenderBackend& backend)
+        {
+            const gran::rhi::TextureDesc desc{1, 1};
+            const auto firstSlot = backend.createTexture(desc);
+            backend.releaseTexture(firstSlot);
+            for (unsigned index = 0; index < 256; ++index)
+            {
+                const auto slot = backend.createTexture(desc);
+                backend.releaseTexture(slot);
+                if (slot != firstSlot)
+                    return false;
+            }
+            return true;
+        }
+
     }
 
     // После resize повторяем загрузку, рисование и освобождение слотов; слой должен молчать.
@@ -80,6 +97,8 @@ namespace render_tests
         bool passed = draw(*backend);
         if (options.backend == gran::rhi::BackendKind::D3D11)
             passed = rejectsOversizedFrame(*backend) && passed;
+        if (options.backend == gran::rhi::BackendKind::D3D12)
+            passed = reusesCompletedTextureSlots(*backend) && passed;
         backend->resize(48, 20);
         passed = draw(*backend) && passed;
         auto messages = backend->takeDiagnostics();

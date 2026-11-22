@@ -20,7 +20,12 @@ namespace gran::app
             void operator()() const
             {
                 record->finished = true;
-                record->pool->forget(record->outcome.id);
+                {
+                    std::lock_guard<std::mutex> lock(record->delivery->mutex);
+                    if (!record->delivery->pool)
+                        return;
+                    record->delivery->pool->forget(record->outcome.id);
+                }
                 if (record->done)
                     record->done(record->outcome);
             }
@@ -67,24 +72,28 @@ namespace gran::app
     // Итог — в поток интерфейса; копия записи живёт в доставке / The outcome goes to the UI thread; a record copy lives in the delivery
     void TaskPool::finish(const std::shared_ptr<TaskRecord>& record) noexcept
     {
-        post(DeliverDone{record});
+        try
+        {
+            if (post(DeliverDone{record}))
+                return;
+        }
+        catch (const std::bad_alloc&)
+        {
+        }
+        forget(record->outcome.id);
     }
 
-    /*
-    ** Нехватка памяти при постановке в очередь не должна убить поток пула: доставка теряется,
-    ** задача остаётся числиться активной до выхода из приложения.
-    **
-    ** Running out of memory while queuing must not kill the pool thread: the delivery is lost,
-    ** the task stays counted as active until the application exit.
-    */
-    void TaskPool::post(UiTask task) noexcept
+    // При отказе очереди вызывающий снимает отметку доставки / The caller clears its delivery state on queue failure
+    bool TaskPool::post(UiTask task) noexcept
     {
         try
         {
             _poster(std::move(task));
+            return true;
         }
         catch (...)
         {
+            return false;
         }
     }
 }

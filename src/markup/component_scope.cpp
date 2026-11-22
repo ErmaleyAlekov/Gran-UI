@@ -6,6 +6,19 @@
 
 namespace gran::markup::internal
 {
+    ScopedComponent::ScopedComponent(BuildContext& context, const ComponentScope* next, bool expanding)
+        : _context(context), _previous(context.scope), _depth(context.expansionDepth)
+    {
+        context.scope = next;
+        if (expanding) ++context.expansionDepth;
+    }
+
+    ScopedComponent::~ScopedComponent()
+    {
+        _context.scope = _previous;
+        _context.expansionDepth = _depth;
+    }
+
     namespace
     {
         // id экземпляра или «Компонент-строка-столбец»: имя без id устойчиво, пока файл не правили / The instance id or "Component-line-column": the name without an id is stable while the file is not edited

@@ -162,6 +162,8 @@ namespace gran::i18n
         PLATFORM_MENU_QUIT,
         SETTINGS_ATTRIBUTE_SKIPPED,
         GRID_FILTER_PLACEHOLDER,
+        MARKUP_DUPLICATE_SLOT,
+        MARKUP_EXPANSION_LIMIT,
         COUNT
     };
 }

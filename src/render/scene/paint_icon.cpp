@@ -83,7 +83,7 @@ namespace gran::render::internal
             return;
         text::GlyphKey key{nullptr, quarterPixels(box.height * device), quarterPixels(box.width * device), 0, shape->id};
         ShapeRaster source(*shape, key.quarterSize / 4.0f, key.glyph / 4.0f);
-        const text::AtlasEntry* entry = context.resources.atlas.raster(key, source);
+        const text::AtlasEntry* entry = context.resources.atlas.raster(key, source, context.resources.preserveLayout);
         if (entry == nullptr)
             return;
         GpuInstance instance = placeInstance(state, Rect{0.0f, 0.0f, 1.0f, 1.0f}, context.scale, unit);
