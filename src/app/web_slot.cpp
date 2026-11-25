@@ -1,5 +1,6 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/platform/internal/web_message_limits.hpp"
 
 #include <cstdio>
 #include "gran/log/log.hpp"
@@ -27,6 +28,8 @@ namespace gran::app
     // Called from a browser callback: an exception (out of memory) does not escape — the string is lost
     void WebSlot::webMessage(const std::string& message) noexcept
     {
+        if (!platform::webQueueAccepts(window.shared.webInbox.size(), message.size()))
+            return;
         try
         {
             window.shared.webInbox.push_back(WebMessage{node, message});

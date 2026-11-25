@@ -32,8 +32,10 @@ namespace editor
             if (entry.is_regular_file(error) || entry.is_directory(error)) paths.push_back(entry.path().u8string());
         }
         std::sort(paths.begin(), paths.end());
-        if (std::filesystem::u8path(path).has_parent_path())
-            addExplorerEntry(std::filesystem::u8path(path).parent_path().u8string());
+        const auto current = std::filesystem::u8path(path);
+        const auto parent = current.parent_path();
+        if (!parent.empty() && parent != current)
+            addExplorerEntry(parent.u8string());
         for (const auto& entry : paths) addExplorerEntry(entry);
         setText("workspaceName", fileLabel(path));
     }

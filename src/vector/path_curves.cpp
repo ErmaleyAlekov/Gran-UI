@@ -23,16 +23,14 @@ namespace gran::vector::internal
         }
         else if (command == 'S')
         {
-            points[0] = reflectedControl(builder, Verb::CUBIC);
+            points[0] = reflectedControl(builder, Verb::CUBIC, scanner);
             points[1] = readPoint(builder, scanner, relative);
             points[2] = readPoint(builder, scanner, relative);
             addVerb(builder, Verb::CUBIC, points, 3);
         }
         else
         {
-            points[0] = reflectedControl(builder, Verb::QUAD);
-            if (command == 'Q')
-                points[0] = readPoint(builder, scanner, relative);
+            points[0] = command == 'Q' ? readPoint(builder, scanner, relative) : reflectedControl(builder, Verb::QUAD, scanner);
             points[1] = readPoint(builder, scanner, relative);
             addVerb(builder, Verb::QUAD, points, 2);
         }
@@ -49,6 +47,7 @@ namespace gran::vector::internal
         if (!readFlag(scanner, arc.large) || !readFlag(scanner, arc.sweep))
             throwPathError(scanner);
         arc.end = readPoint(builder, scanner, relative);
-        addArc(builder, arc);
+        addArc(builder, arc, scanner);
+        builder.lastCurve = Verb::MOVE;
     }
 }

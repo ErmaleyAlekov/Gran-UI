@@ -27,6 +27,7 @@ namespace gran::text
         std::uint32_t y = 0;
 
         if (bitmap.width <= 0 || width >= MAX_SIZE || bitmap.height <= 0 || height > MAX_SIZE
+            || bitmap.left < INT16_MIN || bitmap.left > INT16_MAX || bitmap.top < INT16_MIN || bitmap.top > INT16_MAX
             || bitmap.coverage.size() < static_cast<std::size_t>(width) * height)
             return nullptr;
         while (!pack(width, height, x, y))

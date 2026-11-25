@@ -1,3 +1,7 @@
+#include "gran/render/internal/text_run_bounds.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
+#include <limits>
 #include "gran/render/text_engine.hpp"
 
 #include <cmath>
@@ -28,8 +32,8 @@ namespace gran::render
     const text::TextLayout& TextEngine::layoutFor(const ui::Node& node, float maxWidth)
     {
         text::TextStyle style = textStyleOf(node);
-        const std::string& content = displayedText(node);
         std::vector<text::TextRun> runs = textRunsOf(node);
+        const std::string& content = displayedText(node);
         std::string key = layoutKey(content, style, maxWidth) + runsKey(runs);
         auto found = _cache.find(key);
 
@@ -54,3 +58,14 @@ namespace gran::render
         ++_frame;
     }
 }
+
+namespace gran::render::internal
+{
+    std::uint32_t textRunEnd(std::uint32_t begin, std::size_t length)
+    {
+        if (length > std::numeric_limits<std::uint32_t>::max() - begin)
+            throw GranException(ErrorCode::LIMIT_EXCEEDED, i18n::format(i18n::Message::TEXT_LAYOUT_LIMIT));
+        return begin + static_cast<std::uint32_t>(length);
+    }
+}
+

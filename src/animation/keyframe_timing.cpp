@@ -53,8 +53,8 @@ namespace gran::animation
     {
         AnimationTiming timing;
         double running = elapsed - spec.delay;
-        double duration = std::max(1e-6, static_cast<double>(spec.duration));
-        double total = static_cast<double>(spec.iterations) * duration;
+        const double duration = std::max(0.0, static_cast<double>(spec.duration));
+        const double repeats = std::max(0.0, static_cast<double>(spec.iterations));
 
         if (running < 0.0)
         {
@@ -62,12 +62,16 @@ namespace gran::animation
             timing.progress = directed(spec.direction, 0.0, 0.0);
             return timing;
         }
-        if (running >= total)
+        if (duration == 0.0 || repeats == 0.0 || running >= repeats * duration)
         {
-            double last = std::max(0.0, std::ceil(static_cast<double>(spec.iterations)) - 1.0);
+            const double completed = std::isfinite(repeats) ? repeats : 1.0;
+            double integral;
+            const double fraction = std::modf(completed, &integral);
+            const bool whole = completed > 0.0 && fraction == 0.0;
+            const double parity = std::fmod(integral, 2.0);
             timing.finished = true;
             timing.active = fills(spec.fill, true);
-            timing.progress = directed(spec.direction, last, static_cast<double>(spec.iterations) - last);
+            timing.progress = directed(spec.direction, whole ? 1.0 - parity : parity, whole ? 1.0 : fraction);
             return timing;
         }
         double iteration = std::floor(running / duration);

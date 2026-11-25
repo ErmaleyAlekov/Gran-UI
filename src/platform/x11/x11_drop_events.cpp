@@ -60,6 +60,8 @@ namespace gran::platform::x11
     {
         Time time = CurrentTime;
 
+        if (_dnd.converting)
+            return;
         logDndDrop(_dnd);
         if (!_dnd.accepted)
         {
@@ -68,7 +70,17 @@ namespace gran::platform::x11
             return;
         }
         if (_dnd.version >= 1)
-            time = static_cast<Time>(message.data.l[2]);
+            time = static_cast<std::uint32_t>(message.data.l[2]);
+        if (time == CurrentTime)
+            time = clipboardTimestamp();
+        if (time == CurrentTime)
+        {
+            dndReply("XdndFinished", 0, nullptr);
+            dndEnd(EventKind::DRAG_LEAVE);
+            return;
+        }
+        _dnd.deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        _dnd.conversionTime = time;
         _dnd.converting = true;
         XConvertSelection(_native.display, atom("XdndSelection"), atom("text/uri-list"), atom("GRAN_XDND"),
             _native.window, time);
@@ -100,6 +112,11 @@ namespace gran::platform::x11
             message.data.l[4] = static_cast<long>(atom(action));
         else if (action != nullptr)
             message.data.l[2] = static_cast<long>(atom(action));
+        if (message.message_type == atom("XdndFinished"))
+        {
+            sendDropFinished(_native.display, reply);
+            return;
+        }
         XSendEvent(_native.display, _dnd.source, False, NoEventMask, &reply);
         XFlush(_native.display);
     }

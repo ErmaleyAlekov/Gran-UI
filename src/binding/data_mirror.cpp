@@ -16,23 +16,6 @@ namespace gran::binding
         _entries.clear();
     }
 
-    /*
-    ** Имя модели становится именем элемента. Модель из кода может называться как угодно; имя,
-    ** которое не годится для XML, «Берёста» отвергает исключением — тогда модель просто не видна
-    ** выражениям (списки items="…" с ней работают по-прежнему).
-    **
-    ** The model name becomes the element name. A model from code may have any name; a name
-    ** unfit for XML is rejected by Beresta with an exception — then the model is simply not visible
-    ** to the expressions (the items="…" lists work with it as before).
-    */
-    void DataMirror::watch(const std::string& name, data::ListSource& model)
-    {
-        beresta::Element* element = createElement(name);
-
-        if (element != nullptr)
-            _entries.push_back(std::make_unique<MirrorEntry>(name, model, *element));
-    }
-
     const beresta::Element& DataMirror::root() const
     {
         return *_document->getRoot();

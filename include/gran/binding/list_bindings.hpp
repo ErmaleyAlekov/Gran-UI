@@ -19,6 +19,8 @@
 #include <string_view>
 #include <vector>
 
+namespace gran::binding { class ReloadCheckpoint; }
+
 namespace gran::binding
 {
     class ListBinding;
@@ -94,6 +96,10 @@ namespace gran::binding
 
         // Снять привязки контейнеров, лежащих в поддереве / Drop the bindings of the containers lying in the subtree
         void forget(const ui::Node& subtree);
+        // Снять фильтры до фиксации документа; после фиксации убрать только подписки узлов.
+        // Release filters before committing a document; after commit drop only its node subscriptions.
+        void releaseDocumentFilters(const ui::Node& subtree);
+        void discardDocumentBindings(const ui::Node& subtree);
 
         /*
         ** Удалить узел с поддеревом: привязки внутри снимаются, слушатель получает nodeRemoving,
@@ -252,6 +258,10 @@ namespace gran::binding
 
         // Данные Resources: хранилища и деревья заменяют содержимое, представления создаются или перенастраиваются / The Resources data: the storages and the trees replace the contents, the views are created or reconfigured
         void adoptData(std::vector<markup::DataSet>& sets);
+        // Проверить привязки до смены живого документа / Check bindings before replacing the live document
+        void validateDocument(const markup::UiDocument& document) const;
+        void requireStableDocument() const;
+        void requirePublished(const std::string& name) const;
 
         // ---- list_bindings_variables.cpp ----
 
@@ -271,6 +281,7 @@ namespace gran::binding
         void adoptVariables(std::vector<data::Variable>& variables);
 
     private:
+        friend class gran::binding::ReloadCheckpoint;
         // Представление по имени: прокси или плоское дерево / A view by name: a proxy or a flat tree
         struct View
         {
@@ -285,13 +296,15 @@ namespace gran::binding
 
         // ---- list_bindings_views.cpp ----
 
-        // Имя свободно или занято моделью вида kind; иначе — GranException(INVALID_ARGUMENT) / The name is free or taken by a model of kind; otherwise — GranException(INVALID_ARGUMENT)
+        // Для создания нужно свободное имя; kind указывает запрошенный тип в диагностике
+        // Creation requires a free name; kind identifies the requested type in the diagnostic
         void checkName(const std::string& name, const char* kind) const;
 
         // ---- list_bindings_adopt.cpp ----
 
         // Представление из разметки: создать или перенастроить существующее / A view from the markup: create or reconfigure an existing one
         void adoptView(const markup::DataSet& set);
+        void adoptViews(const std::vector<markup::DataSet>& sets);
 
         /*
         ** Порядок полей — порядок зависимостей: представления опираются на хранилища, выделения — на
@@ -302,7 +315,9 @@ namespace gran::binding
         ** the views, the expression mirror and the bindings — on all of them. The destructor drops them in the reverse order
         ** explicitly: the views are destroyed from the last to the first (a proxy over a proxy).
         */
+        std::vector<data::ListSource*> documentFilters(const ui::Node& subtree) const;
         RemovalListener* _listener;
+        ReloadCheckpoint* _reload = nullptr;
         std::map<std::string, std::unique_ptr<data::ListModel>, std::less<>> _models;
         std::map<std::string, std::unique_ptr<data::TreeModel>, std::less<>> _trees;
         std::vector<View> _views;

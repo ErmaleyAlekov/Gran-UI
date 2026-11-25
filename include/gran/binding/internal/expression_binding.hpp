@@ -26,6 +26,8 @@ namespace beresta
     }
 }
 
+namespace gran::binding { class ReloadCheckpoint; }
+
 namespace gran::binding
 {
     // ---- expression_check.cpp ----
@@ -69,6 +71,7 @@ namespace gran::binding
         // ---- mirror_entry.cpp ----
         MirrorEntry(std::string name, data::ListSource& model, beresta::Element& element);
         ~MirrorEntry() override;
+        bool observes(const data::ListSource& source) const noexcept { return &model == &source; }
 
         void inserted(std::size_t index, std::size_t count) override;
         void removed(std::size_t index, std::size_t count) override;
@@ -91,6 +94,7 @@ namespace gran::binding
         // ---- tree_mirror.cpp ----
         TreeMirror(std::string name, data::TreeModel& tree, beresta::Element& element);
         ~TreeMirror() override;
+        bool observes(const data::TreeModel& source) const noexcept { return &tree == &source; }
 
         // Построить элемент заново (если помечен) / Rebuild the element (if marked)
         void rebuild();
@@ -113,6 +117,7 @@ namespace gran::binding
         // ---- selection_mirror.cpp ----
         SelectionMirror(std::string name, data::SelectionModel& selection, beresta::Element& element);
         ~SelectionMirror() override;
+        bool observes(const data::SelectionModel& source) const noexcept { return &selection == &source; }
         void selectionChanged() override;
 
         data::SelectionModel& selection;
@@ -122,7 +127,7 @@ namespace gran::binding
     class DataMirror
     {
     public:
-        // ---- data_mirror.cpp ----
+        // Источники должны жить дольше зеркала / Registered sources must outlive the mirror
         DataMirror();
         ~DataMirror();
         DataMirror(const DataMirror&) = delete;
@@ -153,12 +158,16 @@ namespace gran::binding
         void flush();
 
     private:
+        friend class gran::binding::ReloadCheckpoint;
         // Элемент модели под корнем <data>; имя не годится для XML — nullptr / The model element under the <data> root; a name unfit for XML — nullptr
-        beresta::Element* createElement(const std::string& name);
+        std::unique_ptr<beresta::Element> createElement(const std::string& name);
+        template<class Slot, class Source>
+        void watchSource(const std::string& name, Source& source);
 
         // Документ уничтожается после записей: записи отписываются, ссылаясь на свои элементы / The document is destroyed after the entries: the entries unsubscribe while referring to their elements
         std::unique_ptr<beresta::Document> _document;
         std::vector<std::unique_ptr<MirrorSlot>> _entries;
+        std::map<std::string, const void*> _registering;
     };
 
     // Элемент Item с полями записи как атрибутами (data_mirror.cpp) / An Item element with the record fields as attributes (data_mirror.cpp)
@@ -440,6 +449,7 @@ namespace gran::binding
         std::shared_ptr<ExpressionFilter> makeFilter(const std::string& expression);
 
     private:
+        friend class gran::binding::ReloadCheckpoint;
         // ---- expression_filters.cpp ----
 
         // Пересчитать фильтры, чьи переменные изменились / Recompute the filters whose variables changed

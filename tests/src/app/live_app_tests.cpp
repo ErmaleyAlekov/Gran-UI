@@ -1,6 +1,7 @@
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
 #include "gran/app/application.hpp"
+#include "gran/app/internal/app_state.hpp"
 #include "gran/core/gran_exception.hpp"
 #include <memory>
 #include <optional>
@@ -10,6 +11,13 @@
 
 namespace
 {
+    void testTooltipBeforeWindowOpen()
+    {
+        gran::Application::State state;
+        gran::app::AppWindow window(state);
+        TEST_ASSERT(!gran::app::updateTooltip(window, 0.0));
+    }
+
     void testLiveAppSetAttribute()
     {
         gran::Application app;
@@ -152,6 +160,7 @@ namespace suites
 {
     void registerLiveAppTests(test::TestRunner& runner)
     {
+        runner.add("tooltip: before window open", testTooltipBeforeWindowOpen);
         runner.add("live: set attribute", testLiveAppSetAttribute);
         runner.add("live: set attribute on child", testLiveAppSetAttributeOnChild);
         runner.add("live: set invalid attribute", testLiveAppSetInvalidAttribute);

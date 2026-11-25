@@ -24,6 +24,21 @@ namespace chat
                 head.reason = std::string(trimSpaces(line.substr(13)));
         }
 
+        // Десятичная длина в пределах поддерживаемого размера. / Decimal length within the supported size.
+        long long parseLength(std::string_view value)
+        {
+            long long length = 0;
+            if (value.empty())
+                throw ProtocolException(ChatText::HTTP_BAD_HEAD, {});
+            for (char symbol : value)
+            {
+                if (symbol < '0' || symbol > '9' || length > 1000000000000LL)
+                    throw ProtocolException(ChatText::HTTP_BAD_HEAD, {});
+                length = length * 10 + (symbol - '0');
+            }
+            return length;
+        }
+
         // Нужны только Transfer-Encoding и Content-Length; остальные поля пропускаются / Only Transfer-Encoding and Content-Length are needed; the other fields are skipped
         void parseField(std::string_view line, HttpHead& head)
         {
@@ -34,16 +49,17 @@ namespace chat
             std::string_view name = line.substr(0, colon);
             std::string_view value = trimSpaces(line.substr(colon + 1));
             if (equalsIgnoreCase(name, "Transfer-Encoding"))
-                head.chunked = value.size() >= 7 && equalsIgnoreCase(value.substr(value.size() - 7), "chunked");
+            {
+                if (head.chunked || !equalsIgnoreCase(value, "chunked"))
+                    throw ProtocolException(ChatText::HTTP_BAD_HEAD, {});
+                head.chunked = true;
+            }
             else if (equalsIgnoreCase(name, "Content-Length"))
             {
-                head.contentLength = 0;
-                for (char symbol : value)
-                {
-                    if (symbol < '0' || symbol > '9' || head.contentLength > 1000000000000LL)
-                        throw ProtocolException(ChatText::HTTP_BAD_HEAD, {});
-                    head.contentLength = head.contentLength * 10 + (symbol - '0');
-                }
+                auto length = parseLength(value);
+                if (head.contentLength >= 0 && head.contentLength != length)
+                    throw ProtocolException(ChatText::HTTP_BAD_HEAD, {});
+                head.contentLength = length;
             }
         }
     }

@@ -36,7 +36,11 @@ namespace gran::data
             if (peek() == 0xEF)
             {
                 take();
+                if (peek() != 0xBB)
+                    unexpected();
                 take();
+                if (peek() != 0xBF)
+                    unexpected();
                 take();
             }
             return readValue();

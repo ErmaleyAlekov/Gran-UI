@@ -26,10 +26,27 @@ namespace gran::text
         }
     }
 
+    // Обычное сканирование сохраняет кандидатов, уже помеченных сбойными.
+    // An ordinary scan preserves candidates already marked as failed.
+    void scanFontFile(const std::string& path, std::vector<FontCandidate>& candidates)
+    {
+        scanFontFile(path, candidates, false);
+    }
+
     // Признаки берутся сканированием, сам файл загрузится при выборе / The traits come from scanning, the file itself loads when chosen
     void FontLibrary::addFile(const std::string& path)
     {
-        scanFontFile(path, _candidates);
+        for (const auto& candidate : _candidates)
+        {
+            if (candidate.path == path && candidate.failed)
+            {
+                for (auto& opened : _files)
+                    if (opened.path == path)
+                        opened.file.reset();
+                break;
+            }
+        }
+        scanFontFile(path, _candidates, true);
     }
 
     // Семейства по порядку; обобщённые раскрываются в имена ОС; в конце — sans-serif
@@ -46,9 +63,12 @@ namespace gran::text
                 expanded.push_back(family);
             for (const std::string& name : expanded)
             {
-                FontCandidate* candidate = bestInFamily(name, weight, italic);
-                if (candidate != nullptr && loadCandidate(*candidate))
-                    return candidate->face;
+                while (FontCandidate* candidate = bestInFamily(name, weight, italic))
+                {
+                    if (loadCandidate(*candidate))
+                        return candidate->face;
+                    candidate->failed = true;
+                }
             }
         }
         return nullptr;

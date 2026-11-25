@@ -51,7 +51,7 @@ namespace gran::render
 
         rhi::RenderBackend& _backend;
         std::string _base;
-        std::map<std::string, ImageEntry> _entries;
+        std::map<std::string, ImageEntry, std::less<>> _entries;
         std::map<std::string, std::shared_ptr<const vector::Shape>> _shapes;
     };
 }

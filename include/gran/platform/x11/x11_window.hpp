@@ -4,6 +4,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #undef CursorShape
+#include <chrono>
 #include <deque>
 #include <vector>
 
@@ -47,6 +48,8 @@ namespace gran::platform::x11
         // После XdndDrop ждём SelectionNotify с данными
         // After XdndDrop we wait for SelectionNotify with the data
         bool converting = false;
+        Time conversionTime = CurrentTime;
+        std::chrono::steady_clock::time_point deadline{};
         // Последняя точка в логических пикселях окна
         // The last point in window logical pixels
         Vec2 point;
@@ -61,6 +64,7 @@ namespace gran::platform::x11
     ** file managers: in GNOME on Wayland Mutter translates XDND for an XWayland window, and the autotest with an X11 source
     ** does not see this path. Per session — 3–4 lines (without each XdndPosition).
     */
+    void sendDropFinished(Display* display, const XEvent& reply);
     void logDndAware(::Window window, long version);
     void logDndEnter(Display* display, const DndState& state, const std::vector<Atom>& types);
     void logDndDrop(const DndState& state);
@@ -99,6 +103,8 @@ namespace gran::platform::x11
         void setPlacement(const WindowPlacement& placement) override;
         void framePresented() override;
         bool waitsForFrame() const override;
+        std::uint64_t frameRequest() const override;
+        void enableFrameRequests(bool enabled) override;
         void setDropZones(const std::vector<Rect>& zones) override;
         std::vector<std::string> takeDroppedFiles() override;
     private:
@@ -112,6 +118,7 @@ namespace gran::platform::x11
         void dndReply(const char* type, long accepted, const char* action);
         void dndData(const XSelectionEvent& event);
         void dndEnd(EventKind kind);
+        void expireDrop();
         std::vector<std::string> dndReadPaths(Atom property);
         void applyOwner(const WindowDesc& desc);
         void place(const WindowDesc& desc);
@@ -130,6 +137,7 @@ namespace gran::platform::x11
         void text(XKeyEvent& event);
         void selection(XEvent& event);
         void selectionRequest(const XSelectionRequestEvent& request);
+        Time clipboardTimestamp();
         void sendState(long state);
         bool frameMouse(const XButtonEvent& event);
         void moveResize(const XButtonEvent& event, long direction);
@@ -152,6 +160,9 @@ namespace gran::platform::x11
         std::function<void()> _liveResize;
         std::function<WindowRole(Vec2)> _frameHit;
         std::string _clipboard;
+        std::string _clipboardReply;
+        Time _clipboardTime = CurrentTime;
+        Time _clipboardReadTime = CurrentTime;
         float _scale = 1;
         Size _pixels;
         bool _custom = false;

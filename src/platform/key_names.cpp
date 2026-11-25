@@ -28,10 +28,11 @@ namespace gran::platform
     // Сдвиг внутри ряда; выход за F12 — UNKNOWN / An offset inside a row; going past F12 — UNKNOWN
     Key keyAfter(Key first, unsigned offset) noexcept
     {
-        unsigned code = static_cast<unsigned>(first) + offset;
+        unsigned start = static_cast<unsigned>(first);
+        unsigned last = static_cast<unsigned>(Key::F12);
 
-        if (code > static_cast<unsigned>(Key::F12))
+        if (start > last || offset > last - start)
             return Key::UNKNOWN;
-        return static_cast<Key>(code);
+        return static_cast<Key>(start + offset);
     }
 }

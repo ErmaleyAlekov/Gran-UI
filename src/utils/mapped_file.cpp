@@ -17,6 +17,8 @@ namespace gran
 
         if (res::find(path, view))
         {
+            if (view.size == 0)
+                return nullptr;
             file->_data = view.data;
             file->_size = view.size;
             file->_resource = true;

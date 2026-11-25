@@ -1,15 +1,20 @@
 #include "gran/platform/win32/win32_window.hpp"
 
+#include <limits>
+
 namespace gran::platform::win32
 {
     // UTF-8 → UTF-16 средствами ОС / UTF-8 → UTF-16 by the OS
     std::wstring toWide(const std::string& text)
     {
-        int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), nullptr, 0);
+        if (text.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+            return {};
+        const int size = static_cast<int>(text.size());
+        int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), size, nullptr, 0);
         std::wstring wide(static_cast<std::size_t>(length), L'\0');
 
         if (length > 0)
-            MultiByteToWideChar(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), wide.data(), length);
+            MultiByteToWideChar(CP_UTF8, 0, text.c_str(), size, wide.data(), length);
         return wide;
     }
 

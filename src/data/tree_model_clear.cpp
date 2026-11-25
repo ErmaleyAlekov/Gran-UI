@@ -44,17 +44,57 @@ namespace gran::data
             notify(Event::INSERTED, parentId, 0, row, count);
     }
 
-    // Рекурсия по глубине дерева источника; ширина обходится циклом / A recursion by the source tree depth; the width is walked by a loop
+    void TreeModel::replaceItems(std::vector<TreeItem> items)
+    {
+        TreeModel staged;
+        staged._next = _next;
+        staged.appendItems(root(), std::move(items));
+        const auto count = staged.childCount(root());
+        const auto removed = childCount(root());
+        auto header = staged._nodes.extract(root());
+        auto& incoming = header.mapped().children;
+        TreeModel retired;
+        retired._nodes.reserve(staged._nodes.size() + 1);
+        std::swap(retired._nodes.at(root()), _nodes.at(root()));
+        retired._nodes.at(root()).children.clear();
+        _nodes.swap(retired._nodes);
+        _next = staged._next;
+        if (removed > 0)
+            notify(Event::REMOVED, root(), 0, 0, removed);
+        auto& children = _nodes.at(root()).children;
+        const auto row = children.size();
+        if (row > 0)
+        {
+            children.reserve(row + count);
+            _nodes.reserve(_nodes.size() + staged._nodes.size());
+        }
+        _nodes.merge(staged._nodes);
+        if (row == 0)
+            children.swap(incoming);
+        else
+            children.insert(children.end(), incoming.begin(), incoming.end());
+        if (count > 0)
+            notify(Event::INSERTED, root(), 0, row, count);
+    }
+
+    // Стек сохраняет порядок детей, не занимая стек вызовов / The stack preserves child order without growing the call stack
     void TreeModel::attach(NodeId parentId, TreeItem item)
     {
-        NodeId id = _next++;
-        Node created;
+        std::vector<std::pair<NodeId, TreeItem>> pending;
+        pending.emplace_back(parentId, std::move(item));
 
-        created.record = std::move(item.record);
-        created.parent = parentId;
-        _nodes.emplace(id, std::move(created));
-        _nodes[parentId].children.push_back(id);
-        for (TreeItem& child : item.children)
-            attach(id, std::move(child));
+        while (!pending.empty())
+        {
+            auto [parent, current] = std::move(pending.back());
+            pending.pop_back();
+            const NodeId id = _next++;
+            Node created;
+            created.record = std::move(current.record);
+            created.parent = parent;
+            _nodes.emplace(id, std::move(created));
+            _nodes.at(parent).children.push_back(id);
+            for (auto child = current.children.rbegin(); child != current.children.rend(); ++child)
+                pending.emplace_back(id, std::move(*child));
+        }
     }
 }

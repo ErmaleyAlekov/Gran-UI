@@ -96,6 +96,7 @@ namespace gran::text
 
     // Признаки начертаний файла без полной загрузки (name, OS/2) / The file face traits without a full load (name, OS/2)
     void scanFontFile(const std::string& path, std::vector<FontCandidate>& candidates);
+    void scanFontFile(const std::string& path, std::vector<FontCandidate>& candidates, bool retryFailed);
 
     // ---- font_known.cpp ----
 

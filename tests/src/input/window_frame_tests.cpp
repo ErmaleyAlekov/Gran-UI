@@ -1,7 +1,9 @@
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
+#include "gran/app/internal/app_state.hpp"
 #include "gran/input/input_router.hpp"
 #include "gran/markup/markup_loader.hpp"
+#include "gran/rhi/null/null_backend.hpp"
 #include "gran/ui/node.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "support/layout_helpers.hpp"
@@ -111,6 +113,90 @@ namespace
         int closeCount = 0;
         bool maximized = false;
     };
+
+    class PresentationWindowStub : public WindowStub
+    {
+    public:
+        bool waitsForFrame() const override { return awaitingFrame; }
+        std::uint64_t frameRequest() const override { return request; }
+        void framePresented() override { ++acknowledgements; awaitingFrame = false; }
+
+        bool awaitingFrame = true;
+        std::uint64_t request = 1;
+        unsigned acknowledgements = 0;
+    };
+
+    class PresentationBackendStub : public gran::rhi::RenderBackend
+    {
+    public:
+        void resize(std::uint32_t, std::uint32_t) override {}
+        std::uint32_t createTexture(const gran::rhi::TextureDesc&) override { return 0; }
+        void updateTexture(std::uint32_t, const gran::rhi::TextureRegion&, const std::uint8_t*, std::uint32_t) override {}
+        void releaseTexture(std::uint32_t) override {}
+        gran::rhi::FrameStatus render(const gran::rhi::FrameData&) override { return gran::rhi::FrameStatus::PRESENTED; }
+        std::vector<std::string> takeDiagnostics() override { return {}; }
+        Presentation pollPresentation(std::uint64_t id) override
+        {
+            lastPolled = id;
+            ++polls;
+            return outcome;
+        }
+
+        Presentation outcome = Presentation::PENDING;
+        std::uint64_t lastPolled = 0;
+        unsigned polls = 0;
+    };
+
+    void testFramePresentationRetry()
+    {
+        gran::Application::State state;
+        gran::app::AppWindow win(state);
+        auto window = std::make_unique<PresentationWindowStub>();
+        auto& fakeWindow = *window;
+        win.window = std::move(window);
+        auto backend = std::make_unique<PresentationBackendStub>();
+        auto& presentation = *backend;
+        win.backend = std::move(backend);
+        win.presentationRequest = fakeWindow.request;
+        win.presentationId = 17;
+        win.changed = false;
+
+        gran::app::pollFramePresentation(win);
+        TEST_ASSERT(fakeWindow.acknowledgements == 0 && presentation.lastPolled == 17);
+        TEST_ASSERT(win.presentationRetry >= 0 && !win.changed);
+        presentation.outcome = PresentationBackendStub::Presentation::SHOWN;
+        gran::app::pollFramePresentation(win);
+        TEST_ASSERT(fakeWindow.acknowledgements == 1 && presentation.polls == 2);
+        TEST_ASSERT(win.presentationRetry < 0 && !win.changed);
+    }
+
+    void testFramePresentationStaleRequest()
+    {
+        gran::Application::State state;
+        gran::app::AppWindow win(state);
+        auto window = std::make_unique<PresentationWindowStub>();
+        auto& fakeWindow = *window;
+        win.window = std::move(window);
+        auto backend = std::make_unique<PresentationBackendStub>();
+        auto& presentation = *backend;
+        win.backend = std::move(backend);
+        win.presentationRequest = fakeWindow.request;
+        ++fakeWindow.request;
+        win.presentationId = 17;
+        win.presentationRetry = 0;
+        presentation.outcome = PresentationBackendStub::Presentation::SHOWN;
+
+        gran::app::pollFramePresentation(win);
+        TEST_ASSERT(fakeWindow.acknowledgements == 0 && presentation.polls == 0);
+        TEST_ASSERT(win.presentationRetry < 0);
+
+        fakeWindow.awaitingFrame = false;
+        win.presentationRequest = fakeWindow.request;
+        win.backend = std::make_unique<gran::rhi::NullBackend>();
+        TEST_ASSERT(!win.backend->canConfirmPresentation());
+        gran::app::pollFramePresentation(win);
+        TEST_ASSERT(fakeWindow.acknowledgements == 0 && win.presentationRetry < 0);
+    }
 
     class ActionSinkStub : public gran::input::ActionSink
     {
@@ -365,6 +451,8 @@ namespace
         runner.add("testWindowFrameKeyboardEvents", testWindowFrameKeyboardEvents);
         runner.add("testWindowFrameMaximizeState", testWindowFrameMaximizeState);
         runner.add("window frame: clipping, transform and modality", testWindowFrameHitGeometry);
+        runner.add("window frame: presentation wait retries without redraw", testFramePresentationRetry);
+        runner.add("window frame: stale or unavailable presentation is not acknowledged", testFramePresentationStaleRequest);
     }
 }
 

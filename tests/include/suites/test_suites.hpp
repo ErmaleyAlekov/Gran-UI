@@ -120,6 +120,7 @@ namespace suites
 
     // ---- Пример chat: JSON, chunked, NDJSON / The chat example: JSON, chunked, NDJSON ----
     void registerChatJsonTests(test::TestRunner& runner);
+    void registerChatInputReviewTests(test::TestRunner& runner);
     void registerChatStreamTests(test::TestRunner& runner);
     void registerChatMarkdownTests(test::TestRunner& runner);
 }

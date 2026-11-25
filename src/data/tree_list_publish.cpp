@@ -65,26 +65,28 @@ namespace gran::data
     */
     void TreeList::publish(std::vector<Row> rows)
     {
-        std::vector<Row> old = std::move(_rows);
         std::vector<NodeId> before;
         std::vector<NodeId> after;
         std::size_t prefix = 0;
         std::size_t suffix = 0;
 
-        for (const Row& row : old)
+        for (const Row& row : _rows)
             before.push_back(row.node);
         for (const Row& row : rows)
             after.push_back(row.node);
-        _rows = std::move(rows);
         std::vector<std::size_t> oldToNew = permutation(before, after);
-        if (!oldToNew.empty() && before != after)
-            notifyReordered(oldToNew);
-        if (oldToNew.empty())
-        {
+        const bool replace = oldToNew.empty();
+        if (replace)
             oldToNew = splice(before, after, prefix, suffix);
+        std::vector<Row> old = std::move(_rows);
+        _rows = std::move(rows);
+        if (replace)
+        {
             notifyRemoved(prefix, before.size() - prefix - suffix);
             notifyInserted(prefix, after.size() - prefix - suffix);
         }
+        else if (before != after)
+            notifyReordered(oldToNew);
         publishFlags(old, oldToNew);
     }
 

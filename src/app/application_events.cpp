@@ -1,4 +1,5 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/platform/internal/pixel_size.hpp"
 
 #include <algorithm>
 
@@ -51,7 +52,8 @@ namespace gran::app
         {
             Size pixels = win.window->pixelSize();
 
-            win.backend->resize(static_cast<std::uint32_t>(pixels.width), static_cast<std::uint32_t>(pixels.height));
+            if (!win.deviceLost)
+                win.backend->resize(platform::pixelExtent(pixels.width), platform::pixelExtent(pixels.height));
         }
     }
 

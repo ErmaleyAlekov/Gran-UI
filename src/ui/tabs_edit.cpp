@@ -40,7 +40,7 @@ namespace gran::ui
             if (bar->children[index].get() == &header)
                 return index;
         }
-        return 0;
+        return SIZE_MAX;
     }
 
     // Страница заголовка: та же по счёту среди детей Tab / The header page: the same by count among the Tab children

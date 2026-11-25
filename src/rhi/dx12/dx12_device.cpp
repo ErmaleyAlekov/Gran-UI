@@ -26,7 +26,7 @@ namespace gran::rhi::dx12
             if (FAILED(D3D12GetDebugInterface(__uuidof(ID3D12Debug), reinterpret_cast<void**>(debug.put()))))
                 return false;
             debug->EnableDebugLayer();
-            bool wantValidation = gpuValidation != nullptr && gpuValidation[0] == '1';
+            bool wantValidation = gpuValidation != nullptr && gpuValidation[0] == '1' && gpuValidation[1] == '\0';
             if (wantValidation && SUCCEEDED(debug->QueryInterface(__uuidof(ID3D12Debug1),
                 reinterpret_cast<void**>(validation.put()))))
                 validation->SetEnableGPUBasedValidation(TRUE);

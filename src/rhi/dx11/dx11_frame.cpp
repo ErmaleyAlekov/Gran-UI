@@ -41,6 +41,7 @@ namespace gran::rhi::dx11
         validate(frame);
         try
         {
+            requireSurface();
             drawFrame(frame);
             HRESULT result = _device->GetDeviceRemovedReason();
             if (SUCCEEDED(result) && _swapchain)

@@ -24,14 +24,17 @@ namespace gran::style
             float numbers[4] = {0.0f, 0.0f, 0.0f, 0.0f};
             std::size_t count = 0;
             bool hasColor = false;
+            bool numbersClosed = false;
         };
 
         // Одна лексема тени: "inset", число или цвет / One shadow token: "inset", a number or a color
         void readShadowToken(std::string_view token, std::string_view text, ShadowParts& parts, Shadow& shadow)
         {
+            if (!startsNumber(token) && parts.count != 0)
+                parts.numbersClosed = true;
             if (equalsIgnoreCase(token, "inset"))
                 shadow.inset = true;
-            else if (startsNumber(token) && parts.count < 4)
+            else if (startsNumber(token) && !parts.numbersClosed && parts.count < 4)
                 parts.numbers[parts.count++] = parseNumber(token);
             else if (!parts.hasColor && !startsNumber(token))
             {
@@ -74,7 +77,9 @@ namespace gran::style
 
         if (equalsIgnoreCase(trimmed, "none"))
             return paint;
-        if (trimmed.find("gradient(") != std::string_view::npos)
+        const auto name = ValueScanner(trimmed).readIdentifier();
+        if (equalsIgnoreCase(name, "linear-gradient") || equalsIgnoreCase(name, "radial-gradient") ||
+            equalsIgnoreCase(name, "conic-gradient"))
         {
             paint.kind = PaintKind::GRADIENT;
             paint.gradient = parseGradient(trimmed);

@@ -17,6 +17,8 @@ namespace gran::capi
             spec.format = data::SourceFormat::JSON;
         else if (source->format == GRAN_SOURCE_XML)
             spec.format = data::SourceFormat::XML;
+        else
+            require(source->format == GRAN_SOURCE_AUTO);
         for (size_t index = 0; index < source->field_count; ++index)
         {
             const gran_field& field = source->fields[index];

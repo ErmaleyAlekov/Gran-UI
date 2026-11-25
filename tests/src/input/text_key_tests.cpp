@@ -50,6 +50,14 @@ namespace
         TEST_ASSERT(gran::input::internal::eraseMove(gran::platform::Key::A, 0, gran::platform::HostOs::MACOS) == gran::input::internal::TextMove::NONE);
     }
 
+    void testPreviousBoundaryAtEnd()
+    {
+        const std::string text = "a\xC3\xA9";
+        TEST_ASSERT(gran::input::internal::previousBoundary(text, text.size()) == 1);
+        TEST_ASSERT(gran::input::internal::previousBoundary(text, text.size() + 1) == 1);
+        TEST_ASSERT(gran::input::internal::previousBoundary("", 1) == 0);
+    }
+
     void testTextKeysWordNavigation()
     {
         std::string text = "one  two, three";
@@ -73,5 +81,6 @@ namespace suites
         runner.add("text keys: erase move windows", testTextKeysEraseMoveWindows);
         runner.add("text keys: erase move macos", testTextKeysEraseMoveMacOS);
         runner.add("text keys: word navigation", testTextKeysWordNavigation);
+        runner.add("text keys: previous UTF-8 boundary at end", testPreviousBoundaryAtEnd);
     }
 }

@@ -30,6 +30,9 @@ namespace chat
             {ChatText::NET_RECEIVE, "ошибка приёма ответа (код {0})"},
             {ChatText::NET_CLOSED, "сервер закрыл соединение до конца ответа"},
             {ChatText::OLLAMA_ERROR, "Ollama: {0}"},
+            {ChatText::JSON_CONTROL_CHAR, "Управляющий символ без экранирования в строке JSON (позиция {0})"},
+            {ChatText::APP_BAD_PORT, "Порт должен быть целым числом от 1 до 65535."},
+            {ChatText::APP_MISSING_VALUE, "Для параметра {0} требуется значение."},
             {ChatText::APP_FATAL, "Gran Chat: {0}"},
             {ChatText::APP_MISSING_NODE, "в разметке чата нет элемента id=\"{0}\""}
         };

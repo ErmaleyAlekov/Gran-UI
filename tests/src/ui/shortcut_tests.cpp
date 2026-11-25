@@ -24,6 +24,9 @@ namespace
         TEST_ASSERT(result.key == gran::platform::Key::ENTER);
         TEST_ASSERT(result.modifiers == gran::platform::MODIFIER_ALT);
 
+        TEST_ASSERT(gran::ui::parseShortcut("Meta+S", result));
+        TEST_ASSERT(result.key == gran::platform::Key::S && result.modifiers == gran::platform::MODIFIER_META);
+
         TEST_ASSERT(gran::ui::parseShortcut("Del", result));
         TEST_ASSERT(result.key == gran::platform::Key::DELETE_KEY);
         TEST_ASSERT(result.modifiers == 0);
@@ -53,6 +56,10 @@ namespace
         TEST_ASSERT(result.empty());
 
         TEST_ASSERT(!gran::ui::parseShortcuts("Mod+S Bad+X", result));
+        TEST_ASSERT(result.empty());
+        TEST_ASSERT(gran::ui::parseShortcuts("F5", result));
+        TEST_ASSERT(!gran::ui::parseShortcuts("Ctrl+S BadKey", result));
+        TEST_ASSERT(result.size() == 1 && result.front().key == gran::platform::Key::F5);
     }
 
     void testShortcutText()
@@ -73,6 +80,11 @@ namespace
         shortcut.key = gran::platform::Key::LEFT;
         shortcut.modifiers = 0;
         TEST_ASSERT(gran::ui::shortcutText(shortcut, gran::ui::ShortcutStyle::TEXT) == "Left");
+
+        shortcut.key = gran::platform::Key::S;
+        shortcut.modifiers = gran::platform::MODIFIER_META;
+        TEST_ASSERT(gran::ui::shortcutText(shortcut, gran::ui::ShortcutStyle::TEXT) == "Meta+S");
+        TEST_ASSERT(gran::ui::shortcutText(shortcut, gran::ui::ShortcutStyle::SYMBOLS) == "⌃S");
     }
 
     void testSameShortcut()

@@ -17,8 +17,12 @@ namespace gran
         app::startSettings(*_state);
     }
 
-    // Порядок разрушения задан порядком полей State / The destruction order is set by the State field order
-    Application::~Application() = default;
+    // Работники завершают post до разрушения окон / Workers finish posting before window teardown
+    Application::~Application()
+    {
+        _state->driverScope.reset();
+        _state->pool.reset();
+    }
 
     // Разметка из файла: разбор и проверка схемой за один проход / Markup from a file: parsing and the schema check in one pass
     void Application::loadFile(const std::string& path)

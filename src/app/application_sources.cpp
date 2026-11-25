@@ -10,15 +10,16 @@ namespace gran
     // Файл читается до замены: при ошибке модель остаётся прежней / The file is read before the replacement: on an error the model stays as it was
     void Application::loadData(const std::string& name, const data::SourceSpec& spec)
     {
+        _state->lists.requirePublished(name);
         data::loadList(_state->lists.model(name), spec);
     }
 
     void Application::loadTree(const std::string& name, const data::SourceSpec& spec)
     {
+        _state->lists.requirePublished(name);
         std::vector<data::TreeItem> nodes = data::readTreeSource(spec);
         data::TreeModel& target = _state->lists.tree(name);
 
-        target.clear();
-        data::fillTree(target, target.root(), std::move(nodes));
+        target.replaceItems(std::move(nodes));
     }
 }

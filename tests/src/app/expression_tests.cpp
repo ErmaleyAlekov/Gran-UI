@@ -3,6 +3,9 @@
 #include "gran/app/application.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/app/commands.hpp"
+#include "gran/binding/internal/expression_binding.hpp"
+#include "beresta.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -58,6 +61,100 @@ namespace
         app.find("name")->content.text = "Гран";
         app.refreshBindings();
         TEST_ASSERT(app.find("t")->content.text == "Привет, Гран");
+    }
+
+    void testDetachedPropertyWatch()
+    {
+        gran::binding::ListBindings owner;
+        gran::binding::DataMirror mirror;
+        gran::binding::ExpressionBindings expressions(owner);
+        std::map<std::pair<const gran::ui::Node*, std::string>, gran::ui::Node*> found;
+        gran::binding::EvaluationScope scope{owner, mirror, expressions, found};
+        const gran::binding::ExpressionBinding detached;
+
+        TEST_ASSERT(gran::binding::watchValue(scope, detached, {"parent.text", "parent", "text", {}}).toString().empty());
+        TEST_ASSERT(gran::binding::watchValue(scope, detached, {"other.text", "other", "text", {}}).toString().empty());
+    }
+
+    struct MirrorRecords final : gran::data::ListSource
+    {
+        std::vector<gran::data::Record> rows;
+        std::size_t failingRow = gran::data::NO_ROW;
+        std::function<void()> reenterRegistration;
+
+        std::size_t size() const noexcept override { return rows.size(); }
+        const gran::data::Record& at(std::size_t index) const override
+        {
+            if (reenterRegistration)
+                reenterRegistration();
+            if (index == failingRow)
+                throw std::runtime_error("mirror read failed");
+            return rows.at(index);
+        }
+        void set(std::size_t row, const std::string& field, std::string value) override
+        {
+            rows.at(row)[field] = std::move(value);
+        }
+    };
+
+    void testMirrorRegistrationIsAtomic()
+    {
+        MirrorRecords records;
+        gran::data::ListModel other;
+        gran::binding::DataMirror mirror;
+        records.rows = {{{"name", "one"}}, {{"name", "two"}}};
+        records.failingRow = 1;
+
+        TEST_ASSERT_THROWS(mirror.watch("rows", records), std::runtime_error);
+        TEST_ASSERT(mirror.root().getChildCount() == 0 && mirror.version("rows") == 0);
+        records.failingRow = gran::data::NO_ROW;
+        records.reenterRegistration = [&] { mirror.watch("rows", records); };
+        mirror.watch("rows", records);
+        mirror.watch("rows", records);
+        TEST_ASSERT_THROWS(mirror.watch("rows", other), gran::GranException);
+        TEST_ASSERT(mirror.root().getChildCount() == 1);
+        TEST_ASSERT(mirror.record(records, 1)->getAttribute("name").value_or("") == "two");
+    }
+
+    void testMirrorInsertionIsAtomic()
+    {
+        MirrorRecords records;
+        records.rows = {{{"name", "kept"}}};
+        beresta::Element element("rows");
+        gran::binding::MirrorEntry mirror("rows", records, element);
+        const auto version = mirror.version;
+
+        records.rows.push_back({{"name", "first"}});
+        records.rows.push_back({{"name", "second"}});
+        records.failingRow = 2;
+        TEST_ASSERT_THROWS(mirror.inserted(1, 2), std::runtime_error);
+        TEST_ASSERT(element.getChildCount() == 1 && mirror.version == version);
+        records.failingRow = gran::data::NO_ROW;
+        mirror.inserted(1, 2);
+        TEST_ASSERT(element.getChildCount() == 3 && mirror.version == version + 1);
+        const auto* last = static_cast<const beresta::Element*>(element.getChild(2));
+        TEST_ASSERT(last->getAttribute("name").value_or("") == "second");
+    }
+
+    void testTreeMirrorBuildsAndRefreshesNestedRows()
+    {
+        gran::data::TreeModel tree;
+        gran::binding::DataMirror mirror;
+        auto parent = tree.root();
+        constexpr std::size_t depth = 64;
+        for (std::size_t level = 0; level < depth; ++level)
+            parent = tree.append(parent, {{"name", "branch"}});
+        mirror.watchTree("tree", tree);
+        mirror.watchTree("tree", tree);
+        TEST_ASSERT(mirror.root().getChildCount() == 1);
+        const auto* subtree = static_cast<const beresta::Element*>(mirror.root().getChild(0));
+        const auto version = mirror.version("tree");
+        tree.set(parent, "name", "updated");
+        mirror.flush();
+        TEST_ASSERT(mirror.version("tree") > version && mirror.root().getChild(0) == subtree);
+        for (std::size_t level = 0; level < depth; ++level)
+            subtree = static_cast<const beresta::Element*>(subtree->getChild(0));
+        TEST_ASSERT(subtree->getAttribute("name").value_or("") == "updated");
     }
 
     static std::string toView(const std::string& value)
@@ -235,6 +332,10 @@ namespace suites
         runner.add("expression: two-way binding", testExpressionTwoWayBinding);
         runner.add("expression: list", testExpressionList);
         runner.add("expression: node property", testExpressionNodeProperty);
+        runner.add("expression: detached node property", testDetachedPropertyWatch);
+        runner.add("expression mirror: atomic registration", testMirrorRegistrationIsAtomic);
+        runner.add("expression mirror: atomic insertion", testMirrorInsertionIsAtomic);
+        runner.add("expression mirror: deep tree refresh", testTreeMirrorBuildsAndRefreshesNestedRows);
         runner.add("expression: converter", testExpressionConverter);
         runner.add("expression: converter retries", testExpressionConverterRetries);
         runner.add("expression: converter retries without dropping write", testExpressionRetriesWithoutDroppingWrite);

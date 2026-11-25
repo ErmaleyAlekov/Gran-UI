@@ -28,6 +28,6 @@ namespace gran::platform::webview2
 
     void WebView2Host::postMessage(const std::string& message)
     {
-        _core->postMessage(win32::toWide(message));
+        _core->postMessage(message);
     }
 }

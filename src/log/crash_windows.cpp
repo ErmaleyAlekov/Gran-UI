@@ -4,6 +4,9 @@
 #include "gran/log/internal/crash_windows.hpp"
 
 #include <cwchar>
+#include <cstring>
+
+#include <mutex>
 
 #include "gran/utils/file_system.hpp"
 
@@ -28,17 +31,24 @@ namespace gran::log
         ** it only hands the pointers to the helper and waits. A second crash (including one in the report itself)
         ** is given to the OS. EXCEPTION_EXECUTE_HANDLER ends the process without the WER window.
         */
-        LONG WINAPI crashFilter(EXCEPTION_POINTERS* pointers)
+        LONG submitCrash(EXCEPTION_POINTERS* pointers, const char* message)
         {
             CrashState& state = crashState();
 
             if (InterlockedExchange(&state.busy, 1) != 0)
                 return EXCEPTION_CONTINUE_SEARCH;
+            if (message != nullptr)
+                std::strncpy(state.message, message, sizeof(state.message) - 1);
             state.pointers = pointers;
             state.threadId = GetCurrentThreadId();
             SetEvent(state.request);
             WaitForSingleObject(state.done, 60000);
             return EXCEPTION_EXECUTE_HANDLER;
+        }
+
+        LONG WINAPI crashFilter(EXCEPTION_POINTERS* pointers)
+        {
+            return submitCrash(pointers, nullptr);
         }
     }
 
@@ -86,6 +96,8 @@ namespace gran::log
         internal::CrashState& state = internal::crashState();
         HANDLE helper = nullptr;
 
+        static std::mutex installMutex;
+        const std::lock_guard<std::mutex> lock(installMutex);
         if (state.installed)
             return true;
         if (options.appName.empty() || !prepareState(state, options))

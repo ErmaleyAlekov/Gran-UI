@@ -5,22 +5,23 @@
 namespace gran::undo
 {
     /*
-    ** Новый шаг отбрасывает отменённые; затем — объединение с верхним или новая позиция и предел.
+    ** Новый шаг отбрасывает отменённые после объединения, которое может выбросить исключение.
     ** Шаг из обработчика undo/redo (стек занят) не записывается.
     **
-    ** A new step drops the undone ones; then — merging with the top one or a new position and the limit.
+    ** A new step drops the undone ones after merging, which can throw.
     ** A step from an undo/redo handler (the stack is busy) is not recorded.
     */
     void UndoStack::push(std::unique_ptr<UndoStep> step)
     {
         if (!step || _busy)
             return;
-        dropUndone();
         if (tryMerge(*step))
         {
+            dropUndone();
             notify();
             return;
         }
+        dropUndone();
         _steps.push_back(std::move(step));
         _index = _steps.size();
         _merge = true;

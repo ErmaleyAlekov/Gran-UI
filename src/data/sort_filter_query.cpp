@@ -3,9 +3,16 @@
 
 namespace gran::data
 {
+    void SortFilterProxy::disconnect() noexcept
+    {
+        if (_source)
+            _source->unsubscribe(this);
+        _source = nullptr;
+    }
+
     ListSource& SortFilterProxy::source() const noexcept
     {
-        return _source;
+        return *_source;
     }
 
     std::size_t SortFilterProxy::sourceIndex(std::size_t index) const
@@ -25,7 +32,7 @@ namespace gran::data
 
     const ColumnSet& SortFilterProxy::columns() const noexcept
     {
-        return _source.columns();
+        return _source->columns();
     }
 
     // Таблица нужна редко (выделение, события), а правки идут пачками — пересчёт по запросу / The table is needed rarely (selection, events), while edits come in batches — recomputing on demand
@@ -33,7 +40,7 @@ namespace gran::data
     {
         if (_reverseValid)
             return _reverse;
-        _reverse.assign(_source.size(), static_cast<std::size_t>(-1));
+        _reverse.assign(_source->size(), static_cast<std::size_t>(-1));
         for (std::size_t row = 0; row < _map.size(); ++row)
         {
             if (_map[row] < _reverse.size())

@@ -81,6 +81,33 @@ namespace
         proxy.set(0, "note", "x");
         TEST_ASSERT(source.at(0).at("note") == "x");
     }
+
+    class SortEventSource : public gran::data::ListSource
+    {
+    public:
+        using ListSource::notifyReordered;
+
+        std::size_t size() const noexcept override { return 2; }
+        const gran::data::Record& at(std::size_t) const override { return _record; }
+        void set(std::size_t, const std::string&, std::string) override {}
+
+    private:
+        gran::data::Record _record;
+    };
+
+    void testSortRejectsIncompletePermutation()
+    {
+        SortEventSource source;
+        gran::data::SortFilterProxy proxy(source);
+        source.notifyReordered({1});
+        TEST_ASSERT(proxy.sourceIndex(0) == 0);
+        TEST_ASSERT(proxy.sourceIndex(1) == 1);
+        TEST_ASSERT(proxy.proxyIndex(0) == 0);
+        TEST_ASSERT(proxy.proxyIndex(1) == 1);
+        source.notifyReordered({1, 1});
+        TEST_ASSERT(proxy.sourceIndex(0) == 0 && proxy.sourceIndex(1) == 1);
+        TEST_ASSERT(proxy.proxyIndex(0) == 0 && proxy.proxyIndex(1) == 1);
+    }
 }
 
 namespace suites
@@ -90,5 +117,6 @@ namespace suites
         runner.add("sort: parse sort keys", testSortKeysParsing);
         runner.add("sort: compare functions", testCompareFunctions);
         runner.add("sort: sort filter proxy", testSortFilterProxy);
+        runner.add("sort: incomplete permutation", testSortRejectsIncompletePermutation);
     }
 }

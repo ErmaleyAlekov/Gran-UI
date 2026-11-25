@@ -17,25 +17,25 @@ internal static class NativeProgram
     [StructLayout(LayoutKind.Sequential)] internal struct Background {
         internal uint Size; internal WorkFn Work; internal TaskDoneFn Done; internal TaskProgressFn Progress; internal IntPtr User;
     }
-    [DllImport(Library)] internal static extern int gran_app_run_task(IntPtr app, ref Background task, out ulong result);
-    [DllImport(Library)] internal static extern int gran_app_cancel_task(IntPtr app, ulong task, out int found);
-    [DllImport(Library)] internal static extern int gran_task_cancelled(IntPtr task);
-    [DllImport(Library)] internal static extern int gran_task_progress(IntPtr task, double fraction, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
-    [DllImport(Library)] internal static extern int gran_task_fail(IntPtr task, [MarshalAs(UnmanagedType.LPUTF8Str)] string message);
-    [DllImport(Library)] internal static extern int gran_resources_mount(byte[] data, nuint size);
-    [DllImport(Library)] internal static extern int gran_settings_load(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? appName, [MarshalAs(UnmanagedType.LPUTF8Str)] string? path);
-    [DllImport(Library)] internal static extern int gran_settings_get(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, out int type, out IntPtr result);
-    [DllImport(Library)] internal static extern int gran_settings_set(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int type, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
-    [DllImport(Library)] internal static extern int gran_settings_list_item(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, nuint index, out IntPtr result);
-    [DllImport(Library)] internal static extern int gran_settings_set_list(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, IntPtr items, nuint count);
-    [DllImport(Library)] internal static extern int gran_settings_remove(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
-    [DllImport(Library)] internal static extern int gran_settings_save(IntPtr app);
-    [DllImport(Library)] internal static extern int gran_log_open([MarshalAs(UnmanagedType.LPUTF8Str)] string appName, [MarshalAs(UnmanagedType.LPUTF8Str)] string? directory, int crashReports);
-    [DllImport(Library)] internal static extern int gran_log_write(int level, [MarshalAs(UnmanagedType.LPUTF8Str)] string category, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
-    [DllImport(Library)] internal static extern int gran_log_path(out IntPtr result);
-    [DllImport(Library)] internal static extern int gran_log_previous_crash(out IntPtr result);
-    [DllImport(Library)] internal static extern int gran_app_open_window(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string source, int isFile, ref WindowOptions options);
-    [DllImport(Library)] internal static extern int gran_app_close_window(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string? result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_app_run_task(IntPtr app, ref Background task, out ulong result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_app_cancel_task(IntPtr app, ulong task, out int found);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_task_cancelled(IntPtr task);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_task_progress(IntPtr task, double fraction, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_task_fail(IntPtr task, [MarshalAs(UnmanagedType.LPUTF8Str)] string message);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_resources_mount(byte[] data, nuint size);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_settings_load(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string? appName, [MarshalAs(UnmanagedType.LPUTF8Str)] string? path);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_settings_get(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, out int type, out IntPtr result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_settings_set(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int type, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_settings_list_item(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, nuint index, out IntPtr result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_settings_set_list(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, IntPtr items, nuint count);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_settings_remove(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_settings_save(IntPtr app);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_log_open([MarshalAs(UnmanagedType.LPUTF8Str)] string appName, [MarshalAs(UnmanagedType.LPUTF8Str)] string? directory, int crashReports);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_log_write(int level, [MarshalAs(UnmanagedType.LPUTF8Str)] string category, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_log_path(out IntPtr result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_log_previous_crash(out IntPtr result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_app_open_window(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string source, int isFile, ref WindowOptions options);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_app_close_window(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string? result);
 }
 
 // Уровень записи журнала (GRAN_LOG_*) / The log record level (GRAN_LOG_*)
@@ -120,7 +120,7 @@ public sealed partial class Application
         catch { windowHandlers.TryRemove(key, out _); throw; }
     }
     // Файл настроек: path или по имени программы / The settings file: path or by the program name
-    public void LoadSettings(string? appName=null, string? path=null) => Check(NativeProgram.gran_settings_load(Handle, appName, path));
+    public void LoadSettings(string? appName=null, string? path=null) => Check(NativeProgram.gran_settings_load(Handle, Arguments.OptionalText(appName), Arguments.OptionalText(path)));
     // Значение настройки: string, double, bool, string[] или null — нет / A setting value: string, double, bool, string[] or null — none
     public object? GetSetting(string name) {
         Check(NativeProgram.gran_settings_get(Handle, Arguments.Text(name), out var type, out var value));

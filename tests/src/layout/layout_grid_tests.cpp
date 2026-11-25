@@ -1,9 +1,28 @@
 #include "framework/test_framework.hpp"
+#include "gran/layout/internal/layout_internal.hpp"
 #include "suites/test_suites.hpp"
 #include "support/layout_helpers.hpp"
 
+#include <limits>
+
 namespace
 {
+    void testIntrinsicGridFractions()
+    {
+        const auto doc = support::layoutMarkup(
+            R"(<Window><Stack><Grid id="spanning" columns="1fr, 2fr"/><Grid id="minimum" columns="minmax(200, 1fr), 1fr"/></Stack></Window>)",
+            500, 400);
+        const auto unbounded = std::numeric_limits<float>::infinity();
+        const auto& spanning = support::nodeById(doc, "spanning").computed.columns;
+        const auto& minimum = support::nodeById(doc, "minimum").computed.columns;
+        const auto span = gran::layout::internal::sizeTracks(spanning, {{0, 2, 200}}, unbounded, 20);
+        const auto min = gran::layout::internal::sizeTracks(minimum, {}, unbounded, 0);
+        TEST_ASSERT_NEAR(span[0], 60, 0.001f);
+        TEST_ASSERT_NEAR(span[1], 120, 0.001f);
+        TEST_ASSERT_NEAR(min[0], 200, 0.001f);
+        TEST_ASSERT_NEAR(min[1], 200, 0.001f);
+    }
+
     void testGridLayout()
     {
         const char* markup1 = R"(<Window><Grid rows="40, 1fr" columns="100, 1fr, 2fr"><Box id="a"/><Box id="b" gridRow="1" gridColumn="2"/><Box id="c" gridColumn="1" gridColumnSpan="2"/></Grid></Window>)";
@@ -58,5 +77,6 @@ namespace suites
     void registerLayoutGridTests(test::TestRunner& runner)
     {
         runner.add("layout: grid", testGridLayout);
+        runner.add("layout: intrinsic grid fractions", testIntrinsicGridFractions);
     }
 }

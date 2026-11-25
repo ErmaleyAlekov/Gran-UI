@@ -201,7 +201,7 @@ else
         PLATFORM_DIRS := platform/x11
         # libvulkan не компонуется: загрузчик открывается через dlopen (vulkan_loader.cpp)
         # libvulkan is not linked: the loader is opened through dlopen (vulkan_loader.cpp)
-        SYSTEM_LIBS   := -ldl -pthread -lX11
+        SYSTEM_LIBS   := -ldl -pthread -lX11 -lX11-xcb -lxcb
     endif
 endif
 
@@ -330,6 +330,8 @@ TEST_BIN      := $(BIN_DIR)/gran_tests$(EXE)
 # The portable part of the chat example (JSON, chunked, NDJSON, HTTP) is checked by the unit tests
 CHAT_DIR      := $(EXAMPLE_DIR)/chat
 CHAT_COMMON   := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(CHAT_DIR)/common,*.cpp))
+CHAT_OPTIONS  := $(OBJ_DIR)/$(CHAT_DIR)/platform/chat_options.o
+CHAT_VIEW     := $(OBJ_DIR)/$(CHAT_DIR)/ui/chat_view.o
 
 # Примеры: каждый подкаталог examples/<имя>/ — отдельная программа bin/gran_<имя>
 # Examples: each examples/<name>/ subdirectory is a separate program bin/gran_<name>
@@ -357,7 +359,7 @@ example_libs  = $(if $(wildcard $(EXAMPLE_DIR)/$(1)/system_libs.txt),$(addprefix
 example_gui   = $(if $(and $(filter windows,$(PLATFORM_OS)),$(wildcard $(EXAMPLE_DIR)/$(1)/windows_gui.txt)),-mwindows)
 
 LIB_BIN       := $(BIN_DIR)/$(NAME)
-ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(RCC_OBJ) $(CHAT_COMMON) \
+ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(RCC_OBJ) $(CHAT_COMMON) $(CHAT_OPTIONS) $(CHAT_VIEW) \
                  $(foreach e,$(EXAMPLES),$(call example_resources,$(e))) \
                  $(foreach e,$(EXAMPLES),$(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(e),*.cpp)))
 ALL_DEP       := $(call dep_of,$(ALL_OBJ))
@@ -469,8 +471,8 @@ $(LIB_BIN): $(LIB_OBJ) | $(BIN_DIR)
 	@$(call RMFILE,$@)
 	$(AR) $(ARFLAGS) $@ $(LIB_OBJ)
 
-$(TEST_BIN): $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) | $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TEST_OBJ) $(CHAT_COMMON) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+$(TEST_BIN): $(TEST_OBJ) $(CHAT_COMMON) $(CHAT_OPTIONS) $(CHAT_VIEW) $(LIB_BIN) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TEST_OBJ) $(CHAT_COMMON) $(CHAT_OPTIONS) $(CHAT_VIEW) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 
 # Шаблон компоновки примера: его объекты + библиотека + «Берёста» + системные библиотеки
 # The example link template: its objects + the library + Beresta + the system libraries

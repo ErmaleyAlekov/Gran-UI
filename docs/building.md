@@ -143,7 +143,7 @@ make shaders
 ## Подключение к своей программе
 
 На Linux CMake передаёт системные Vulkan/X11 автоматически через `target_link_libraries(app PRIVATE gran)`.
-Для ручной компоновки нужны `-lX11 -ldl -pthread` вместо библиотек Windows (с `libvulkan` движок не компонуется).
+Для ручной компоновки нужны `-lX11 -lX11-xcb -lxcb -ldl -pthread` вместо библиотек Windows (с `libvulkan` движок не компонуется).
 
 Публичные заголовки — `include/gran/`, главный для приложения — `gran/app/application.hpp`; номер версии —
 `gran/gran_version.h` (`GRAN_VERSION_AT_LEAST`), что гарантируется между версиями — [versioning.md](versioning.md). Программа линкуется
@@ -279,7 +279,7 @@ Mesa lavapipe вне экрана): Astra Linux SE 1.7 (GCC 8.3, glibc 2.28) и 
 
 | ОС | Пакеты |
 |---|---|
-| Astra Linux, Debian | `g++ make libx11-dev libvulkan-dev` (+ `mesa-vulkan-drivers` для CPU) |
+| Astra Linux, Debian | `g++ make libx11-dev libx11-xcb-dev libxcb1-dev libvulkan-dev` (+ `mesa-vulkan-drivers` для CPU) |
 | Альт | `gcc-c++ make libX11-devel libvulkan-devel` |
 | РЕД ОС | `gcc-c++ make libX11-devel vulkan-loader-devel` (+ `mesa-vulkan-drivers`) |
 

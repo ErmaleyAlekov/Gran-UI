@@ -16,6 +16,13 @@ namespace gran::text
         return offset <= _size && length <= _size - offset;
     }
 
+    FontReader FontReader::from(std::size_t offset) const noexcept
+    {
+        if (offset >= _size)
+            return FontReader(nullptr, 0);
+        return FontReader(_data + offset, _size - offset);
+    }
+
     // Байт или 0 за границей / A byte or 0 beyond the bounds
     std::uint8_t FontReader::u8(std::size_t offset) const noexcept
     {

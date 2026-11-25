@@ -4,13 +4,13 @@ namespace gran::data
 {
     bool SortFilterProxy::canFetchMore() const
     {
-        return _source.canFetchMore();
+        return _source->canFetchMore();
     }
 
     // Новые записи придут от источника обычными inserted / The new records come from the source as ordinary inserted
     void SortFilterProxy::fetchMore()
     {
-        _source.fetchMore();
+        _source->fetchMore();
     }
 
     /*

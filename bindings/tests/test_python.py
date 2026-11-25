@@ -2,6 +2,7 @@ import unittest
 import sys
 import os
 import gc
+import weakref
 import ctypes as C
 from pathlib import Path
 
@@ -81,6 +82,46 @@ class TestApplication(unittest.TestCase):
         self.assertEqual(seen, [("named", "box"), ("ping", "inner", "root", 3, "data")])
         self.app.unlisten("root", number)
         self.assertTrue(self.app.dispatch("inner", "ping"))
+
+    def test_unlisten_releases_listener(self):
+        errors = []
+
+        def listener(event):
+            pass
+
+        def on_release(reference):
+            try:
+                self.app.read("text", "text")
+            except RuntimeError as error:
+                errors.append(str(error))
+
+        number = self.app.listen("root", "ping", listener)
+        weak_listener = weakref.ref(listener, on_release)
+        del listener
+        gc.collect()
+        self.assertIsNotNone(weak_listener())
+
+        self.app.unlisten("root", number)
+        gc.collect()
+        self.assertIsNone(weak_listener())
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(errors[0])
+        self.assertEqual(self.app.read("text", "text"), "Привет 🌲")
+
+    def test_unlisten_preserves_active_delivery(self):
+        seen = []
+
+        def first(event):
+            seen.append("first")
+            if len(seen) == 1:
+                self.app.unlisten("root", second)
+
+        self.app.listen("root", "ping", first)
+        second = self.app.listen("root", "ping", lambda event: seen.append("second"))
+        self.assertTrue(self.app.dispatch("root", "ping"))
+        self.assertEqual(seen, ["first", "second"])
+        self.assertTrue(self.app.dispatch("root", "ping"))
+        self.assertEqual(seen, ["first", "second", "first"])
 
     def test_cell_edit_event(self):
         # Правка ячейки живыми клавишами: обработчик onCellEdit видит запись и значения и заменяет значение

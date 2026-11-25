@@ -192,12 +192,80 @@ namespace
         TEST_ASSERT(gran_app_load(app, "<Window><Button text=\"x\" onClick=\"gran:noSuchCommand\"/></Window>", 0) != GRAN_OK);
         gran_app_destroy(app);
     }
+
+    void testModelSourceFormat()
+    {
+        gran_app* handle = nullptr;
+        TEST_ASSERT(gran_app_create(nullptr, &handle) == GRAN_OK);
+        const std::unique_ptr<gran_app, decltype(&gran_app_destroy)> app(handle, gran_app_destroy);
+        TEST_ASSERT(gran_app_load(app.get(), R"(<Window><Resources><Data name="rows"/></Resources><Box/></Window>)", 0) == GRAN_OK);
+        gran_source source{};
+        source.size = sizeof(source);
+        source.format = -1;
+        source.path = "samples/data/notes.json";
+        source.select = "notes";
+        source.fetch = 1;
+        size_t count = 0;
+
+        TEST_ASSERT(gran_model_load(app.get(), "rows", &source) == GRAN_INVALID_ARGUMENT);
+        TEST_ASSERT(gran_model_count(app.get(), "rows", &count) == GRAN_OK && count == 0);
+        source.format = GRAN_SOURCE_AUTO;
+        TEST_ASSERT(gran_model_load(app.get(), "rows", &source) == GRAN_OK);
+        TEST_ASSERT(gran_model_count(app.get(), "rows", &count) == GRAN_OK && count == 1);
+    }
+
+    void testUndoStepPrefix()
+    {
+        gran_app* handle = nullptr;
+        TEST_ASSERT(gran_app_create(nullptr, &handle) == GRAN_OK);
+        const std::unique_ptr<gran_app, decltype(&gran_app_destroy)> app(handle, gran_app_destroy);
+        struct ExtendedStep { gran_undo_step prefix; std::uint64_t extra; };
+        int value = 1;
+        const auto undo = [](void* data) { --*static_cast<int*>(data); };
+        const auto redo = [](void* data) { ++*static_cast<int*>(data); };
+        ExtendedStep step{{sizeof(ExtendedStep), nullptr, redo, nullptr, &value}, 0};
+        TEST_ASSERT(gran_app_undo_push(app.get(), nullptr, &step.prefix) == GRAN_INVALID_ARGUMENT);
+        step.prefix.undo = undo;
+        step.prefix.redo = nullptr;
+        TEST_ASSERT(gran_app_undo_push(app.get(), nullptr, &step.prefix) == GRAN_INVALID_ARGUMENT);
+        uint32_t flags = 0;
+        TEST_ASSERT(gran_app_undo_state(app.get(), nullptr, &flags) == GRAN_OK && flags == GRAN_UNDO_CLEAN);
+        step.prefix.redo = redo;
+        TEST_ASSERT(gran_app_undo_push(app.get(), nullptr, &step.prefix) == GRAN_OK);
+        TEST_ASSERT(gran_app_command(app.get(), "undo", nullptr, nullptr) == GRAN_OK && value == 0);
+        TEST_ASSERT(gran_app_command(app.get(), "redo", nullptr, nullptr) == GRAN_OK && value == 1);
+    }
+
+    void testSettingsListValidatesItems()
+    {
+        gran_app* handle = nullptr;
+        TEST_ASSERT(gran_app_create(nullptr, &handle) == GRAN_OK);
+        const std::unique_ptr<gran_app, decltype(&gran_app_destroy)> app(handle, gran_app_destroy);
+        const char* original[] = {"kept"};
+        const char* invalid[] = {"replacement", nullptr};
+        const char* emptyString[] = {""};
+        TEST_ASSERT(gran_settings_set_list(app.get(), "key", original, 1) == GRAN_OK);
+        TEST_ASSERT(gran_settings_set_list(app.get(), "key", invalid, 2) == GRAN_INVALID_ARGUMENT);
+        char* result = nullptr;
+        TEST_ASSERT(gran_settings_list_item(app.get(), "key", 0, &result) == GRAN_OK);
+        const std::unique_ptr<char, decltype(&gran_string_free)> kept(result, gran_string_free);
+        TEST_ASSERT(kept && std::strcmp(kept.get(), "kept") == 0);
+        TEST_ASSERT(gran_settings_set_list(app.get(), "key", emptyString, 1) == GRAN_OK);
+        TEST_ASSERT(gran_settings_list_item(app.get(), "key", 0, &result) == GRAN_OK);
+        const std::unique_ptr<char, decltype(&gran_string_free)> empty(result, gran_string_free);
+        TEST_ASSERT(empty && empty.get()[0] == '\0');
+        TEST_ASSERT(gran_settings_set_list(app.get(), "key", nullptr, 0) == GRAN_OK);
+        TEST_ASSERT(gran_settings_list_item(app.get(), "key", 0, &result) == GRAN_OK && result == nullptr);
+    }
 }
 
 namespace suites
 {
     void registerCapiTests(test::TestRunner& runner)
     {
+        runner.add("capi: validates model source format", testModelSourceFormat);
+        runner.add("capi: validates undo step prefix", testUndoStepPrefix);
+        runner.add("capi: validates settings list items", testSettingsListValidatesItems);
         runner.add("null arguments", testNullArguments);
         runner.add("UTF8 text roundtrip", testUTF8TextRoundtrip);
         runner.add("model operations", testModelOperations);

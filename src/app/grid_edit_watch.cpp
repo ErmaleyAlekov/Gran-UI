@@ -55,10 +55,9 @@ namespace gran::app
                 edit.hidden.erase(edit.hidden.begin() + static_cast<std::ptrdiff_t>(index - 1));
         }
         if (insideNode(edit.grid, &node))
-        {
             edit.grid = nullptr;
+        if (insideNode(edit.rows, &node))
             edit.rows = nullptr;
-        }
     }
 
     /*

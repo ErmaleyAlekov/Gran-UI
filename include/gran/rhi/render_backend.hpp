@@ -134,6 +134,10 @@ namespace gran::rhi
         // Wait until the last frame is in the window (Vulkan with VK_KHR_present_wait; for answering the X11 window
         // manager during a resize, T-24); waits for nothing by default
         virtual void waitPresented();
+        enum class Presentation { PENDING, SHOWN, RETRY_FRAME, DEVICE_LOST };
+        virtual bool canConfirmPresentation() const { return false; }
+        virtual std::uint64_t lastPresentation() const { return 0; }
+        virtual Presentation pollPresentation(std::uint64_t) { return Presentation::RETRY_FRAME; }
     };
 
     /*

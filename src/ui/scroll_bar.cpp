@@ -57,7 +57,7 @@ namespace gran::ui
         }
         if (!(contentLength > viewLength + 0.5f) || !(viewLength > 0.0f))
             return false;
-        float length = std::max(THUMB_MIN_LENGTH, viewLength * viewLength / contentLength);
+        float length = std::min(viewLength, std::max(THUMB_MIN_LENGTH, viewLength * (viewLength / contentLength)));
         bar.range = contentLength - viewLength;
         bar.travel = std::max(0.0f, viewLength - length);
         bar.view = viewLength;

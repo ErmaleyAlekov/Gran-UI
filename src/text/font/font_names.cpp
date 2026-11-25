@@ -16,11 +16,14 @@ namespace gran::text
             for (std::size_t index = 0; wide && index + 1 < length; index += 2)
             {
                 char32_t unit = reader.u16(offset + index);
-                char32_t low = reader.u16(offset + index + 2);
-                if (unit >= 0xD800 && unit <= 0xDBFF && low >= 0xDC00 && low <= 0xDFFF && index + 3 < length)
+                if (unit >= 0xD800 && unit <= 0xDBFF && index + 3 < length)
                 {
-                    unit = 0x10000 + ((unit - 0xD800) << 10) + (low - 0xDC00);
-                    index += 2;
+                    const auto low = reader.u16(offset + index + 2);
+                    if (low >= 0xDC00 && low <= 0xDFFF)
+                    {
+                        unit = 0x10000 + ((unit - 0xD800) << 10) + (low - 0xDC00);
+                        index += 2;
+                    }
                 }
                 appendUtf8(text, unit);
             }
@@ -36,14 +39,15 @@ namespace gran::text
         */
         std::string findName(const FontReader& reader, const TableSpan& table, std::uint16_t nameId)
         {
-            std::uint16_t count = reader.u16(table.offset + 2);
-            std::size_t strings = table.offset + reader.u16(table.offset + 4);
+            const std::size_t base = table.offset;
+            std::uint16_t count = reader.u16(base + 2);
+            const auto storage = reader.u16(base + 4);
             int bestScore = 0;
             std::string best;
 
             for (std::uint16_t index = 0; index < count && 6 + (index + 1u) * 12u <= table.length; ++index)
             {
-                std::size_t record = table.offset + 6 + static_cast<std::size_t>(index) * 12;
+                std::size_t record = base + 6 + static_cast<std::size_t>(index) * 12;
                 std::uint16_t platform = reader.u16(record);
                 int score = 0;
                 if (reader.u16(record + 6) != nameId || (platform != 1 && platform != 3))
@@ -51,8 +55,12 @@ namespace gran::text
                 score = 1 + (platform == 3) + (platform == 3 && reader.u16(record + 4) == 0x0409);
                 if (score > bestScore)
                 {
+                    const auto offset = reader.u16(record + 10);
+                    const auto length = reader.u16(record + 8);
+                    if (storage > table.length || offset > table.length - storage || length > table.length - storage - offset)
+                        continue;
                     bestScore = score;
-                    best = decodeName(reader, strings + reader.u16(record + 10), reader.u16(record + 8), platform == 3);
+                    best = decodeName(reader, base + storage + offset, length, platform == 3);
                 }
             }
             return best;

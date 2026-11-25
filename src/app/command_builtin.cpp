@@ -72,6 +72,9 @@ namespace gran::app
         // A menu anchor without an argument is the node itself (it needs no id); the pointer capture without an id is the node itself too
         void runBuiltin(Application::State& state, const BuiltinCall& call, ui::Node& node)
         {
+            if ((!call.target.empty() || !call.argument.empty())
+                && (call.command == "minimize" || call.command == "maximize" || call.command == "restore"))
+                throw GranException(ErrorCode::INVALID_ARGUMENT, "gran:" + call.command);
             if (call.target.empty() && windowBuiltin(windowOf(state, node), call.command))
                 return;
             // gran:close:результат — закрыть окно узла с результатом для onClosed (без onClose, как closeWindow)

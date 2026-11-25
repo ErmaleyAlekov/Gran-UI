@@ -1,6 +1,7 @@
 #include "gran/text/internal/font_parts.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include <limits>
 
 namespace gran::text
 {
@@ -36,7 +37,8 @@ namespace gran::text
         {
             if (reader.u32(0) != tag('t', 't', 'c', 'f'))
                 return 0;
-            if (index >= reader.u32(8) || !reader.contains(12 + static_cast<std::size_t>(index) * 4, 4))
+            if (index >= reader.u32(8) || index > (std::numeric_limits<std::size_t>::max() - 16) / 4 ||
+                !reader.contains(12 + static_cast<std::size_t>(index) * 4, 4))
                 throwBadFont(source, "TTC index");
             return reader.u32(12 + static_cast<std::size_t>(index) * 4);
         }
@@ -69,7 +71,9 @@ namespace gran::text
     void FaceBuilder::readDirectory(FontFace& face, std::uint32_t index, const std::string& source)
     {
         FontReader reader(face._file->data(), face._file->size());
-        std::uint32_t base = directoryStart(reader, index, source);
+        const std::size_t base = directoryStart(reader, index, source);
+        if (!reader.contains(base, 12))
+            throwBadFont(source, "table directory");
         std::uint32_t version = reader.u32(base);
         std::uint16_t count = reader.u16(base + 4);
 

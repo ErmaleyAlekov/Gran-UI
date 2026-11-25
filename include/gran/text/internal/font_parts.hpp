@@ -24,6 +24,7 @@ namespace gran::text
         // ---- font_reader.cpp ----
         FontReader(const std::uint8_t* data, std::size_t size) noexcept;
         bool contains(std::size_t offset, std::size_t length) const noexcept;
+        FontReader from(std::size_t offset) const noexcept;
         std::uint8_t u8(std::size_t offset) const noexcept;
         std::uint16_t u16(std::size_t offset) const noexcept;
 
@@ -83,19 +84,19 @@ namespace gran::text
     // ---- font_cmap.cpp ----
 
     // Поиск в подтаблице формата 4 / A lookup in a format 4 subtable
-    std::uint16_t cmapFormat4(const FontReader& reader, std::uint32_t subtable, char32_t symbol) noexcept;
+    std::uint16_t cmapFormat4(const FontReader& reader, std::size_t subtable, char32_t symbol) noexcept;
 
     // Поиск в подтаблице формата 12 / A lookup in a format 12 subtable
-    std::uint16_t cmapFormat12(const FontReader& reader, std::uint32_t subtable, char32_t symbol) noexcept;
+    std::uint16_t cmapFormat12(const FontReader& reader, std::size_t subtable, char32_t symbol) noexcept;
 
     // ---- font_glyf.cpp / font_composite.cpp ----
 
     // Простой глиф: точки, флаги, координаты / A simple glyph: points, flags, coordinates
-    bool readSimpleGlyph(const FontReader& reader, std::uint32_t offset, std::uint32_t end, Outline& outline);
+    bool readSimpleGlyph(const FontReader& reader, std::size_t offset, std::size_t end, Outline& outline);
 
     // Расположение глифа в glyf (смещение и конец); false — глиф пуст / The glyph location in glyf (the offset and the end); false — the glyph is empty
     bool glyphLocation(const FontReader& reader, const FaceTables& tables, bool longLoca, std::uint16_t glyph,
-        std::uint32_t& offset, std::uint32_t& end) noexcept;
+        std::size_t& offset, std::size_t& end) noexcept;
 
     // ---- font_component.cpp ----
 
@@ -126,15 +127,17 @@ namespace gran::text
     // Кернинг из таблицы kern (формат 0) / The kerning from the kern table (format 0)
     float kernTableValue(const FontReader& reader, const TableSpan& kern, std::uint16_t left, std::uint16_t right) noexcept;
 
-    // Сдвиг пары из подтаблицы PairPos; false — пара не описана / The pair adjustment from a PairPos subtable; false — the pair is not described
-    bool pairAdjustment(const FontReader& reader, std::size_t subtable, std::uint16_t left, std::uint16_t right,
+    enum class PairResult { MATCH, ABSENT, DAMAGED };
+
+    // Результат чтения PairPos / Result of reading a PairPos subtable
+    PairResult pairAdjustment(const FontReader& reader, std::size_t subtable, std::uint16_t left, std::uint16_t right,
         float& value) noexcept;
 
     // Индекс глифа в таблице покрытия; −1 — не покрыт / The glyph index in a coverage table; −1 — not covered
     int coverageIndex(const FontReader& reader, std::size_t coverage, std::uint16_t glyph) noexcept;
 
     // Класс глифа в ClassDef (0 — по умолчанию) / The glyph class in a ClassDef (0 — the default)
-    std::uint16_t glyphClass(const FontReader& reader, std::size_t classDef, std::uint16_t glyph) noexcept;
+    int glyphClass(const FontReader& reader, std::size_t classDef, std::uint16_t glyph) noexcept;
 }
 
 #endif

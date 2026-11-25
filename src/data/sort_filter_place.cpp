@@ -11,7 +11,7 @@ namespace gran::data
 
     bool SortFilterProxy::accepts(std::size_t sourceIndex) const
     {
-        return _filter == nullptr || _filter->accepts(_source, sourceIndex);
+        return _filter == nullptr || _filter->accepts(*_source, sourceIndex);
     }
 
     // _map всегда упорядочен, поэтому место ищется двоичным поиском / _map is always ordered, so the place is found by a binary search
@@ -27,7 +27,7 @@ namespace gran::data
     {
         if (!_keys.empty())
         {
-            int order = compareRecords(_source.at(left), _source.at(right), _keys);
+            int order = compareRecords(_source->at(left), _source->at(right), _keys);
             if (order != 0)
                 return order < 0;
         }

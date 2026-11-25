@@ -6,6 +6,7 @@
 #include "gran/input/input_router.hpp"
 #include "gran/platform/host.hpp"
 #include "gran/markup/markup_loader.hpp"
+#include "gran/ui/node_state.hpp"
 #include "support/layout_helpers.hpp"
 
 #include <string>
@@ -211,13 +212,107 @@ namespace
         Fixture f;
 
         f.type(f.router, "ab");
-        f.node("field").content.text = "zzz";
-        f.node("field").content.caret = 3;
-        f.node("field").content.anchor = 3;
+        f.node("field").content.text = "12";
+        f.node("field").content.caret = 2;
+        f.node("field").content.anchor = 2;
         f.press(gran::platform::Key::Z, CTRL);
-        TEST_ASSERT(f.node("field").content.text == "zzz");
-        TEST_ASSERT(f.node("field").content.caret == 3);
-        TEST_ASSERT(f.node("field").content.anchor == 3);
+        TEST_ASSERT(f.node("field").content.text == "12");
+        TEST_ASSERT(f.node("field").content.caret == 2);
+        TEST_ASSERT(f.node("field").content.anchor == 2);
+    }
+
+    void testTextUndoAfterRestore()
+    {
+        Fixture original;
+        original.type(original.router, "ab");
+        const auto saved = gran::ui::captureState(*original.doc.root, &original.node("field"));
+        Fixture restored;
+        auto* focus = gran::ui::restoreState(*restored.doc.root, saved, false);
+        restored.router.focus(focus);
+        TEST_ASSERT(restored.node("field").content.text == "ab");
+        TEST_ASSERT(restored.router.undoField(false));
+        TEST_ASSERT(restored.node("field").content.text.empty());
+        TEST_ASSERT(original.node("field").content.text == "ab");
+        TEST_ASSERT(restored.router.undoField(true));
+        TEST_ASSERT(restored.node("field").content.text == "ab");
+    }
+
+    gran::ui::Node& stateChild(gran::ui::Node& parent, gran::ui::ElementKind kind, const char* id)
+    {
+        auto child = std::make_unique<gran::ui::Node>();
+        child->kind = kind;
+        child->id = id;
+        return gran::ui::appendChild(parent, std::move(child));
+    }
+
+    void testRestoreNumericBounds()
+    {
+        gran::ui::Node oldRoot;
+        gran::ui::Node newRoot;
+        using gran::ui::ElementKind;
+        stateChild(oldRoot, ElementKind::SLIDER, "slider").content.value = 80;
+        stateChild(oldRoot, ElementKind::PROGRESS_BAR, "progress").content.value = 20;
+        auto& slider = stateChild(newRoot, ElementKind::SLIDER, "slider");
+        auto& progress = stateChild(newRoot, ElementKind::PROGRESS_BAR, "progress");
+        slider.content.minimum = 10;
+        slider.content.maximum = 50;
+        progress.content.minimum = 40;
+        progress.content.maximum = 90;
+        gran::ui::restoreState(newRoot, gran::ui::captureState(oldRoot, nullptr), false);
+        TEST_ASSERT(slider.content.value == 50);
+        TEST_ASSERT(progress.content.value == 40);
+    }
+
+    void testRestoreRepeatedIds()
+    {
+        using gran::ui::ElementKind;
+        gran::ui::Node oldRoot;
+        auto& left = stateChild(oldRoot, ElementKind::BOX, "left");
+        auto& right = stateChild(oldRoot, ElementKind::BOX, "right");
+        auto& oldFocused = stateChild(left, ElementKind::INPUT, "item");
+        oldFocused.content.text = "left value";
+        stateChild(right, ElementKind::INPUT, "item").content.text = "right value";
+        stateChild(left, ElementKind::INPUT, "unique").content.text = "moved value";
+        const auto saved = gran::ui::captureState(oldRoot, &oldFocused);
+
+        gran::ui::Node newRoot;
+        auto& newRight = stateChild(newRoot, ElementKind::BOX, "right");
+        auto& newParent = stateChild(newRoot, ElementKind::BOX, "new-parent");
+        auto& newLeft = stateChild(newParent, ElementKind::BOX, "left");
+        auto& restoredLeft = stateChild(newLeft, ElementKind::INPUT, "item");
+        auto& restoredRight = stateChild(newRight, ElementKind::INPUT, "item");
+        auto& moved = stateChild(newRight, ElementKind::INPUT, "unique");
+        TEST_ASSERT(gran::ui::restoreState(newRoot, saved, false) == &restoredLeft);
+        TEST_ASSERT(restoredLeft.content.text == "left value");
+        TEST_ASSERT(restoredRight.content.text == "right value");
+        TEST_ASSERT(moved.content.text == "moved value");
+    }
+
+    void testRestoreIdMultiplicityChanges()
+    {
+        using gran::ui::ElementKind;
+        gran::ui::Node oldRoot;
+        auto& left = stateChild(oldRoot, ElementKind::BOX, "left");
+        auto& original = stateChild(left, ElementKind::INPUT, "item");
+        original.content.text = "original left";
+        const auto unique = gran::ui::captureState(oldRoot, &original);
+
+        gran::ui::Node repeatedRoot;
+        auto& repeatedRight = stateChild(repeatedRoot, ElementKind::BOX, "right");
+        auto& rightItem = stateChild(repeatedRight, ElementKind::INPUT, "item");
+        rightItem.content.text = "new right";
+        auto& repeatedLeft = stateChild(repeatedRoot, ElementKind::BOX, "left");
+        auto& leftItem = stateChild(repeatedLeft, ElementKind::INPUT, "item");
+        TEST_ASSERT(gran::ui::restoreState(repeatedRoot, unique, false) == &leftItem);
+        TEST_ASSERT(leftItem.content.text == "original left");
+        TEST_ASSERT(rightItem.content.text == "new right");
+
+        const auto repeated = gran::ui::captureState(repeatedRoot, &rightItem);
+        gran::ui::Node newRoot;
+        auto& newRight = stateChild(newRoot, ElementKind::BOX, "right");
+        auto& surviving = stateChild(newRight, ElementKind::INPUT, "item");
+        TEST_ASSERT(gran::ui::restoreState(newRoot, repeated, false) == &surviving);
+        TEST_ASSERT(surviving.content.text == "new right");
     }
 
     void testTextAreaUndo()
@@ -302,6 +397,10 @@ namespace suites
         runner.add("text undo: undo with select all", testTextUndoWithSelectAll);
         runner.add("text undo: undo with onChange", testTextUndoWithOnChange);
         runner.add("text undo: undo with programmatic change", testTextUndoWithProgrammaticChange);
+        runner.add("text undo: targets the restored field", testTextUndoAfterRestore);
+        runner.add("node state: restores numbers within the new bounds", testRestoreNumericBounds);
+        runner.add("node state: separates repeated IDs and preserves a moved unique ID", testRestoreRepeatedIds);
+        runner.add("node state: matches the paths of IDs that become unique or repeated", testRestoreIdMultiplicityChanges);
         runner.add("text undo: undo in TextArea", testTextAreaUndo);
         runner.add("text undo: undo in readOnly field", testReadOnlyUndo);
         runner.add("text undo: undo=\"false\"", testUndoDisabled);

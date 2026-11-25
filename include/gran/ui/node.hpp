@@ -168,18 +168,17 @@ namespace gran::ui
     };
 
     /*
-    ** История правок поля ввода (Input, TextArea): свой стек отмены у каждого поля. textSize — длина текста
-    ** после последней записанной правки: другая длина значит, что текст сменили в обход правки (код
-    ** приложения присвоил content.text), и прежние шаги к нему уже не применимы — история сбрасывается.
+    ** История поля хранит текст после последней правки. Внешняя замена текста сбрасывает историю.
+    ** Поле привязывается только на время отмены или повтора, чтобы история переживала пересоздание узла.
     **
-    ** The edit history of an input (Input, TextArea): each field has its own undo stack. textSize is the text length
-    ** after the last recorded edit: another length means the text was changed bypassing the editing (the application
-    ** code assigned content.text), and the former steps no longer apply to it — the history is reset.
+    ** The field history stores the text after the last edit. External replacements reset the history.
+    ** The field is only bound for the duration of undo or redo so the history survives node replacement.
     */
     struct TextHistory
     {
         undo::UndoStack steps;
-        std::size_t textSize = 0;
+        std::string expectedText;
+        Node* activeField = nullptr;
     };
 
     /*
@@ -263,6 +262,7 @@ namespace gran::ui
         // Button, MenuItem: the <Command> id (the action, enabled, the label) and its shortcut label for menus and accessibility
         std::string command;
         std::string shortcut;
+        std::string inheritedCaption;
         // MenuItem в меню или строке меню: буква доступа из «_Файл» (свёрнутый регистр, 0 — нет) и её смещение
         // в байтах подписи text (подчёркивание рисуется под ней, когда видны подсказки клавиатуры)
         // MenuItem in a menu or a menu bar: the access letter from "_File" (folded case, 0 — none) and its byte
@@ -389,6 +389,7 @@ namespace gran::ui
         ** The pointer is valid while the node is in a window tree: removing and rebuilding the node drop it together with the element.
         */
         const beresta::Element* domElement = nullptr;
+        bool appendedByApplication = false;
         /*
         ** Развёртки компонентов, корнем которых стал узел (<c:Card> → тело Card): копии тел с подставленными
         ** параметрами, на их элементы ссылаются узлы тела. Объявлены до children: дети уничтожаются раньше.
@@ -505,6 +506,8 @@ namespace gran::ui
     // ---- tabs_edit.cpp ----
 
     // Номер заголовка в полосе (= номер страницы среди детей Tab) / The header number in the strip (= the page number among the Tab children)
+    // SIZE_MAX — заголовок отсутствует в списке детей родителя.
+    // SIZE_MAX means the header is absent from its parent's child list.
     std::size_t headerNumber(const Node& header) noexcept;
 
     // Страница заголовка (nullptr — заголовок не из полосы Tabs) / The header page (nullptr — the header is not from a Tabs strip)

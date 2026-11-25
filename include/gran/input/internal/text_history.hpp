@@ -36,12 +36,12 @@ namespace gran::input::internal
 
     /*
     ** Шаг правки поля хранит разницу, а не весь текст: позиция, удалённое, вставленное, каретка и якорь
-    ** до правки (их возвращает отмена). Повтор ставит каретку за вставленным. Шаг живёт в истории
-    ** своего поля (ui::NodeContent::history), поэтому ссылка на узел не висит.
+    ** до правки (их возвращает отмена). Повтор ставит каретку за вставленным. Шаг находится в истории
+    ** и использует текущее поле только на время отмены или повтора.
     **
     ** A field edit step keeps the difference, not the whole text: the position, the removed, the inserted, the caret and the anchor
     ** before the edit (undo restores them). Redo puts the caret after the inserted part. The step lives in the history
-    ** of its field (ui::NodeContent::history), so the node reference does not dangle.
+    ** and uses the current field only for the duration of undo or redo.
     */
     class TextStep final : public undo::UndoStep
     {
@@ -49,7 +49,7 @@ namespace gran::input::internal
         // ---- text_step.cpp ----
 
         // Снимок до правки: removed — заменяемые байты, каретка и якорь — из поля / A snapshot before the edit: removed is the replaced bytes, the caret and the anchor are from the field
-        TextStep(ui::Node& field, const TextEdit& edit, std::string removed);
+        TextStep(ui::TextHistory& history, const ui::Node& field, const TextEdit& edit, std::string removed);
         void undo() override;
         void redo() override;
         int mergeId() const noexcept override;
@@ -60,7 +60,7 @@ namespace gran::input::internal
         bool mergeWith(const undo::UndoStep& next) override;
 
     private:
-        ui::Node& _field;
+        ui::TextHistory& _history;
         std::size_t _position;
         std::string _removed;
         std::string _inserted;

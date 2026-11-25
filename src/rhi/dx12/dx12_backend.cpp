@@ -75,7 +75,7 @@ namespace gran::rhi::dx12
     // The blur chain is dropped after the GPU idles and recreated at the next backdrop.
     void Dx12Backend::resize(std::uint32_t width, std::uint32_t height)
     {
-        if (width == 0 || height == 0 || (width == _options.width && height == _options.height))
+        if (width == 0 || height == 0 || (width == _options.width && height == _options.height && _surface->target()))
             return;
         waitIdle();
         _backdrop = BackdropChain{};

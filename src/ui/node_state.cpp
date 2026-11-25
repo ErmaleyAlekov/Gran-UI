@@ -1,4 +1,5 @@
 #include "gran/ui/node_state.hpp"
+#include "node_state_walk.hpp"
 
 namespace gran::ui
 {
@@ -38,22 +39,17 @@ namespace gran::ui
         }
 
         // Обход в глубину с ключами; key — ключ самого узла / A depth-first walk with keys; key is the key of the node itself
-        void captureNode(const Node& node, const std::string& key, const Node* focused, TreeState& state)
+        void captureNode(const Node& node, const std::string& key, const std::string& path,
+            const Node* focused, TreeState& state)
         {
+            if (keepsState(node.kind) || &node == focused)
+                state.pathKeys.emplace(path, key);
             if (keepsState(node.kind))
                 state.nodes[key] = saveNode(node);
             if (&node == focused)
             {
                 state.focus = key;
                 state.hasFocus = true;
-            }
-            for (std::size_t index = 0; index < node.children.size(); ++index)
-            {
-                const Node& child = *node.children[index];
-                if (!child.id.empty())
-                    captureNode(child, "#" + child.id, focused, state);
-                else
-                    captureNode(child, key + "/" + std::to_string(index), focused, state);
             }
         }
     }
@@ -64,10 +60,9 @@ namespace gran::ui
     {
         TreeState state;
 
-        if (subtree.id.empty())
-            captureNode(subtree, std::string(), focused, state);
-        else
-            captureNode(subtree, "#" + subtree.id, focused, state);
+        internal::walkState(subtree, [&](const Node& node, const std::string& key, const std::string& path) {
+            captureNode(node, key, path, focused, state);
+        });
         return state;
     }
 }

@@ -32,7 +32,9 @@ namespace gran::platform::webview2
 {
     void WebView2Host::setBounds(const Rect& full, const Rect& visible)
     {
-        _core->setBounds(toRect(full), toRect(visible));
+        RECT outer, clip;
+        if (toRect(full, outer) && toRect(visible, clip) && fitsFrame(outer, clip))
+            _core->setBounds(outer, clip);
     }
 
     void WebView2Host::setVisible(bool visible)

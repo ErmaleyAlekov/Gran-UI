@@ -43,7 +43,7 @@ namespace gran::render::internal
                     span.x1 = layout.carets[index].x;
                     span.ended = true;
                 }
-                span.continues = offset < fill.to && offset < text.size() && text[offset] == '\n';
+            span.continues = offset < fill.to && offset < text.size() && (text[offset] == '\n' || text[offset] == '\r');
             }
             return span;
         }

@@ -26,7 +26,9 @@ namespace gran::log
         internal::LogState& state = internal::logState();
         std::string folder = options.directory;
 
-        if (options.appName.empty())
+        if (options.appName.find_first_not_of(". ") == std::string::npos
+            || options.appName.find_first_of("/\\:") != std::string::npos
+            || options.appName.find('\0') != std::string::npos)
             return false;
         if (folder.empty())
             folder = defaultDirectory(options.appName);

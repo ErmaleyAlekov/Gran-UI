@@ -51,6 +51,7 @@ namespace gran::rhi::vk
         {
             frame.submitted = false;
             frame.retired.clear();
+            frame.readback.reset();
         }
     }
 
@@ -66,6 +67,7 @@ namespace gran::rhi::vk
             frame.submitted = false;
         }
         frame.retired.clear();
+        frame.readback.reset();
         GRAN_CHECK_VK(vkResetCommandPool(_device.get(), frame.pool.get(), 0));
         GRAN_CHECK_VK(vkResetDescriptorPool(_device.get(), frame.descriptors.get(), 0));
         auto info = structure<VkCommandBufferBeginInfo>(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO);

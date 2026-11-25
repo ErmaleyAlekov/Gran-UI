@@ -177,6 +177,19 @@ typedef int32_t (*gran_event_fn)(void* user, const gran_input_event* event);
 GRAN_API gran_status gran_app_on_event(gran_app* app, const char* name, gran_event_fn callback, void* user);
 GRAN_API gran_status gran_app_listen(gran_app* app, const char* target, const char* type, int32_t capture,
     gran_event_fn callback, void* user, uint64_t* result);
+/* После успешной регистрации release(user) вызывается один раз, когда узел и все снимки доставки отпустят слушателя.
+ * Вызовы этого приложения из release возвращают GRAN_BUSY.
+ * After successful registration, release(user) runs once when the node and all dispatch snapshots drop the listener.
+ * Calls into the same application from release return GRAN_BUSY. */
+typedef struct gran_listener {
+    uint32_t size;
+    int32_t capture;
+    gran_event_fn callback;
+    void* user;
+    gran_task_fn release;
+} gran_listener;
+GRAN_API gran_status gran_app_listen_owned(gran_app* app, const char* target, const char* type,
+    const gran_listener* listener, uint64_t* result);
 GRAN_API gran_status gran_app_unlisten(gran_app* app, const char* target, uint64_t listener);
 GRAN_API gran_status gran_app_dispatch(gran_app* app, const char* target, const char* type, const char* detail,
     int32_t* allowed);
@@ -212,6 +225,8 @@ GRAN_API gran_status gran_model_clear(gran_app* app, const char* model);
  * "0" — no limit). */
 enum { GRAN_UNDO_CAN_UNDO = 1, GRAN_UNDO_CAN_REDO = 2, GRAN_UNDO_CLEAN = 4 };
 typedef struct gran_undo_step {
+    /* undo и redo обязательны; разрешены дополнительные поля после user.
+       undo and redo are required; additional fields after user are accepted. */
     uint32_t size;
     gran_task_fn undo;
     gran_task_fn redo;
@@ -479,6 +494,8 @@ enum {
 typedef void (*gran_selection_fn)(void* user, const char* selection);
 GRAN_API gran_status gran_selection_change(gran_app* app, const char* selection, int32_t command, size_t index,
     size_t last);
+/* На входе *count — ёмкость indices; на выходе — полное число отмеченных строк.
+   On input *count is the capacity of indices; on output it is the total number of selected rows. */
 GRAN_API gran_status gran_selection_read(gran_app* app, const char* selection, size_t* current, size_t* indices,
     size_t* count);
 GRAN_API gran_status gran_selection_on_change(gran_app* app, const char* selection, gran_selection_fn callback,

@@ -28,6 +28,7 @@ namespace gran::markup
         ParamType type = ParamType::STRING;
         bool required = false;
         std::optional<std::string> defaultValue;
+        const beresta::Element* source = nullptr;
         // Перечисление values (пусто — любое значение типа) / The values enumeration (empty — any value of the type)
         std::vector<std::string> values;
     };
@@ -159,6 +160,9 @@ namespace gran::markup::internal
 
     // Схема «gran-ui.xsd + схемы библиотек» / The schema "gran-ui.xsd + the library schemas"
     void compileComponentSchema(ComponentSet& set);
+
+    // Значения по умолчанию проверяются типами атрибутов экземпляра / Check defaults against instance attribute types
+    void validateDefaults(const ComponentSpec& component, const beresta::xsd::Schema& schema, const std::string& uri);
 
     // Ошибки схемы (без предупреждений) → MarkupException: позиция первой, текст — все / Schema errors (without warnings) → MarkupException: the first position, the text is all
     void checkSchema(const beresta::Document& dom, const std::shared_ptr<const beresta::xsd::Schema>& schema);

@@ -12,20 +12,34 @@ namespace gran::input
     ** The new value: rounding to the step from the minimum, clamping by the range; on a change —
     ** a repaint and onChange.
     */
-    bool setSliderValue(RouterState& state, ui::Node& slider, float value)
+    static bool assignSliderValue(RouterState& state, ui::Node& slider, double value)
     {
         ui::NodeContent& content = slider.content;
 
         if (content.step > 0.0f)
-            value = content.minimum + std::round((value - content.minimum) / content.step) * content.step;
-        value = std::min(content.maximum, std::max(content.minimum, value));
-        if (value == content.value)
+        {
+            const double step = content.step;
+            double remainder = std::fmod(std::fmod(value, step) - std::fmod(content.minimum, step), step);
+            if (remainder >= step * 0.5)
+                remainder -= step;
+            else if (remainder < -step * 0.5)
+                remainder += step;
+            value -= remainder;
+        }
+        const auto clamped = static_cast<float>(std::min(static_cast<double>(content.maximum),
+            std::max(static_cast<double>(content.minimum), value)));
+        if (clamped == content.value)
             return false;
-        content.value = value;
+        content.value = clamped;
         ui::markDirty(slider, ui::DIRTY_PAINT);
         if (!content.onChange.empty())
             state.actions->action(content.onChange, slider);
         return true;
+    }
+
+    bool setSliderValue(RouterState& state, ui::Node& slider, float value)
+    {
+        return assignSliderValue(state, slider, value);
     }
 
     // Та же геометрия, что у отрисовки: центр бегунка ходит от d/2 до ширины − d/2
@@ -40,16 +54,18 @@ namespace gran::input
         float travel = std::max(1.0f, width - thumb);
         float t = std::min(1.0f, std::max(0.0f, (x - left - thumb * 0.5f) / travel));
 
-        setSliderValue(state, slider, slider.content.minimum + t * (slider.content.maximum - slider.content.minimum));
+        setSliderValue(state, slider, static_cast<float>((1.0 - t) * slider.content.minimum
+            + static_cast<double>(t) * slider.content.maximum));
     }
 
     // Стрелки: шаг или сотая доля диапазона / The arrows: the step or a hundredth of the range
     bool stepSlider(RouterState& state, ui::Node& slider, int direction)
     {
-        float step = slider.content.step;
+        double step = slider.content.step;
 
         if (step <= 0.0f)
-            step = (slider.content.maximum - slider.content.minimum) / 100.0f;
-        return setSliderValue(state, slider, slider.content.value + step * static_cast<float>(direction));
+            step = (static_cast<double>(slider.content.maximum) - slider.content.minimum) / 100.0;
+        const double next = slider.content.value + step * direction;
+        return assignSliderValue(state, slider, next);
     }
 }

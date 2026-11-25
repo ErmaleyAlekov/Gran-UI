@@ -43,9 +43,12 @@ namespace gran::input
 
         if (host == nullptr)
             return;
+        const ui::DockSide side = handle.content.dock.side;
+        const auto index = static_cast<std::size_t>(side);
+        if (index >= ui::DOCK_SIDES)
+            return;
         Vec2 local = ui::windowToNode(*host, point);
         const Rect& frame = host->layout.frame;
-        ui::DockSide side = handle.content.dock.side;
         float length = local.x - frame.x;
         if (side == ui::DockSide::RIGHT)
             length = frame.x + frame.width - local.x;
@@ -53,7 +56,7 @@ namespace gran::input
             length = local.y - frame.y;
         if (side == ui::DockSide::BOTTOM)
             length = frame.y + frame.height - local.y;
-        host->content.dock.sizes[static_cast<std::size_t>(side)] = std::max(40.0f, length);
+        host->content.dock.sizes[index] = std::max(40.0f, length);
         ui::markDirty(*host, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
     }
 

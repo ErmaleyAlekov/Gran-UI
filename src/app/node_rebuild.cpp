@@ -57,12 +57,14 @@ namespace gran::app
         void adoptContent(ui::Node& node, ui::Node&& fresh)
         {
             ui::Node* parent = node.parent;
+            bool appended = node.appendedByApplication;
             std::vector<ui::EventListener> listeners = std::move(node.listeners);
             std::uint16_t markupStates = static_cast<std::uint16_t>(style::stateBit(style::State::DISABLED) | style::stateBit(style::State::CHECKED));
             std::uint16_t kept = static_cast<std::uint16_t>(node.stateMask & ~markupStates);
 
             node = std::move(fresh);
             node.parent = parent;
+            node.appendedByApplication = appended;
             node.listeners = std::move(listeners);
             node.stateMask = static_cast<std::uint16_t>(node.stateMask | kept);
             for (const std::unique_ptr<ui::Node>& child : node.children)

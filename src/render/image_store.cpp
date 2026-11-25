@@ -1,16 +1,30 @@
 #include "gran/render/image_store.hpp"
-#include "gran/res/resources.hpp"
+#include <new>
 #include "gran/core/gran_exception.hpp"
-#include "gran/image/image.hpp"
+#include <string_view>
 
 #include "gran/utils/file_system.hpp"
 
-#include <fstream>
-#include <iterator>
 #include <utility>
 
 namespace gran::render
 {
+    namespace
+    {
+        // Сохраняем '..', корни дисков и префиксы ресурсов.
+        // Preserve '..', drive roots and resource prefixes.
+        std::string_view imageKey(const std::string& source)
+        {
+            std::size_t begin = 0;
+            while (source.compare(begin, 2, "./") == 0)
+                begin += 2;
+            if (begin == source.size() || source.find_first_of("/\\", begin) == begin ||
+                source.find(':', begin) != std::string::npos)
+                begin = 0;
+            return std::string_view(source).substr(begin);
+        }
+    }
+
     // Каталог разметки — база для относительных путей / The markup directory is the base for relative paths
     ImageStore::ImageStore(rhi::RenderBackend& backend, std::string baseDirectory)
         : _backend(backend), _base(std::move(baseDirectory))
@@ -30,51 +44,27 @@ namespace gran::render
     // Из кэша или загрузкой / From the cache or by loading
     const ImageEntry& ImageStore::get(const std::string& source)
     {
-        auto found = _entries.find(source);
-
-        if (found == _entries.end())
-            found = _entries.emplace(source, load(source)).first;
+        const auto key = imageKey(source);
+        auto found = _entries.lower_bound(key);
+        if (found == _entries.end() || found->first != key)
+        {
+            found = _entries.try_emplace(found, std::string(key));
+            try
+            {
+                found->second = load(found->first);
+            }
+            catch (...)
+            {
+                _entries.erase(found);
+                throw;
+            }
+        }
         return found->second;
-    }
-
-    /*
-    ** Чтение файла, декодирование (PNG или JPEG — по подписи), текстура RGBA8 с предумноженной альфой. Ошибка
-    ** чтения, формата или нехватка слотов — запись failed (окно продолжает работать).
-    **
-    ** Reading the file, decoding (PNG or JPEG — by the signature), an RGBA8 texture with premultiplied alpha. A read
-    ** or format error or running out of slots — a failed entry (the window keeps working).
-    */
-    ImageEntry ImageStore::load(const std::string& source)
-    {
-        std::string path = fs::joinPath(_base, source);
-        std::vector<std::uint8_t> data;
-        ImageEntry entry;
-        image::Image picture;
-
-        entry.failed = true;
-        // Файл диска или ресурс res:/ (база окна из res:/ даёт путь «res:/…») / A disk file or a res:/ resource (a res:/ window base gives a "res:/…" path)
-        if (!res::readFile(path, data))
-            return entry;
-        try
-        {
-            picture = image::decodeImage(data.data(), data.size(), source);
-            entry.slot = _backend.createTexture(rhi::TextureDesc{picture.width, picture.height, rhi::TextureFormat::RGBA8,
-                "gran.image"});
-        }
-        catch (const GranException&)
-        {
-            return entry;
-        }
-        // Область — вся текстура только что созданного размера: обновление не может быть отвергнуто
-        // The region is the whole texture of the size just created: the update cannot be rejected
-        _backend.updateTexture(entry.slot, rhi::TextureRegion{0, 0, picture.width, picture.height},
-            picture.pixels.data(), picture.width * 4);
-        entry = ImageEntry{entry.slot, picture.width, picture.height, false};
-        return entry;
     }
 
     // Ошибка запоминается пустой записью, как у картинок: окно продолжает работать / An error is remembered as an empty entry, as for images: the window keeps working
     const vector::Shape* ImageStore::shape(const std::string& source)
+    try
     {
         auto found = _shapes.find(source);
 
@@ -92,5 +82,9 @@ namespace gran::render
             found = _shapes.emplace(source, std::move(loaded)).first;
         }
         return found->second.get();
+    }
+    catch (const std::bad_alloc&)
+    {
+        return nullptr;
     }
 }

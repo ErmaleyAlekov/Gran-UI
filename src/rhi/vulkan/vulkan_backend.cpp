@@ -59,6 +59,7 @@ namespace gran::rhi::vk
         _options.width = width;
         _options.height = height;
         _hasFrame = false;
+        _firstPresentId = _presentId + 1;
         _waitId = 0; // Номер кадра старой цепочки новой цепочке не принадлежит / The old chain frame number does not belong to the new chain
         if (width == 0 || height == 0)
             return;

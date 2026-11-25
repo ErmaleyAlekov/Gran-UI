@@ -29,7 +29,7 @@ namespace gran::style
     {
         std::vector<std::string_view> parts;
         std::size_t start = 0;
-        int depth = 0;
+        std::size_t depth = 0;
 
         if (trimSpaces(text).empty())
             return parts;
@@ -37,7 +37,7 @@ namespace gran::style
         {
             if (text[index] == '(')
                 ++depth;
-            else if (text[index] == ')')
+            else if (text[index] == ')' && depth != 0)
                 --depth;
             else if (text[index] == separator && depth == 0)
             {

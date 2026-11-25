@@ -1,5 +1,6 @@
 #include "gallery_events.hpp"
 
+#include <cmath>
 #include <cstdlib>
 
 namespace gallery
@@ -34,8 +35,10 @@ namespace gallery
                 }
                 if (cell.field == "sum")
                 {
-                    double sum = std::strtod(cell.value.c_str(), nullptr);
-                    if (sum < 1.0 || sum > 10000000.0)
+                    char* end = nullptr;
+                    const char* start = cell.value.c_str();
+                    const double sum = std::strtod(start, &end);
+                    if (end != start + cell.value.size() || !std::isfinite(sum) || sum < 1.0 || sum > 10000000.0)
                         cell.error = "Сумма — от 1 до 10 000 000";
                 }
                 if (cell.error.empty())

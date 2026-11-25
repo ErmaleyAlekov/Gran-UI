@@ -117,6 +117,7 @@ namespace gran
         // Reloading the main window: the document waits for a loop boundary so a handler does not delete its own node.
         std::unique_ptr<markup::UiDocument> pendingDocument;
         std::string pendingPath;
+        std::vector<app::FileStamp> pendingLibraryStamps;
         // Наблюдаемый файл главного окна (пусто — разметка из строки) / The watched main window file (empty — markup from a string)
         std::string sourcePath;
         std::string reloadFailure;
@@ -161,7 +162,7 @@ namespace gran
         bool librariesChanged(Application::State& state);
 
         // Запомнить файлы библиотек документа и их нынешние отметки / Remember the document library files and their current stamps
-        void rememberLibraries(Application::State& state, const markup::UiDocument& document);
+        std::vector<FileStamp> libraryStamps(const markup::UiDocument& document);
 
         // ---- application_load.cpp ----
 
@@ -220,6 +221,8 @@ namespace gran
         void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path);
 
         // Применить отложенный документ; true — заменён (нужен кадр) / Apply the pending document; true — replaced (a frame is needed)
+        bool replaceDocument(AppWindow& win, markup::UiDocument document, const std::string& base);
+        bool reportReloadFailure(Application::State& state);
         bool applyReload(Application::State& state);
 
         // Наблюдение за файлом раз в 250 мс; ошибка разметки сохраняет прежнее дерево / Watching the file every 250 ms; a markup error keeps the former tree

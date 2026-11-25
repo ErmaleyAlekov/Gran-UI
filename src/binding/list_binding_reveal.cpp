@@ -2,6 +2,26 @@
 
 namespace gran::binding
 {
+    float ListBinding::rowStart(bool horizontal) const noexcept
+    {
+        const auto& style = _container.computed;
+        const auto& frame = _container.layout.frame;
+        float origin = horizontal ? frame.x + style.borderWidth.left + style.padding.left
+                                  : frame.y + style.borderWidth.top + style.padding.top;
+        for (const auto& child : _container.children)
+        {
+            if (child.get() == _lead)
+                break;
+            if (!ui::inFlow(*child))
+                continue;
+            const auto& bounds = child->layout.frame;
+            origin = horizontal ? bounds.x + bounds.width + child->computed.margin.right
+                                : bounds.y + bounds.height + child->computed.margin.bottom;
+            origin += style.spacing;
+        }
+        return origin;
+    }
+
     /*
     ** Видимая область — рамка ближайшего Scroll. Копия записи есть — по её рамке; записи нет (вне окна
     ** виртуального списка) — по индексу размеров от начала содержимого контейнера. Предел прокрутки
@@ -22,13 +42,15 @@ namespace gran::binding
             scroll = scroll->parent;
         if (scroll == nullptr || (item == nullptr && _extents.estimate() <= 0.0f))
             return;
-        top = _container.layout.frame.y + _container.computed.borderWidth.top + _container.computed.padding.top
-            + static_cast<float>(_extents.offsetOf(index));
-        bottom = top + _extents.sizeAt(index) - _container.computed.spacing;
         if (item != nullptr)
         {
             top = item->layout.frame.y;
             bottom = top + item->layout.frame.height;
+        }
+        else
+        {
+            top = rowStart(false) + static_cast<float>(_extents.offsetOf(index));
+            bottom = top + _extents.sizeAt(index) - _container.computed.spacing;
         }
         const Rect& view = scroll->layout.frame;
         float shift = 0.0f;

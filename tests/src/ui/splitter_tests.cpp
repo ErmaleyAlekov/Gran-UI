@@ -90,6 +90,12 @@ namespace
         gran::input::setSplit(*split, 1000);
         gran::layout::layoutTree(*doc.root, gran::Size{600, 400}, m);
         TEST_ASSERT_NEAR(left->layout.frame.width, 600.0f - h - 150.0f, 0.5f);
+
+        gran::layout::layoutTree(*doc.root, gran::Size{200, 400}, m);
+        TEST_ASSERT(handle->content.minimum == handle->content.maximum);
+        gran::input::setSplit(*split, 1000);
+        gran::layout::layoutTree(*doc.root, gran::Size{200, 400}, m);
+        TEST_ASSERT_NEAR(left->layout.frame.width, handle->content.maximum, 0.5f);
     }
 
     void testPercent()

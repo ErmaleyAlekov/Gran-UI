@@ -20,7 +20,11 @@ namespace editor
     // Check size, binary data and UTF-8 before passing data to the text field.
     bool readDocument(const std::string& path, std::string& text)
     {
-        std::ifstream input(std::filesystem::u8path(path), std::ios::binary | std::ios::ate);
+        auto source = std::filesystem::u8path(path);
+        std::error_code error;
+        if (!std::filesystem::is_regular_file(source, error))
+            return false;
+        std::ifstream input(source, std::ios::binary | std::ios::ate);
         if (!input)
             return false;
         auto size = input.tellg();

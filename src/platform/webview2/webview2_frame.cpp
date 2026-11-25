@@ -1,6 +1,7 @@
 #include "gran/platform/webview2/internal/webview2_host.hpp"
 
 #include <cmath>
+#include <limits>
 
 namespace gran::platform::webview2
 {
@@ -47,14 +48,32 @@ namespace gran::platform::webview2
     }
 
     // Края округляются отдельно: соседние блоки встают встык без щели в пиксель / The edges are rounded separately: neighbouring boxes meet without a one-pixel gap
-    RECT toRect(const Rect& rect) noexcept
+    bool toRect(const Rect& rect, RECT& result) noexcept
     {
-        RECT result;
+        if (rect.width < 0 || rect.height < 0)
+            return false;
+        const double left = std::round(rect.x);
+        const double top = std::round(rect.y);
+        const double right = std::round(static_cast<double>(rect.x) + rect.width);
+        const double bottom = std::round(static_cast<double>(rect.y) + rect.height);
+        const double low = std::numeric_limits<LONG>::min();
+        const double high = std::numeric_limits<LONG>::max();
+        if (!(low <= left && left <= right && right <= high && right - left <= high
+            && low <= top && top <= bottom && bottom <= high && bottom - top <= high))
+            return false;
+        result = {static_cast<LONG>(left), static_cast<LONG>(top), static_cast<LONG>(right), static_cast<LONG>(bottom)};
+        return true;
+    }
 
-        result.left = static_cast<LONG>(std::lround(rect.x));
-        result.top = static_cast<LONG>(std::lround(rect.y));
-        result.right = static_cast<LONG>(std::lround(rect.x + rect.width));
-        result.bottom = static_cast<LONG>(std::lround(rect.y + rect.height));
-        return result;
+    // Смещения контроллера внутри видимой рамки / Controller offsets inside the visible frame
+    bool fitsFrame(const RECT& full, const RECT& visible) noexcept
+    {
+        const auto fits = [](LONG edge, LONG origin)
+        {
+            const long long delta = static_cast<long long>(edge) - origin;
+            return delta >= std::numeric_limits<LONG>::min() && delta <= std::numeric_limits<LONG>::max();
+        };
+        return fits(full.left, visible.left) && fits(full.right, visible.left)
+            && fits(full.top, visible.top) && fits(full.bottom, visible.top);
     }
 }

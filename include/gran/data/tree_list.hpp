@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace gran::binding { class ListBindings; class ReloadCheckpoint; }
+
 namespace gran::data
 {
     // Фильтр узлов дерева (паттерн «Стратегия»): код, обёртка или выражение XPath / A tree node filter (the Strategy pattern): code, a wrapper or an XPath expression
@@ -98,6 +100,9 @@ namespace gran::data
         void invalidateFilter();
 
     private:
+        friend class gran::binding::ReloadCheckpoint;
+        friend class gran::binding::ListBindings;
+        void replaceSource(TreeModel& base);
         // Строка представления / A view row
         struct Row
         {
@@ -148,7 +153,7 @@ namespace gran::data
         // Разослать changed строкам, у которых сменились глубина или признаки / Deliver changed to the rows whose depth or flags changed
         void publishFlags(const std::vector<Row>& old, const std::vector<std::size_t>& oldToNew);
 
-        TreeModel& _tree;
+        TreeModel* _tree;
         std::vector<Row> _rows;
         std::unordered_set<NodeId> _expanded;
         SortKeys _keys;

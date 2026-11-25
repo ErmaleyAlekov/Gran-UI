@@ -66,7 +66,11 @@ namespace gran::style
             if (parts.size() == 1)
             {
                 std::vector<std::string_view> slash = splitTopLevel(inside, '/');
+                if (slash.size() > 2)
+                    throwValueError(i18n::Message::STYLE_BAD_COLOR, original);
                 parts = splitSpaces(slash[0]);
+                if (parts.size() != 3 || (slash.size() == 2 && slash[1].empty()))
+                    throwValueError(i18n::Message::STYLE_BAD_COLOR, original);
                 if (slash.size() == 2)
                     parts.push_back(slash[1]);
             }

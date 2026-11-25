@@ -83,12 +83,25 @@ namespace gran::style::internal
 
         if (parts.empty() || parts.size() > 2)
             throwValueError(i18n::Message::STYLE_BAD_GRADIENT, original, text);
+        const auto axis = [](std::string_view word) {
+            if (equalsIgnoreCase(word, "left") || equalsIgnoreCase(word, "right"))
+                return 0;
+            if (equalsIgnoreCase(word, "top") || equalsIgnoreCase(word, "bottom"))
+                return 1;
+            return -1;
+        };
+        const int first = axis(parts.front());
+        const int second = parts.size() == 2 ? axis(parts.back()) : -1;
+        if (first >= 0 && first == second)
+            throwValueError(i18n::Message::STYLE_BAD_GRADIENT, original, text);
         for (std::size_t index = 0; index < parts.size(); ++index)
         {
-            if (!parts[index].empty() && (parts[index][0] < 'a' || parts[index][0] > 'z'))
-                values[index] = parseFraction(parts[index]);
+            const auto coordinate = first == 1 || second == 0 ? 1 - index : index;
+            const char initial = parts[index].front();
+            if (!(initial >= 'a' && initial <= 'z') && !(initial >= 'A' && initial <= 'Z'))
+                values[coordinate] = parseFraction(parts[index]);
             else
-                values[index] = parseKeyword(parts[index], POSITIONS) / 100.0f;
+                values[coordinate] = parseKeyword(parts[index], POSITIONS) / 100.0f;
         }
         return Vec2{values[0], values[1]};
     }

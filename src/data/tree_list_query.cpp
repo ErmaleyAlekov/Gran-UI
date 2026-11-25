@@ -5,7 +5,7 @@ namespace gran::data
 {
     TreeModel& TreeList::tree() const noexcept
     {
-        return _tree;
+        return *_tree;
     }
 
     NodeId TreeList::node(std::size_t row) const

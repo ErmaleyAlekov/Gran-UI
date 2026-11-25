@@ -356,13 +356,18 @@ instead of rebuilding the whole parent.
 **Binding Expressions.** Expressions in `Style` and states; new `<Variable>` on partial reload; searching
 for a record copy without linear traversal (currently O(n) per binding); node properties (`$id.property`) in view filters.
 
+<a id="component-expansion"></a>
+
 **Components.** Parameters in `style` and enumerations; components declared directly in the window; `xpointer`
 and `xi:include` inside libraries.
+Document the nesting limit in the guide. The loader allows 64 active component expansions and rejects the next one even in an acyclic chain. Supporting deeper chains would require preserving stack safety. [T-90 review](../tests/manual/tasks/2026-11-22-early-code-review.md#t-90).
 
 **Models.** UI Automation for lists with selection; lazy trees from files (currently the entire tree is read).
 
 **Windows and Program.** Own XSD for program settings values; `<WebView>` with content from `res:/`;
 stack overflow interception in task pool threads (Linux); centering windows considering multiple monitors in X11.
+
+<a id="chat-markdown"></a>
 
 **Text.** Lines of different heights within a single block (section with a larger font); parsing Markdown only the changed
 tail during streaming output.

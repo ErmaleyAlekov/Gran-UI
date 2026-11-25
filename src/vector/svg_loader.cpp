@@ -129,7 +129,17 @@ namespace gran::vector
             throw GranException(ErrorCode::MARKUP, i18n::format(i18n::Message::ICON_BAD_SVG, {path, "<svg>"}));
         const std::string* viewBox = attributeOf(*root, "viewBox");
         if (viewBox == nullptr || !parseViewBox(*viewBox, shape->viewBox))
-            shape->viewBox = Rect{0.0f, 0.0f, numberOf(*root, "width", 24.0f), numberOf(*root, "height", 24.0f)};
+        {
+            const auto dimension = [&](const char* name) {
+                if (!attributeOf(*root, name))
+                    return 24.0f;
+                const float value = numberOf(*root, name, 0.0f);
+                if (!(value > 0.0f))
+                    throw GranException(ErrorCode::MARKUP, i18n::format(i18n::Message::ICON_BAD_SVG, {path, name}));
+                return value;
+            };
+            shape->viewBox = Rect{0.0f, 0.0f, dimension("width"), dimension("height")};
+        }
         walk(*root, *shape, 0);
         shape->id = nextShapeId();
         return shape;

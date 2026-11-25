@@ -1,4 +1,5 @@
 #include "gran/data/tree_model.hpp"
+#include "gran/data/internal/observer_errors.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 
@@ -43,14 +44,21 @@ namespace gran::data
         {
             if (!subscribed(observer))
                 continue;
-            if (event == Event::INSERTED)
-                observer->inserted(id, row, count);
-            else if (event == Event::REMOVED)
-                observer->removed(id, row, count);
-            else if (event == Event::MOVED)
-                observer->moved(id, other, row);
-            else
-                observer->changed(id);
+            try
+            {
+                if (event == Event::INSERTED)
+                    observer->inserted(id, row, count);
+                else if (event == Event::REMOVED)
+                    observer->removed(id, row, count);
+                else if (event == Event::MOVED)
+                    observer->moved(id, other, row);
+                else
+                    observer->changed(id);
+            }
+            catch (...)
+            {
+                internal::ObserverErrors::capture();
+            }
         }
     }
 }

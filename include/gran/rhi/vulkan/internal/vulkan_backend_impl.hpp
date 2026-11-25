@@ -79,6 +79,7 @@ namespace gran::rhi::vk
         Buffer instances;
         Buffer clips;
         Buffer upload;
+        std::unique_ptr<Buffer> readback;
         std::vector<Image> retired;
         bool submitted = false;
     };
@@ -100,6 +101,9 @@ namespace gran::rhi::vk
         AdapterInfo adapterInfo() const override;
         std::string lostReason() const override;
         void waitPresented() override;
+        bool canConfirmPresentation() const override { return _presentWait; }
+        std::uint64_t lastPresentation() const override { return _waitId; }
+        Presentation pollPresentation(std::uint64_t id) override;
         void readPixels(std::vector<std::uint8_t>& rgba, unsigned& width, unsigned& height) override;
     private:
         void createInstance();
@@ -202,6 +206,7 @@ namespace gran::rhi::vk
         PFN_vkVoidFunction _waitForPresent = nullptr;
         std::uint64_t _presentId = 0;
         std::uint64_t _waitId = 0;
+        std::uint64_t _firstPresentId = 1;
     };
 }
 #define GRAN_CHECK_VK(call) ::gran::rhi::vk::check((call), #call, __FILE__, __LINE__)

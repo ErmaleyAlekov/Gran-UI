@@ -1,4 +1,5 @@
 #include "gran/render/text_engine.hpp"
+#include "gran/render/internal/text_run_bounds.hpp"
 #include "gran/utils/utf8.hpp"
 
 #include <cmath>
@@ -19,7 +20,7 @@ namespace gran::render
     {
         if ((ui::isTextField(node) || node.kind == ui::ElementKind::COMBO_BOX) && node.content.text.empty())
             return node.content.placeholder;
-        if (!node.content.password)
+        if (!isPasswordMasked(node))
             return node.content.text;
         std::size_t count = countUtf8(node.content.text);
         std::string masked;
@@ -68,11 +69,11 @@ namespace gran::render
     std::string layoutKey(const std::string& content, const text::TextStyle& style, float maxWidth)
     {
         char numbers[160];
-        long width = -1;
+        char width[48] = "unbounded";
 
         if (std::isfinite(maxWidth))
-            width = std::lround(maxWidth * 64.0f);
-        std::snprintf(numbers, sizeof(numbers), "|%g|%d|%d|%g|%g|%d|%d|%d|%d|%ld|",
+            std::snprintf(width, sizeof(width), "%.0f", std::round(static_cast<double>(maxWidth) * 64.0) + 0.0);
+        std::snprintf(numbers, sizeof(numbers), "|%g|%d|%d|%g|%g|%d|%d|%d|%d|%s|",
             style.size, style.weight, static_cast<int>(style.italic), style.lineHeight, style.letterSpacing,
             static_cast<int>(style.align), static_cast<int>(style.wrap), static_cast<int>(style.ellipsis),
             style.maxLines, width);
@@ -89,7 +90,7 @@ namespace gran::render
             return runs;
         for (const std::unique_ptr<ui::Node>& span : node.children)
         {
-            std::uint32_t end = begin + static_cast<std::uint32_t>(span->content.text.size());
+            std::uint32_t end = internal::textRunEnd(begin, span->content.text.size());
             runs.push_back(text::TextRun{begin, end, textStyleOf(*span)});
             begin = end;
         }

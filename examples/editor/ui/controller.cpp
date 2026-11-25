@@ -9,12 +9,14 @@ namespace editor
 
     // Начальная папка реальна; без аргумента открывается новый документ.
     // The initial folder is real; without an argument a new document opens.
-    void Controller::start(const std::string& path)
+    void Controller::start(const std::string& path, const std::string& initialFolder)
     {
         bindActions();
-        auto folder = std::filesystem::current_path();
+        auto folder = initialFolder.empty() ? std::filesystem::current_path() : std::filesystem::u8path(initialFolder);
         if (!path.empty()) folder = std::filesystem::absolute(std::filesystem::u8path(path)).parent_path();
         loadFolder(folder.u8string());
+        if (path.empty() && !initialFolder.empty() && workspace.empty() && folder != std::filesystem::current_path())
+            loadFolder(std::filesystem::current_path().u8string());
         if (path.empty())
             newDocument();
         else

@@ -1,20 +1,14 @@
 # Пофайловый указатель ручного ревью Gran UI
 
-Срез на 2026-11-22, ревизия `2c05506`. Проверены 1457 путей из `git ls-files` и два локальных скрипта проекта. В область ревью вошли **1390 файлов**. Для 199 файлов найдена прежняя задача Claude. Остальные **1191 файлов** распределены по Т-76…Т-247. Каждый файл остатка назначен ровно один раз.
+Первоначальная инвентаризация выполнена 2026-11-22 на ревизии `2c05506`. В указателе сохранены назначения прежних карточек и задач Т-76…Т-107 с результатами пользователя. Повторные ссылки отражают участие файла в нескольких исторических проверках.
 
-Основание для исключения — область чтения в карточке, раскрытый на дату карточки шаблон имён или однозначно установленный по разбору исходник. Повторное упоминание в старых карточках сохранено. У Т-43 названы целые каталоги Win32, X11 и ввода; исключены лишь установленные файлы интерфейса, контракта и реализации. Другие файлы этих каталогов получили задачи. Для Т-63 учтён текущий `src/layout/data_grid_widths.cpp` с функцией `forgetGridLines`.
-
-Номер Claude в указателе означает, что файл входил в прежнее задание. Глубина личной проверки каждого файла известна лишь в пределах записанного результата. В новых задачах указан полный файл, а функция или диапазон в скобках служит точкой входа. Для примеров в документации проверяются команды и код, для поставляемых массивов шейдеров — происхождение, формат, размер и соответствие точке входа.
-
-### Границы снимка
-
-Включены исходники и заголовки, тесты, инструменты, привязки, сценарии сборки и CI, XML, XSD, SVG, JSON, тестовые конфигурации, шейдеры и документация с исполняемыми примерами. Локально дополнительно учтены `.claude/scripts/local_llama.sh` и `.claude/scripts/manage_model.ps1`. Сборочные деревья, сторонние зависимости, клоны, временные файлы, настройки агента и копии в `tests/manual/review/` находятся за пределами инвентаризации. Для растров сравнение результата относится к тесту или сценарию, который их использует.
+В очереди ручного ревью кода Gran UI остаются 113 задач на 748 файлов движка. Для каждой задачи указан полный файл, а функция или диапазон строк служат точкой входа. Текущие статусы приведены в [сводке](README.md).
 
 ### Задачи по темам
 
 - [Т-76](tasks/2026-11-22-early-code-review.md#t-76)…[Т-90](tasks/2026-11-22-early-code-review.md#t-90) — Первые карточки — события, графика, раскладка, модели и разбор данных.
-- [Т-91](tasks/2026-11-22-review-T91-T98.md#t-91)…[Т-104](tasks/2026-11-22-review-T99-T106.md#t-104) — Языковые привязки и приложения-примеры.
-- [Т-105](tasks/2026-11-22-review-T99-T106.md#t-105)…[Т-130](tasks/2026-11-22-review-T123-T130.md#t-130) — Схемы и образцы, шейдеры, сборка, инструменты и тестовые стенды.
+- [Т-91](tasks/2026-11-22-review-T91-T98.md#t-91)…[Т-107](tasks/2026-11-22-review-T107-T114.md#t-107) — ранее проверенные привязки, приложения, схемы и образцы.
+- [Т-110](tasks/2026-11-22-review-T107-T114.md#t-110) и [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) — исходники HLSL и интерфейс встроенных шейдеров.
 - [Т-131](tasks/2026-11-22-review-T131-T138.md#t-131)…[Т-147](tasks/2026-11-22-review-T147-T154.md#t-147) — Доступность, анимация и приложение.
 - [Т-148](tasks/2026-11-22-review-T147-T154.md#t-148)…[Т-169](tasks/2026-11-22-review-T163-T170.md#t-169) — Привязки, Си-интерфейс, модели данных и изображения.
 - [Т-170](tasks/2026-11-22-review-T163-T170.md#t-170)…[Т-188](tasks/2026-11-22-review-T187-T194.md#t-188) — Ввод, компоновка, журнал и XML-разметка.
@@ -46,35 +40,6 @@
 
 Пути внутри каталога упорядочены по имени. Ссылки ведут к карточкам как открытых, так и закрытых задач.
 
-<details><summary>.claude · 2</summary>
-
-| Файл | Задача |
-|---|---|
-| `.claude/scripts/local_llama.sh` | [Т-118](tasks/2026-11-22-review-T115-T122.md#t-118) |
-| `.claude/scripts/manage_model.ps1` | [Т-118](tasks/2026-11-22-review-T115-T122.md#t-118) |
-
-</details>
-
-<details><summary>.github · 4</summary>
-
-| Файл | Задача |
-|---|---|
-| `.github/workflows/linux.yml` | [Т-114](tasks/2026-11-22-review-T107-T114.md#t-114) |
-| `.github/workflows/macos.yml` | [Т-114](tasks/2026-11-22-review-T107-T114.md#t-114) |
-| `.github/workflows/release.yml` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `.github/workflows/windows.yml` | [Т-114](tasks/2026-11-22-review-T107-T114.md#t-114) |
-
-</details>
-
-<details><summary>.gitverse · 2</summary>
-
-| Файл | Задача |
-|---|---|
-| `.gitverse/workflows/ci.yml` | [Т-114](tasks/2026-11-22-review-T107-T114.md#t-114) |
-| `.gitverse/workflows/release.yml` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-
-</details>
-
 <details><summary>bindings · 15</summary>
 
 | Файл | Задача |
@@ -97,38 +62,20 @@
 
 </details>
 
-<details><summary>cmake · 6</summary>
+<details><summary>cmake · 2</summary>
 
 | Файл | Задача |
 |---|---|
-| `cmake/GranMetal.cmake` | [Т-113](tasks/2026-11-22-review-T107-T114.md#t-113) |
 | `cmake/GranOptions.cmake` | [Т-48](tasks/2026-11-14-macos-core.md) |
-| `cmake/GranShaders.cmake` | [Т-113](tasks/2026-11-22-review-T107-T114.md#t-113) |
 | `cmake/GranSources.cmake` | [Т-48](tasks/2026-11-14-macos-core.md) |
-| `cmake/GranVersion.cmake` | [Т-113](tasks/2026-11-22-review-T107-T114.md#t-113) |
-| `cmake/GranVulkanShaders.cmake` | [Т-113](tasks/2026-11-22-review-T107-T114.md#t-113) |
 
 </details>
 
-<details><summary>docs · 15</summary>
+<details><summary>docs · 1</summary>
 
 | Файл | Задача |
 |---|---|
-| `docs/api.en.md` | [Т-119](tasks/2026-11-22-review-T115-T122.md#t-119) |
-| `docs/api.md` | [Т-119](tasks/2026-11-22-review-T115-T122.md#t-119) |
 | `docs/architecture.md` | [Т-43](tasks/2026-11-13-platform-contract.md), [Т-46](tasks/2026-11-14-review-fixes.md) |
-| `docs/bindings.en.md` | [Т-119](tasks/2026-11-22-review-T115-T122.md#t-119) |
-| `docs/bindings.md` | [Т-119](tasks/2026-11-22-review-T115-T122.md#t-119) |
-| `docs/building.en.md` | [Т-120](tasks/2026-11-22-review-T115-T122.md#t-120) |
-| `docs/building.md` | [Т-120](tasks/2026-11-22-review-T115-T122.md#t-120) |
-| `docs/development.en.md` | [Т-120](tasks/2026-11-22-review-T115-T122.md#t-120) |
-| `docs/development.md` | [Т-120](tasks/2026-11-22-review-T115-T122.md#t-120) |
-| `docs/guide.en.md` | [Т-121](tasks/2026-11-22-review-T115-T122.md#t-121) |
-| `docs/guide.md` | [Т-121](tasks/2026-11-22-review-T115-T122.md#t-121) |
-| `docs/render_testing.en.md` | [Т-121](tasks/2026-11-22-review-T115-T122.md#t-121) |
-| `docs/render_testing.md` | [Т-121](tasks/2026-11-22-review-T115-T122.md#t-121) |
-| `docs/versioning.en.md` | [Т-122](tasks/2026-11-22-review-T115-T122.md#t-122) |
-| `docs/versioning.md` | [Т-122](tasks/2026-11-22-review-T115-T122.md#t-122) |
 
 </details>
 
@@ -451,12 +398,11 @@
 
 </details>
 
-<details><summary>include/gran/res · 3</summary>
+<details><summary>include/gran/res · 2</summary>
 
 | Файл | Задача |
 |---|---|
 | `include/gran/res/internal/registry.hpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
-| `include/gran/res/manifest.hpp` | [Т-209](tasks/2026-11-22-review-T203-T210.md#t-209) |
 | `include/gran/res/resources.hpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
 
 </details>
@@ -576,40 +522,23 @@
 
 </details>
 
-<details><summary>samples · 30</summary>
+<details><summary>samples · 13</summary>
 
 | Файл | Задача |
 |---|---|
-| `samples/animations.xml` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
-| `samples/assets/icons/folder.svg` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
-| `samples/assets/icons/star.svg` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
 | `samples/bindings.xml` | [Т-106](tasks/2026-11-22-review-T99-T106.md#t-106) |
 | `samples/commands.xml` | [Т-106](tasks/2026-11-22-review-T99-T106.md#t-106) |
 | `samples/components.xml` | [Т-106](tasks/2026-11-22-review-T99-T106.md#t-106) |
 | `samples/components/widgets.xml` | [Т-106](tasks/2026-11-22-review-T99-T106.md#t-106) |
-| `samples/custom_window.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
 | `samples/data/departments.xml` | [Т-106](tasks/2026-11-22-review-T99-T106.md#t-106) |
 | `samples/data/notes.json` | [Т-106](tasks/2026-11-22-review-T99-T106.md#t-106) |
 | `samples/data/orders.json` | [Т-107](tasks/2026-11-22-review-T107-T114.md#t-107) |
-| `samples/dialogs.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
 | `samples/editor.xml` | [Т-101](tasks/2026-11-22-review-T99-T106.md#t-101) |
 | `samples/editor_frame.xml` | [Т-101](tasks/2026-11-22-review-T99-T106.md#t-101) |
-| `samples/events.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
-| `samples/glass.xml` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
 | `samples/grid.xml` | [Т-107](tasks/2026-11-22-review-T107-T114.md#t-107) |
 | `samples/lists.xml` | [Т-107](tasks/2026-11-22-review-T107-T114.md#t-107) |
 | `samples/models.xml` | [Т-107](tasks/2026-11-22-review-T107-T114.md#t-107) |
-| `samples/platform.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
-| `samples/popups.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
-| `samples/program.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
-| `samples/program_dialog.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
-| `samples/rich_text.xml` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
-| `samples/showcase.xml` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
-| `samples/text_area.xml` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
-| `samples/tool_window.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
 | `samples/variable_rows.xml` | [Т-107](tasks/2026-11-22-review-T107-T114.md#t-107) |
-| `samples/web_view.xml` | [Т-108](tasks/2026-11-22-review-T107-T114.md#t-108) |
-| `samples/widgets.xml` | [Т-109](tasks/2026-11-22-review-T107-T114.md#t-109) |
 
 </details>
 
@@ -1338,23 +1267,20 @@
 
 </details>
 
-<details><summary>src/res · 9</summary>
+<details><summary>src/res · 6</summary>
 
 | Файл | Задача |
 |---|---|
 | `src/res/blob.cpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
 | `src/res/files.cpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
-| `src/res/generate_blob.cpp` | [Т-209](tasks/2026-11-22-review-T203-T210.md#t-209) |
-| `src/res/generate_source.cpp` | [Т-209](tasks/2026-11-22-review-T203-T210.md#t-209) |
 | `src/res/manifest_folder.cpp` | [Т-57](tasks/2026-11-15-release-archives.md) |
-| `src/res/manifest_read.cpp` | [Т-209](tasks/2026-11-22-review-T203-T210.md#t-209) |
 | `src/res/normalize.cpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
 | `src/res/registry.cpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
 | `src/res/streams.cpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
 
 </details>
 
-<details><summary>src/rhi · 100</summary>
+<details><summary>src/rhi · 80</summary>
 
 | Файл | Задача |
 |---|---|
@@ -1412,26 +1338,6 @@
 | `src/rhi/null/null_backend.cpp` | [Т-233](tasks/2026-11-22-review-T227-T234.md#t-233) |
 | `src/rhi/null/null_textures.cpp` | [Т-233](tasks/2026-11-22-review-T227-T234.md#t-233) |
 | `src/rhi/render_backend.cpp` | [Т-233](tasks/2026-11-22-review-T227-T234.md#t-233) |
-| `src/rhi/shaders_gen/blur_down_ps_dxbc.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/blur_down_ps_dxil.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/blur_down_ps_spv.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/blur_up_ps_dxbc.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/blur_up_ps_dxil.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/blur_up_ps_spv.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/fullscreen_vs_dxbc.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/fullscreen_vs_dxil.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/fullscreen_vs_spv.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/msl/blur_down_ps.metal` | [Т-112](tasks/2026-11-22-review-T107-T114.md#t-112) |
-| `src/rhi/shaders_gen/msl/blur_up_ps.metal` | [Т-112](tasks/2026-11-22-review-T107-T114.md#t-112) |
-| `src/rhi/shaders_gen/msl/fullscreen_vs.metal` | [Т-112](tasks/2026-11-22-review-T107-T114.md#t-112) |
-| `src/rhi/shaders_gen/msl/ui_ps.metal` | [Т-112](tasks/2026-11-22-review-T107-T114.md#t-112) |
-| `src/rhi/shaders_gen/msl/ui_vs.metal` | [Т-112](tasks/2026-11-22-review-T107-T114.md#t-112) |
-| `src/rhi/shaders_gen/ui_ps_dxbc.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/ui_ps_dxil.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/ui_ps_spv.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/ui_vs_dxbc.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/ui_vs_dxil.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
-| `src/rhi/shaders_gen/ui_vs_spv.cpp` | [Т-111](tasks/2026-11-22-review-T107-T114.md#t-111) |
 | `src/rhi/vulkan/pipeline_state.cpp` | [Т-241](tasks/2026-11-22-review-T235-T242.md#t-241) |
 | `src/rhi/vulkan/platform_backend.cpp` | [Т-239](tasks/2026-11-22-review-T235-T242.md#t-239) |
 | `src/rhi/vulkan/vulkan_adapter.cpp` | [Т-239](tasks/2026-11-22-review-T235-T242.md#t-239) |
@@ -1660,266 +1566,25 @@
 
 </details>
 
-<details><summary>tests/crash · 1</summary>
+<details><summary>tests/src · 2</summary>
 
 | Файл | Задача |
 |---|---|
-| `tests/crash/crash_probe.cpp` | [Т-130](tasks/2026-11-22-review-T123-T130.md#t-130) |
-
-</details>
-
-<details><summary>tests/editor · 2</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/editor/editor_tests.cpp` | [Т-129](tasks/2026-11-22-review-T123-T130.md#t-129) |
-| `tests/editor/run.ps1` | [Т-129](tasks/2026-11-22-review-T123-T130.md#t-129) |
-
-</details>
-
-<details><summary>tests/include · 5</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/include/framework/test_framework.hpp` | [Т-243](tasks/2026-11-22-review-T243-T247.md#t-243) |
-| `tests/include/suites/test_suites.hpp` | [Т-243](tasks/2026-11-22-review-T243-T247.md#t-243) |
-| `tests/include/support/font_samples.hpp` | [Т-244](tasks/2026-11-22-review-T243-T247.md#t-244) |
-| `tests/include/support/jpeg_samples.hpp` | [Т-244](tasks/2026-11-22-review-T243-T247.md#t-244) |
-| `tests/include/support/layout_helpers.hpp` | [Т-244](tasks/2026-11-22-review-T243-T247.md#t-244) |
-
-</details>
-
-<details><summary>tests/linux · 11</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/linux/linux_backend.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_clipboard.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_drop.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_drop_peer.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_input.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_main.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_scene.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_tests.hpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_texture.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/linux_window.cpp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-| `tests/linux/lsan_mesa.supp` | [Т-125](tasks/2026-11-22-review-T123-T130.md#t-125) |
-
-</details>
-
-<details><summary>tests/macos · 9</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/macos/macos_backend.cpp` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_cocoa.mm` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_input.mm` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_main.cpp` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_review.mm` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_scene.cpp` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_snapshots.cpp` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_tests.hpp` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-| `tests/macos/macos_window.mm` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-
-</details>
-
-<details><summary>tests/manual · 2</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/manual/files/horizontal_scroll.xml` | [Т-117](tasks/2026-11-22-review-T115-T122.md#t-117) |
-| `tests/manual/tools/memory_watch.ps1` | [Т-117](tasks/2026-11-22-review-T115-T122.md#t-117) |
-
-</details>
-
-<details><summary>tests/metal · 1</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/metal/layout_check.metal` | [Т-126](tasks/2026-11-22-review-T123-T130.md#t-126) |
-
-</details>
-
-<details><summary>tests/render · 19</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/render/backend_live.cpp` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/headless_live.cpp` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/reload_live.cpp` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/render_compare.cpp` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/render_main.cpp` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/render_scene.cpp` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/render_tests.hpp` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/resize_artifacts.cpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_capture.cpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_capture.hpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_drag.cpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_drag.hpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_duplication.cpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_duplication.hpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_live.cpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/resize_watcher.cpp` | [Т-127](tasks/2026-11-22-review-T123-T130.md#t-127) |
-| `tests/render/scenes/glass.xml` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/scenes/primitives.xml` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-| `tests/render/scenes/text_image.xml` | [Т-128](tasks/2026-11-22-review-T123-T130.md#t-128) |
-
-</details>
-
-<details><summary>tests/src · 111</summary>
-
-| Файл | Задача |
-|---|---|
-| `tests/src/a11y/access_action_tests.cpp` | [Т-173](tasks/2026-11-22-review-T171-T178.md#t-173) |
-| `tests/src/a11y/accessibility_tests.cpp` | [Т-131](tasks/2026-11-22-review-T131-T138.md#t-131) |
-| `tests/src/a11y/grid_access_tests.cpp` | [Т-139](tasks/2026-11-22-review-T139-T146.md#t-139) |
-| `tests/src/a11y/menu_access_tests.cpp` | [Т-131](tasks/2026-11-22-review-T131-T138.md#t-131) |
-| `tests/src/a11y/uia_grid_tests.cpp` | [Т-199](tasks/2026-11-22-review-T195-T202.md#t-199) |
-| `tests/src/app/app_driver_life_tests.cpp` | [Т-134](tasks/2026-11-22-review-T131-T138.md#t-134) |
-| `tests/src/app/app_driver_tests.cpp` | [Т-134](tasks/2026-11-22-review-T131-T138.md#t-134) |
-| `tests/src/app/app_undo_tests.cpp` | [Т-147](tasks/2026-11-22-review-T147-T154.md#t-147) |
-| `tests/src/app/builtin_command_tests.cpp` | [Т-138](tasks/2026-11-22-review-T131-T138.md#t-138) |
-| `tests/src/app/dock_float_tests.cpp` | [Т-145](tasks/2026-11-22-review-T139-T146.md#t-145) |
-| `tests/src/app/driver_field_tests.cpp` | [Т-137](tasks/2026-11-22-review-T131-T138.md#t-137) |
-| `tests/src/app/driver_key_tests.cpp` | [Т-137](tasks/2026-11-22-review-T131-T138.md#t-137) |
-| `tests/src/app/expression_tests.cpp` | [Т-148](tasks/2026-11-22-review-T147-T154.md#t-148) |
-| `tests/src/app/frame_rebuild_tests.cpp` | [Т-135](tasks/2026-11-22-review-T131-T138.md#t-135) |
-| `tests/src/app/keyframe_animator_tests.cpp` | [Т-132](tasks/2026-11-22-review-T131-T138.md#t-132) |
-| `tests/src/app/list_binding_tests.cpp` | [Т-150](tasks/2026-11-22-review-T147-T154.md#t-150) |
-| `tests/src/app/live_app_tests.cpp` | [Т-134](tasks/2026-11-22-review-T131-T138.md#t-134) |
-| `tests/src/app/model_markup_tests.cpp` | [Т-142](tasks/2026-11-22-review-T139-T146.md#t-142) |
-| `tests/src/app/reload_tests.cpp` | [Т-141](tasks/2026-11-22-review-T139-T146.md#t-141) |
-| `tests/src/app/task_pool_tests.cpp` | [Т-143](tasks/2026-11-22-review-T139-T146.md#t-143) |
-| `tests/src/app/timer_queue_tests.cpp` | [Т-144](tasks/2026-11-22-review-T139-T146.md#t-144) |
-| `tests/src/app/web_view_tests.cpp` | [Т-146](tasks/2026-11-22-review-T139-T146.md#t-146) |
-| `tests/src/app/window_owner_tests.cpp` | [Т-136](tasks/2026-11-22-review-T131-T138.md#t-136) |
 | `tests/src/binding/extent_index_tests.cpp` | [Т-60](tasks/2026-11-16-variable-rows.md) |
-| `tests/src/capi/capi_tests.cpp` | [Т-153](tasks/2026-11-22-review-T147-T154.md#t-153) |
-| `tests/src/capi/version_tests.cpp` | [Т-153](tasks/2026-11-22-review-T147-T154.md#t-153) |
-| `tests/src/chat/chat_json_tests.cpp` | [Т-160](tasks/2026-11-22-review-T155-T162.md#t-160) |
-| `tests/src/chat/chat_markdown_tests.cpp` | [Т-245](tasks/2026-11-22-review-T243-T247.md#t-245) |
-| `tests/src/chat/chat_stream_tests.cpp` | [Т-245](tasks/2026-11-22-review-T243-T247.md#t-245) |
-| `tests/src/core/i18n_tests.cpp` | [Т-157](tasks/2026-11-22-review-T155-T162.md#t-157) |
-| `tests/src/data/cell_value_tests.cpp` | [Т-158](tasks/2026-11-22-review-T155-T162.md#t-158) |
-| `tests/src/data/column_filter_tests.cpp` | [Т-159](tasks/2026-11-22-review-T155-T162.md#t-159) |
-| `tests/src/data/data_list_tests.cpp` | [Т-162](tasks/2026-11-22-review-T155-T162.md#t-162) |
-| `tests/src/data/data_source_tests.cpp` | [Т-161](tasks/2026-11-22-review-T155-T162.md#t-161) |
-| `tests/src/data/model_signal_tests.cpp` | [Т-162](tasks/2026-11-22-review-T155-T162.md#t-162) |
-| `tests/src/data/selection_model_tests.cpp` | [Т-163](tasks/2026-11-22-review-T163-T170.md#t-163) |
-| `tests/src/data/sort_filter_tests.cpp` | [Т-164](tasks/2026-11-22-review-T163-T170.md#t-164) |
-| `tests/src/data/tree_selection_tests.cpp` | [Т-166](tasks/2026-11-22-review-T163-T170.md#t-166) |
-| `tests/src/framework/assertions.cpp` | [Т-243](tasks/2026-11-22-review-T243-T247.md#t-243) |
-| `tests/src/framework/test_runner.cpp` | [Т-243](tasks/2026-11-22-review-T243-T247.md#t-243) |
-| `tests/src/image/inflate_limit_tests.cpp` | [Т-167](tasks/2026-11-22-review-T163-T170.md#t-167) |
-| `tests/src/image/jpeg_tests.cpp` | [Т-168](tasks/2026-11-22-review-T163-T170.md#t-168) |
-| `tests/src/input/command_tests.cpp` | [Т-173](tasks/2026-11-22-review-T171-T178.md#t-173) |
-| `tests/src/input/dialog_tests.cpp` | [Т-145](tasks/2026-11-22-review-T139-T146.md#t-145) |
-| `tests/src/input/event_input_tests.cpp` | [Т-170](tasks/2026-11-22-review-T163-T170.md#t-170) |
-| `tests/src/input/event_routing_tests.cpp` | [Т-171](tasks/2026-11-22-review-T171-T178.md#t-171) |
-| `tests/src/input/menu_bar_tests.cpp` | [Т-174](tasks/2026-11-22-review-T171-T178.md#t-174) |
-| `tests/src/input/popup_tests.cpp` | [Т-174](tasks/2026-11-22-review-T171-T178.md#t-174) |
-| `tests/src/input/scroll_bar_tests.cpp` | [Т-175](tasks/2026-11-22-review-T171-T178.md#t-175) |
-| `tests/src/input/text_area_tests.cpp` | [Т-177](tasks/2026-11-22-review-T171-T178.md#t-177) |
-| `tests/src/input/text_key_tests.cpp` | [Т-176](tasks/2026-11-22-review-T171-T178.md#t-176) |
-| `tests/src/input/text_selection_tests.cpp` | [Т-176](tasks/2026-11-22-review-T171-T178.md#t-176) |
-| `tests/src/input/text_step_tests.cpp` | [Т-177](tasks/2026-11-22-review-T171-T178.md#t-177) |
-| `tests/src/input/text_undo_tests.cpp` | [Т-177](tasks/2026-11-22-review-T171-T178.md#t-177) |
-| `tests/src/input/widget_tests.cpp` | [Т-175](tasks/2026-11-22-review-T171-T178.md#t-175) |
-| `tests/src/input/window_frame_tests.cpp` | [Т-175](tasks/2026-11-22-review-T171-T178.md#t-175) |
-| `tests/src/layout/flex_auto_min_tests.cpp` | [Т-179](tasks/2026-11-22-review-T179-T186.md#t-179) |
-| `tests/src/layout/incremental_layout_tests.cpp` | [Т-178](tasks/2026-11-22-review-T171-T178.md#t-178) |
-| `tests/src/layout/layout_cache_tests.cpp` | [Т-178](tasks/2026-11-22-review-T171-T178.md#t-178) |
-| `tests/src/layout/layout_grid_tests.cpp` | [Т-180](tasks/2026-11-22-review-T179-T186.md#t-180) |
-| `tests/src/layout/layout_stack_tests.cpp` | [Т-179](tasks/2026-11-22-review-T179-T186.md#t-179) |
 | `tests/src/layout/variable_list_tests.cpp` | [Т-60](tasks/2026-11-16-variable-rows.md) |
-| `tests/src/log/log_tests.cpp` | [Т-182](tasks/2026-11-22-review-T179-T186.md#t-182) |
-| `tests/src/main.cpp` | [Т-243](tasks/2026-11-22-review-T243-T247.md#t-243) |
-| `tests/src/markup/component_tests.cpp` | [Т-185](tasks/2026-11-22-review-T179-T186.md#t-185) |
-| `tests/src/markup/markup_tests.cpp` | [Т-184](tasks/2026-11-22-review-T179-T186.md#t-184) |
-| `tests/src/markup/rich_text_tests.cpp` | [Т-186](tasks/2026-11-22-review-T179-T186.md#t-186) |
-| `tests/src/platform/headless_window_tests.cpp` | [Т-190](tasks/2026-11-22-review-T187-T194.md#t-190) |
-| `tests/src/platform/win32_keymenu_tests.cpp` | [Т-196](tasks/2026-11-22-review-T195-T202.md#t-196) |
-| `tests/src/platform/window_frame_tests.cpp` | [Т-189](tasks/2026-11-22-review-T187-T194.md#t-189) |
-| `tests/src/render/adapter_choice_tests.cpp` | [Т-233](tasks/2026-11-22-review-T227-T234.md#t-233) |
-| `tests/src/render/password_mask_tests.cpp` | [Т-205](tasks/2026-11-22-review-T203-T210.md#t-205) |
-| `tests/src/render/pixel_compare_tests.cpp` | [Т-204](tasks/2026-11-22-review-T203-T210.md#t-204) |
-| `tests/src/res/resources_tests.cpp` | [Т-208](tasks/2026-11-22-review-T203-T210.md#t-208) |
-| `tests/src/settings/settings_tests.cpp` | [Т-210](tasks/2026-11-22-review-T203-T210.md#t-210) |
-| `tests/src/style/input_bounds_tests.cpp` | [Т-211](tasks/2026-11-22-review-T211-T218.md#t-211) |
-| `tests/src/style/style_color_tests.cpp` | [Т-214](tasks/2026-11-22-review-T211-T218.md#t-214) |
-| `tests/src/style/style_keyframes_tests.cpp` | [Т-215](tasks/2026-11-22-review-T211-T218.md#t-215) |
-| `tests/src/style/style_motion_tests.cpp` | [Т-215](tasks/2026-11-22-review-T211-T218.md#t-215) |
-| `tests/src/style/style_number_tests.cpp` | [Т-213](tasks/2026-11-22-review-T211-T218.md#t-213) |
-| `tests/src/style/style_paint_tests.cpp` | [Т-214](tasks/2026-11-22-review-T211-T218.md#t-214) |
-| `tests/src/style/style_track_tests.cpp` | [Т-213](tasks/2026-11-22-review-T211-T218.md#t-213) |
-| `tests/src/support/font_samples.cpp` | [Т-244](tasks/2026-11-22-review-T243-T247.md#t-244) |
-| `tests/src/support/jpeg_samples.cpp` | [Т-244](tasks/2026-11-22-review-T243-T247.md#t-244) |
-| `tests/src/support/layout_helpers.cpp` | [Т-244](tasks/2026-11-22-review-T243-T247.md#t-244) |
-| `tests/src/text/font_damage_tests.cpp` | [Т-216](tasks/2026-11-22-review-T211-T218.md#t-216) |
-| `tests/src/ui/cell_edit_event_tests.cpp` | [Т-140](tasks/2026-11-22-review-T139-T146.md#t-140) |
-| `tests/src/ui/data_grid_tests.cpp` | [Т-222](tasks/2026-11-22-review-T219-T226.md#t-222) |
-| `tests/src/ui/dock_tests.cpp` | [Т-224](tasks/2026-11-22-review-T219-T226.md#t-224) |
-| `tests/src/ui/document_tabs_tests.cpp` | [Т-224](tasks/2026-11-22-review-T219-T226.md#t-224) |
-| `tests/src/ui/grid_column_tests.cpp` | [Т-222](tasks/2026-11-22-review-T219-T226.md#t-222) |
-| `tests/src/ui/grid_edit_more_tests.cpp` | [Т-140](tasks/2026-11-22-review-T139-T146.md#t-140) |
-| `tests/src/ui/grid_edit_tests.cpp` | [Т-140](tasks/2026-11-22-review-T139-T146.md#t-140) |
-| `tests/src/ui/grid_layout_text_tests.cpp` | [Т-222](tasks/2026-11-22-review-T219-T226.md#t-222) |
-| `tests/src/ui/grid_review_tests.cpp` | [Т-223](tasks/2026-11-22-review-T219-T226.md#t-223) |
-| `tests/src/ui/shortcut_symbols_tests.cpp` | [Т-225](tasks/2026-11-22-review-T219-T226.md#t-225) |
-| `tests/src/ui/shortcut_tests.cpp` | [Т-225](tasks/2026-11-22-review-T219-T226.md#t-225) |
-| `tests/src/ui/splitter_tests.cpp` | [Т-224](tasks/2026-11-22-review-T219-T226.md#t-224) |
-| `tests/src/ui/status_bar_tests.cpp` | [Т-226](tasks/2026-11-22-review-T219-T226.md#t-226) |
-| `tests/src/ui/tool_bar_tests.cpp` | [Т-225](tasks/2026-11-22-review-T219-T226.md#t-225) |
-| `tests/src/ui/tree_grid_tests.cpp` | [Т-223](tasks/2026-11-22-review-T219-T226.md#t-223) |
-| `tests/src/ui/tree_view_tests.cpp` | [Т-223](tasks/2026-11-22-review-T219-T226.md#t-223) |
-| `tests/src/undo/undo_stack_tests.cpp` | [Т-227](tasks/2026-11-22-review-T227-T234.md#t-227) |
-| `tests/src/utils/file_system_edge_tests.cpp` | [Т-228](tasks/2026-11-22-review-T227-T234.md#t-228) |
-| `tests/src/utils/file_system_tests.cpp` | [Т-228](tasks/2026-11-22-review-T227-T234.md#t-228) |
-| `tests/src/utils/geometry_tests.cpp` | [Т-230](tasks/2026-11-22-review-T227-T234.md#t-230) |
-| `tests/src/utils/mapped_file_tests.cpp` | [Т-229](tasks/2026-11-22-review-T227-T234.md#t-229) |
-| `tests/src/utils/path_text_tests.cpp` | [Т-228](tasks/2026-11-22-review-T227-T234.md#t-228) |
-| `tests/src/utils/uri_list_tests.cpp` | [Т-229](tasks/2026-11-22-review-T227-T234.md#t-229) |
-| `tests/src/utils/utf8_png_tests.cpp` | [Т-230](tasks/2026-11-22-review-T227-T234.md#t-230) |
-| `tests/src/vector/vector_shape_tests.cpp` | [Т-232](tasks/2026-11-22-review-T227-T234.md#t-232) |
 
 </details>
 
-<details><summary>tools · 14</summary>
+<details><summary>Корень · 2</summary>
 
 | Файл | Задача |
 |---|---|
-| `tools/ci/annotate_log.sh` | [Т-114](tasks/2026-11-22-review-T107-T114.md#t-114) |
-| `tools/ci/gitverse_prepare.sh` | [Т-114](tasks/2026-11-22-review-T107-T114.md#t-114) |
-| `tools/embed/embed_main.cpp` | [Т-116](tasks/2026-11-22-review-T115-T122.md#t-116) |
-| `tools/rcc/rcc_main.cpp` | [Т-116](tasks/2026-11-22-review-T115-T122.md#t-116) |
-| `tools/release/build_linux.sh` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `tools/release/build_windows.sh` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `tools/release/github_assets.sh` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `tools/release/gitverse_release.ps1` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `tools/release/gitverse_release.sh` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `tools/release/lib/release_common.sh` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `tools/release/release_notes.sh` | [Т-115](tasks/2026-11-22-review-T115-T122.md#t-115) |
-| `tools/samples/make_notes.py` | [Т-116](tasks/2026-11-22-review-T115-T122.md#t-116) |
-| `tools/uia_scroll_check.ps1` | [Т-117](tasks/2026-11-22-review-T115-T122.md#t-117) |
-| `tools/uia_walk.ps1` | [Т-117](tasks/2026-11-22-review-T115-T122.md#t-117) |
-
-</details>
-
-<details><summary>Корень · 7</summary>
-
-| Файл | Задача |
-|---|---|
-| `.clang-tidy` | [Т-114](tasks/2026-11-22-review-T107-T114.md#t-114) |
 | `CMakeLists.txt` | [Т-48](tasks/2026-11-14-macos-core.md) |
-| `CONTRIBUTING.en.md` | [Т-124](tasks/2026-11-22-review-T123-T130.md#t-124) |
-| `CONTRIBUTING.md` | [Т-124](tasks/2026-11-22-review-T123-T130.md#t-124) |
 | `Makefile` | [Т-48](tasks/2026-11-14-macos-core.md) |
-| `README.en.md` | [Т-123](tasks/2026-11-22-review-T123-T130.md#t-123) |
-| `README.md` | [Т-123](tasks/2026-11-22-review-T123-T130.md#t-123) |
 
 </details>
 
-### Остальные отслеживаемые файлы
+### Файлы, исключённые при первоначальной инвентаризации
 
 Вне области чтения кода осталось 69 файлов среза.
 

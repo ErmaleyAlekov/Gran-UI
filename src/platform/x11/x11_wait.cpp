@@ -41,6 +41,12 @@ namespace gran::platform::x11
         {
             if (window->pending())
                 return;
+            if (window->_dnd.converting)
+            {
+                const std::chrono::duration<double> left = window->_dnd.deadline - std::chrono::steady_clock::now();
+                const double remaining = std::max(0.0, left.count());
+                timeout = timeout >= 0 ? std::min(timeout, remaining) : remaining;
+            }
             XFlush(window->_native.display);
             descriptors.push_back({ConnectionNumber(window->_native.display), POLLIN, 0});
         }

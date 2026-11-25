@@ -7,15 +7,22 @@ namespace gran::data
         // Узлы с глубиной меньше levels попадают в набор раскрытых / The nodes with a depth less than levels go into the expanded set
         void collectLevels(const TreeModel& tree, NodeId parent, std::size_t levels, std::unordered_set<NodeId>& result)
         {
-            if (levels == 0)
-                return;
-            for (std::size_t row = 0; row < tree.childCount(parent); ++row)
+            std::vector<std::pair<NodeId, std::size_t>> pending{{parent, levels}};
+            while (!pending.empty())
             {
-                NodeId child = tree.child(parent, row);
-                if (!tree.hasChildren(child))
+                const auto [current, remaining] = pending.back();
+                pending.pop_back();
+                if (current != parent)
+                    result.insert(current);
+                if (remaining == 0)
                     continue;
-                result.insert(child);
-                collectLevels(tree, child, levels - 1, result);
+                for (std::size_t row = tree.childCount(current); row > 0; --row)
+                {
+                    const auto child = tree.child(current, row - 1);
+                    if (!tree.hasChildren(child))
+                        continue;
+                    pending.emplace_back(child, remaining - 1);
+                }
             }
         }
     }
@@ -25,12 +32,12 @@ namespace gran::data
     {
         std::unordered_set<NodeId> expanded;
 
-        collectLevels(_tree, _tree.root(), levels, expanded);
+        collectLevels(*_tree, _tree->root(), levels, expanded);
         _expanded = expanded;
         for (NodeId node : expanded)
         {
-            if (_tree.contains(node) && _tree.lazy(node))
-                _tree.fetchChildren(node);
+            if (_tree->contains(node) && _tree->lazy(node))
+                _tree->fetchChildren(node);
         }
         refresh();
     }

@@ -38,6 +38,17 @@ namespace
         TEST_ASSERT(selection.isSelected(3)); // a3
         TEST_ASSERT(!selection.isSelected(2)); // a2
         TEST_ASSERT(selection.count() == 2);
+
+        for (auto restricted : {gran::data::SelectionMode::NONE, gran::data::SelectionMode::SINGLE})
+        {
+            selection.activate(1, false, false);
+            rows.collapse(0);
+            TEST_ASSERT(selection.count() == 0);
+            selection.setMode(restricted);
+            selection.setMode(mode);
+            rows.expand(0);
+            TEST_ASSERT(selection.count() == 0);
+        }
     }
 
     void testTreeSelectionClearDropsHidden()

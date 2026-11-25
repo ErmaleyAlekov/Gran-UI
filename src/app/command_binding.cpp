@@ -1,4 +1,5 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/ui/internal/preorder.hpp"
 
 namespace gran::app
 {
@@ -17,12 +18,12 @@ namespace gran::app
         // A walk with the list templates: the record copies are taken from a template already bound; only — this command only
         void bindTree(AppWindow& win, ui::Node& node, const std::string* only)
         {
-            if (!node.content.command.empty() && (only == nullptr || *only == node.content.command))
-                bindNode(win, node);
-            for (const std::unique_ptr<ui::Node>& child : node.children)
-                bindTree(win, *child, only);
-            if (node.itemTemplate)
-                bindTree(win, *node.itemTemplate, only);
+            ui::internal::Preorder traversal(node, true);
+            while (auto* current = traversal.next())
+            {
+                if (!current->content.command.empty() && (only == nullptr || *only == current->content.command))
+                    bindNode(win, *current);
+            }
         }
     }
 

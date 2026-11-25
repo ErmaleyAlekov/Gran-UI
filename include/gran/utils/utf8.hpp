@@ -13,11 +13,11 @@ namespace gran
     /*
     ** Следующий символ UTF-8 начиная с position; position сдвигается за него. Испорченная
     ** или избыточная последовательность и суррогаты дают U+FFFD и сдвиг на один байт —
-    ** разбор никогда не зацикливается и не выходит за строку.
+    ** разбор не выходит за строку. При position >= text.size() возвращается U+FFFD, позиция не меняется.
     **
     ** The next UTF-8 character starting at position; position moves past it. A broken
     ** or overlong sequence and surrogates give U+FFFD and a one byte move —
-    ** decoding never loops forever and never goes beyond the string.
+    ** decoding stays within the string. At position >= text.size(), it returns U+FFFD and leaves the position unchanged.
     */
     char32_t decodeUtf8(std::string_view text, std::size_t& position) noexcept;
 

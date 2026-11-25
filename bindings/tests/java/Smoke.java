@@ -26,6 +26,21 @@ public class Smoke {
         if (WINDOWS) return 1;
         return 3;
     }
+    private static void checkActiveDelivery(Application app) {
+        List<Integer> seen = new ArrayList<>();
+        long[] second = new long[1];
+        long first = app.listen("root", "snapshot", event -> {
+            seen.add(1);
+            if (seen.size() == 1) {
+                app.unlisten("root", second[0]);
+            }
+        });
+        second[0] = app.listen("root", "snapshot", event -> seen.add(2));
+        localStaticCheck(app.dispatch("root", "snapshot") && seen.equals(List.of(1, 2)));
+        localStaticCheck(app.dispatch("root", "snapshot") && seen.equals(List.of(1, 2, 1)));
+        app.unlisten("root", first);
+    }
+
     public static void main(String[] args) {
         if (args.length != 1) {
             System.err.println("Usage: java Smoke <library_absolute_path>");
@@ -40,6 +55,7 @@ public class Smoke {
             // Load XML UI definition
             String xml="<Window title=\"BindingsJava\"><Stack id=\"root\"><Button id=\"go\" text=\"Пуск 🌲\" onClick=\"business\"/><Text id=\"text\">Привет 🌲</Text></Stack></Window>";
             app.loadString(xml);
+            checkActiveDelivery(app);
 
             // Check if the application is still open
             localStaticCheck(app.read("text","text").equals("Привет 🌲"));

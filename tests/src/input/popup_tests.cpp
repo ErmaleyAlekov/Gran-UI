@@ -18,10 +18,13 @@ namespace
         {
             lastAction = name;
             actionCount++;
+            if (afterAction)
+                afterAction();
         }
 
         std::string lastAction;
         int actionCount = 0;
+        std::function<void()> afterAction;
     };
 
     class TextLocatorStub : public gran::input::TextLocator
@@ -92,7 +95,7 @@ namespace
     void testPopupNavigation()
     {
         auto doc = support::layoutMarkup(
-            "<Window><Stack><Button id=\"b\" text=\"x\" width=\"80\" height=\"30\"/><Text id=\"t\">hello world</Text><Popup id=\"p\"><MenuItem id=\"i1\" text=\"One\" onClick=\"one\"/><MenuItem id=\"i2\" text=\"Two\"/></Popup></Stack></Window>",
+            "<Window><Stack><Button id=\"b\" text=\"x\" width=\"80\" height=\"30\"/><Text id=\"t\">hello world</Text><Popup id=\"p\"><MenuItem id=\"i1\" text=\"One\" onClick=\"one\"/><MenuItem id=\"i2\" text=\"Two\"/></Popup><Popup id=\"next\"><MenuItem text=\"Next\"/></Popup></Stack></Window>",
             400, 300);
 
         auto* p = gran::ui::findNode(*doc.root, "p");
@@ -120,10 +123,13 @@ namespace
         TEST_ASSERT(router.focused() == gran::ui::findNode(*p, "i1"));
 
         event.key = gran::platform::Key::ENTER;
+        auto* next = gran::ui::findNode(*doc.root, "next");
+        sink.afterAction = [&router, next] { router.openPopup(*next, gran::Rect{}, false); };
         router.handle(event);
         TEST_ASSERT(sink.actionCount == 1);
         TEST_ASSERT(sink.lastAction == "one");
         TEST_ASSERT(p->visible == false);
+        TEST_ASSERT(next->visible && router.focused() == nullptr);
     }
 
     void testPopupClickOutside()

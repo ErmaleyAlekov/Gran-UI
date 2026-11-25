@@ -4,6 +4,24 @@
 
 namespace gran::data
 {
+    void TreeList::replaceSource(TreeModel& base)
+    {
+        if (_tree == &base)
+            return;
+        TreeList next(base);
+        _tree->unsubscribe(this);
+        _tree = &base;
+        const auto removed = _rows.size();
+        _rows.clear();
+        _expanded.clear();
+        _kept.clear();
+        notifyRemoved(0, removed);
+        notifySourceReplacement();
+        base.subscribe(this);
+        _rows.swap(next._rows);
+        notifyInserted(0, _rows.size());
+    }
+
     void TreeList::setSort(SortKeys keys)
     {
         _keys = std::move(keys);
@@ -34,9 +52,9 @@ namespace gran::data
         for (const auto& entry : _kept)
         {
             NodeId parent = 0;
-            if (entry.second && _tree.contains(entry.first))
-                parent = _tree.parent(entry.first);
-            if (parent != 0 && parent != _tree.root())
+            if (entry.second && _tree->contains(entry.first))
+                parent = _tree->parent(entry.first);
+            if (parent != 0 && parent != _tree->root())
                 _expanded.insert(parent);
         }
         refresh();

@@ -18,6 +18,8 @@ namespace gran
             case ui::ElementKind::CANVAS: case ui::ElementKind::BUTTON: case ui::ElementKind::POPUP:
             case ui::ElementKind::DIALOG:
                 return true;
+            case ui::ElementKind::SCROLL:
+                return node.children.empty();
             default:
                 return false;
             }
@@ -26,6 +28,7 @@ namespace gran
 
     data::ListModel& Application::model(const std::string& name)
     {
+        _state->lists.requirePublished(name);
         return _state->lists.model(name);
     }
 

@@ -24,6 +24,8 @@ namespace gran::input
     */
     void beginTextSelection(RouterState& state, ui::Node& node, const platform::Event& event)
     {
+        if (state.text == nullptr)
+            return;
         std::size_t offset = state.text->offsetAt(node, event.position);
         bool extend = (event.modifiers & platform::MODIFIER_SHIFT) != 0 && state.selection == &node;
 
@@ -40,7 +42,7 @@ namespace gran::input
     // Якорь остаётся, каретка — в точку под мышью / The anchor stays, the caret goes to the point under the mouse
     void dragTextSelection(RouterState& state, Vec2 point)
     {
-        if (state.selecting == nullptr)
+        if (state.selecting == nullptr || state.text == nullptr)
             return;
         internal::placeCaret(*state.selecting, state.text->offsetAt(*state.selecting, point), true);
     }

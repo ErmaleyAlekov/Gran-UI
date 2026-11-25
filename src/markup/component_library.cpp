@@ -111,6 +111,18 @@ namespace gran::markup::internal
         if (set->libraries.empty())
             return;
         compileComponentSchema(*set);
+        for (const ComponentSpec& component : set->components)
+        {
+            const ComponentLibrary& library = set->libraries[component.library];
+            try
+            {
+                validateDefaults(component, *set->schema, library.namespaceUri);
+            }
+            catch (const MarkupException& error)
+            {
+                rethrowInLibrary(error, library.path);
+            }
+        }
         checkSchema(*resources.getOwnerDocument(), set->schema);
         for (const ComponentLibrary& library : set->libraries)
         {

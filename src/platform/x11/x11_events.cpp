@@ -11,11 +11,13 @@ namespace gran::platform::x11
     // Only the UI thread reads Xlib; wake uses an independent pipe.
     bool X11Window::pollEvent(Event& event)
     {
+        expireDrop();
         while (_events.empty() && XPending(_native.display) != 0)
         {
             XEvent native{};
             XNextEvent(_native.display, &native);
             if (!XFilterEvent(&native, _native.window)) dispatch(native);
+            expireDrop();
         }
         if (_events.empty()) return false;
         event = _events.front(); _events.pop_front();

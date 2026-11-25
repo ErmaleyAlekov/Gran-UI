@@ -76,6 +76,8 @@ namespace gran::image::internal
                 return;
             }
             k += run;
+            if (k > scan.spectralEnd)
+                throwBadImage(*frame.source, "AC run");
             if ((symbol & 15) != 0)
                 block[JPEG_ZIGZAG[k]] = static_cast<std::int16_t>(
                     receiveExtend(reader, symbol & 15) * (1 << scan.approxLow));
@@ -113,6 +115,8 @@ namespace gran::image::internal
                 break;
             }
             k = skipZeros(block, reader, k, scan.spectralEnd, symbol >> 4, bit);
+            if (k > scan.spectralEnd)
+                throwBadImage(*frame.source, "AC run");
             if (value != 0)
                 block[JPEG_ZIGZAG[k]] = static_cast<std::int16_t>(value);
         }

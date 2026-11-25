@@ -16,7 +16,10 @@ namespace gran::log::internal
         {
             ssize_t written = ::write(fd, text, left);
             if (written <= 0)
+            {
+                posixCrash().textWriteFailed = true;
                 return;
+            }
             text += written;
             left -= static_cast<std::size_t>(written);
         }

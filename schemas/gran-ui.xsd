@@ -1429,8 +1429,8 @@
     <xs:attribute name="title" type="xs:string"/>
     <xs:attribute name="width" type="Track"/>
     <xs:attribute name="resizable" type="xs:boolean"/>
-    <xs:attribute name="minWidth" type="xs:decimal"/>
-    <xs:attribute name="maxWidth" type="xs:decimal"/>
+    <xs:attribute name="minWidth" type="NonNegativeNumber"/>
+    <xs:attribute name="maxWidth" type="NonNegativeNumber"/>
     <xs:attribute name="sortable" type="xs:boolean"/>
     <xs:attribute name="sortType" type="GridSortType"/>
     <xs:attribute name="editable" type="xs:boolean"/>

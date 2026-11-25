@@ -22,6 +22,12 @@ namespace gran
                     out += "&lt;";
                 else if (symbol == '"')
                     out += "&quot;";
+                else if (symbol == '\n')
+                    out += "&#10;";
+                else if (symbol == '\r')
+                    out += "&#13;";
+                else if (symbol == '\t')
+                    out += "&#9;";
                 else
                     out += symbol;
             }

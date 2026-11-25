@@ -1,5 +1,7 @@
 #include "gran/input/internal/text_cursor.hpp"
 
+#include <algorithm>
+
 namespace gran::input::internal
 {
     namespace
@@ -14,6 +16,7 @@ namespace gran::input::internal
     // Назад через байты продолжения / Backward through the continuation bytes
     std::size_t previousBoundary(const std::string& text, std::size_t position) noexcept
     {
+        position = std::min(position, text.size());
         if (position == 0)
             return 0;
         --position;

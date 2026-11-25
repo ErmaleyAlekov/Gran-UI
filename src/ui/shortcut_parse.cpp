@@ -63,6 +63,8 @@ namespace gran::ui
                 return platform::MODIFIER_SHIFT;
             if (sameName(name, "Alt"))
                 return platform::MODIFIER_ALT;
+            if (sameName(name, "Meta"))
+                return platform::MODIFIER_META;
             return 0;
         }
     }
@@ -92,6 +94,7 @@ namespace gran::ui
     // Пустой список (key="") допустим: у команды просто нет сочетания / An empty list (key="") is allowed: the command simply has no shortcut
     bool parseShortcuts(std::string_view list, std::vector<Shortcut>& result)
     {
+        std::vector<Shortcut> parsed;
         std::size_t start = list.find_first_not_of(" \t\r\n");
 
         while (start != std::string_view::npos)
@@ -100,11 +103,12 @@ namespace gran::ui
             Shortcut shortcut;
             if (!parseShortcut(list.substr(start, end - start), shortcut))
                 return false;
-            result.push_back(shortcut);
+            parsed.push_back(shortcut);
             if (end == std::string_view::npos)
                 break;
             start = list.find_first_not_of(" \t\r\n", end);
         }
+        result.insert(result.end(), parsed.begin(), parsed.end());
         return true;
     }
 }

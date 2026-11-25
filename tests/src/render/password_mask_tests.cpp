@@ -1,7 +1,10 @@
+#include "gran/core/gran_exception.hpp"
+#include <limits>
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
 #include "gran/ui/node.hpp"
 #include "gran/render/text_engine.hpp"
+#include "gran/render/internal/text_run_bounds.hpp"
 #include <string>
 
 namespace
@@ -15,6 +18,9 @@ namespace
 
         std::string displayed = gran::render::displayedText(node);
         TEST_ASSERT(displayed == std::string(gran::render::PASSWORD_MASK) + std::string(gran::render::PASSWORD_MASK) + std::string(gran::render::PASSWORD_MASK));
+        node.kind = gran::ui::ElementKind::TEXT_AREA;
+        TEST_ASSERT(gran::render::displayedText(node) == node.content.text);
+        TEST_ASSERT(gran::render::toDisplayOffset(node, 2) == 2);
     }
 
     void testToDisplayOffsetPassword()
@@ -69,6 +75,19 @@ namespace suites
 {
     void registerPasswordMaskTests(test::TestRunner& runner)
     {
+        runner.add("render: finite width has a distinct layout key", [] {
+            gran::text::TextStyle style;
+            TEST_ASSERT(gran::render::layoutKey("a", style, -1.0f / 64) !=
+                gran::render::layoutKey("a", style, std::numeric_limits<float>::infinity()));
+        });
+        runner.add("render: checks span byte offsets before addition", [] {
+            using gran::render::internal::textRunEnd;
+            TEST_ASSERT(textRunEnd(UINT32_MAX - 1, 1) == UINT32_MAX);
+            bool rejected = false;
+            try { textRunEnd(UINT32_MAX - 1, 2); }
+            catch (const gran::GranException& error) { rejected = error.getCode() == gran::ErrorCode::LIMIT_EXCEEDED; }
+            TEST_ASSERT(rejected);
+        });
         runner.add("render: displayedText password", testDisplayedTextPassword);
         runner.add("render: toDisplayOffset password", testToDisplayOffsetPassword);
         runner.add("render: toContentOffset password", testToContentOffsetPassword);

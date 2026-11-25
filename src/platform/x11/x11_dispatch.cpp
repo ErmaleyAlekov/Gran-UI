@@ -64,4 +64,10 @@ namespace gran::platform::x11
     {
         return _syncPending && _syncConfigured;
     }
+
+    std::uint64_t X11Window::frameRequest() const
+    {
+        return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(_syncHigh)) << 32) |
+            static_cast<std::uint32_t>(_syncLow);
+    }
 }

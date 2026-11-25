@@ -20,13 +20,18 @@ namespace gran::text
     {
         FontReader reader(_file->data(), _file->size());
         float value = 0.0f;
+        FontReader gpos(_file->data() + _tables.gpos.offset, _tables.gpos.length);
+        bool useKern = _pairSubtables.empty() || _damagedPairLookup;
 
-        for (std::uint32_t subtable : _pairSubtables)
+        for (std::size_t subtable : _pairSubtables)
         {
-            if (pairAdjustment(reader, subtable, left, right, value))
+            const auto result = pairAdjustment(gpos, subtable - _tables.gpos.offset, left, right, value);
+            if (result == PairResult::MATCH)
                 return value;
+            if (result == PairResult::DAMAGED)
+                useKern = true;
         }
-        if (_pairSubtables.empty() && _tables.kern.length > 0)
+        if (useKern && _tables.kern.length > 0)
             return kernTableValue(reader, _tables.kern, left, right);
         return 0.0f;
     }

@@ -41,8 +41,13 @@ namespace gran::text
     // Формат 1 — упорядоченный список глифов, формат 2 — диапазоны / Format 1 — an ordered glyph list, format 2 — ranges
     int coverageIndex(const FontReader& reader, std::size_t coverage, std::uint16_t glyph) noexcept
     {
+        if (!reader.contains(coverage, 4))
+            return -2;
         std::size_t count = reader.u16(coverage + 2);
         std::size_t record = 0;
+        const auto format = reader.u16(coverage);
+        if ((format != 1 && format != 2) || !reader.contains(coverage + 4, count * (format == 2 ? 6 : 2)))
+            return -2;
 
         if (reader.u16(coverage) == 2)
         {
@@ -68,16 +73,23 @@ namespace gran::text
 
     // Формат 1 — массив классов от startGlyph, формат 2 — диапазоны; вне описания — класс 0
     // Format 1 — a class array from startGlyph, format 2 — ranges; outside the description — class 0
-    std::uint16_t glyphClass(const FontReader& reader, std::size_t classDef, std::uint16_t glyph) noexcept
+    int glyphClass(const FontReader& reader, std::size_t classDef, std::uint16_t glyph) noexcept
     {
         std::size_t record = 0;
 
+        if (!reader.contains(classDef, 4))
+            return -1;
         if (reader.u16(classDef) == 2)
         {
+            if (!reader.contains(classDef + 4, reader.u16(classDef + 2) * 6u))
+                return -1;
             if (!findRange(reader, classDef + 4, reader.u16(classDef + 2), 6, glyph, record))
                 return 0;
             return reader.u16(record + 4);
         }
+        if (reader.u16(classDef) != 1 || !reader.contains(classDef, 6) ||
+            !reader.contains(classDef + 6, reader.u16(classDef + 4) * 2u))
+            return -1;
         std::uint16_t start = reader.u16(classDef + 2);
         if (glyph < start || glyph - start >= reader.u16(classDef + 4))
             return 0;

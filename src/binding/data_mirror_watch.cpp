@@ -1,27 +1,74 @@
 #include "gran/binding/internal/expression_binding.hpp"
 
 #include "beresta.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
 
 namespace gran::binding
 {
+    namespace
+    {
+        using Pending = std::map<std::string, const void*>;
+        struct Registration
+        {
+            Pending& pending;
+            Pending::iterator position;
+            ~Registration() { pending.erase(position); }
+        };
+
+        [[noreturn]] void duplicateName(const std::string& name)
+        {
+            throw GranException(ErrorCode::INVALID_ARGUMENT,
+                i18n::format(i18n::Message::DATA_MODEL_KIND, {name, "mirror"}));
+        }
+    }
+
+    template<class Slot, class Source>
+    void DataMirror::watchSource(const std::string& name, Source& source)
+    {
+        for (const auto& entry : _entries)
+        {
+            if (entry->name != name)
+                continue;
+            auto* slot = dynamic_cast<Slot*>(entry.get());
+            if (slot && slot->observes(source))
+                return;
+            duplicateName(name);
+        }
+        auto element = createElement(name);
+        if (!element)
+            return;
+        const auto pending = _registering.emplace(name, &source);
+        if (!pending.second)
+        {
+            if (pending.first->second == &source)
+                return;
+            duplicateName(name);
+        }
+        Registration registration{_registering, pending.first};
+        auto slot = std::make_unique<Slot>(name, source, *element);
+        _entries.reserve(_entries.size() + 1);
+        _document->getRoot()->appendChild(std::move(element));
+        _entries.push_back(std::move(slot));
+    }
+
+    void DataMirror::watch(const std::string& name, data::ListSource& model)
+    {
+        watchSource<MirrorEntry>(name, model);
+    }
+
     void DataMirror::watchTree(const std::string& name, data::TreeModel& tree)
     {
-        beresta::Element* element = createElement(name);
-
-        if (element != nullptr)
-            _entries.push_back(std::make_unique<TreeMirror>(name, tree, *element));
+        watchSource<TreeMirror>(name, tree);
     }
 
     void DataMirror::watchSelection(const std::string& name, data::SelectionModel& selection)
     {
-        beresta::Element* element = createElement(name);
-
-        if (element != nullptr)
-            _entries.push_back(std::make_unique<SelectionMirror>(name, selection, *element));
+        watchSource<SelectionMirror>(name, selection);
     }
 
     // Имя, негодное для элемента XML, «Берёста» отвергает исключением / A name unfit for an XML element is rejected by Beresta with an exception
-    beresta::Element* DataMirror::createElement(const std::string& name)
+    std::unique_ptr<beresta::Element> DataMirror::createElement(const std::string& name)
     {
         std::unique_ptr<beresta::Element> created;
 
@@ -33,9 +80,7 @@ namespace gran::binding
         {
             return nullptr;
         }
-        beresta::Element* element = created.get();
-        _document->getRoot()->appendChild(std::move(created));
-        return element;
+        return created;
     }
 
     void DataMirror::flush()

@@ -32,7 +32,8 @@ namespace gran::ui
         return shortcutText(shortcut, ShortcutStyle::TEXT);
     }
 
-    // Порядок модификаторов — Ctrl, Shift, Alt (как в меню Windows: Ctrl+Shift+S) / The modifier order is Ctrl, Shift, Alt (as in the Windows menus: Ctrl+Shift+S)
+    // Порядок текстовых названий — Ctrl, Shift, Alt, Meta.
+    // Text modifier names appear in the order Ctrl, Shift, Alt, Meta.
     std::string shortcutText(Shortcut shortcut, ShortcutStyle style)
     {
         std::string text;
@@ -46,6 +47,8 @@ namespace gran::ui
             text += "Shift+";
         if ((shortcut.modifiers & platform::MODIFIER_ALT) != 0)
             text += "Alt+";
+        if ((shortcut.modifiers & platform::MODIFIER_META) != 0)
+            text += "Meta+";
         text += labelName(shortcut.key);
         return text;
     }

@@ -18,11 +18,11 @@ namespace gran::log
     enum class Level : std::uint8_t { SEVERE, WARNING, INFO, VERBOSE };
 
     /*
-    ** Параметры журнала. appName — имя программы: каталог и имя файла. directory — свой каталог (UTF-8);
+    ** Параметры журнала. appName — имя программы без компонентов пути. directory — свой каталог (UTF-8);
     ** пусто — по умолчанию (defaultDirectory). Файл больше maxBytes переименовывается в .1.log (старые сдвигаются),
     ** хранится files файлов. Записи ниже level не пишутся.
     **
-    ** The log parameters. appName is the program name: the directory and the file name. directory is a custom directory (UTF-8);
+    ** The log parameters. appName is the program name without path components. directory is a custom directory (UTF-8);
     ** empty — the default one (defaultDirectory). A file larger than maxBytes is renamed into .1.log (the old ones shift),
     ** files files are kept. Records below level are not written.
     */
@@ -74,9 +74,11 @@ namespace gran::log
     /*
     ** Последние записи из кольца в buffer (не больше size байт, по порядку, без завершающего нуля); число байт.
     ** Без выделения памяти и без замка: её вызывает обработчик сбоя, когда другой поток мог держать замок.
+    ** Параллельная запись может изменить копируемые байты.
     **
     ** The latest records from the ring into buffer (at most size bytes, in order, without a terminating zero); the byte count.
     ** Without memory allocation and without the lock: the crash handler calls it when another thread could hold the lock.
+    ** A concurrent write may change the bytes being copied.
     */
     std::size_t copyRecent(char* buffer, std::size_t size) noexcept;
 

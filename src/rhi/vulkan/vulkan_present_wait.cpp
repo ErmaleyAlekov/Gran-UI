@@ -88,27 +88,46 @@ namespace gran::rhi::vk
 #endif
     }
 
-    /*
-    ** Ждёт, пока последний показанный кадр окажется в окне (не дольше PRESENT_WAIT_TIMEOUT). Таймаут, устаревшая
-    ** цепочка и потеря поверхности — не ошибка: ответ менеджеру уйдёт как раньше, а потерю устройства увидит
-    ** следующий кадр.
-    **
-    ** Waits until the last presented frame is in the window (not longer than PRESENT_WAIT_TIMEOUT). A timeout, an
-    ** out-of-date chain and a lost surface are not errors: the answer to the manager goes as before, and the next
-    ** frame sees a device loss.
-    */
+    RenderBackend::Presentation VulkanBackend::pollPresentation(std::uint64_t id)
+    {
+#if defined(VK_KHR_present_wait)
+        if (!_presentWait || id == 0 || id < _firstPresentId || id > _presentId || !_swapchain.get())
+            return Presentation::RETRY_FRAME;
+        auto wait = reinterpret_cast<PFN_vkWaitForPresentKHR>(_waitForPresent);
+        const VkResult result = wait(_device.get(), _swapchain.get(), id, 0);
+        if (result == VK_TIMEOUT)
+            return Presentation::PENDING;
+        if (result == VK_SUBOPTIMAL_KHR)
+        {
+            _recreate = true;
+            return Presentation::SHOWN;
+        }
+        if (result == VK_ERROR_DEVICE_LOST || result == VK_ERROR_SURFACE_LOST_KHR)
+            return Presentation::DEVICE_LOST;
+        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            _recreate = true;
+            return Presentation::RETRY_FRAME;
+        }
+        GRAN_CHECK_VK(result);
+        return Presentation::SHOWN;
+#else
+        (void)id;
+        return Presentation::RETRY_FRAME;
+#endif
+    }
+
     void VulkanBackend::waitPresented()
     {
 #if defined(VK_KHR_present_wait)
-        if (!_presentWait || _waitId == 0 || _swapchain.get() == VK_NULL_HANDLE)
-            return;
-        auto wait = reinterpret_cast<PFN_vkWaitForPresentKHR>(_waitForPresent);
-        VkResult result = wait(_device.get(), _swapchain.get(), _waitId, PRESENT_WAIT_TIMEOUT);
-        _waitId = 0;
-        if (result == VK_TIMEOUT || result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR
-            || result == VK_ERROR_SURFACE_LOST_KHR || result == VK_ERROR_DEVICE_LOST)
-            return;
-        GRAN_CHECK_VK(result);
+        if (_waitId && _presentWait && _swapchain.get())
+        {
+            auto wait = reinterpret_cast<PFN_vkWaitForPresentKHR>(_waitForPresent);
+            const auto result = wait(_device.get(), _swapchain.get(), _waitId, PRESENT_WAIT_TIMEOUT);
+            if (result != VK_TIMEOUT && result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_ERROR_SURFACE_LOST_KHR &&
+                result != VK_ERROR_DEVICE_LOST && result != VK_SUBOPTIMAL_KHR)
+                GRAN_CHECK_VK(result);
+        }
 #endif
     }
 }

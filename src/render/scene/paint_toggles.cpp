@@ -57,20 +57,21 @@ namespace gran::render::internal
     {
         const style::ComputedStyle& style = node.computed;
         Rect box = contentRect(node);
-        float height = std::round(style.fontSize * 1.15f);
+        float height = std::max(1.0f, std::round(style.fontSize * 1.15f));
         float width = std::round(height * 1.8f);
-        float knob = height - 4.0f;
+        float inset = std::min(2.0f, (height - 1.0f) * 0.5f);
+        float knob = height - 2.0f * inset;
         Rect track{box.x, box.y + std::round((box.height - height) * 0.5f), width, height};
         Color fill = colorWithOpacity(style.color, 0.25f);
-        float knobX = track.x + 2.0f;
+        float knobX = track.x + inset;
 
         if (node.content.checked)
         {
             fill = style.accentColor;
-            knobX = track.x + width - 2.0f - knob;
+            knobX = track.x + width - inset - knob;
         }
         emitBox(ControlBox{track, height * 0.5f, fill, Color{}, 0.0f}, 0.0f, state, context);
-        emitBox(ControlBox{Rect{knobX, track.y + 2.0f, knob, knob}, knob * 0.5f, Color{1.0f, 1.0f, 1.0f, 1.0f}, Color{}, 0.0f},
+        emitBox(ControlBox{Rect{knobX, track.y + inset, knob, knob}, knob * 0.5f, Color{1.0f, 1.0f, 1.0f, 1.0f}, Color{}, 0.0f},
             2.0f, state, context);
         paintToggleLabel(node, width, state, context);
     }

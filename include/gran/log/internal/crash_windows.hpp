@@ -36,6 +36,8 @@ namespace gran::log::internal
         DWORD threadId = 0;
         char message[512] = {};
         volatile LONG busy = 0;
+        // Только поток записи отчёта / Accessed only by the report writer
+        bool textWriteFailed = false;
         bool installed = false;
     };
 
@@ -45,6 +47,7 @@ namespace gran::log::internal
     CrashState& crashState() noexcept;
 
     // Фильтр необработанных исключений: отчёт пишет поток-помощник, затем процесс завершается / The unhandled exception filter: the helper thread writes the report, then the process ends
+    LONG submitCrash(EXCEPTION_POINTERS* pointers, const char* message);
     LONG WINAPI crashFilter(EXCEPTION_POINTERS* pointers);
 
     // ---- crash_windows_hooks.cpp ----

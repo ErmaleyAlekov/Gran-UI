@@ -7,6 +7,8 @@
 #include <memory>
 #include <unordered_map>
 
+namespace gran::binding { class ReloadCheckpoint; }
+
 namespace gran::data
 {
     // Стабильный номер узла дерева: не меняется при вставках, удалениях и перемещениях; 0 — нет узла
@@ -123,6 +125,9 @@ namespace gran::data
         */
         void appendItems(NodeId parent, std::vector<TreeItem> items);
 
+        // Подготовить новые поддеревья до удаления прежних / Prepare new subtrees before removing the old ones
+        void replaceItems(std::vector<TreeItem> items);
+
         // ---- tree_model_move.cpp ----
 
         // Перенести узел к newParent на место row (в новом порядке); в своё поддерево — ошибка / Move a node to newParent at row (in the new order); into its own subtree — an error
@@ -148,6 +153,7 @@ namespace gran::data
         bool subscribed(const TreeObserver* observer) const noexcept;
 
     private:
+        friend class gran::binding::ReloadCheckpoint;
         // Узел хранилища / A storage node
         struct Node
         {

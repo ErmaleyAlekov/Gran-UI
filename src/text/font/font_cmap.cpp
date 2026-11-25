@@ -11,7 +11,7 @@ namespace gran::text
     ** The glyph: with idRangeOffset = 0 — (character + idDelta) mod 65536, otherwise from glyphIdArray
     ** at an address relative to the idRangeOffset field itself (a format quirk).
     */
-    std::uint16_t cmapFormat4(const FontReader& reader, std::uint32_t subtable, char32_t symbol) noexcept
+    std::uint16_t cmapFormat4(const FontReader& reader, std::size_t subtable, char32_t symbol) noexcept
     {
         std::size_t segments = reader.u16(subtable + 6) / 2;
         std::size_t ends = subtable + 14;
@@ -36,7 +36,11 @@ namespace gran::text
         std::uint16_t range = reader.u16(rangeField);
         if (range == 0)
             return static_cast<std::uint16_t>(symbol + delta);
-        std::uint16_t glyph = reader.u16(rangeField + range + (symbol - reader.u16(starts + low * 2)) * 2);
+        const auto deltaBytes = range + (symbol - reader.u16(starts + low * 2)) * 2;
+        const auto length = reader.u16(subtable + 2);
+        if (rangeField - subtable + deltaBytes + 2 > length)
+            return 0;
+        std::uint16_t glyph = reader.u16(rangeField + deltaBytes);
         if (glyph == 0)
             return 0;
         return static_cast<std::uint16_t>(glyph + delta);
@@ -44,7 +48,7 @@ namespace gran::text
 
     // Формат 12: группы [start, end] → startGlyph + (символ − start), поиск двоичный
     // Format 12: the groups [start, end] → startGlyph + (character − start), a binary search
-    std::uint16_t cmapFormat12(const FontReader& reader, std::uint32_t subtable, char32_t symbol) noexcept
+    std::uint16_t cmapFormat12(const FontReader& reader, std::size_t subtable, char32_t symbol) noexcept
     {
         std::size_t low = 0;
         std::size_t high = reader.u32(subtable + 12);
@@ -58,7 +62,10 @@ namespace gran::text
             else if (reader.u32(group) > symbol)
                 high = middle;
             else
-                return static_cast<std::uint16_t>(reader.u32(group + 8) + (symbol - reader.u32(group)));
+            {
+                const std::uint64_t glyph = static_cast<std::uint64_t>(reader.u32(group + 8)) + (symbol - reader.u32(group));
+                return glyph <= UINT16_MAX ? static_cast<std::uint16_t>(glyph) : 0;
+            }
         }
         return 0;
     }

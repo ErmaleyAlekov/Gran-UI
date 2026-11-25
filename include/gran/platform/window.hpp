@@ -69,13 +69,13 @@ namespace gran::platform
     /*
     ** Модификаторы клавиатуры (биты). MODIFIER_CONTROL — это «Mod», основной модификатор сочетаний: Ctrl в Windows
     ** и Linux, Cmd на macOS (как Qt::ControlModifier). Поэтому Ctrl+C в общем коде на macOS — это Cmd+C без
-    ** единой ветки по ОС. MODIFIER_ALT — Alt, на macOS Option. MODIFIER_META — клавиша Win/Super, а на macOS —
-    ** физический Control; общий код её не использует, сочетания с ней не совпадают с командами.
+    ** единой ветки по ОС. MODIFIER_ALT — Alt, на macOS Option. Явный модификатор команд Meta обозначает
+    ** MODIFIER_META: клавишу Windows, Super на X11 и физическую Control на macOS.
     **
     ** The keyboard modifiers (bits). MODIFIER_CONTROL is "Mod", the primary shortcut modifier: Ctrl on Windows
     ** and Linux, Cmd on macOS (as Qt::ControlModifier). So Ctrl+C in the common code is Cmd+C on macOS without
-    ** a single branch by the OS. MODIFIER_ALT is Alt, Option on macOS. MODIFIER_META is the Win/Super key, and on macOS
-    ** the physical Control; the common code does not use it, chords with it do not match the commands.
+    ** a single branch by the OS. MODIFIER_ALT is Alt, Option on macOS. The explicit Meta command modifier designates
+    ** MODIFIER_META: the Windows key, Super on X11, or physical Control on macOS.
     */
     enum Modifier : std::uint8_t
     {
@@ -281,6 +281,8 @@ namespace gran::platform
         // Whether the window manager waits for this frame (then before framePresented its display is worth waiting
         // for — RenderBackend::waitPresented, T-24); no by default
         virtual bool waitsForFrame() const;
+        virtual std::uint64_t frameRequest() const { return 0; }
+        virtual void enableFrameRequests(bool) {}
 
         // Просит ли ОС подчёркивать буквы доступа всегда, а не только по Alt (Windows: «Подчёркивать клавиши доступа»);
         // по умолчанию (window_defaults.cpp) — нет

@@ -34,6 +34,13 @@ namespace
     // Тесты для parseTransitions
     void testParseTransitions()
     {
+        const auto transition = gran::style::parseTransitions("opacity .5s -200ms").at(0);
+        TEST_ASSERT_NEAR(transition.duration, 0.5f, 0.0001f);
+        TEST_ASSERT_NEAR(transition.delay, -0.2f, 0.0001f);
+        const auto animation = gran::style::parseAnimations("fade .5s -200ms").at(0);
+        TEST_ASSERT_NEAR(animation.delay, -0.2f, 0.0001f);
+        for (const auto input : {"opacity ease", "opacity 1s ease linear", "opacity -.5s", "opacity 1s 2s 3s"})
+            TEST_ASSERT_THROWS(gran::style::parseTransitions(input), gran::GranException);
         auto transitions = gran::style::parseTransitions("background 0.2s ease, opacity 150ms linear 50ms");
         TEST_ASSERT(transitions.size() == 2);
 

@@ -48,8 +48,7 @@ namespace gran::platform::x11
             SyncDestroy destroy = nullptr;
         };
 
-        // Библиотека не выгружается: её функции нужны до конца процесса
-        // The library is never unloaded: its functions are needed until the process ends
+        // Библиотека с полным API нужна до конца процесса / The library with the complete API is needed until process exit
         SyncApi loadSync()
         {
             SyncApi api;
@@ -64,7 +63,10 @@ namespace gran::platform::x11
             api.destroy = reinterpret_cast<SyncDestroy>(dlsym(library, "XSyncDestroyCounter"));
             if (api.query == nullptr || api.initialize == nullptr || api.create == nullptr || api.set == nullptr
                 || api.destroy == nullptr)
+            {
+                dlclose(library);
                 return SyncApi{};
+            }
             return api;
         }
 
@@ -87,6 +89,11 @@ namespace gran::platform::x11
     */
     void X11Window::protocols()
     {
+        enableFrameRequests(false);
+    }
+
+    void X11Window::enableFrameRequests(bool enabled)
+    {
         Atom names[2] = {atom("WM_DELETE_WINDOW"), atom("_NET_WM_SYNC_REQUEST")};
         const SyncApi& api = syncApi();
         int events = 0;
@@ -94,6 +101,17 @@ namespace gran::platform::x11
         int major = 3;
         int minor = 1;
 
+        if (!enabled)
+        {
+            _syncPending = _syncConfigured = false;
+            XSetWMProtocols(_native.display, _native.window, names, 1);
+            XDeleteProperty(_native.display, _native.window, atom("_NET_WM_SYNC_REQUEST_COUNTER"));
+            destroySync();
+            XFlush(_native.display);
+            return;
+        }
+        if (_syncCounter != 0)
+            return;
         if (api.create != nullptr && api.query(_native.display, &events, &errors) != 0
             && api.initialize(_native.display, &major, &minor) != 0)
             _syncCounter = api.create(_native.display, SyncValue{0, 0});

@@ -86,6 +86,7 @@ namespace gran::render
     ** are in display bytes; the conversions are toDisplayOffset and toContentOffset (text_mask.cpp).
     */
     std::string displayedText(const ui::Node& node);
+    bool isPasswordMasked(const ui::Node& node) noexcept;
 
     // ---- text_mask.cpp ----
 

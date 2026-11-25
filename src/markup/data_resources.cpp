@@ -71,7 +71,7 @@ namespace gran::markup::internal
             if (const std::string* filter = findAttribute(element, "filter"))
                 set.filter = *filter;
             if (expanded != nullptr)
-                set.expanded = static_cast<std::size_t>(std::strtoul(expanded->c_str(), nullptr, 10));
+                set.expanded = readCount(element, "expanded", *expanded);
             set.mode = selectionMode(findAttribute(element, "mode"));
         }
     }

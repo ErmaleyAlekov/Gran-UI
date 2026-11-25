@@ -61,6 +61,8 @@ namespace gran::app
     */
     bool updateTooltip(AppWindow& win, double time)
     {
+        if (!win.router)
+            return false;
         const ui::Node* source = tooltipSource(win.router->hovered());
         bool shown = win.tooltipShown;
 

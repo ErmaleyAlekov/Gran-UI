@@ -29,12 +29,18 @@ namespace gran::input
         // Видимые и включённые элементы, принимающие фокус, в порядке дерева / The visible and enabled focusable controls in tree order
         void collectFocusable(ui::Node& node, std::vector<ui::Node*>& result)
         {
-            if (!node.visible || !node.enabled)
-                return;
-            if (focusable(node))
-                result.push_back(&node);
-            for (const std::unique_ptr<ui::Node>& child : node.children)
-                collectFocusable(*child, result);
+            std::vector<ui::Node*> pending{&node};
+            while (!pending.empty())
+            {
+                auto* current = pending.back();
+                pending.pop_back();
+                if (!current->visible || !current->enabled)
+                    continue;
+                if (focusable(*current))
+                    result.push_back(current);
+                for (auto child = current->children.rbegin(); child != current->children.rend(); ++child)
+                    pending.push_back(child->get());
+            }
         }
     }
 

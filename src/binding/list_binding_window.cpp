@@ -65,7 +65,7 @@ namespace gran::binding
         measureItems(horizontal);
         if (_extents.estimate() <= 0.0f)
             return false;
-        float start = contentSpan(_container, horizontal).start;
+        float start = rowStart(horizontal);
         Span view = viewportSpan(_container, horizontal);
         float shift = anchorShift(start, view.start, view.start + view.size, horizontal);
         bool anchored = anchorScroll(shift, horizontal);

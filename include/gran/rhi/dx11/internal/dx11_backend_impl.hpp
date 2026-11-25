@@ -80,7 +80,8 @@ namespace gran::rhi::dx11
         HRESULT tryDevice(IDXGIAdapter* adapter, D3D_DRIVER_TYPE type, UINT flags);
         void createPipeline();
         void createStates();
-        void createSurface();
+        void createSurface(std::uint32_t width, std::uint32_t height);
+        void requireSurface() const;
         void waitIdle();
         void upload(StructuredBuffer& buffer, const void* data, UINT count, UINT stride);
         void validate(const FrameData& frame) const;

@@ -51,6 +51,8 @@ namespace snapshot
         float* dimensions[] = {&args.width, &args.height, &args.scale};
         unsigned count = 0;
 
+        if (argc < 3 || backendKey(argv[1], args) || backendKey(argv[2], args))
+            throw gran::GranException(gran::ErrorCode::INVALID_ARGUMENT, "gran_snapshot <markup.xml> <frame.png>");
         args.markup = argv[1];
         args.output = argv[2];
         for (int index = 3; index < argc; ++index)

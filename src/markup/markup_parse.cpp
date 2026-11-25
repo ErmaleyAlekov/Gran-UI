@@ -12,11 +12,12 @@ namespace gran::markup::internal
     namespace
     {
         // Разбор со схемой и всеми ошибками сразу / Parsing with the schema and all errors at once
-        beresta::ParserOptions parserOptions(beresta::CollectingErrorHandler& handler)
+        beresta::ParserOptions parserOptions(beresta::CollectingErrorHandler& handler,
+            const std::shared_ptr<const beresta::xsd::Schema>& schema)
         {
             beresta::ParserOptions options;
 
-            options.schema = markupSchema();
+            options.schema = schema;
             options.trackLocations = true;
             options.errorHandler = &handler;
             options.maxDepth = 256;
@@ -50,14 +51,14 @@ namespace gran::markup::internal
 
     // Текст: синтаксическая ошибка XML (фатальная) → MarkupException
     // A text: a fatal XML syntax error → MarkupException
-    beresta::Document parseMarkupText(std::string_view text)
+    beresta::Document parseMarkupText(std::string_view text, const std::shared_ptr<const beresta::xsd::Schema>& schema)
     {
         beresta::CollectingErrorHandler handler;
         beresta::Document dom;
 
         try
         {
-            dom = beresta::XmlParser(parserOptions(handler)).parse(text);
+            dom = beresta::XmlParser(parserOptions(handler, schema)).parse(text);
         }
         catch (const beresta::ParseException& error)
         {
@@ -81,7 +82,7 @@ namespace gran::markup::internal
         {
             // API «Берёсты» принимает std::filesystem::path: u8path сохраняет UTF-8 и на Windows (не ANSI)
             // The Beresta API takes std::filesystem::path: u8path keeps UTF-8 on Windows as well (not ANSI)
-            dom = beresta::XmlParser(parserOptions(handler)).parseFile(std::filesystem::u8path(path));
+            dom = beresta::XmlParser(parserOptions(handler, markupSchema())).parseFile(std::filesystem::u8path(path));
         }
         catch (const beresta::ParseException& error)
         {

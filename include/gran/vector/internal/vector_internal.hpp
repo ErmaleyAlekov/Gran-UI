@@ -64,13 +64,14 @@ namespace gran::vector::internal
 
     // Точка «x y»; relative — от текущей точки / A point "x y"; relative — from the current point
     Vec2 readPoint(const PathBuilder& builder, PathScanner& scanner, bool relative);
+    float pathCoordinate(double value, const PathScanner& scanner);
 
     // Шаг контура с точками / A contour step with points
     void addVerb(PathBuilder& builder, Verb verb, const Vec2* points, std::size_t count);
 
     // Отражённая контрольная точка для S/T: прошлая кривая того же вида — отражение, иначе текущая точка
     // The reflected control point for S/T: a previous curve of the same kind — the reflection, otherwise the current point
-    Vec2 reflectedControl(const PathBuilder& builder, Verb kind) noexcept;
+    Vec2 reflectedControl(const PathBuilder& builder, Verb kind, const PathScanner& scanner);
 
     // ---- path_commands.cpp ----
 
@@ -88,7 +89,7 @@ namespace gran::vector::internal
     // ---- path_arc.cpp ----
 
     // Дуга от текущей точки в кубические кривые (SVG 1.1, приложение F.6) / An arc from the current point into cubic curves (SVG 1.1, appendix F.6)
-    void addArc(PathBuilder& builder, const ArcSpec& arc);
+    void addArc(PathBuilder& builder, const ArcSpec& arc, const PathScanner& scanner);
 
     // ---- svg_elements.cpp ----
 

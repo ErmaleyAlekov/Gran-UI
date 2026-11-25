@@ -55,7 +55,7 @@ namespace gran::style
         */
         void readToken(std::string_view token, int& times, AnimationSpec& spec, std::string_view part)
         {
-            bool numeric = (token[0] >= '0' && token[0] <= '9') || token[0] == '.';
+            bool numeric = (token[0] >= '0' && token[0] <= '9') || token[0] == '.' || token[0] == '-' || token[0] == '+';
 
             if (numeric && (token.back() == 's' || token.back() == 'S'))
             {
@@ -64,7 +64,7 @@ namespace gran::style
                 if (times == 0)
                     spec.duration = parseDuration(token);
                 else
-                    spec.delay = parseDuration(token);
+                    spec.delay = internal::parseTime(token, true);
                 ++times;
             }
             else if (numeric)

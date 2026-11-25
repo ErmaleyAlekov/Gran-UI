@@ -14,11 +14,17 @@ namespace gran::platform::win32
     void Win32Window::setCursor(CursorShape shape)
     {
         static const LPCWSTR CURSORS[] = {IDC_ARROW, IDC_HAND, IDC_IBEAM, IDC_SIZEALL, IDC_NO, IDC_HAND, IDC_SIZEWE, IDC_SIZENS};
+        std::size_t index = static_cast<std::size_t>(shape);
 
+        if (index >= sizeof(CURSORS) / sizeof(CURSORS[0]))
+        {
+            shape = CursorShape::ARROW;
+            index = static_cast<std::size_t>(shape);
+        }
         cursor = shape;
         if (cursorArea != HTCLIENT)
             return;
-        SetCursor(LoadCursorW(nullptr, CURSORS[static_cast<std::size_t>(shape)]));
+        SetCursor(LoadCursorW(nullptr, CURSORS[index]));
     }
 
     /*

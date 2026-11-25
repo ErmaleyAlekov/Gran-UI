@@ -51,6 +51,37 @@ namespace gran::layout::internal
                     sizes[index] += excess / static_cast<float>(autos.size());
             }
         }
+
+        // При измерении охватывающий элемент задаёт долю после вычета промежутков и негибких дорожек.
+        // During intrinsic measurement a spanning item determines a fraction after gaps and rigid tracks.
+        void includeSpanningFractions(const std::vector<float>& sizes, const std::vector<style::GridTrack>& tracks,
+            const std::vector<GridContribution>& contributions, float gap, std::vector<float>& content)
+        {
+            double unit = 0.0;
+            for (const auto& item : contributions)
+            {
+                if (item.span < 2)
+                    continue;
+                double room = item.size - gap * static_cast<double>(item.span - 1);
+                double fractions = 0.0;
+                for (std::size_t index = item.first; index < item.first + item.span; ++index)
+                {
+                    const auto bound = trackAt(tracks, index).max;
+                    if (bound.kind == TrackBoundKind::FRACTION && bound.value > 0.0f)
+                        fractions += bound.value;
+                    else
+                        room -= sizes[index];
+                }
+                if (fractions > 0.0)
+                    unit = std::max(unit, room / fractions);
+            }
+            for (std::size_t index = 0; index < content.size(); ++index)
+            {
+                const auto bound = trackAt(tracks, index).max;
+                if (bound.kind == TrackBoundKind::FRACTION && bound.value > 0.0f)
+                    content[index] = std::max(content[index], static_cast<float>(unit * bound.value));
+            }
+        }
     }
 
     // Размеры дорожек по шагам: вклады с охватом 1, негибкие, охватывающие, доли
@@ -70,6 +101,8 @@ namespace gran::layout::internal
         for (std::size_t index = 0; index < count; ++index)
             sizes[index] = fixedPart(trackAt(tracks, index), content[index]);
         distributeSpanning(sizes, tracks, contributions, gap);
+        if (!std::isfinite(available))
+            includeSpanningFractions(sizes, tracks, contributions, gap, content);
         resolveFractions(sizes, tracks, content, available - gap * static_cast<float>(count - 1));
         return sizes;
     }

@@ -1,6 +1,7 @@
 #include "gran/settings/settings.hpp"
 
 #include <cstdio>
+#include <cmath>
 
 namespace gran::settings
 {
@@ -16,6 +17,8 @@ namespace gran::settings
     {
         char text[40];
 
+        if (!std::isfinite(value))
+            return;
         std::snprintf(text, sizeof(text), "%.17g", value);
         _model.values[name] = Value{ValueType::NUMBER, text, {}};
         _modified = true;

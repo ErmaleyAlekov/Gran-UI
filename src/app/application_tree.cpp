@@ -19,8 +19,10 @@ namespace gran
     */
     ui::Node& Application::append(ui::Node& parent, std::unique_ptr<ui::Node> child)
     {
+        _state->lists.requireStableDocument();
         ui::Node& added = ui::appendChild(parent, std::move(child));
 
+        added.appendedByApplication = added.domElement == nullptr;
         ui::markDirty(added, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         app::bindCommands(app::windowOf(*_state, added), added);
         _state->lists.bind(added);
@@ -32,6 +34,7 @@ namespace gran
     // The root cannot be removed: it has no parent that would own it; the markup element leaves the live DOM together with the node
     void Application::remove(ui::Node& node)
     {
+        _state->lists.requireStableDocument();
         if (node.parent == nullptr)
             throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::APP_REMOVE_ROOT));
         // Страница вкладок уходит вместе со своим заголовком, выбор — на соседнюю (закрытие вкладки документа)

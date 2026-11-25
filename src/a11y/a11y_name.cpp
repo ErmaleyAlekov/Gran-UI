@@ -1,5 +1,6 @@
 #include "gran/a11y/access_tree.hpp"
 #include "gran/core/i18n.hpp"
+#include <vector>
 
 namespace gran::a11y
 {
@@ -21,17 +22,29 @@ namespace gran::a11y
             return i18n::format(Message::WINDOW_MAXIMIZE);
         }
 
-        // Тексты потомков через пробел (подпись кнопки из детей: значок + Text) / The descendant texts separated by spaces (a button label from its children: an icon + a Text)
+        // Обратный порядок сохраняет порядок чтения при извлечении из стека.
+        // Reverse insertion preserves reading order when popping the stack.
+        void pushChildren(const ui::Node& node, std::vector<const ui::Node*>& pending)
+        {
+            for (auto it = node.children.rbegin(); it != node.children.rend(); ++it)
+                pending.push_back(it->get());
+        }
+
+        // Тексты потомков через пробел / Descendant texts separated by spaces
         void appendTexts(const ui::Node& node, std::string& out)
         {
-            for (const std::unique_ptr<ui::Node>& child : node.children)
+            std::vector<const ui::Node*> pending;
+            pushChildren(node, pending);
+            while (!pending.empty())
             {
+                const auto* child = pending.back();
+                pending.pop_back();
                 if (!child->visible || hiddenText(*child))
                     continue;
                 if (!child->content.text.empty() && !out.empty())
                     out += ' ';
                 out += child->content.text;
-                appendTexts(*child, out);
+                pushChildren(*child, pending);
             }
         }
 
@@ -63,14 +76,21 @@ namespace gran::a11y
                 return text;
             while (top->parent != nullptr)
                 top = top->parent;
-            // findNode только читает дерево; неконстантная сигнатура — ради вызывающих, которые меняют найденное
-            // findNode only reads the tree; the non-const signature is for the callers that change the found node
-            const ui::Node* label = ui::findNode(const_cast<ui::Node&>(*top), node.content.labeledBy);
-            if (label == nullptr || label == &node)
-                return text;
-            text = label->content.text;
-            if (text.empty())
-                appendTexts(*label, text);
+            std::vector<const ui::Node*> pending{top};
+            while (!pending.empty())
+            {
+                const auto* label = pending.back();
+                pending.pop_back();
+                if (label->id != node.content.labeledBy)
+                    pushChildren(*label, pending);
+                else
+                {
+                    if (label == &node) break;
+                    text = label->content.text;
+                    if (text.empty()) appendTexts(*label, text);
+                    break;
+                }
+            }
             return text;
         }
     }

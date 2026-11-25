@@ -5,6 +5,8 @@
 
 #include <memory>
 
+namespace gran::binding { class ListBindings; class ReloadCheckpoint; }
+
 namespace gran::data
 {
     /*
@@ -73,6 +75,10 @@ namespace gran::data
         const std::shared_ptr<RecordFilter>& filter() const noexcept;
 
     private:
+        friend class gran::binding::ListBindings;
+        friend class gran::binding::ReloadCheckpoint;
+        void replaceSource(ListSource& base);
+        void disconnect() noexcept;
         // ---- sort_filter_events.cpp ----
         void inserted(std::size_t index, std::size_t count) override;
         void removed(std::size_t index, std::size_t count) override;
@@ -116,7 +122,7 @@ namespace gran::data
         // Обратная таблица источник → прокси (пересчитывается лениво) / The reverse table source → proxy (recomputed lazily)
         const std::vector<std::size_t>& reverse() const;
 
-        ListSource& _source;
+        ListSource* _source;
         SortKeys _keys;
         std::shared_ptr<RecordFilter> _filter;
         // Номера записей источника в порядке прокси / The source record indices in the proxy order

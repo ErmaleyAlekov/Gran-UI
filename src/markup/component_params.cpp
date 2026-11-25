@@ -69,6 +69,7 @@ namespace gran::markup::internal
             throwAttributeError(param, "name", i18n::format(i18n::Message::MARKUP_PARAM_RESERVED, {result.name, component}));
         result.type = parseType(findAttribute(param, "type"));
         result.required = required != nullptr && (*required == "true" || *required == "1");
+        result.source = &param;
         result.defaultValue = param.getAttribute("default");
         if (values == nullptr)
             return result;

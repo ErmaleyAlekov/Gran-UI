@@ -34,26 +34,35 @@ namespace gran::platform::win32
             return Key::UNKNOWN;
         }
 
-        // Символ: суррогатная пара UTF-16 склеивается, управляющие символы отбрасываются; modifiers — Alt у WM_SYSCHAR
-        // A character: a UTF-16 surrogate pair is joined, control characters are dropped; modifiers — Alt for WM_SYSCHAR
+        // Суррогатная пара склеивается, непарные суррогаты заменяются / A surrogate pair is joined, unpaired surrogates are replaced
         void translateCharacter(Win32Window& window, WPARAM wParam, std::uint8_t modifiers) noexcept
         {
-            char32_t unit = static_cast<char32_t>(wParam);
+            char32_t unit = 0xFFFD;
             Event event;
+            event.kind = EventKind::CHARACTER;
+            event.modifiers = modifiers;
+            if (wParam <= 0x10FFFF)
+                unit = static_cast<char32_t>(wParam);
 
+            const bool low = unit >= 0xDC00 && unit <= 0xDFFF;
+            if (low && window.highSurrogate != 0)
+                unit = 0x10000 + ((static_cast<char32_t>(window.highSurrogate) - 0xD800) << 10) + (unit - 0xDC00);
+            else if (window.highSurrogate != 0)
+            {
+                event.character = 0xFFFD;
+                window.push(event);
+            }
+            window.highSurrogate = 0;
             if (unit >= 0xD800 && unit <= 0xDBFF)
             {
                 window.highSurrogate = static_cast<char16_t>(unit);
                 return;
             }
-            if (unit >= 0xDC00 && unit <= 0xDFFF && window.highSurrogate != 0)
-                unit = 0x10000 + ((static_cast<char32_t>(window.highSurrogate) - 0xD800) << 10) + (unit - 0xDC00);
-            window.highSurrogate = 0;
             if (unit < 0x20 || unit == 0x7F)
                 return;
-            event.kind = EventKind::CHARACTER;
+            if (unit >= 0xDC00 && unit <= 0xDFFF)
+                unit = 0xFFFD;
             event.character = unit;
-            event.modifiers = modifiers;
             window.push(event);
         }
     }
@@ -69,6 +78,8 @@ namespace gran::platform::win32
             modifiers |= MODIFIER_CONTROL;
         if (GetKeyState(VK_MENU) < 0)
             modifiers |= MODIFIER_ALT;
+        if (GetKeyState(VK_LWIN) < 0 || GetKeyState(VK_RWIN) < 0)
+            modifiers |= MODIFIER_META;
         return modifiers;
     }
 

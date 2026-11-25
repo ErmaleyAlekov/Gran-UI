@@ -1,4 +1,5 @@
 #include "gran/ui/node.hpp"
+#include "gran/ui/internal/preorder.hpp"
 
 namespace gran::ui
 {
@@ -13,10 +14,10 @@ namespace gran::ui
         */
         void collectNamed(Node& node, const std::string& name, std::vector<Node*>& result)
         {
-            if (node.kind == ElementKind::RADIO_BUTTON && node.content.group == name)
-                result.push_back(&node);
-            for (const std::unique_ptr<Node>& child : node.children)
-                collectNamed(*child, name, result);
+            internal::Preorder<Node> walk(node);
+            while (Node* child = walk.next())
+                if (child->kind == ElementKind::RADIO_BUTTON && child->content.group == name)
+                    result.push_back(child);
         }
     }
 

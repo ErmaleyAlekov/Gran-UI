@@ -1,17 +1,25 @@
 #include "gran/image/internal/jpeg_internal.hpp"
 
+#include <limits>
+
 namespace gran::image::internal
 {
     namespace
     {
-        // Разность DC: категория по таблице Хаффмана (0–15), затем её биты / The DC difference: the category by the Huffman table (0–15), then its bits
-        int dcDifference(const JpegFrame& frame, const JpegComponent& component, JpegReader& reader)
+        // Коэффициент DC проверяется до обновления предсказателя / The DC coefficient is checked before updating the predictor
+        std::int16_t readDc(const JpegFrame& frame, JpegComponent& component, JpegReader& reader, int bit)
         {
             int size = decodeHuffman(reader, frame.dc[component.dcTable]);
 
             if (size < 0 || size > 15)
                 throwBadImage(*frame.source, "DC code");
-            return receiveExtend(reader, size);
+            const int predictor = component.dcPredictor + receiveExtend(reader, size);
+            const auto coefficient = static_cast<std::int64_t>(predictor) * bit;
+            if (coefficient < std::numeric_limits<std::int16_t>::min()
+                || coefficient > std::numeric_limits<std::int16_t>::max())
+                throwBadImage(*frame.source, "DC coefficient");
+            component.dcPredictor = predictor;
+            return static_cast<std::int16_t>(coefficient);
         }
 
         /*
@@ -27,8 +35,7 @@ namespace gran::image::internal
         {
             const HuffmanTable& table = frame.ac[component.acTable];
 
-            component.dcPredictor += dcDifference(frame, component, reader);
-            block[0] = static_cast<std::int16_t>(component.dcPredictor);
+            block[0] = readDc(frame, component, reader, 1);
             for (int k = 1; k < 64;)
             {
                 int symbol = decodeHuffman(reader, table);
@@ -48,8 +55,7 @@ namespace gran::image::internal
         void decodeDcFirst(JpegFrame& frame, const JpegScan& scan, JpegComponent& component, JpegReader& reader,
             std::int16_t* block)
         {
-            component.dcPredictor += dcDifference(frame, component, reader);
-            block[0] = static_cast<std::int16_t>(component.dcPredictor * (1 << scan.approxLow));
+            block[0] = readDc(frame, component, reader, 1 << scan.approxLow);
         }
 
         // Уточнение DC: один бит в разряд Al / The DC refinement: one bit into the Al position

@@ -1,4 +1,5 @@
 #include "gran/data/internal/list_notify.hpp"
+#include "gran/data/internal/observer_errors.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 
@@ -46,12 +47,18 @@ namespace gran::data::internal
     }
 
     // Подписчик получает событие, только если всё ещё подписан / A subscriber gets the event only while still subscribed
-    void deliver(const ListSource& source, std::vector<ListObserver*> observers, const ListEvent& event)
+    void deliver(const std::vector<std::shared_ptr<ListObserver* const>>& subscriptions, const ListEvent& event)
     {
-        for (ListObserver* observer : observers)
+        const auto snapshot = subscriptions;
+        for (const auto& subscription : snapshot)
         {
-            if (source.subscribed(observer))
-                deliverOne(*observer, event);
+            if (std::find(subscriptions.begin(), subscriptions.end(), subscription) == subscriptions.end())
+                continue;
+            try {
+                deliverOne(**subscription, event);
+            } catch (...) {
+                ObserverErrors::capture();
+            }
         }
     }
 
@@ -63,10 +70,12 @@ namespace gran::data::internal
         auto base = order.begin();
 
         std::iota(order.begin(), order.end(), static_cast<std::size_t>(0));
-        if (to > from && to + count <= size)
+        if (from > size || to > size || count > size - from || count > size - to)
+            return order;
+        if (to > from)
             std::rotate(base + static_cast<std::ptrdiff_t>(from), base + static_cast<std::ptrdiff_t>(from + count),
                 base + static_cast<std::ptrdiff_t>(to + count));
-        else if (to < from && from + count <= size)
+        else if (to < from)
             std::rotate(base + static_cast<std::ptrdiff_t>(to), base + static_cast<std::ptrdiff_t>(from),
                 base + static_cast<std::ptrdiff_t>(from + count));
         for (std::size_t position = 0; position < size; ++position)

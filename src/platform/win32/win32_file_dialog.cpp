@@ -5,22 +5,23 @@ namespace gran::platform::win32
 {
     namespace
     {
-        /*
-        ** Диалоги оболочки работают только в однопоточном апартаменте COM. Поток окна уже в нём
-        ** (так же входят доступность и WebView2); повторный вход — S_FALSE. Многопоточный апартамент
-        ** (RPC_E_CHANGED_MODE) — ошибка. CoUninitialize не вызывается: апартамент живёт до конца потока.
-        **
-        ** The shell dialogs work only in a single-threaded COM apartment. The window thread is already in it
-        ** (accessibility and WebView2 enter it the same way); a repeated entry gives S_FALSE. A multithreaded apartment
-        ** (RPC_E_CHANGED_MODE) is an error. CoUninitialize is not called: the apartment lives until the thread ends.
-        */
-        void enterApartment()
+        // Ссылка COM живёт дольше диалога и освобождается также при отмене / The COM reference outlives the dialog and is released on cancellation too
+        class DialogApartment
         {
-            HRESULT result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        public:
+            DialogApartment()
+            {
+                checkDialog(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE));
+            }
 
-            if (result != S_FALSE)
-                checkDialog(result);
-        }
+            ~DialogApartment()
+            {
+                CoUninitialize();
+            }
+
+            DialogApartment(const DialogApartment&) = delete;
+            DialogApartment& operator=(const DialogApartment&) = delete;
+        };
 
         // Объект диалога: сохранение — FileSaveDialog, остальное — FileOpenDialog / The dialog object: saving — FileSaveDialog, the rest — FileOpenDialog
         rhi::dx12::ComRef<IFileDialog> createDialog(FileDialogKind kind)
@@ -83,7 +84,7 @@ namespace gran::platform
     {
         HWND parent = nullptr;
 
-        win32::enterApartment();
+        const win32::DialogApartment apartment;
         rhi::dx12::ComRef<IFileDialog> dialog = win32::createDialog(kind);
         win32::applyDialogOptions(*dialog.get(), kind, options);
         if (owner != nullptr)

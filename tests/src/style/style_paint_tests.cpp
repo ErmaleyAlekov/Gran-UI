@@ -73,6 +73,20 @@ namespace
 
     void testParseGradientErrors()
     {
+        TEST_ASSERT(gran::style::parsePaint("LINEAR-GRADIENT(red, blue)").kind == gran::style::PaintKind::GRADIENT);
+        auto center = gran::style::parseGradient("RADIAL-GRADIENT(AT\tLEFT TOP, red, blue)").center;
+        TEST_ASSERT(center.x == 0 && center.y == 0);
+        center = gran::style::parseGradient("radial-gradient(at top, red, blue)").center;
+        TEST_ASSERT(center.x == 0.5f && center.y == 0);
+        for (const auto position : {"top right", "right top"})
+        {
+            center = gran::style::parseGradient(std::string("radial-gradient(at ") + position + ", red, blue)").center;
+            TEST_ASSERT(center.x == 1 && center.y == 0);
+        }
+        TEST_ASSERT_THROWS(gran::style::parseGradient("conic-gradient(circle, red, blue)"), gran::GranException);
+        TEST_ASSERT_THROWS(gran::style::parseColor("rgb(255 0 0 / 0.5 / 0.2)"), gran::GranException);
+        TEST_ASSERT_THROWS(gran::style::parseColor("rgb(255 0 / 0.5)"), gran::GranException);
+        TEST_ASSERT_THROWS(gran::style::parseColor("rgb(255 0 0 0.5)"), gran::GranException);
         TEST_ASSERT_THROWS(gran::style::parseGradient("linear-gradient(red)"), gran::GranException);
         TEST_ASSERT_THROWS(gran::style::parseGradient("foo-gradient(red, blue)"), gran::GranException);
     }
@@ -102,6 +116,9 @@ namespace
 
     void testParseShadowsErrors()
     {
+        TEST_ASSERT(gran::style::parseShadows("rgb(0, 0, 0) 2 4").size() == 1);
+        TEST_ASSERT_THROWS(gran::style::parseShadows("10 red 20"), gran::GranException);
+        TEST_ASSERT_THROWS(gran::style::parseShadows("10 inset 20 red"), gran::GranException);
         TEST_ASSERT_THROWS(gran::style::parseShadows("0 #000"), gran::GranException);
         TEST_ASSERT_THROWS(gran::style::parseShadows("0 0 -2 #000"), gran::GranException);
         TEST_ASSERT_THROWS(gran::style::parseShadows("0 0 0"), gran::GranException);

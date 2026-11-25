@@ -16,17 +16,15 @@ namespace gran::animation
             return nullptr;
         }
 
-        // Анимация узла (новая, если её нет) / The node animation (a new one if there is none)
-        NodeAnimation& animationOf(std::vector<NodeAnimation>& animations, ui::Node& node)
+        // Поиск текущих переходов узла / Find the node's current transitions
+        NodeAnimation* animationOf(std::vector<NodeAnimation>& animations, ui::Node& node)
         {
             for (NodeAnimation& animation : animations)
             {
                 if (animation.node == &node)
-                    return animation;
+                    return &animation;
             }
-            animations.push_back(NodeAnimation{});
-            animations.back().node = &node;
-            return animations.back();
+            return nullptr;
         }
 
         /*
@@ -66,6 +64,7 @@ namespace gran::animation
         VisualState from = captureVisual(shown);
         VisualState to = captureVisual(next);
         std::uint32_t driven = syncKeyframes(node, next);
+        NodeAnimation* animation = animationOf(_animations, node);
 
         for (std::size_t index = 0; index < ANIMATED_COUNT; ++index)
         {
@@ -75,10 +74,16 @@ namespace gran::animation
             const style::TransitionSpec* spec = findTransition(next.transitions, property);
             if (spec == nullptr || spec->duration <= 0.0f)
             {
-                animationOf(_animations, node).mask &= ~(1u << index);
+                if (animation) animation->mask &= ~(1u << index);
                 continue;
             }
-            startTrack(animationOf(_animations, node), from, to, property,
+            if (!animation)
+            {
+                _animations.emplace_back();
+                animation = &_animations.back();
+                animation->node = &node;
+            }
+            startTrack(*animation, from, to, property,
                 Track{_now, spec->delay, spec->duration, spec->easing});
             applyVisual(next, from, property);
         }

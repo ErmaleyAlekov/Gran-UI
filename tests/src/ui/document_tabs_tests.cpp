@@ -71,6 +71,31 @@ namespace
         TEST_ASSERT(gran::ui::tabClosable(*bar->children[0]));
     }
 
+    void testDetachedHeaders()
+    {
+        using gran::ui::ElementKind;
+        auto doc = support::layoutMarkup(MARKUP, 600, 400);
+        auto& tabs = *gran::ui::findNode(*doc.root, "docs");
+        auto& bar = *tabs.children.front();
+        gran::ui::Node detached;
+        detached.kind = ElementKind::TAB_HEADER;
+        TEST_ASSERT(gran::ui::headerNumber(detached) == SIZE_MAX);
+        TEST_ASSERT(gran::ui::pageOf(detached) == nullptr);
+        detached.parent = &bar;
+        TEST_ASSERT(gran::ui::headerNumber(detached) == SIZE_MAX);
+        TEST_ASSERT(gran::ui::tabsOf(detached) == nullptr && gran::ui::pageOf(detached) == nullptr);
+
+        gran::ui::Node wrongParent;
+        wrongParent.parent = &tabs;
+        auto header = std::make_unique<gran::ui::Node>();
+        header->kind = ElementKind::TAB_HEADER;
+        auto& misparented = gran::ui::appendChild(wrongParent, std::move(header));
+        TEST_ASSERT(gran::ui::tabsOf(misparented) == nullptr);
+        wrongParent.kind = ElementKind::TAB_BAR;
+        TEST_ASSERT(gran::ui::tabsOf(misparented) == nullptr);
+        TEST_ASSERT(gran::ui::tabsOf(*bar.children.front()) == &tabs);
+    }
+
     void testMoveTab()
     {
         auto doc = support::layoutMarkup(MARKUP, 600, 400);
@@ -191,6 +216,7 @@ namespace suites
     void registerDocumentTabsTests(test::TestRunner& runner)
     {
         runner.add("document tabs: headers", testHeaders);
+        runner.add("document tabs: reject detached and misparented headers", testDetachedHeaders);
         runner.add("document tabs: move tab", testMoveTab);
         runner.add("document tabs: close requests", testCloseRequests);
         runner.add("document tabs: ctrl tab", testCtrlTab);

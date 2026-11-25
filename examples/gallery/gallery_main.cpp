@@ -9,6 +9,8 @@
 #include "gallery_actions.hpp"
 #include "gran/core/gran_exception.hpp"
 
+#include <cerrno>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -61,6 +63,17 @@ namespace
                   << "gran_gallery: unknown key \"" << argument << "\" (keys are written with two hyphens: --vulkan)\n";
     }
 
+    // Нулевой интервал отключает таймер. / A zero interval disables the timer.
+    double exitDelay(const char* value)
+    {
+        char* end = nullptr;
+        errno = 0;
+        const double seconds = std::strtod(value, &end);
+        if (end == value || *end != '\0' || errno == ERANGE || !std::isfinite(seconds) || seconds < 0)
+            throw gran::GranException(gran::ErrorCode::INVALID_ARGUMENT, "--exit-after <seconds >= 0>");
+        return seconds;
+    }
+
     // Ключи командной строки / The command line keys
     gran::AppOptions parseOptions(int argc, char* argv[], std::string& markup)
     {
@@ -86,8 +99,8 @@ namespace
                 options.forceWarp = true;
             else if (std::strcmp(argv[index], "--warp") == 0)
                 options.forceWarp = true;
-            else if (std::strcmp(argv[index], "--exit-after") == 0 && index + 1 < argc)
-                options.exitAfter = std::strtod(argv[++index], nullptr);
+            else if (std::strcmp(argv[index], "--exit-after") == 0)
+                options.exitAfter = exitDelay(index + 1 < argc ? argv[++index] : "");
             else
                 acceptMarkup(argv[index], markup);
         }
@@ -107,7 +120,7 @@ int main(int argc, char* argv[])
         utf8.push_back(&argument[0]);
     argc = static_cast<int>(utf8.size());
     argv = utf8.data();
-    std::string markup = defaultMarkup(argv[0]);
+    std::string markup = arguments.empty() ? "samples/showcase.xml" : defaultMarkup(argv[0]);
 
     try
     {

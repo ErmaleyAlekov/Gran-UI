@@ -125,7 +125,7 @@ namespace gran::text
 
     // Простой глиф: концы контуров, пропуск инструкций хинтинга, флаги, X, Y
     // A simple glyph: the contour ends, skipping the hinting instructions, the flags, X, Y
-    bool readSimpleGlyph(const FontReader& reader, std::uint32_t offset, std::uint32_t end, Outline& outline)
+    bool readSimpleGlyph(const FontReader& reader, std::size_t offset, std::size_t end, Outline& outline)
     {
         GlyphCursor cursor{reader, offset + 10u, end};
         std::size_t base = outline.points.size();

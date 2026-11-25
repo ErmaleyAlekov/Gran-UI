@@ -26,8 +26,8 @@ namespace gran::binding
     {
         ui::Node* root = binding.node;
 
-        if (base == "self")
-            return binding.node;
+        if (root == nullptr || base == "self")
+            return root;
         if (base == "parent")
             return binding.node->parent;
         while (root->parent != nullptr)

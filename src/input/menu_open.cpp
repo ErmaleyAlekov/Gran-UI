@@ -65,10 +65,10 @@ namespace gran::input
             return;
         ui::Node* menu = ui::popupOf(item);
         ui::Node* submenu = ui::submenuOf(*item);
-        for (const OpenLayer& open : state.layers)
+        for (auto open = state.layers.rbegin(); open != state.layers.rend(); ++open)
         {
-            if (open.node != menu && open.node != submenu && within(open.node, *menu))
-                stale.push_back(open.node);
+            if (open->node != menu && open->node != submenu && within(open->node, *menu))
+                stale.push_back(open->node);
         }
         for (ui::Node* layer : stale)
             closeLayer(state, *layer);

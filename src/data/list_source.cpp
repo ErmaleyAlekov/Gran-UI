@@ -17,16 +17,18 @@ namespace gran::data
     void ListSource::subscribe(ListObserver* observer)
     {
         if (observer != nullptr && !subscribed(observer))
-            _observers.push_back(observer);
+            _observers.push_back(std::make_shared<ListObserver* const>(observer));
     }
 
     void ListSource::unsubscribe(ListObserver* observer) noexcept
     {
-        _observers.erase(std::remove(_observers.begin(), _observers.end(), observer), _observers.end());
+        _observers.erase(std::remove_if(_observers.begin(), _observers.end(),
+            [observer](const auto& subscription) { return *subscription == observer; }), _observers.end());
     }
 
     bool ListSource::subscribed(const ListObserver* observer) const noexcept
     {
-        return std::find(_observers.begin(), _observers.end(), observer) != _observers.end();
+        return std::any_of(_observers.begin(), _observers.end(),
+            [observer](const auto& subscription) { return *subscription == observer; });
     }
 }

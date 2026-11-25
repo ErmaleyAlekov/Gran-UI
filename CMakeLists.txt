@@ -253,11 +253,16 @@ if(GRAN_WITH_VULKAN)
     target_include_directories(gran SYSTEM PRIVATE ${GRAN_VULKAN_INCLUDE_DIR})
     find_path(GRAN_X11_INCLUDE_DIR X11/Xlib.h)
     find_library(GRAN_X11_LIBRARY NAMES X11 libX11.so.6)
-    if(NOT GRAN_X11_INCLUDE_DIR OR NOT GRAN_X11_LIBRARY)
-        message(FATAL_ERROR "Gran UI: system X11 headers/library are required for Linux windows")
+    find_path(GRAN_XLIB_XCB_INCLUDE_DIR X11/Xlib-xcb.h)
+    find_path(GRAN_XCB_INCLUDE_DIR xcb/xproto.h)
+    find_library(GRAN_XLIB_XCB_LIBRARY NAMES X11-xcb)
+    find_library(GRAN_XCB_LIBRARY NAMES xcb)
+    if(NOT GRAN_X11_INCLUDE_DIR OR NOT GRAN_X11_LIBRARY OR NOT GRAN_XLIB_XCB_INCLUDE_DIR OR NOT GRAN_XCB_INCLUDE_DIR
+        OR NOT GRAN_XLIB_XCB_LIBRARY OR NOT GRAN_XCB_LIBRARY)
+        message(FATAL_ERROR "Gran UI: system X11, X11-xcb and xcb headers/libraries are required for Linux windows")
     endif()
-    target_include_directories(gran SYSTEM PRIVATE ${GRAN_X11_INCLUDE_DIR})
-    target_link_libraries(gran PUBLIC ${GRAN_X11_LIBRARY})
+    target_include_directories(gran SYSTEM PRIVATE ${GRAN_X11_INCLUDE_DIR} ${GRAN_XLIB_XCB_INCLUDE_DIR} ${GRAN_XCB_INCLUDE_DIR})
+    target_link_libraries(gran PUBLIC ${GRAN_X11_LIBRARY} ${GRAN_XLIB_XCB_LIBRARY} ${GRAN_XCB_LIBRARY})
 endif()
 
 # ---- Примеры: каждый подкаталог examples/<имя>/ — программа gran_<имя> ------------
@@ -373,7 +378,8 @@ if(GRAN_BUILD_TESTS)
     # Переносимая часть примера chat (JSON, chunked, NDJSON, HTTP) проверяется теми же тестами
     # The portable part of the chat example (JSON, chunked, NDJSON, HTTP) is checked by the same tests
     file(GLOB_RECURSE GRAN_CHAT_COMMON CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/examples/chat/common/*.cpp")
-    add_executable(gran_tests ${GRAN_TEST_SOURCES} ${GRAN_CHAT_COMMON})
+    add_executable(gran_tests ${GRAN_TEST_SOURCES} ${GRAN_CHAT_COMMON}
+        examples/chat/platform/chat_options.cpp examples/chat/ui/chat_view.cpp)
     target_include_directories(gran_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tests/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/examples/chat")
     if(GRAN_WITH_VULKAN)

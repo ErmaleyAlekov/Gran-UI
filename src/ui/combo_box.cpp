@@ -1,4 +1,5 @@
 #include "gran/ui/node.hpp"
+#include <algorithm>
 
 namespace gran::ui
 {
@@ -53,6 +54,9 @@ namespace gran::ui
             return false;
         if (item != nullptr)
         {
+            if (std::none_of(list->children.begin(), list->children.end(),
+                [item](const auto& child) { return child.get() == item; }) || item->kind != ElementKind::MENU_ITEM)
+                return false;
             value = optionValue(*item);
             label = item->content.text;
         }

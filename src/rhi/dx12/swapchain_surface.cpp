@@ -51,16 +51,19 @@ namespace gran::rhi::dx12
     void SwapchainSurface::acquireBuffers(ID3D12Device* device)
     {
         D3D12_CPU_DESCRIPTOR_HANDLE handle = _rtvHeap->GetCPUDescriptorHandleForHeapStart();
+        ComRef<ID3D12Resource> buffers[SWAP_BUFFERS];
 
         for (UINT index = 0; index < SWAP_BUFFERS; ++index)
         {
             std::string name = "gran.backBuffer" + std::to_string(index);
             GRAN_CHECK_HR(_swapchain->GetBuffer(index, __uuidof(ID3D12Resource),
-                reinterpret_cast<void**>(_buffers[index].put())));
-            setDebugName(_buffers[index].get(), name.c_str());
-            device->CreateRenderTargetView(_buffers[index].get(), nullptr, handle);
+                reinterpret_cast<void**>(buffers[index].put())));
+            setDebugName(buffers[index].get(), name.c_str());
+            device->CreateRenderTargetView(buffers[index].get(), nullptr, handle);
             handle.ptr += _rtvSize;
         }
+        for (UINT index = 0; index < SWAP_BUFFERS; ++index)
+            _buffers[index] = std::move(buffers[index]);
     }
 
     // Ссылки отпускаются, затем ResizeBuffers (GPU простаивает — гарантирует бэкенд)

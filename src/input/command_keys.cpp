@@ -96,16 +96,12 @@ namespace gran::input
         ui::Node* modal = modalLayer(state);
         CommandQuery query;
 
-        // MODIFIER_META (Win/Super, на macOS — физический Control) в командах не бывает: без проверки он срезался бы
-        // маской ниже, и Control+S на macOS совпал бы с командой «S» (контракт window.hpp: с META команды не совпадают)
-        // MODIFIER_META (Win/Super, the physical Control on macOS) never takes part in commands: without the check the mask
-        // below would cut it, and Control+S on macOS would match the command "S" (the window.hpp contract: no match with META)
-        if (event.key == platform::Key::UNKNOWN || (event.modifiers & platform::MODIFIER_META) != 0
+        if (event.key == platform::Key::UNKNOWN
             || (layer != nullptr && layer != modal) || focusOwns(state, event))
             return false;
         query.pressed.key = event.key;
         query.pressed.modifiers = static_cast<std::uint8_t>(event.modifiers
-            & (platform::MODIFIER_CONTROL | platform::MODIFIER_SHIFT | platform::MODIFIER_ALT));
+            & (CHORD | platform::MODIFIER_SHIFT));
         query.focus = state.focus;
         query.modal = modal;
         if (!state.actions->shortcut(query))

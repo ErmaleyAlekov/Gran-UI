@@ -4,10 +4,12 @@
 #include "gran/core/i18n.hpp"
 
 #include <dlfcn.h>
+#include <memory>
 #include <mutex>
 
 #define GRAN_VK_DEFINE(name) PFN_##name name = nullptr;
-#define GRAN_VK_RESOLVE(name) name = reinterpret_cast<PFN_##name>(resolve(library, #name));
+#define GRAN_VK_RESOLVE(name) const auto local_##name = reinterpret_cast<PFN_##name>(resolve(library, #name));
+#define GRAN_VK_PUBLISH(name) name = local_##name;
 
 namespace gran::rhi::vk
 {
@@ -44,8 +46,13 @@ namespace gran::rhi::vk
                 library = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
             if (library == nullptr)
                 missingLoader("libvulkan.so.1");
+            const auto close = [](void* handle) { dlclose(handle); };
+            std::unique_ptr<void, decltype(close)> owner(library, close);
             GRAN_VK_FUNCTIONS(GRAN_VK_RESOLVE)
             GRAN_VK_RESOLVE(vkCreateXlibSurfaceKHR)
+            GRAN_VK_FUNCTIONS(GRAN_VK_PUBLISH)
+            GRAN_VK_PUBLISH(vkCreateXlibSurfaceKHR)
+            owner.release();
         }
     }
 

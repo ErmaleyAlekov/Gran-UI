@@ -1,6 +1,7 @@
 #include "gran/platform/webview2/internal/webview2_host.hpp"
 
 #include <shlobj.h>
+#include <algorithm>
 
 #include "gran/utils/file_system.hpp"
 
@@ -8,20 +9,41 @@ namespace gran::platform::webview2
 {
     namespace
     {
-        /*
-        ** COM в однопоточном апартаменте — требование WebView2 к потоку окна. Обратный CoUninitialize
-        ** не вызывается: браузер освобождает свои объекты асинхронно до конца процесса.
-        ** RPC_E_CHANGED_MODE (поток уже в многопоточном апартаменте) — браузер недоступен.
-        **
-        ** COM in a single-threaded apartment is a WebView2 requirement for the window thread. The matching
-        ** CoUninitialize is not called: the browser releases its objects asynchronously until the process ends.
-        ** RPC_E_CHANGED_MODE (the thread is already in a multithreaded apartment) — the browser is unavailable.
-        */
+        // Одна ссылка COM до выхода потока окна / One COM reference until the window thread exits
+        struct Apartment
+        {
+            bool entered = false;
+
+            ~Apartment()
+            {
+                if (entered)
+                    CoUninitialize();
+            }
+        };
+
         bool enterApartment() noexcept
         {
-            HRESULT result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+            thread_local Apartment apartment;
+            if (!apartment.entered)
+                apartment.entered = SUCCEEDED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
+            return apartment.entered;
+        }
 
-            return SUCCEEDED(result);
+        // Получить полный путь даже при длине больше MAX_PATH / Read the full path even beyond MAX_PATH
+        std::string programStem()
+        {
+            std::wstring path(MAX_PATH, L'\0');
+            for (;;)
+            {
+                const DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+                if (length == 0)
+                    return {};
+                if (length < path.size())
+                    return fs::fileStem(fs::fromWidePath(path.data(), length));
+                if (path.size() >= 32768)
+                    return {};
+                path.resize(std::min<std::size_t>(32768, path.size() * 2));
+            }
         }
 
         // Загрузчик рядом с программой или в System32 / The loader next to the program or in System32
@@ -52,9 +74,11 @@ namespace gran::platform::webview2
     std::wstring browserDataFolder()
     {
         wchar_t* local = nullptr;
-        wchar_t program[MAX_PATH] = {};
+        const std::string stem = programStem();
         std::string folder;
 
+        if (stem.empty())
+            return {};
         if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &local)))
         {
             CoTaskMemFree(local);
@@ -62,8 +86,7 @@ namespace gran::platform::webview2
         }
         folder = fs::fromWidePath(local, wcslen(local));
         CoTaskMemFree(local);
-        DWORD length = GetModuleFileNameW(nullptr, program, MAX_PATH);
-        folder = fs::joinPath(fs::joinPath(folder, "GranUI"), fs::fileStem(fs::fromWidePath(program, length)));
+        folder = fs::joinPath(fs::joinPath(folder, "GranUI"), stem);
         return fs::toWidePath(fs::joinPath(folder, "WebView2"));
     }
 }

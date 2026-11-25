@@ -516,7 +516,7 @@ app.onEvent("moveTask", [&](gran::ui::Node& column, gran::UiEvent& event) {
 | `id` | имя команды (уникально вместе с `id` элементов окна) |
 | `action` | действие (`onAction`, `gran:…`); без него — действие с именем `id` |
 | `text` | подпись кнопок и пунктов меню, у которых нет своей |
-| `key` | сочетания через пробел: модификаторы `Mod` (= Ctrl), `Ctrl`, `Shift`, `Alt` через `+` и клавиша — `S`, `F5`, `Enter`, `Del`, `Esc`, `Left`, `PgUp`, `Insert`… (регистр не важен) |
+| `key` | сочетания через пробел: модификаторы `Mod` и `Ctrl` (Ctrl в Windows и Linux, Cmd на macOS), `Shift`, `Alt`, `Meta` через `+` и клавиша — `S`, `F5`, `Enter`, `Del`, `Esc`, `Left`, `PgUp`, `Insert`… (регистр не важен). `Meta` обозначает клавишу Windows, Super на X11 или физическую Control на macOS. Сочетания, занятые системой, могут не доходить до приложения. |
 | `scope` | `window` (по умолчанию) — в своём окне; `focus` — пока фокус внутри элемента `within`; `global` — во всех окнах программы |
 | `enabled` | `false` — команда и её элементы выключены |
 

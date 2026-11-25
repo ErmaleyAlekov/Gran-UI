@@ -38,19 +38,25 @@ namespace gran::render::internal
     */
     void paintPopups(const ui::Node& node, const PaintState& base, SceneContext& context)
     {
-        for (const std::unique_ptr<ui::Node>& child : node.children)
+        std::vector<const ui::Node*> pending;
+        for (auto it = node.children.rbegin(); it != node.children.rend(); ++it)
+            pending.push_back(it->get());
+        while (!pending.empty())
         {
+            const ui::Node* child = pending.back();
+            pending.pop_back();
             if (!child->visible)
                 continue;
             if (ui::isLayer(*child))
             {
                 if (child->kind == ui::ElementKind::DIALOG)
                     paintScrim(*child, base, context);
-                context.layer = child.get();
+                context.layer = child;
                 paintNode(*child, base, context);
                 context.layer = nullptr;
             }
-            paintPopups(*child, base, context);
+            for (auto it = child->children.rbegin(); it != child->children.rend(); ++it)
+                pending.push_back(it->get());
         }
     }
 

@@ -28,9 +28,20 @@ namespace gran::data
         if (_rows[row].expanded || !_rows[row].hasChildren)
             return;
         _expanded.insert(id);
-        if (_tree.lazy(id))
-            _tree.fetchChildren(id);
-        refresh();
+        try
+        {
+            if (_tree->lazy(id))
+                _tree->fetchChildren(id);
+            refresh();
+        }
+        catch (...)
+        {
+            // Сохраняем уже опубликованное раскрытие / Keep expansion that has already been published
+            const auto published = rowOf(id);
+            if (published >= _rows.size() || !_rows[published].expanded)
+                _expanded.erase(id);
+            throw;
+        }
     }
 
     void TreeList::collapse(std::size_t row)

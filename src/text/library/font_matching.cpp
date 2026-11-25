@@ -52,7 +52,7 @@ namespace gran::text
     {
         FontCandidate* best = findBest(_candidates, family, weight, italic);
 
-        if (best == nullptr && probeKnown(family))
+        if ((best == nullptr || candidateDistance(*best, weight, italic) != 0) && probeKnown(family))
             best = findBest(_candidates, family, weight, italic);
         if (best == nullptr && !_scanned)
         {
@@ -67,7 +67,9 @@ namespace gran::text
     {
         std::size_t before = _candidates.size();
 
-        if (std::find(_probed.begin(), _probed.end(), family) != _probed.end())
+        if (std::any_of(_probed.begin(), _probed.end(), [&](const std::string& name) {
+            return sameFamilyName(name, family);
+        }))
             return false;
         _probed.push_back(family);
         for (const std::string& file : knownFontFiles(family))

@@ -61,8 +61,10 @@ namespace gran::capi
 struct gran_app
 {
     explicit gran_app(gran::AppOptions options);
-    gran::Application application;
+    // Живут до завершения деструктора application. / Outlive the application destructor.
     std::thread::id thread;
+    bool releasingListener = false;
+    gran::Application application;
     bool running = false;
     std::map<std::string, std::shared_ptr<gran::capi::ListCallbackFetcher>> fetchers;
     std::map<std::string, std::unique_ptr<gran::capi::SelectionCallback>> selectionCallbacks;

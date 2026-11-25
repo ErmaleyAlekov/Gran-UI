@@ -36,7 +36,7 @@ Fields of `AppOptions`:
 - `debugLayer = false`: GPU debug layer and WebView tools.
 - `vsync = true`: synchronization with the monitor.
 - `exitAfter = 0`: exit after the specified number of seconds from the application clock; 0 disables the limit.
-- `backend = rhi::BackendKind::AUTO`: D3D12 with a fallback to D3D11 on D3D12 creation error.
+- `backend = rhi::BackendKind::AUTO`: tries D3D12 first, then tries D3D11 if D3D12 creation fails, including with `DEVICE_LOST`.
   `D3D11` and `D3D12` select the API explicitly: an error does not switch it to another.
 - `forceWarp = false`: software WARP adapter instead of hardware, for reproducible tests.
 - `watchMarkup = false`: monitoring of the XML file with a 250 ms interval during `run()`.
@@ -89,6 +89,9 @@ On a full replacement:
   use it too, so the former fonts are not removed from it);
 - the document, styles, animations, input, selection, popup layers, WebView browsers, and renderer caches are recreated;
 - models obtained through `model()` are preserved; `<Data>` of the new document replaces data of identically named models;
+- existing `<SortFilter>` and `<TreeList>` views keep their objects and observers when their source changes. Selection
+  starts afresh for the new rows, and tree expansion follows `expanded` in the new document.
+  If loading fails, the previous source and state are restored;
 - pointers and references to the previous `ui::Node`, including those captured by handlers, become invalid:
   repeat `find(id)` after replacement (on a partial one — for the nodes of the rebuilt branches);
 - `loadString` disables the source file; modified title, original size, and other window OS creation parameters

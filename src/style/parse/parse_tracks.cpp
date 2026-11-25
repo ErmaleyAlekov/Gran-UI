@@ -68,6 +68,8 @@ namespace gran::style
 
         for (std::string_view part : splitTopLevel(text, ','))
         {
+            if (part.empty())
+                throwValueError(i18n::Message::STYLE_BAD_TRACK, text);
             for (std::string_view token : splitSpaces(part))
                 tracks.push_back(parseTrack(token));
         }

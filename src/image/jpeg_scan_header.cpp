@@ -52,8 +52,10 @@ namespace gran::image::internal
                     throwBadImage(*frame.source, "SOS component");
                 seen |= 1u << number;
                 scan.components[index] = number;
-                component.dcTable = static_cast<std::uint8_t>((bytes[1] >> 4) & 3);
-                component.acTable = static_cast<std::uint8_t>(bytes[1] & 3);
+                component.dcTable = static_cast<std::uint8_t>(bytes[1] >> 4);
+                component.acTable = static_cast<std::uint8_t>(bytes[1] & 15);
+                if (component.dcTable > 3 || component.acTable > 3)
+                    throwBadImage(*frame.source, "SOS table");
             }
         }
 

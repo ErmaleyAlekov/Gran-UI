@@ -12,7 +12,7 @@ namespace gran::render::internal
         if (layout.carets[index].cluster != 0xFFFFFFFFu || index + 1 == layout.carets.size())
             return true;
         std::size_t offset = caretStopOffset(layout, index, shown);
-        return offset < shown.size() && shown[offset] == '\n';
+        return offset < shown.size() && (shown[offset] == '\n' || shown[offset] == '\r');
     }
 
     // Перебор мест строки с наименьшим расстоянием по x / Walking the line places for the least x distance

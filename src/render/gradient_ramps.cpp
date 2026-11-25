@@ -26,7 +26,8 @@ namespace gran::render
 
     // Пустые строки; грязный диапазон пуст / Empty rows; the dirty range is empty
     GradientRamps::GradientRamps(std::uint32_t rows)
-        : _pixels(static_cast<std::size_t>(rows) * RAMP_WIDTH * 4, 0), _capacity(rows), _dirtyFirst(rows)
+        : _capacity(std::clamp(rows, std::uint32_t{1}, MAX_ROWS)),
+          _pixels(static_cast<std::size_t>(_capacity) * RAMP_WIDTH * 4, 0), _dirtyFirst(_capacity)
     {
     }
 

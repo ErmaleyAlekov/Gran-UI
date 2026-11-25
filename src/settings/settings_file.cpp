@@ -73,6 +73,7 @@ namespace gran::settings
     bool Settings::load(const std::string& path)
     {
         std::string text;
+        std::string detail;
         Model model;
 
         _path = path;
@@ -80,13 +81,16 @@ namespace gran::settings
         _modified = false;
         if (!readText(path, text))
             return true;
-        if (internal::readSettings(text, model))
+        if (internal::readSettings(text, model, detail))
         {
             _model = std::move(model);
             return true;
         }
         keepDamaged(path);
-        log::write(log::Level::WARNING, "settings", i18n::format(i18n::Message::SETTINGS_DAMAGED, {path}));
+        std::string warning = i18n::format(i18n::Message::SETTINGS_DAMAGED, {path});
+        if (!detail.empty())
+            warning += " (" + detail + ")";
+        log::write(log::Level::WARNING, "settings", warning);
         return false;
     }
 
@@ -98,9 +102,12 @@ namespace gran::settings
 
         if (_path.empty())
             return false;
+        const auto serialized = internal::writeSettings(_model);
+        if (serialized.empty())
+            return false;
         fs::createDirectories(fs::parentPath(_path));
         fs::openFile(output, temporary);
-        output << internal::writeSettings(_model);
+        output << serialized;
         // close до проверки: ошибка сброса буфера при закрытии иначе не видна, и недописанный .tmp заменил бы рабочие
         // настройки; недописанный .tmp удаляется (ревью Т-57)
         // close before the check: otherwise a buffer flush error on closing is invisible, and an incomplete .tmp would replace

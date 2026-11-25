@@ -1,6 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 
 #include <utility>
+#include <iterator>
 #include <vector>
 
 namespace gran::app
@@ -18,17 +19,23 @@ namespace gran::app
         */
         void moveChildren(Application::State& state, ui::Node& from, ui::Node& to)
         {
-            std::vector<std::unique_ptr<ui::Node>> moved;
-
-            for (const std::unique_ptr<ui::Node>& child : from.children)
-                state.nodeRemoving(*child);
-            moved.swap(from.children);
-            ui::markDirty(from, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
-            for (std::unique_ptr<ui::Node>& child : moved)
+            if (!to.children.empty())
+                to.children.reserve(to.children.size() + from.children.size());
+            for (const auto& child : from.children)
             {
-                ui::Node& placed = ui::appendChild(to, std::move(child));
-                ui::markDirty(placed, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
+                state.nodeRemoving(*child);
+                child->parent = &to;
+                ui::markDirty(*child, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
             }
+            if (to.children.empty())
+                to.children.swap(from.children);
+            else
+            {
+                to.children.insert(to.children.end(), std::make_move_iterator(from.children.begin()),
+                    std::make_move_iterator(from.children.end()));
+                from.children.clear();
+            }
+            ui::markDirty(from, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
         }
 
         // Содержимое окна-панели — в корень его документа (это Stack из разметки окна, а не сам Window) / The panel window content goes into its document root (the Stack from the window markup, not the Window itself)
@@ -58,10 +65,10 @@ namespace gran::app
         ui::Node* panel = floatWin.floatingPanel;
         ui::Node* target = floatTarget(floatWin);
 
-        floatWin.floatingPanel = nullptr;
         if (panel == nullptr || target == nullptr)
             return;
         moveChildren(state, *target, *panel);
+        floatWin.floatingPanel = nullptr;
         panel->content.dock.floating = false;
         ui::chooseDockPanel(*panel);
     }

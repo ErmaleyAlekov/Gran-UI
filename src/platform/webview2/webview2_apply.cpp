@@ -67,8 +67,8 @@ namespace gran::platform::webview2
             _visible.bottom - _visible.top, SWP_NOZORDER | SWP_NOACTIVATE);
         inner.left = _full.left - _visible.left;
         inner.top = _full.top - _visible.top;
-        inner.right = inner.left + (_full.right - _full.left);
-        inner.bottom = inner.top + (_full.bottom - _full.top);
+        inner.right = _full.right - _visible.left;
+        inner.bottom = _full.bottom - _visible.top;
         _controller->put_Bounds(inner);
         if (shown)
             ShowWindow(_frame, SW_SHOWNA);

@@ -27,6 +27,10 @@ namespace chat
     {
         gran::ui::Node* name = need(application, "modelName");
 
+        if (gran::ui::findNode(*_userTemplate, "userBody") == nullptr)
+            throw ChatException(ChatText::APP_MISSING_NODE, {"userBody"});
+        if (gran::ui::findNode(*_modelTemplate, "modelBody") == nullptr)
+            throw ChatException(ChatText::APP_MISSING_NODE, {"modelBody"});
         name->content.text = modelName;
         gran::ui::markDirty(*name, gran::ui::DIRTY_LAYOUT | gran::ui::DIRTY_PAINT);
         _app.focus(_prompt);

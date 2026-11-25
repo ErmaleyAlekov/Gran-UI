@@ -29,6 +29,7 @@ namespace gran::app
     // Окно с документом; графика — в openWindows (из цикла run) / A window with a document; the graphics — in openWindows (from the run loop)
     AppWindow& addWindow(Application::State& state, markup::UiDocument document, const std::string& base)
     {
+        state.lists.requireStableDocument();
         state.windows.push_back(std::make_unique<AppWindow>(state));
         adoptDocument(*state.windows.back(), std::move(document), base);
         return *state.windows.back();

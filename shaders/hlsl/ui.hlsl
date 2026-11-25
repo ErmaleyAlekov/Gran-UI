@@ -75,7 +75,7 @@ float4 shadeRect(GpuInstance item, float2 p)
         float4 innerRect = float4(item.rect.xy + item.border.wx, item.rect.zw - item.border.wx - item.border.yz);
         float4 innerRadii = max(item.radii - float4(max(item.border.w, item.border.x), max(item.border.y, item.border.x),
             max(item.border.y, item.border.z), max(item.border.w, item.border.z)), 0.0);
-        inner = min(outer, coverage(rectDistance(p, innerRect, innerRadii)));
+        inner = all(innerRect.zw > 0.0) ? min(outer, coverage(rectDistance(p, innerRect, innerRadii))) : 0.0;
     }
     if (item.paint.z != PAINT_SOLID)
         fill = gradientColor(item, p);

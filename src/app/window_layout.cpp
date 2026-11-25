@@ -1,5 +1,6 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/markup/live_document.hpp"
+#include "gran/ui/internal/preorder.hpp"
 
 #include <sstream>
 
@@ -22,20 +23,18 @@ namespace gran::app
         ** The persist attributes of the subtree (walked before the edits: setMarkupAttribute rebuilds the nodes).
         ** A node without an id is skipped — it cannot be found on the next start.
         */
-        void collectPersisted(Application& application, const ui::Node& node, std::vector<PersistedAttribute>& found)
+        void collectPersisted(Application& application, const ui::Node& root, std::vector<PersistedAttribute>& found)
         {
-            std::optional<std::string> names = application.markupAttribute(node, "persist");
-            std::string all = names.value_or("") + " " + markup::implicitPersist(node);
-
-            if ((names || !markup::implicitPersist(node).empty()) && !node.id.empty())
+            ui::internal::Preorder traversal(root);
+            while (const auto* node = traversal.next())
             {
-                std::istringstream list(all);
+                if (node->id.empty()) continue;
+                const auto names = application.markupAttribute(*node, "persist");
+                std::istringstream list(names.value_or("") + " " + markup::implicitPersist(*node));
                 std::string name;
                 while (list >> name)
-                    found.push_back(PersistedAttribute{node.id, name, application.markupAttribute(node, name).value_or("")});
+                    found.push_back({node->id, name, application.markupAttribute(*node, name).value_or("")});
             }
-            for (const std::unique_ptr<ui::Node>& child : node.children)
-                collectPersisted(application, *child, found);
         }
 
         // Тип сохранённой переменной — по её объявлению <Variable type> / The saved variable type — by its <Variable type> declaration
@@ -68,6 +67,7 @@ namespace gran::app
     */
     void restoreState(AppWindow& win)
     {
+        if (!win.shared.owner) return;
         Application& application = *win.shared.owner;
         std::vector<PersistedAttribute> attributes;
         settings::Value value;
@@ -76,10 +76,15 @@ namespace gran::app
             collectPersisted(application, *win.document.root, attributes);
         for (const PersistedAttribute& attribute : attributes)
         {
-            ui::Node* node = ui::findNode(*win.document.root, attribute.node);
-            if (node != nullptr && win.shared.settings.attribute({win.document.window.layout, attribute.node, attribute.name},
-                value.text))
+            if (!win.shared.settings.attribute({win.document.window.layout, attribute.node, attribute.name}, value.text))
+                continue;
+            ui::internal::Preorder traversal(*win.document.root);
+            while (auto* node = traversal.next())
+            {
+                if (node->id != attribute.node) continue;
                 restoreAttribute(application, *node, attribute.name, value.text);
+                break;
+            }
         }
         for (const data::Variable& variable : win.persistedVariables)
         {

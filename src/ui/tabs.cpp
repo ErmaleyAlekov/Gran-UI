@@ -60,8 +60,13 @@ namespace gran::ui
     // Заголовок — ребёнок полосы, полоса — ребёнок Tabs / A header is a strip child, the strip is a Tabs child
     Node* tabsOf(Node& header) noexcept
     {
-        if (header.kind != ElementKind::TAB_HEADER || header.parent == nullptr || header.parent->parent == nullptr)
+        Node* bar = header.parent;
+        if (header.kind != ElementKind::TAB_HEADER || bar == nullptr || bar->kind != ElementKind::TAB_BAR)
             return nullptr;
-        return header.parent->parent;
+        Node* tabs = bar->parent;
+        if (tabs == nullptr || tabs->kind != ElementKind::TABS || tabs->children.empty() ||
+            tabs->children.front().get() != bar || headerNumber(header) == SIZE_MAX)
+            return nullptr;
+        return tabs;
     }
 }

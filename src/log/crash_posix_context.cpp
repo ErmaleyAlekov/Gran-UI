@@ -100,7 +100,10 @@ namespace gran::log::internal
         while ((count = ::read(maps, buffer, sizeof(buffer))) > 0)
         {
             if (::write(fd, buffer, static_cast<std::size_t>(count)) != count)
+            {
+                posixCrash().textWriteFailed = true;
                 break;
+            }
         }
         ::close(maps);
     }

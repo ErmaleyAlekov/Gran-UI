@@ -6,6 +6,12 @@
 
 namespace gran::data
 {
+    void internal::checkRange(std::size_t first, std::size_t count, std::size_t size)
+    {
+        checkIndex(first, size);
+        checkIndex(count - 1, size - first);
+    }
+
     void ListModel::remove(std::size_t index)
     {
         remove(index, 1);
@@ -16,7 +22,7 @@ namespace gran::data
     {
         if (count == 0)
             return;
-        internal::checkIndex(index + count - 1, _records.size());
+        internal::checkRange(index, count, _records.size());
         auto first = _records.begin() + static_cast<std::ptrdiff_t>(index);
         _records.erase(first, first + static_cast<std::ptrdiff_t>(count));
         notifyRemoved(index, count);
@@ -51,8 +57,8 @@ namespace gran::data
     {
         if (count == 0 || from == to)
             return;
-        internal::checkIndex(from + count - 1, _records.size());
-        internal::checkIndex(to + count - 1, _records.size());
+        internal::checkRange(from, count, _records.size());
+        internal::checkRange(to, count, _records.size());
         auto base = _records.begin();
         if (to > from)
             std::rotate(base + static_cast<std::ptrdiff_t>(from), base + static_cast<std::ptrdiff_t>(from + count),

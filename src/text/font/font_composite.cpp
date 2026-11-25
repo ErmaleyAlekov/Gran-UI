@@ -78,8 +78,8 @@ namespace gran::text
         // Простой или составной глиф с пределами глубины и посещений / A simple or composite glyph with the depth and visit limits
         bool readGlyph(const GlyphSource& source, std::uint16_t glyph, int depth, Outline& outline)
         {
-            std::uint32_t offset = 0;
-            std::uint32_t end = 0;
+            std::size_t offset = 0;
+            std::size_t end = 0;
             std::uint16_t flags = COMPONENT_MORE_COMPONENTS;
 
             if (depth > MAX_DEPTH || ++source.visits > MAX_VISITS || glyph >= source.glyphCount

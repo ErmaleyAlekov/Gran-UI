@@ -32,11 +32,14 @@ namespace gran::app
     }
 
     // Отметки сразу текущие: изменением считается только правка после загрузки / The stamps are current at once: only an edit after loading counts as a change
-    void rememberLibraries(Application::State& state, const markup::UiDocument& document)
+    std::vector<FileStamp> libraryStamps(const markup::UiDocument& document)
     {
-        state.libraryStamps.clear();
+        std::vector<FileStamp> stamps;
         for (const std::string& path : markup::libraryFiles(document))
-            state.libraryStamps.push_back(FileStamp{path, {}, 0});
-        librariesChanged(state);
+        {
+            FileStamp& stamp = stamps.emplace_back(FileStamp{path, {}, 0});
+            stampChanged(stamp);
+        }
+        return stamps;
     }
 }

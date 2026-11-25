@@ -21,14 +21,18 @@ namespace gran::text
 
         // Подтаблица целиком внутри cmap (формат 4: длина в заголовке, 12: группы по 12 байт)
         // The subtable entirely inside cmap (format 4: the length in the header, 12: groups of 12 bytes)
-        bool subtableFits(const FontReader& reader, const TableSpan& cmap, std::uint32_t offset, std::uint16_t format)
+        bool subtableFits(const FontReader& reader, std::size_t offset, std::size_t available, std::uint16_t format)
         {
-            std::size_t length = reader.u16(offset + 2);
-
+            if (available < 16)
+                return false;
             if (format == 12)
-                length = 16 + static_cast<std::size_t>(reader.u32(offset + 12)) * 12;
-            return offset >= cmap.offset && offset - cmap.offset <= cmap.length
-                && length <= cmap.length - (offset - cmap.offset);
+            {
+                const auto length = reader.u32(offset + 4);
+                return length >= 16 && length <= available && reader.u32(offset + 12) <= (length - 16) / 12;
+            }
+            const auto length = reader.u16(offset + 2);
+            const auto twice = reader.u16(offset + 6);
+            return length >= 16 && length <= available && twice != 0 && twice % 2 == 0 && twice * 4 <= length - 16;
         }
     }
 
@@ -73,16 +77,19 @@ namespace gran::text
     {
         FontReader reader(face._file->data(), face._file->size());
         const TableSpan& cmap = face._tables.cmap;
-        std::uint16_t count = reader.u16(cmap.offset + 2);
+        std::uint16_t count = cmap.length >= 4 ? reader.u16(cmap.offset + 2) : 0;
         int best = 0;
 
         for (std::uint16_t index = 0; index < count && cmap.length >= 4 + (index + 1u) * 8u; ++index)
         {
             std::size_t record = cmap.offset + 4 + static_cast<std::size_t>(index) * 8;
-            std::uint32_t offset = cmap.offset + reader.u32(record + 4);
+            const auto relative = reader.u32(record + 4);
+            if (relative > cmap.length || cmap.length - relative < 2)
+                continue;
+            const auto offset = cmap.offset + relative;
             std::uint16_t format = reader.u16(offset);
             int score = cmapScore(reader.u16(record), reader.u16(record + 2), format);
-            if (score > best && subtableFits(reader, cmap, offset, format))
+            if (score > best && subtableFits(reader, offset, cmap.length - relative, format))
             {
                 best = score;
                 face._cmapSubtable = offset;

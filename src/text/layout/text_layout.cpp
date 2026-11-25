@@ -24,7 +24,7 @@ namespace gran::text
                 bounds.resize(static_cast<std::size_t>(style.maxLines) + 1);
             std::size_t first = bounds[bounds.size() - 2];
             std::size_t last = bounds.back();
-            bool overflow = std::isfinite(maxWidth) && lineWidth(glyphs, first, last) > maxWidth;
+            bool overflow = first < last && std::isfinite(maxWidth) && lineWidth(glyphs, first, last) > maxWidth;
             if (!style.ellipsis || (!cut && !overflow))
                 return;
             ShapedGlyph dots{&primary, primary.glyphIndex(0x2026), 0.0f, 0, false, false, false};

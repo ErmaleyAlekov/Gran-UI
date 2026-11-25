@@ -83,6 +83,25 @@ namespace gran::markup::internal
             throw MarkupException(ErrorCode::MARKUP, text, first->position.line, first->position.column);
     }
 
+    void validateDefaults(const ComponentSpec& component, const beresta::xsd::Schema& schema, const std::string& uri)
+    {
+        const auto* declaration = schema.findElement(uri, component.name);
+        for (const ComponentParam& param : component.params)
+        {
+            if (!param.defaultValue)
+                continue;
+            for (const auto& attribute : declaration->type.complex->attributes)
+            {
+                if (attribute.name != param.name)
+                    continue;
+                auto error = beresta::xsd::validateSimpleValue(*attribute.type, *param.defaultValue, param.source);
+                if (error)
+                    throwAttributeError(*param.source, "default", *error);
+                break;
+            }
+        }
+    }
+
     std::shared_ptr<const beresta::xsd::Schema> documentSchema(const UiDocument& document)
     {
         if (document.components && document.components->schema)

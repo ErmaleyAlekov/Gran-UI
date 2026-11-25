@@ -59,7 +59,7 @@ namespace gran::platform::webview2
         void loadHtml(std::wstring html);
         void setBounds(const RECT& full, const RECT& visible);
         void setVisible(bool visible);
-        void postMessage(std::wstring message);
+        void postMessage(const std::string& message);
 
         // ---- webview2_callbacks.cpp ----
 
@@ -149,7 +149,8 @@ namespace gran::platform::webview2
     HWND createFrameWindow(HWND parent) noexcept;
 
     // Пиксели движка → RECT Win32 (с округлением к целым) / Engine pixels → a Win32 RECT (rounded to integers)
-    RECT toRect(const Rect& rect) noexcept;
+    bool toRect(const Rect& rect, RECT& result) noexcept;
+    bool fitsFrame(const RECT& full, const RECT& visible) noexcept;
 }
 
 #endif

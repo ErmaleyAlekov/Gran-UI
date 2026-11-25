@@ -1,4 +1,5 @@
 #include "gran/ui/node_state.hpp"
+#include "node_state_walk.hpp"
 
 #include <algorithm>
 
@@ -6,6 +7,22 @@ namespace gran::ui
 {
     namespace
     {
+        std::string legacyStateKey(const std::string& key)
+        {
+            std::string result;
+            for (std::size_t i = 0; i < key.size(); ++i)
+            {
+                if (key.compare(i, 3, "%25") == 0 || key.compare(i, 3, "%2F") == 0)
+                {
+                    result += key[i + 2] == '5' ? '%' : '/';
+                    i += 2;
+                }
+                else
+                    result += key[i];
+            }
+            return result;
+        }
+
         // Текст поля вместе с историей; каретка не выходит за конец текста / The field text together with the history; the caret does not go past the text end
         void restoreField(Node& node, const SavedState& saved)
         {
@@ -33,7 +50,7 @@ namespace gran::ui
                     setChecked(node, saved.checked);
                     break;
                 case ElementKind::SLIDER: case ElementKind::PROGRESS_BAR:
-                    node.content.value = saved.value;
+                    node.content.value = std::min(node.content.maximum, std::max(node.content.minimum, saved.value));
                     break;
                 case ElementKind::COMBO_BOX:
                     selectOption(node, findOption(node, saved.option));
@@ -58,14 +75,6 @@ namespace gran::ui
                 restoreNode(node, found->second);
             if (state.hasFocus && state.focus == key)
                 focus = &node;
-            for (std::size_t index = 0; index < node.children.size(); ++index)
-            {
-                Node& child = *node.children[index];
-                if (!child.id.empty())
-                    restoreWalk(child, "#" + child.id, state, false, focus);
-                else
-                    restoreWalk(child, key + "/" + std::to_string(index), state, false, focus);
-            }
         }
     }
 
@@ -75,10 +84,17 @@ namespace gran::ui
     {
         Node* focus = nullptr;
 
-        if (subtree.id.empty())
-            restoreWalk(subtree, std::string(), state, skipRoot, focus);
-        else
-            restoreWalk(subtree, "#" + subtree.id, state, skipRoot, focus);
+        internal::walkState(subtree, [&](Node& node, const std::string& key, const std::string& path) {
+            if (state.pathKeys.empty())
+            {
+                restoreWalk(node, legacyStateKey(key), state, skipRoot && &node == &subtree, focus);
+                return;
+            }
+            auto previous = state.pathKeys.find(path);
+            const bool scoped = previous != state.pathKeys.end() &&
+                (key.compare(0, 1, "@") == 0 || previous->second.compare(0, 1, "@") == 0);
+            restoreWalk(node, scoped ? previous->second : key, state, skipRoot && &node == &subtree, focus);
+        });
         return focus;
     }
 }

@@ -17,11 +17,14 @@ namespace gran::render::internal
 
         if (layout.carets[index].cluster != 0xFFFFFFFFu)
             return layout.carets[index].cluster;
-        if (index + 1 < layout.carets.size())
-            offset = layout.carets[index + 1].cluster;
+        if (index + 1 == layout.carets.size())
+            return text.size();
+        offset = layout.carets[index + 1].cluster;
         if (offset > text.size())
             offset = text.size();
         if (offset > 0 && text[offset - 1] == '\n')
+            --offset;
+        if (offset > 0 && text[offset - 1] == '\r')
             --offset;
         return offset;
     }

@@ -1,5 +1,6 @@
 #include "gran/markup/internal/build_context.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/core/gran_exception.hpp"
 #include "gran/style/value_parsers.hpp"
 
 #include "beresta.hpp"
@@ -32,12 +33,21 @@ namespace gran::markup::internal
 
             face.family = *findAttribute(font, "family");
             face.source = *findAttribute(font, "source");
-            if (weight != nullptr && *weight == "bold")
-                face.weight = 700;
-            else if (weight != nullptr && *weight != "normal")
-                face.weight = style::parseInteger(*weight, 1, 1000);
-            if (italic != nullptr)
-                face.italic = style::parseBoolean(*italic);
+            const char* attribute = "weight";
+            try
+            {
+                if (weight != nullptr && *weight == "bold")
+                    face.weight = 700;
+                else if (weight != nullptr && *weight != "normal")
+                    face.weight = style::parseInteger(*weight, 1, 1000);
+                attribute = "italic";
+                if (italic != nullptr)
+                    face.italic = style::parseBoolean(*italic);
+            }
+            catch (const GranException& error)
+            {
+                throwAttributeError(font, attribute, error.getMessage());
+            }
             context.document.fonts.push_back(face);
         }
 

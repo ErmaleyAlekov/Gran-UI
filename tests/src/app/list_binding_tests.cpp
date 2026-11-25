@@ -8,6 +8,18 @@
 
 namespace
 {
+    void testScrollFragment()
+    {
+        gran::Application app;
+        app.loadString(R"(<Window><Scroll id="scroll"><Text id="old">Old</Text></Scroll></Window>)");
+        auto& scroll = *app.find("scroll");
+        TEST_ASSERT_THROWS(app.appendMarkup(scroll, "<Box/>"), gran::GranException);
+        app.remove(*app.find("old"));
+        auto& added = app.appendMarkup(scroll, R"(<Box id="new"/>)");
+        TEST_ASSERT(scroll.children.size() == 1 && scroll.children.front().get() == &added);
+        TEST_ASSERT(app.find("new") == &added);
+    }
+
     void testListBinding()
     {
         gran::Application app;
@@ -66,5 +78,6 @@ namespace suites
     void registerListBindingTests(test::TestRunner& runner)
     {
         runner.add("list binding: basic functionality", testListBinding);
+        runner.add("appendMarkup: replace a Scroll child", testScrollFragment);
     }
 }

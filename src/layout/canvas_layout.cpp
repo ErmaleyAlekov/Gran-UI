@@ -7,12 +7,16 @@ namespace gran::layout::internal
 {
     namespace
     {
-        // Незаданная координата (NaN) считается нулём / An unset coordinate (NaN) counts as zero
-        float orZero(float value) noexcept
+        // При фиксированном размере начальный край приоритетен / With a fixed size the starting edge takes precedence
+        float anchorInset(float start, float end, bool fixedSize) noexcept
         {
-            if (std::isnan(value))
-                return 0.0f;
-            return value;
+            if (std::isnan(start))
+                start = 0.0f;
+            else if (fixedSize)
+                return start;
+            if (std::isnan(end))
+                return start;
+            return start + end;
         }
 
         /*
@@ -47,10 +51,10 @@ namespace gran::layout::internal
                 continue;
             const style::ComputedStyle& style = child->computed;
             Size size = measureNode(*child, shrinkAvailable(contentAvailable, style.margin), pass);
-            float left = orZero(style.left);
-            float top = orZero(style.top);
-            extent.width = std::max(extent.width, left + style.margin.left + size.width + style.margin.right);
-            extent.height = std::max(extent.height, top + style.margin.top + size.height + style.margin.bottom);
+            float horizontal = anchorInset(style.left, style.right, hasFixedSize(*child, true));
+            float vertical = anchorInset(style.top, style.bottom, hasFixedSize(*child, false));
+            extent.width = std::max(extent.width, horizontal + style.margin.left + size.width + style.margin.right);
+            extent.height = std::max(extent.height, vertical + style.margin.top + size.height + style.margin.bottom);
         }
         return extent;
     }

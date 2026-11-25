@@ -32,7 +32,7 @@ namespace gran::input
         ui::Node* handle = ui::splitterHandle(splitter);
         ui::SplitterState& split = splitter.content.split;
 
-        if (handle == nullptr)
+        if (handle == nullptr || handle->content.minimum > handle->content.maximum)
             return false;
         first = std::clamp(first, handle->content.minimum, handle->content.maximum);
         if (first == handle->content.value && !split.collapsed)

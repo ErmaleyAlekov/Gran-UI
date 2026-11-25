@@ -1,6 +1,7 @@
 #include "gran/platform/win32/win32_window.hpp"
 
 #include <algorithm>
+#include <limits>
 
 namespace gran::platform::win32
 {
@@ -78,9 +79,14 @@ namespace gran::platform::win32
     void Win32Window::setPlacement(const WindowPlacement& saved)
     {
         WINDOWPLACEMENT place{};
+        const LONG last = std::numeric_limits<LONG>::max();
+
+        if (saved.width <= 0 || saved.height <= 0
+            || saved.x > last - saved.width || saved.y > last - saved.height)
+            return;
         RECT frame{saved.x, saved.y, saved.x + saved.width, saved.y + saved.height};
 
-        if (saved.width <= 0 || saved.height <= 0 || MonitorFromRect(&frame, MONITOR_DEFAULTTONULL) == nullptr)
+        if (MonitorFromRect(&frame, MONITOR_DEFAULTTONULL) == nullptr)
             return;
         place.length = sizeof(place);
         place.showCmd = SW_HIDE;

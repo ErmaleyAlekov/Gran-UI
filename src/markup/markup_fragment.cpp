@@ -52,10 +52,7 @@ namespace gran::markup::internal
         {
             try
             {
-                beresta::Document dom = parseMarkupText(wrapped);
-                if (document.components)
-                    checkSchema(dom, documentSchema(document));
-                return dom;
+                return parseMarkupText(wrapped, documentSchema(document));
             }
             catch (const MarkupException& error)
             {

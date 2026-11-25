@@ -98,7 +98,7 @@ namespace gran::app
         edit->type = type;
         edit->undoStack = place.grid->content.grid->undoStack;
         edit->undoable = place.grid->content.undoable;
-        edit->record = std::make_unique<data::RecordTracker>(*place.source, place.index);
+        edit->record = std::make_shared<data::RecordTracker>(*place.source, place.index);
         return edit;
     }
 }

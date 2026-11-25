@@ -1,5 +1,7 @@
 #include "gran/text/internal/text_internal.hpp"
 #include "gran/utils/utf8.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
 
 #include <algorithm>
 
@@ -21,18 +23,24 @@ namespace gran::text
             std::vector<std::shared_ptr<const FontFace>>& faces;
         };
 
-        // Все символы с номерами байтов; \r пропускается (\r\n — один перевод строки)
-        // All characters with byte numbers; \r is skipped (\r\n is one line break)
+        // CR, LF и CRLF дают один перенос на первом байте / CR, LF and CRLF break at their first byte
         std::vector<Symbol> decodeAll(std::string_view text)
         {
             std::vector<Symbol> symbols;
+            if (text.size() > UINT32_MAX)
+                throw GranException(ErrorCode::LIMIT_EXCEEDED, i18n::format(i18n::Message::TEXT_LAYOUT_LIMIT));
 
             for (std::size_t position = 0; position < text.size();)
             {
                 std::uint32_t cluster = static_cast<std::uint32_t>(position);
                 char32_t value = decodeUtf8(text, position);
-                if (value != '\r')
-                    symbols.push_back(Symbol{value, cluster});
+                if (value == '\r')
+                {
+                    if (position < text.size() && text[position] == '\n')
+                        ++position;
+                    value = '\n';
+                }
+                symbols.push_back(Symbol{value, cluster});
             }
             return symbols;
         }

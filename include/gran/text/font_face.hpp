@@ -42,7 +42,7 @@ namespace gran::text
     // Расположение таблиц внутри файла (смещение, длина) / The table locations inside the file (offset, length)
     struct TableSpan
     {
-        std::uint32_t offset = 0;
+        std::size_t offset = 0;
         std::uint32_t length = 0;
     };
 
@@ -126,8 +126,9 @@ namespace gran::text
         std::string _style;
         FontMetrics _metrics;
         FaceTables _tables;
-        std::vector<std::uint32_t> _pairSubtables;
-        std::uint32_t _cmapSubtable = 0;
+        std::vector<std::size_t> _pairSubtables;
+        bool _damagedPairLookup = false;
+        std::size_t _cmapSubtable = 0;
         std::uint16_t _cmapFormat = 0;
         std::uint16_t _glyphCount = 0;
         std::uint16_t _horizontalMetrics = 0;

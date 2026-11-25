@@ -165,6 +165,33 @@ namespace
         TEST_ASSERT((f.sink.ran == std::vector<std::string>{"saveDoc", "all"}));
     }
 
+    void testMetaCommand()
+    {
+        Fixture f;
+        gran::ui::Shortcut shortcut;
+        TEST_ASSERT(gran::ui::parseShortcut("Meta+S", shortcut));
+        f.doc.commands.front().keys = {shortcut};
+        f.press(gran::platform::Key::S, CTRL);
+        TEST_ASSERT(f.sink.ran.empty());
+        f.press(gran::platform::Key::S, gran::platform::MODIFIER_META);
+        TEST_ASSERT(f.sink.ran.size() == 1 && f.sink.ran.front() == "saveDoc");
+    }
+
+    void testCommandCaptionRefresh()
+    {
+        Fixture f;
+        f.node("plain").content.command = "saveDoc";
+        f.doc.commands.front().text = "_Next";
+        gran::ui::bindCommandTree(*f.doc.root, f.doc.commands);
+        TEST_ASSERT(f.node("save").content.text == "Next");
+        TEST_ASSERT(f.node("item").content.text == "Next" && f.node("item").content.mnemonic != 0);
+        TEST_ASSERT(f.node("plain").content.text == "p");
+        f.doc.commands.front().text = "";
+        gran::ui::bindCommandTree(*f.doc.root, f.doc.commands);
+        TEST_ASSERT(f.node("save").content.text.empty());
+        TEST_ASSERT(f.node("item").content.text.empty() && f.node("item").content.mnemonic == 0);
+    }
+
     void testFieldKeepsEditingKeys()
     {
         Fixture f;
@@ -190,6 +217,25 @@ namespace
         f.router.focus(&f.node("plain"));
         f.press(gran::platform::Key::DELETE_KEY, 0);
         TEST_ASSERT((f.sink.ran == std::vector<std::string>{"delInner", "del"}));
+    }
+
+    void testCharacterAfterCommandRelease()
+    {
+        Fixture f;
+        auto& field = f.node("field");
+        f.router.focus(&field);
+        f.press(gran::platform::Key::F2, 0);
+        TEST_ASSERT((f.sink.ran == std::vector<std::string>{"rename"}));
+
+        gran::platform::Event event;
+        event.kind = gran::platform::EventKind::KEY_UP;
+        event.key = gran::platform::Key::F2;
+        f.router.handle(event);
+        event = {};
+        event.kind = gran::platform::EventKind::CHARACTER;
+        event.character = U'x';
+        f.router.handle(event);
+        TEST_ASSERT(field.content.text == "x");
     }
 
     void testControlAndMenuKeepKeys()
@@ -308,8 +354,11 @@ namespace suites
     {
         runner.add("command: markup binds buttons and menu items", testMarkupBindsCommands);
         runner.add("command: markup rejects bad commands", testMarkupRejectsBadCommands);
+        runner.add("command: Meta matches independently of Mod", testMetaCommand);
+        runner.add("command: refreshes only inherited captions", testCommandCaptionRefresh);
         runner.add("command: window and global shortcuts", testWindowShortcut);
         runner.add("command: input keeps editing keys", testFieldKeepsEditingKeys);
+        runner.add("command: character after key release", testCharacterAfterCommandRelease);
         runner.add("command: focus scope deepest first", testFocusScopeDeepestFirst);
         runner.add("command: controls and menus keep keys", testControlAndMenuKeepKeys);
         runner.add("command: activation runs command", testActivationRunsCommand);

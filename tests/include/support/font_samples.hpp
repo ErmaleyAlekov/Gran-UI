@@ -26,7 +26,8 @@ namespace font_samples
 
     // Файл шрифта: numGlyphs = glyphs.size(); байты глифов кладутся подряд, loca — по их длинам
     // The font file: numGlyphs = glyphs.size(); the glyph bytes go in a row, loca — by their lengths
-    Bytes buildFont(const std::vector<Bytes>& glyphs);
+    Bytes buildFont(const std::vector<Bytes>& glyphs, const Bytes& kern = {}, const Bytes& gpos = {},
+        const Bytes& name = {});
 
     // Простой глиф: квадрат из 4 точек на кривой, один контур, без инструкций (34 байта)
     // A simple glyph: a square of 4 on-curve points, one contour, no instructions (34 bytes)

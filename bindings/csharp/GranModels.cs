@@ -32,32 +32,32 @@ internal static class NativeModels
         internal uint Size; internal int Kind; internal IntPtr Name, Source, Sort, Filter; internal int Mode; internal nuint Expanded;
     }
     [StructLayout(LayoutKind.Sequential)] internal struct Row { internal ulong Node; internal nuint Depth; internal int Expanded, HasChildren; }
-    [DllImport(Library)] internal static extern int gran_model_move(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, nuint from, nuint count, nuint to);
-    [DllImport(Library)] internal static extern int gran_model_columns(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, IntPtr columns, nuint count);
-    [DllImport(Library)] internal static extern int gran_model_load(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, ref Source source);
-    [DllImport(Library)] internal static extern int gran_model_on_fetch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, FetchFn? callback, IntPtr user);
-    [DllImport(Library)] internal static extern int gran_model_set_more(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, int more);
-    [DllImport(Library)] internal static extern int gran_model_fetch_more(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model);
-    [DllImport(Library)] internal static extern int gran_tree_insert(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong parent, ref Native.Record record, out ulong result);
-    [DllImport(Library)] internal static extern int gran_tree_remove(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node);
-    [DllImport(Library)] internal static extern int gran_tree_move(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, ulong parent, nuint row);
-    [DllImport(Library)] internal static extern int gran_tree_set(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, ref Native.Record record);
-    [DllImport(Library)] internal static extern int gran_tree_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, [MarshalAs(UnmanagedType.LPUTF8Str)] string field, out IntPtr result);
-    [DllImport(Library)] internal static extern int gran_tree_children(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, out nuint result);
-    [DllImport(Library)] internal static extern int gran_tree_child(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, nuint row, out ulong result);
-    [DllImport(Library)] internal static extern int gran_tree_parent(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, out ulong result);
-    [DllImport(Library)] internal static extern int gran_tree_set_lazy(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, int lazy);
-    [DllImport(Library)] internal static extern int gran_tree_on_fetch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, TreeFetchFn? callback, IntPtr user);
-    [DllImport(Library)] internal static extern int gran_tree_load(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ref Source source);
-    [DllImport(Library)] internal static extern int gran_view_create(IntPtr app, ref View view);
-    [DllImport(Library)] internal static extern int gran_view_sort(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, [MarshalAs(UnmanagedType.LPUTF8Str)] string keys);
-    [DllImport(Library)] internal static extern int gran_view_filter(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, [MarshalAs(UnmanagedType.LPUTF8Str)] string? expression);
-    [DllImport(Library)] internal static extern int gran_view_source_index(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, nuint row, out nuint result);
-    [DllImport(Library)] internal static extern int gran_tree_row_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, nuint row, out Row result);
-    [DllImport(Library)] internal static extern int gran_tree_expand(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, nuint row, int action);
-    [DllImport(Library)] internal static extern int gran_selection_change(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string selection, int command, nuint index, nuint last);
-    [DllImport(Library)] internal static extern int gran_selection_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string selection, out nuint current, IntPtr indices, ref nuint count);
-    [DllImport(Library)] internal static extern int gran_selection_on_change(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string selection, FetchFn? callback, IntPtr user);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_model_move(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, nuint from, nuint count, nuint to);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_model_columns(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, IntPtr columns, nuint count);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_model_load(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, ref Source source);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_model_on_fetch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, FetchFn? callback, IntPtr user);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_model_set_more(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model, int more);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_model_fetch_more(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string model);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_insert(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong parent, ref Native.Record record, out ulong result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_remove(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_move(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, ulong parent, nuint row);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_set(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, ref Native.Record record);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, [MarshalAs(UnmanagedType.LPUTF8Str)] string field, out IntPtr result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_children(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, out nuint result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_child(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, nuint row, out ulong result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_parent(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, out ulong result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_set_lazy(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ulong node, int lazy);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_on_fetch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, TreeFetchFn? callback, IntPtr user);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_load(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string tree, ref Source source);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_view_create(IntPtr app, ref View view);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_view_sort(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, [MarshalAs(UnmanagedType.LPUTF8Str)] string keys);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_view_filter(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, [MarshalAs(UnmanagedType.LPUTF8Str)] string? expression);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_view_source_index(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, nuint row, out nuint result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_row_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, nuint row, out Row result);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_tree_expand(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string view, nuint row, int action);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_selection_change(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string selection, int command, nuint index, nuint last);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_selection_read(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string selection, out nuint current, IntPtr indices, ref nuint count);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int gran_selection_on_change(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string selection, FetchFn? callback, IntPtr user);
 }
 
 // Модели 1.7: таблицы, ленивая подгрузка, деревья, представления, выделение / Models 1.7: tables, lazy loading, trees, views, selection
@@ -89,7 +89,8 @@ public sealed partial class Application
     public void OnFetch(string model, Action<string>? callback) {
         NativeModels.FetchFn? native = callback == null ? null : (_, name) => Protect(() => callback(String(name)));
         Check(NativeModels.gran_model_on_fetch(Handle, Arguments.Text(model), native, IntPtr.Zero));
-        if (native != null) callbacks.Add(native);
+        if (native == null) modelHandlers.Remove(("model", model));
+        else modelHandlers[("model", model)] = native;
     }
     public void SetMore(string model, bool more) => Check(NativeModels.gran_model_set_more(Handle, Arguments.Text(model), more ? 1 : 0));
     public void FetchMore(string model) => Check(NativeModels.gran_model_fetch_more(Handle, Arguments.Text(model)));
@@ -137,7 +138,7 @@ public sealed partial class Application
     public void CreateTreeList(string name, string tree, string? sort=null, string? filter=null, nuint expanded=0) => View(2, name, tree, sort, filter, SelectionMode.Extended, expanded);
     public void CreateSelection(string name, string source, SelectionMode mode=SelectionMode.Extended) => View(3, name, source, null, null, mode, 0);
     public void SetSort(string view, string keys) => Check(NativeModels.gran_view_sort(Handle, Arguments.Text(view), Arguments.Text(keys)));
-    public void SetFilter(string view, string? expression) => Check(NativeModels.gran_view_filter(Handle, Arguments.Text(view), expression));
+    public void SetFilter(string view, string? expression) => Check(NativeModels.gran_view_filter(Handle, Arguments.Text(view), Arguments.OptionalText(expression)));
     public nuint SourceIndex(string view, nuint row) { Check(NativeModels.gran_view_source_index(Handle, Arguments.Text(view), row, out var result)); return result; }
     public TreeRow TreeRowOf(string view, nuint row) {
         Check(NativeModels.gran_tree_row_read(Handle, Arguments.Text(view), row, out var result));
@@ -163,6 +164,7 @@ public sealed partial class Application
     public void OnSelectionChanged(string selection, Action<string>? callback) {
         NativeModels.FetchFn? native = callback == null ? null : (_, name) => Protect(() => callback(String(name)));
         Check(NativeModels.gran_selection_on_change(Handle, Arguments.Text(selection), native, IntPtr.Zero));
-        if (native != null) callbacks.Add(native);
+        if (native == null) modelHandlers.Remove(("selection", selection));
+        else modelHandlers[("selection", selection)] = native;
     }
 }

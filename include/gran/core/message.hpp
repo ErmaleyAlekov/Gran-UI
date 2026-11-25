@@ -164,6 +164,10 @@ namespace gran::i18n
         GRID_FILTER_PLACEHOLDER,
         MARKUP_DUPLICATE_SLOT,
         MARKUP_EXPANSION_LIMIT,
+        APP_RELOAD_ACTIVE,
+        APP_RELOAD_FAILED,
+        WEBVIEW_QUEUE_LIMIT,
+        TEXT_LAYOUT_LIMIT,
         COUNT
     };
 }

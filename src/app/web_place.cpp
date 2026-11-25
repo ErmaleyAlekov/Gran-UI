@@ -61,5 +61,6 @@ namespace gran::app
             slot.view->setVisible(true);
         slot.shown = true;
         sendContent(win, slot);
+        flushWebOutbox(slot);
     }
 }

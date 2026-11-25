@@ -56,12 +56,14 @@ namespace gran::res
     */
     void mountBlob(const void* data, std::size_t size)
     {
+        if (data == nullptr || size < 8)
+            throw GranException(ErrorCode::RESOURCE, i18n::format(i18n::Message::RES_BAD_BLOB));
         auto copy = std::make_unique<std::vector<unsigned char>>(static_cast<const unsigned char*>(data),
             static_cast<const unsigned char*>(data) + size);
         BlobReader reader{copy->data(), copy->size(), 8};
         std::map<std::string, ResourceView, std::less<>> entries;
 
-        if (size < 8 || std::memcmp(copy->data(), "GRANRES1", 8) != 0)
+        if (std::memcmp(copy->data(), "GRANRES1", 8) != 0)
             throw GranException(ErrorCode::RESOURCE, i18n::format(i18n::Message::RES_BAD_BLOB));
         for (std::uint64_t count = reader.number(4); count > 0; --count)
         {
@@ -69,13 +71,15 @@ namespace gran::res
             const unsigned char* path = reader.take(pathSize);
             std::uint64_t dataSize = reader.number(8);
             const unsigned char* bytes = reader.take(dataSize);
-            entries[normalize(std::string(reinterpret_cast<const char*>(path), pathSize))]
-                = ResourceView{bytes, static_cast<std::size_t>(dataSize)};
+            std::string key = normalize(std::string(reinterpret_cast<const char*>(path), pathSize));
+            if (!key.empty())
+                entries[std::move(key)] = ResourceView{bytes, static_cast<std::size_t>(dataSize)};
         }
         internal::Registry& state = internal::registry();
         std::lock_guard<std::mutex> lock(state.mutex);
-        for (std::pair<const std::string, ResourceView>& entry : entries)
-            state.entries[entry.first] = entry.second;
         state.blobs.push_back(std::move(copy));
+        state.entries.merge(entries);
+        for (const auto& entry : entries)
+            state.entries.find(entry.first)->second = entry.second;
     }
 }

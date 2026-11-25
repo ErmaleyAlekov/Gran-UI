@@ -98,6 +98,43 @@ namespace
         TEST_ASSERT(gran::a11y::accessibleName(*main) == u8"Готово !");
     }
 
+    void testDeepStatusAndRadio()
+    {
+        using gran::ui::ElementKind;
+        gran::ui::Node root;
+        auto& first = gran::ui::appendChild(root, std::make_unique<gran::ui::Node>());
+        first.kind = ElementKind::RADIO_BUTTON;
+        first.content.group = "deep";
+        std::vector<gran::ui::Node*> chain{&root};
+        for (std::size_t index = 0; index < 512; ++index)
+            chain.push_back(&gran::ui::appendChild(*chain.back(), std::make_unique<gran::ui::Node>()));
+        auto& section = *chain[256];
+        section.kind = ElementKind::STATUS_SECTION;
+        section.content.text = "status";
+        auto& last = *chain.back();
+        last.kind = ElementKind::RADIO_BUTTON;
+        last.content.group = "deep";
+        last.content.text = "old";
+        auto& hidden = gran::ui::appendChild(section, std::make_unique<gran::ui::Node>());
+        hidden.visible = false;
+        hidden.content.text = "hidden";
+        auto& popup = gran::ui::appendChild(section, std::make_unique<gran::ui::Node>());
+        popup.kind = ElementKind::POPUP;
+        popup.content.text = "popup";
+
+        const bool groupOrder = gran::ui::choiceGroup(last) == std::vector<gran::ui::Node*>{&first, &last};
+        std::vector<gran::ui::Node*> changed;
+        gran::ui::collectStatusChanges(root, changed);
+        const bool initial = changed.empty() && section.content.announced == "status old";
+        last.content.text = "new";
+        gran::ui::collectStatusChanges(root, changed);
+        const bool update = changed == std::vector<gran::ui::Node*>{&section} && section.content.announced == "status new";
+        for (auto it = chain.rbegin(); it != chain.rend(); ++it)
+            (*it)->children.clear();
+        TEST_ASSERT(groupOrder);
+        TEST_ASSERT(initial && update);
+    }
+
     void testChanges()
     {
         auto doc = support::layoutMarkup(MARKUP, 600, 400);
@@ -131,5 +168,6 @@ namespace suites
         runner.add("status bar: grip", testGrip);
         runner.add("status bar: status text", testStatusText);
         runner.add("status bar: changes", testChanges);
+        runner.add("node tree: deep status and radio group visits keep order", testDeepStatusAndRadio);
     }
 }

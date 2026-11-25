@@ -1,5 +1,6 @@
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
+#include "gran/app/app_driver.hpp"
 #include "gran/input/input_router.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "gran/ui/node.hpp"
@@ -92,6 +93,44 @@ namespace
 
         TEST_ASSERT(menu->children[0]->content.onClick == "one");
         TEST_ASSERT(menu->children[5]->content.onClick == "five");
+    }
+
+    void testMirrorChanges()
+    {
+        auto doc = support::layoutMarkup(MARKUP, 800, 200);
+        auto& bar = *gran::ui::findNode(*doc.root, "bar");
+        auto& source = *gran::ui::findNode(*doc.root, "e");
+        auto& mirror = *gran::ui::toolBarMore(bar)->children.front()->children[5];
+        TEST_ASSERT(mirror.visible && mirror.enabled);
+        gran::ui::setEnabled(source, false);
+        source.content.text = "Updated";
+        gran::ui::syncOverflowMenu(bar);
+        TEST_ASSERT(mirror.visible && !mirror.enabled && mirror.content.text == "Updated");
+        gran::ui::setEnabled(source, true);
+        gran::ui::syncOverflowMenu(bar);
+        TEST_ASSERT(mirror.enabled);
+    }
+
+    void testMirrorChangesOnFrame()
+    {
+        gran::AppOptions options;
+        options.headless = true;
+        options.backend = gran::rhi::BackendKind::NONE;
+        gran::Application app(options);
+        app.loadString(MARKUP);
+        gran::AppDriver driver(app);
+        driver.start();
+        driver.settle();
+        auto& bar = *app.find("bar");
+        auto& source = *app.find("e");
+        auto& mirror = *gran::ui::toolBarMore(bar)->children.front()->children[5];
+        TEST_ASSERT(mirror.visible && mirror.enabled);
+        app.post([&source] { gran::ui::setEnabled(source, false); });
+        TEST_ASSERT(driver.step());
+        TEST_ASSERT(mirror.visible && !mirror.enabled);
+        app.post([&source] { gran::ui::setEnabled(source, true); });
+        TEST_ASSERT(driver.step());
+        TEST_ASSERT(mirror.visible && mirror.enabled);
     }
 
     void testAlwaysOverflow()
@@ -202,6 +241,8 @@ namespace suites
     void registerToolBarTests(test::TestRunner& runner)
     {
         runner.add("toolbar: mirrors", testMirrors);
+        runner.add("toolbar: visible mirror tracks the source caption and enabled state", testMirrorChanges);
+        runner.add("toolbar: frame refreshes the mirror of a disabled button", testMirrorChangesOnFrame);
         runner.add("toolbar: always overflow", testAlwaysOverflow);
         runner.add("toolbar: narrow", testNarrow);
         runner.add("toolbar: more menu", testMoreMenu);

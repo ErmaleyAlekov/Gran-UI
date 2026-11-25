@@ -1,6 +1,10 @@
 #include "gran/platform/headless/headless_window.hpp"
+#include "gran/platform/internal/pixel_size.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
 
 #include <chrono>
+#include <limits>
 
 namespace gran::platform
 {
@@ -9,8 +13,13 @@ namespace gran::platform
     HeadlessWindow::HeadlessWindow(const WindowDesc& desc)
         : _desc(desc), _width(desc.width), _height(desc.height)
     {
-        _state.placement.width = static_cast<int>(desc.width);
-        _state.placement.height = static_cast<int>(desc.height);
+        const auto width = pixelExtent(desc.width);
+        const auto height = pixelExtent(desc.height);
+        if (width > std::numeric_limits<int>::max() || height > std::numeric_limits<int>::max())
+            throw GranException(ErrorCode::INVALID_ARGUMENT,
+                i18n::format(i18n::Message::STYLE_BAD_NUMBER, {std::to_string(width) + " x " + std::to_string(height)}));
+        _state.placement.width = static_cast<int>(width);
+        _state.placement.height = static_cast<int>(height);
     }
 
     // Очередь общая с потоком теста и фоновыми потоками, поэтому под мьютексом; ждущий просыпается

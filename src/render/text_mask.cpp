@@ -5,14 +5,11 @@
 
 namespace gran::render
 {
-    namespace
+    // Маска действует только у непустого поля пароля.
+    // Only a non-empty password input is masked.
+    bool isPasswordMasked(const ui::Node& node) noexcept
     {
-        // Маска действует только у непустого поля пароля (пустое показывает подсказку как есть)
-        // The mask applies only to a non-empty password input (an empty one shows the placeholder as is)
-        bool masked(const ui::Node& node) noexcept
-        {
-            return node.kind == ui::ElementKind::INPUT && node.content.password && !node.content.text.empty();
-        }
+        return node.kind == ui::ElementKind::INPUT && node.content.password && !node.content.text.empty();
     }
 
     // Символы до байта offset, каждый — 3 байта точки / The characters before the byte offset, each is 3 bytes of the dot
@@ -20,7 +17,7 @@ namespace gran::render
     {
         const std::string& text = node.content.text;
 
-        if (!masked(node))
+        if (!isPasswordMasked(node))
             return offset;
         if (offset > text.size())
             offset = text.size();
@@ -34,7 +31,7 @@ namespace gran::render
         std::size_t characters = offset / PASSWORD_MASK_BYTES;
         std::size_t position = 0;
 
-        if (!masked(node))
+        if (!isPasswordMasked(node))
             return offset;
         for (std::size_t index = 0; index < characters && position < text.size(); ++index)
             decodeUtf8(text, position);

@@ -73,6 +73,13 @@ class _InputEvent(C.Structure):
 
 _EventFn = C.CFUNCTYPE(C.c_int32, C.c_void_p, C.POINTER(_InputEvent))
 
+_Task = C.CFUNCTYPE(None, C.c_void_p)
+
+class _Listener(C.Structure):
+    _fields_ = [("size", C.c_uint32), ("capture", C.c_int32), ("callback", _EventFn),
+                ("user", C.c_void_p), ("release", _Task)]
+
+
 class Event:
     """Снимок события интерфейса; методы ставят флаги, которые уходят ядру после возврата обработчика.
     A UI event snapshot; the methods set flags that go to the core after the handler returns."""
@@ -111,7 +118,6 @@ class Event:
 
     def stop_immediate_propagation(self):
         self.flags |= 6
-_Task = C.CFUNCTYPE(None, C.c_void_p)
 
 class _Timer(C.Structure):
     _fields_ = [("seconds", C.c_double), ("repeat", C.c_int32), ("callback", _Task), ("user", C.c_void_p)]
@@ -178,6 +184,7 @@ def _configure(lib):
         "app_on_action": (C.c_int32, [p, s, _Action, p]), "app_on_message": (C.c_int32, [p, s, _Action, p]),
         "app_post": (C.c_int32, [p, _Task, p]),
         "app_on_event": (C.c_int32, [p, s, _EventFn, p]),
+        "app_listen_owned": (C.c_int32, [p, s, s, C.POINTER(_Listener), C.POINTER(C.c_uint64)]),
         "app_listen": (C.c_int32, [p, s, s, C.c_int32, _EventFn, p, C.POINTER(C.c_uint64)]),
         "app_unlisten": (C.c_int32, [p, s, C.c_uint64]),
         "app_dispatch": (C.c_int32, [p, s, s, s, C.POINTER(C.c_int32)]),
@@ -252,6 +259,11 @@ class Application:
         # the task number in the table (otherwise every post would keep its own trampoline until close).
         self._tasks, self._timer_keys, self._key_timers = {}, {}, {}
         self._task_lock, self._task_keys = threading.Lock(), itertools.count(1)
+        self._listeners, self._model_handlers = {}, {}
+        self._release_listener = _Task(lambda key: self._listeners.pop(key, None))
+        self._fetch_entry = _FetchFn(lambda _, name: self._run_named("model", name))
+        self._selection_entry = _SelectionFn(lambda _, name: self._run_named("selection", name))
+        self._listener_entry = _EventFn(self._run_listener)
         self._task_entry = _Task(self._run_task)
         # Шаги отмены: user — номер пары обработчиков; release снимает её, когда стек отбросил шаг.
         # The undo steps: user is the number of a handler pair; release removes it when the stack dropped the step.
@@ -364,15 +376,20 @@ class Application:
     def _event_entry(self, callback):
         # Флаги события возвращаются ядру; исключение — как у действий (закрытие и повтор в run).
         # The event flags return to the core; an exception — as for actions (closing and re-raising in run).
-        def invoke(user, pointer):
-            event = Event(pointer.contents)
-            self._protect(callback, event)
-            if event.cell_row is not None and (event.cell_value != event._cell_value or event.cell_error):
-                self._protect(self._answer_cell, pointer, event)
-            return event.flags
-        wrapped = _EventFn(invoke)
+        wrapped = _EventFn(lambda user, pointer: self._run_event(callback, pointer))
         self._callbacks.append(wrapped)
         return wrapped
+
+    def _run_listener(self, key, pointer):
+        callback = self._listeners.get(key)
+        return self._run_event(callback, pointer) if callback is not None else 0
+
+    def _run_event(self, callback, pointer):
+        event = Event(pointer.contents)
+        self._protect(callback, event)
+        if event.cell_row is not None and (event.cell_value != event._cell_value or event.cell_error):
+            self._protect(self._answer_cell, pointer, event)
+        return event.flags
 
     def _answer_cell(self, pointer, event):
         # Ответ cellEdit ядру — внутри callback, пока снимок события жив / The cellEdit answer to the core — inside the callback while the event snapshot lives
@@ -390,8 +407,15 @@ class Application:
     def listen(self, target, type, callback, capture=False):
         """Слушатель события у узла; возвращает номер для unlisten. / A node event listener; returns the number for unlisten."""
         result = C.c_uint64()
-        self._call("app_listen", _encode(target), _encode(type), 1 if capture else 0, self._event_entry(callback),
-                   None, C.byref(result))
+        target = _encode(target)
+        key = next(self._task_keys)
+        listener = _Listener(C.sizeof(_Listener), int(bool(capture)), self._listener_entry, key, self._release_listener)
+        self._listeners[key] = callback
+        try:
+            self._call("app_listen_owned", target, _encode(type), C.byref(listener), C.byref(result))
+        except BaseException:
+            self._listeners.pop(key, None)
+            raise
         return result.value
 
     def unlisten(self, target, listener):
@@ -790,14 +814,20 @@ class Application:
         source, keep = self._source(path, select, children, 0, fields, format)
         self._call("tree_load", _encode(tree), C.byref(source))
 
+    def _run_named(self, kind, name):
+        callback = self._model_handlers.get((kind, name))
+        if callback is not None:
+            self._protect(callback, name.decode("utf-8"))
+
     def on_fetch(self, model, callback):
         """callback(model) вставляет следующую порцию; конец — set_more(model, False). None снимает. / callback inserts the next portion."""
+        key = ("model", _encode(model))
+        native = _FetchFn() if callback is None else self._fetch_entry
+        self._call("model_on_fetch", key[1], native, None)
         if callback is None:
-            self._call("model_on_fetch", _encode(model), C.cast(None, _FetchFn), None)
-            return
-        native = _FetchFn(lambda user, name: self._protect(callback, name.decode("utf-8")))
-        self._callbacks.append(native)
-        self._call("model_on_fetch", _encode(model), native, None)
+            self._model_handlers.pop(key, None)
+        else:
+            self._model_handlers[key] = callback
 
     def set_more(self, model, more):
         self._call("model_set_more", _encode(model), int(bool(more)))
@@ -903,12 +933,13 @@ class Application:
 
     def on_selection_changed(self, selection, callback):
         """callback(имя) при любом изменении выделения; None снимает. / callback(name) on any selection change."""
+        key = ("selection", _encode(selection))
+        native = _SelectionFn() if callback is None else self._selection_entry
+        self._call("selection_on_change", key[1], native, None)
         if callback is None:
-            self._call("selection_on_change", _encode(selection), C.cast(None, _SelectionFn), None)
-            return
-        native = _SelectionFn(lambda user, name: self._protect(callback, name.decode("utf-8")))
-        self._callbacks.append(native)
-        self._call("selection_on_change", _encode(selection), native, None)
+            self._model_handlers.pop(key, None)
+        else:
+            self._model_handlers[key] = callback
 
     def run(self):
         result = C.c_int32()
@@ -925,6 +956,8 @@ class Application:
             self._call("app_destroy")
             self._app = C.c_void_p()
             self._callbacks.clear()
+            self._listeners.clear()
+            self._model_handlers.clear()
             self._undo_steps.clear()
             self._undo_handler = None
             with self._task_lock:

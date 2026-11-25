@@ -23,16 +23,31 @@ namespace editor
 #endif
     }
 
+    // При совпадении имени пробуем следующий номер. / Try the next suffix on a name collision.
+    static std::filesystem::path reserveDirectory(const std::filesystem::path& parent)
+    {
+        auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+        auto prefix = ".gran-save-" + std::to_string(stamp) + "-";
+        for (unsigned attempt = 0; ; ++attempt)
+        {
+            auto directory = parent / (prefix + std::to_string(attempt));
+            std::error_code error;
+            if (std::filesystem::create_directory(directory, error))
+                return directory;
+            if (error && error != std::errc::file_exists)
+                return {};
+        }
+    }
+
     // Уникальная папка резервируется атомарно рядом с целевым файлом.
     // A unique directory is reserved atomically beside the destination file.
     bool writeDocument(const std::string& path, const std::string& text)
     {
         auto target = std::filesystem::u8path(path);
-        auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
-        auto directory = target.parent_path() / (".gran-save-" + std::to_string(stamp));
-        std::error_code error;
-        if (!std::filesystem::create_directory(directory, error))
+        auto directory = reserveDirectory(target.parent_path());
+        if (directory.empty())
             return false;
+        std::error_code error;
         auto temporary = directory / "buffer";
         std::ofstream output(temporary, std::ios::binary);
         output.write(text.data(), static_cast<std::streamsize>(text.size()));

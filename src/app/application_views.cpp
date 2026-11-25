@@ -16,11 +16,13 @@ namespace gran
     data::SelectionModel& Application::createSelection(const std::string& name, const std::string& source,
         data::SelectionMode mode)
     {
+        _state->lists.requireStableDocument();
         return _state->lists.createSelection(name, source, mode);
     }
 
     data::SortFilterProxy& Application::proxy(const std::string& name)
     {
+        _state->lists.requirePublished(name);
         data::SortFilterProxy* found = _state->lists.proxy(name);
 
         if (found == nullptr)
@@ -30,6 +32,7 @@ namespace gran
 
     data::TreeList& Application::treeList(const std::string& name)
     {
+        _state->lists.requirePublished(name);
         data::TreeList* found = _state->lists.treeList(name);
 
         if (found == nullptr)
@@ -39,6 +42,7 @@ namespace gran
 
     data::SelectionModel& Application::selection(const std::string& name)
     {
+        _state->lists.requirePublished(name);
         data::SelectionModel* found = _state->lists.selection(name);
 
         if (found == nullptr)

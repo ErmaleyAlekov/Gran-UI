@@ -5,6 +5,16 @@
 
 namespace chat::markdown
 {
+    // Последние допустимые закрывающие маркеры вне фрагментов кода. / Last eligible closing markers outside code spans.
+    struct ClosingMarkers
+    {
+        std::size_t bold = 0;
+        std::size_t italic = 0;
+    };
+    ClosingMarkers closingMarkers(std::string_view text);
+    std::size_t codeSpanLength(std::string_view text);
+    bool markerSpace(char symbol) noexcept;
+
     /*
     ** Накопитель блоков: строки абзаца копятся в paragraph, строки кода — в code до закрывающей ```;
     ** codeLines — сколько строк кода уже принято (первая пустая строка кода тоже строка).

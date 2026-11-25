@@ -47,5 +47,10 @@ namespace gran::ui
         else
             node.stateMask = static_cast<std::uint16_t>(node.stateMask | bit);
         markDirty(node, DIRTY_STYLE | DIRTY_PAINT);
+        Node* owner = node.parent;
+        while (owner && owner->kind == ElementKind::TOOL_GROUP)
+            owner = owner->parent;
+        if (owner && toolBarMore(*owner))
+            markDirty(*owner, DIRTY_LAYOUT);
     }
 }

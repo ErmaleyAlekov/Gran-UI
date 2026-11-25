@@ -1,3 +1,4 @@
+#include "gran/ui/internal/preorder.hpp"
 #include "gran/markup/internal/build_context.hpp"
 #include "gran/markup/live_document.hpp"
 #include "gran/style/value_parsers.hpp"
@@ -76,7 +77,7 @@ namespace gran::markup
     ** column layout is written only if the user customized it (or it already came from the settings): otherwise
     ** the saved order would override the markup order of a new program version.
     */
-    void writeLiveAttributes(ui::Node& root)
+    static void writeNodeAttributes(ui::Node& root)
     {
         beresta::Element* element = internal::editableElement(root);
         std::string collapsed = "false";
@@ -94,8 +95,13 @@ namespace gran::markup
                 element->setAttribute("position", internal::positionText(root.content.split));
             element->setAttribute("collapsed", collapsed);
         }
-        for (const std::unique_ptr<ui::Node>& child : root.children)
-            writeLiveAttributes(*child);
+    }
+
+    void writeLiveAttributes(ui::Node& root)
+    {
+        ui::internal::Preorder traversal(root);
+        while (auto* node = traversal.next())
+            writeNodeAttributes(*node);
     }
 
     // Раскладка панелей и столбцов таблицы сохраняется сама: программе не нужно перечислять persist / The panel and table column layout is kept by itself: the program need not list persist

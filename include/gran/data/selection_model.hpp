@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <utility>
 
+namespace gran::binding { class ReloadCheckpoint; }
+
 namespace gran::data
 {
     /*
@@ -40,7 +42,7 @@ namespace gran::data
     ** the records: an insertion shifts them, a removal cuts them out (the current one goes to a neighbour), a permutation
     ** and a sort carry them over. The indices are the rows of the source the model is subscribed to.
     */
-    class SelectionModel final : private ListObserver
+    class SelectionModel final : public ListObserver, public RowIdentityObserver
     {
     public:
         // ---- selection_model.cpp ----
@@ -109,6 +111,8 @@ namespace gran::data
         void unsubscribe(SelectionObserver* observer) noexcept;
 
     private:
+        void discardRowKeys() noexcept override { _hidden.clear(); }
+        friend class gran::binding::ReloadCheckpoint;
         // ---- selection_events.cpp ----
         void inserted(std::size_t index, std::size_t count) override;
         void removed(std::size_t index, std::size_t count) override;

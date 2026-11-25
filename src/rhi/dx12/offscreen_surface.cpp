@@ -59,13 +59,17 @@ namespace gran::rhi::dx12
             GRAN_CHECK_HR(device->CreateDescriptorHeap(&heap, __uuidof(ID3D12DescriptorHeap),
                 reinterpret_cast<void**>(_rtvHeap.put())));
         }
+        ComRef<ID3D12Resource> target, readback;
+        const auto pitch = (static_cast<std::uint64_t>(width) * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)
+            & ~static_cast<std::uint64_t>(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
+        createTarget(device, width, height, target);
+        createReadback(device, pitch * height, readback);
+        device->CreateRenderTargetView(target.get(), nullptr, _rtvHeap->GetCPUDescriptorHandleForHeapStart());
+        _target = std::move(target);
+        _readback = std::move(readback);
         _width = width;
         _height = height;
-        _pitch = (static_cast<std::uint64_t>(width) * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)
-            & ~static_cast<std::uint64_t>(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
-        createTarget(device, width, height, _target);
-        createReadback(device, _pitch * height, _readback);
-        device->CreateRenderTargetView(_target.get(), nullptr, _rtvHeap->GetCPUDescriptorHandleForHeapStart());
+        _pitch = pitch;
     }
 
     // Единственная цель / The single target

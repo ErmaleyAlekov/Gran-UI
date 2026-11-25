@@ -2,6 +2,7 @@
 #include "gran/input/internal/text_history.hpp"
 #include "gran/core/i18n.hpp"
 
+#include <cmath>
 #include <memory>
 
 namespace gran::input
@@ -100,10 +101,13 @@ namespace gran::input
     // Команда выполняется над целью меню; отмена, повтор и вставка — только в поле / The command runs on the menu target; undo, redo and pasting — only into a field
     bool runContextCommand(RouterState& state, const ui::Node& item)
     {
-        Command command = static_cast<Command>(static_cast<int>(item.content.value));
-
         if (state.contextMenu == nullptr || item.parent != state.contextMenu || state.contextTarget == nullptr)
             return false;
+        const float value = item.content.value;
+        if (!(value >= static_cast<float>(Command::UNDO) && value <= static_cast<float>(Command::SELECT_ALL))
+            || value != std::trunc(value))
+            return true;
+        const auto command = static_cast<Command>(static_cast<int>(value));
         ui::Node& target = *state.contextTarget;
         if (command == Command::UNDO && ui::isTextField(target))
             internal::undoText(state, target);

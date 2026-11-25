@@ -16,6 +16,9 @@ namespace gran::binding
         _bindings.clear();
         _expressions.reset();
         _selections.clear();
+        for (auto& view : _views)
+            if (auto* proxy = dynamic_cast<data::SortFilterProxy*>(view.source.get()))
+                proxy->disconnect();
         while (!_views.empty())
             _views.pop_back();
     }

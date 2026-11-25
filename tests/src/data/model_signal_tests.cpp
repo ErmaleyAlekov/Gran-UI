@@ -1,4 +1,5 @@
 #include "framework/test_framework.hpp"
+#include <stdexcept>
 #include "suites/test_suites.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/data/list_model.hpp"
@@ -110,6 +111,31 @@ namespace
         TEST_ASSERT(log.removals.size() == 1);
     }
 
+    void testTreeAppendSubtrees()
+    {
+        constexpr std::size_t DEPTH = 64;
+        gran::data::TreeModel tree;
+        std::vector<gran::data::TreeItem> items(2);
+        items.back().record = {{"name", "sibling"}};
+        auto* branch = &items.front();
+        for (std::size_t level = 0; level < DEPTH; ++level)
+        {
+            branch->children.resize(2);
+            branch->children[1].record = {{"name", "sibling"}};
+            branch = &branch->children.front();
+        }
+        branch->record = {{"name", "leaf"}};
+        tree.appendItems(tree.root(), std::move(items));
+        auto node = tree.root();
+        for (std::size_t level = 0; level <= DEPTH; ++level)
+        {
+            TEST_ASSERT(tree.childCount(node) == 2);
+            TEST_ASSERT(tree.record(tree.child(node, 1)).at("name") == "sibling");
+            node = tree.child(node, 0);
+        }
+        TEST_ASSERT(tree.record(node).at("name") == "leaf");
+    }
+
     // Плоское дерево: раскрытие вставляет строки детей, свёртка убирает, глубина верхнего уровня — 0 / A flat tree: an expansion inserts the child rows, a collapse removes them, the top level depth is 0
     void testTreeListRows()
     {
@@ -130,6 +156,37 @@ namespace
         TEST_ASSERT((log.events == Events{"ins 1 2", "chg 0", "rem 1 2", "chg 0"}));
         rows.expandToDepth(1);
         TEST_ASSERT(rows.size() == 4);
+    }
+
+    class FailingNodeFilter : public gran::data::NodeFilter
+    {
+    public:
+        bool accepts(const gran::data::TreeModel&, gran::data::NodeId) const override
+        {
+            if (fail)
+                throw std::runtime_error("filter");
+            return true;
+        }
+
+        bool fail = false;
+    };
+
+    void testTreeListFailedExpand()
+    {
+        gran::data::TreeModel tree;
+        const auto root = tree.append(tree.root(), {});
+        tree.append(root, {});
+        gran::data::TreeList rows(tree);
+        auto filter = std::make_shared<FailingNodeFilter>();
+        rows.setFilter(filter);
+        rows.collapse(0);
+        filter->fail = true;
+        TEST_ASSERT_THROWS(rows.expand(0), std::runtime_error);
+        filter->fail = false;
+        rows.setSort({});
+        TEST_ASSERT(rows.size() == 1 && !rows.expanded(0));
+        rows.expand(0);
+        TEST_ASSERT(rows.size() == 2 && rows.expanded(0));
     }
 
     // Ленивый узел: раскрытие зовёт подгрузчик, ребёнок появляется строкой, признак снимается / A lazy node: the expansion calls the fetcher, the child appears as a row, the flag is dropped
@@ -153,7 +210,9 @@ namespace suites
     {
         runner.add("models: list signals", testListSignals);
         runner.add("models: tree signals", testTreeSignals);
+        runner.add("models: append subtrees", testTreeAppendSubtrees);
         runner.add("models: tree list rows", testTreeListRows);
+        runner.add("models: failed tree expand", testTreeListFailedExpand);
         runner.add("models: lazy node", testLazyNode);
     }
 }

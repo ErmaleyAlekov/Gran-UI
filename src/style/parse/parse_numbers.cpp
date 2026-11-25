@@ -42,18 +42,23 @@ namespace gran::style
 
     // "ms" и "s"; отрицательная длительность недопустима
     // "ms" and "s"; a negative duration is not allowed
-    float parseDuration(std::string_view text)
+    float internal::parseTime(std::string_view text, bool allowNegative)
     {
         float value = 0.0f;
         std::string_view unit;
 
-        if (!splitNumberUnit(trimSpaces(text), value, unit) || value < 0.0f)
+        if (!splitNumberUnit(trimSpaces(text), value, unit) || (!allowNegative && value < 0.0f))
             throwValueError(i18n::Message::STYLE_BAD_DURATION, text);
         if (equalsIgnoreCase(unit, "ms"))
             return value / 1000.0f;
         if (!equalsIgnoreCase(unit, "s"))
             throwValueError(i18n::Message::STYLE_BAD_DURATION, text);
         return value;
+    }
+
+    float parseDuration(std::string_view text)
+    {
+        return internal::parseTime(text, false);
     }
 
     // deg (и число без единицы), rad, turn, grad → радианы

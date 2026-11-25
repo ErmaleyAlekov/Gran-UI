@@ -101,6 +101,7 @@ namespace gran::app
 
         // Общее состояние приложения / The shared application state
         Application::State& shared;
+        const AppWindow* replacing = nullptr;
         markup::UiDocument document;
         style::ComputedStyle windowStyle;
         a11y::AccessTree access;
@@ -144,6 +145,10 @@ namespace gran::app
         std::unique_ptr<GridEdit> gridEdit;
         // Окну нужен кадр в этом проходе цикла / The window needs a frame in this loop pass
         bool changed = false;
+        bool deviceLost = false;
+        double presentationRetry = -1;
+        std::uint64_t presentationId = 0;
+        std::uint64_t presentationRequest = 0;
         bool animating = false;
         bool caretVisible = true;
         double caretToggle = 0.0;
@@ -165,7 +170,8 @@ namespace gran::app
     // ---- application_frame.cpp ----
 
     // Стили, анимации, компоновка (если нужна), отрисовка / Styles, animations, layout (if needed), rendering
-    void renderFrame(AppWindow& win);
+    void renderFrame(AppWindow& win, bool recoverDevice = true);
+    void pollFramePresentation(AppWindow& win);
 
     // ---- application_layout.cpp ----
 

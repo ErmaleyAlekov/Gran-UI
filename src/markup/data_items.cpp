@@ -59,7 +59,7 @@ namespace gran::markup::internal
             data::Column column;
             column.name = *findAttribute(*child, "name");
             column.title = column.name;
-            if (const std::string* title = findAttribute(*child, "title"))
+            if (const std::string* title = findAttribute(*child, "title"); title && !title->empty())
                 column.title = *title;
             column.type = columnType(findAttribute(*child, "type"));
             columns.push_back(std::move(column));

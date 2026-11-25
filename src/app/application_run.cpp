@@ -77,14 +77,16 @@ namespace gran
 
                 if (!win.window)
                     continue;
+                if (win.presentationRetry >= 0 && win.presentationRetry <= time)
+                    app::pollFramePresentation(win);
                 win.changed = app::blinkCaret(win, time) || win.changed;
                 win.changed = app::updateTooltip(win, time) || win.changed;
                 if (all || win.changed || win.animating)
                 {
+                    win.changed = false;
                     app::renderFrame(win);
                     rendered = true;
                 }
-                win.changed = false;
             }
             return rendered;
         }
@@ -107,6 +109,12 @@ namespace gran
 
                 if (win->window)
                     wait = app::windowSleep(*win, time);
+                if (win->window && win->presentationRetry >= 0)
+                {
+                    const double retry = std::max(0.0, win->presentationRetry - time);
+                    if (wait < 0 || retry < wait)
+                        wait = retry;
+                }
                 if (wait >= 0.0 && (sleep < 0.0 || wait < sleep))
                     sleep = wait;
             }

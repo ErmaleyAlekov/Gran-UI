@@ -73,7 +73,8 @@ namespace gran::render::internal
 
     // Невидимые и полностью прозрачные ветви пропускаются целиком; содержимое (текст, дети) — внутри отсечения узла
     // Invisible and fully transparent branches are skipped entirely; the content (text, children) is inside the node clip
-    void paintNode(const ui::Node& node, const PaintState& parent, SceneContext& context)
+    static void visitNode(const ui::Node& node, const PaintState& parent, SceneContext& context,
+        std::vector<PaintVisit>& pending)
     {
         // Участки (Span) рисует их Text: у участка нет своего блока; слои рисуются после всего дерева
         // The runs (Span) are painted by their Text: a run has no box of its own; the layers are painted after the whole tree
@@ -85,15 +86,31 @@ namespace gran::render::internal
         paintBox(node, state, context);
         PaintState inner = clipChildren(node, state, context);
         paintContent(node, inner, context);
-        if (!paintGridLine(node, inner, context))
+        if (node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::TEXT_AREA ||
+            (node.kind == ui::ElementKind::DOCK_HOST && node.content.dock.dropSide >= 0))
+            pending.push_back({&node, inner, true});
+        if (!queueGridCells(node, inner, context, pending))
         {
-            for (const ui::Node* child : paintOrder(node))
-                paintNode(*child, inner, context);
+            const auto order = paintOrder(node);
+            for (auto child = order.rbegin(); child != order.rend(); ++child)
+                pending.push_back({*child, inner});
         }
-        if (node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::TEXT_AREA)
-            paintScrollbars(node, inner, context);
-        if (node.kind == ui::ElementKind::DOCK_HOST && node.content.dock.dropSide >= 0)
-            paintDockDrop(node, inner, context);
+    }
+
+    void paintNode(const ui::Node& node, const PaintState& parent, SceneContext& context)
+    {
+        std::vector<PaintVisit> pending{{&node, parent}};
+        while (!pending.empty())
+        {
+            const auto visit = pending.back();
+            pending.pop_back();
+            if (!visit.overlay)
+                visitNode(*visit.node, visit.state, context, pending);
+            else if (visit.node->kind == ui::ElementKind::DOCK_HOST)
+                paintDockDrop(*visit.node, visit.state, context);
+            else
+                paintScrollbars(*visit.node, visit.state, context);
+        }
     }
 
 }

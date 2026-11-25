@@ -6,7 +6,8 @@ namespace gran::input
 {
     namespace
     {
-        // Список форматов acceptDrop (через пробелы) содержит format или «*» / The acceptDrop format list (by spaces) contains format or "*"
+        // «*» принимает и пустой формат, явно заданный обработчиком dragStart.
+        // "*" also accepts an empty format explicitly set by the dragStart handler.
         bool acceptsFormat(const std::string& formats, const std::string& format) noexcept
         {
             std::size_t start = 0;

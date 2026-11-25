@@ -1,5 +1,6 @@
 #include "common/json_internal.hpp"
 
+#include <cmath>
 #include <cstdlib>
 #include <string>
 
@@ -23,6 +24,20 @@ namespace chat::json
         {
             return cursor.position < cursor.text.size() && cursor.text[cursor.position] == expected;
         }
+
+        // Целая часть без ведущих нулей. / Integer part without leading zeros.
+        void readInteger(JsonCursor& cursor)
+        {
+            if (at(cursor, '0'))
+            {
+                auto next = cursor.position + 1;
+                if (next < cursor.text.size() && cursor.text[next] >= '0' && cursor.text[next] <= '9')
+                    failAt(cursor, ChatText::JSON_BAD_NUMBER);
+                ++cursor.position;
+            }
+            else if (!skipDigits(cursor))
+                failAt(cursor, ChatText::JSON_BAD_NUMBER);
+        }
     }
 
     /*
@@ -40,10 +55,7 @@ namespace chat::json
 
         if (at(cursor, '-'))
             ++cursor.position;
-        if (at(cursor, '0'))
-            ++cursor.position;
-        else if (!skipDigits(cursor))
-            failAt(cursor, ChatText::JSON_BAD_NUMBER);
+        readInteger(cursor);
         if (at(cursor, '.'))
         {
             ++cursor.position;
@@ -59,6 +71,9 @@ namespace chat::json
                 failAt(cursor, ChatText::JSON_BAD_NUMBER);
         }
         std::string piece(cursor.text.substr(start, cursor.position - start));
-        return std::strtod(piece.c_str(), nullptr);
+        double value = std::strtod(piece.c_str(), nullptr);
+        if (!std::isfinite(value))
+            failAt(cursor, ChatText::JSON_BAD_NUMBER);
+        return value;
     }
 }

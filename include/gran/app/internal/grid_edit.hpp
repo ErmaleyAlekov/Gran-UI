@@ -63,7 +63,7 @@ namespace gran::app
         ui::Node* editor = nullptr;
         ui::Node* value = nullptr;
         std::vector<ui::Node*> hidden;
-        std::unique_ptr<data::RecordTracker> record;
+        std::shared_ptr<data::RecordTracker> record;
         std::string field;
         std::string key;
         data::ColumnType type = data::ColumnType::TEXT;

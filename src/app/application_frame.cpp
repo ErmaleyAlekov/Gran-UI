@@ -44,16 +44,31 @@ namespace gran
             // для дикторов)
             // After a frame: the answer to the window manager (X11), the cursor, the input focus → the accessibility
             // tree (a change is an event for screen readers)
-            void syncAfterFrame(AppWindow& win)
+            void syncAfterFrame(AppWindow& win, rhi::FrameStatus status)
             {
                 // У списка строк таблицы и дерева дикторам — текущая строка или ячейка / For a table and tree row list the screen readers get the current row or cell
                 const ui::Node* focus = accessFocusOf(win, win.router->focused());
 
                 // Менеджер ждёт этот кадр: ответ — когда кадр уже в окне (Т-24)
                 // The manager waits for this frame: the answer when the frame is already in the window (T-24)
-                if (win.window->waitsForFrame() && win.backend)
+                if (win.window->waitsForFrame() && !win.backend->canConfirmPresentation())
+                {
                     win.backend->waitPresented();
-                win.window->framePresented();
+                    win.window->framePresented();
+                    win.presentationRetry = -1;
+                }
+                else if (win.window->waitsForFrame())
+                {
+                    const auto request = win.window->frameRequest();
+                    if (win.presentationRetry < 0 || request != win.presentationRequest || win.presentationId == 0)
+                    {
+                        win.presentationRequest = request;
+                        win.presentationId = status == rhi::FrameStatus::PRESENTED ? win.backend->lastPresentation() : 0;
+                        win.presentationRetry = now() + 0.016;
+                    }
+                }
+                else
+                    win.presentationRetry = -1;
                 win.window->setCursor(win.router->cursor());
                 if (focus == win.access.focus)
                     return;
@@ -69,6 +84,21 @@ namespace gran
             return std::chrono::duration<double>(std::chrono::steady_clock::now() - START).count();
         }
 
+        void pollFramePresentation(AppWindow& win)
+        {
+            win.presentationRetry = -1;
+            if (!win.window->waitsForFrame() || win.presentationRequest != win.window->frameRequest())
+                return;
+            using P = rhi::RenderBackend::Presentation;
+            switch (win.backend->pollPresentation(win.presentationId))
+            {
+                case P::SHOWN: win.window->framePresented(); break;
+                case P::PENDING: win.presentationRetry = now() + 0.016; break;
+                case P::DEVICE_LOST: win.deviceLost = true; win.changed = true; break;
+                case P::RETRY_FRAME: win.changed = true; break;
+            }
+        }
+
         /*
         ** Кадр: состояние команд отмены, стили (с наблюдателем-аниматором), шаг анимаций, компоновка только при
         ** DIRTY_LAYOUT у корня, отрисовка с кареткой фокусированного поля. Потеря устройства —
@@ -78,8 +108,14 @@ namespace gran
         ** DIRTY_LAYOUT on the root, rendering with the caret of the focused input. A device loss —
         ** recreating the graphics and repeating the frame on the next loop pass.
         */
-        void renderFrame(AppWindow& win)
+        void renderFrame(AppWindow& win, bool recoverDevice)
         {
+            if (win.deviceLost)
+            {
+                if (!recoverDevice) return;
+                recreateGraphics(win);
+                win.deviceLost = false;
+            }
             ui::Node& root = *win.document.root;
             const markup::Theme& theme = markup::defaultTheme();
             float scale = win.window->scale();
@@ -100,12 +136,19 @@ namespace gran
             revealCaret(win);
             if (caret == nullptr || !ui::isTextField(*caret) || !win.caretVisible)
                 caret = nullptr;
-            if (win.renderer->render(root, win.windowStyle, scale,
-                    render::FrameMarks{caret, win.router->selected(), win.router->mnemonicsShown()})
-                == rhi::FrameStatus::DEVICE_LOST)
+            const auto status = win.renderer->render(root, win.windowStyle, scale,
+                render::FrameMarks{caret, win.router->selected(), win.router->mnemonicsShown()});
+            if (status == rhi::FrameStatus::DEVICE_LOST)
+            {
+                win.deviceLost = true;
+                win.changed = true;
+                if (!recoverDevice) return;
                 recreateGraphics(win);
+                win.deviceLost = false;
+                return;
+            }
             checkGraphicsDiagnostics(win);
-            syncAfterFrame(win);
+            syncAfterFrame(win, status);
             win.window->accessRefresh();
             win.access.changed = nullptr;
             win.access.added.clear();

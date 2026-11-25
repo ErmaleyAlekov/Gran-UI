@@ -30,18 +30,20 @@ namespace gran::markup::internal
             const std::string& at = *findAttribute(frame, "at");
             const std::string* easing = findAttribute(frame, "easing");
 
-            keyframe.offset = style::parseNumber(std::string_view(at).substr(0, at.size() - 1)) / 100.0f;
-            if (easing != nullptr)
+            const char* attribute = "at";
+            try
             {
-                try
+                keyframe.offset = style::parseNumber(std::string_view(at).substr(0, at.size() - 1)) / 100.0f;
+                if (easing != nullptr)
                 {
+                    attribute = "easing";
                     keyframe.easing = style::parseEasing(*easing);
+                    keyframe.hasEasing = true;
                 }
-                catch (const GranException& error)
-                {
-                    throwAttributeError(frame, "easing", error.getMessage());
-                }
-                keyframe.hasEasing = true;
+            }
+            catch (const GranException& error)
+            {
+                throwAttributeError(frame, attribute, error.getMessage());
             }
             readDeclarations(frame, keyframe.values, context);
             return keyframe;

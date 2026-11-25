@@ -36,8 +36,13 @@ namespace gran::data
         std::size_t keep = NO_ROW;
 
         _mode = mode;
-        if (_count == 0 || mode == SelectionMode::MULTI || mode == SelectionMode::EXTENDED)
+        if (mode == SelectionMode::MULTI || mode == SelectionMode::EXTENDED)
             return;
+        if (_count == 0)
+        {
+            _hidden.clear();
+            return;
+        }
         if (mode == SelectionMode::SINGLE && _current != NO_ROW && isSelected(_current))
             keep = _current;
         else if (mode == SelectionMode::SINGLE)

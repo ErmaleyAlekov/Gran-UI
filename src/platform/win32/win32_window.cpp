@@ -6,6 +6,7 @@
 #include <dwmapi.h>
 
 #include <cmath>
+#include <mutex>
 
 namespace gran::platform::win32
 {
@@ -36,8 +37,10 @@ namespace gran::platform::win32
         // The class is registered once; no background is set — no white flash before the first frame
         void registerClass()
         {
+            static std::mutex registrationMutex;
             static bool registered = false;
             WNDCLASSEXW windowClass{};
+            const std::lock_guard<std::mutex> guard(registrationMutex);
 
             if (registered)
                 return;
@@ -49,7 +52,13 @@ namespace gran::platform::win32
             windowClass.hInstance = GetModuleHandleW(nullptr);
             windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
             windowClass.lpszClassName = CLASS_NAME;
-            RegisterClassExW(&windowClass);
+            if (RegisterClassExW(&windowClass) == 0)
+            {
+                const DWORD error = GetLastError();
+                if (error != ERROR_CLASS_ALREADY_EXISTS)
+                    throw GranException(ErrorCode::PLATFORM, i18n::format(i18n::Message::PLATFORM_WINDOW_FAILED,
+                        {std::to_string(error)}));
+            }
             registered = true;
         }
     }

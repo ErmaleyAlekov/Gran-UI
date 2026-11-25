@@ -5,49 +5,6 @@
 
 namespace gran::binding
 {
-    namespace
-    {
-        // Лежит ли узел в поддереве / Whether the node lies in the subtree
-        bool contains(const ui::Node& subtree, const ui::Node* node) noexcept
-        {
-            for (const ui::Node* current = node; current != nullptr; current = current->parent)
-            {
-                if (current == &subtree)
-                    return true;
-            }
-            return false;
-        }
-    }
-
-    /*
-    ** Уничтожение привязки отписывает её от модели. Таблица со строкой фильтров уходит (ветка удалена, документ
-    ** перезагружен, окно закрыто) — её условия снимаются с модели: иначе прокси или дерево остались бы отфильтрованы
-    ** без видимой причины (ревью Т-72). Снимаются после отписки: строки уходящей таблицы не перестраиваются зря.
-    **
-    ** Destroying a binding unsubscribes it from the model. A table with a filter row goes away (a branch is removed, the document
-    ** is reloaded, the window is closed) — its conditions are dropped from the model: otherwise the proxy or the tree would stay
-    ** filtered for no visible reason (review T-72). They are dropped after unsubscribing: the leaving table rows are not rebuilt in vain.
-    */
-    void ListBindings::forget(const ui::Node& subtree)
-    {
-        std::vector<data::ListSource*> filtered;
-
-        _expressions->forget(subtree);
-        for (std::size_t index = 0; index < _bindings.size();)
-        {
-            if (!contains(subtree, &_bindings[index]->container()))
-            {
-                ++index;
-                continue;
-            }
-            if (ownsColumnFilter(_bindings[index]->container()))
-                filtered.push_back(&_bindings[index]->model());
-            _bindings.erase(_bindings.begin() + static_cast<std::ptrdiff_t>(index));
-        }
-        for (data::ListSource* model : filtered)
-            applyColumnConditions(*model, {});
-    }
-
     // Сначала снимаются все невладеющие ссылки, затем узел уничтожается / All non-owning references are dropped first, then the node is destroyed
     void ListBindings::removeNode(ui::Node& node)
     {

@@ -7,87 +7,76 @@ namespace gran::vector::internal
 {
     namespace
     {
-        constexpr float PI = 3.14159265358979f;
-
-        // Эллипс дуги в центральной форме: центр, радиусы, поворот, начальный угол и размах
-        // The arc ellipse in the center form: the center, the radii, the rotation, the start angle and the sweep
-        struct ArcEllipse
+        constexpr double PI = 3.14159265358979323846;
+        struct Point { double x, y; };
+        struct Ellipse
         {
-            Vec2 center;
-            Vec2 radius;
-            float cosine = 1.0f;
-            float sine = 0.0f;
-            float start = 0.0f;
-            float sweep = 0.0f;
+            Point radius, start;
+            double cosine, sine, sweep;
         };
 
-        // Точка единичной окружности → точка повёрнутого эллипса / A unit circle point → a point of the rotated ellipse
-        Vec2 mapUnit(const ArcEllipse& ellipse, float x, float y) noexcept
+        Ellipse centerForm(Vec2 from, const ArcSpec& arc)
         {
-            float ex = ellipse.radius.x * x;
-            float ey = ellipse.radius.y * y;
-
-            return Vec2{ellipse.center.x + ex * ellipse.cosine - ey * ellipse.sine,
-                ellipse.center.y + ex * ellipse.sine + ey * ellipse.cosine};
+            const double degrees = std::remainder(static_cast<double>(arc.rotation), 360.0);
+            const double angle = degrees * PI / 180;
+            Ellipse e{{std::fabs(arc.radius.x), std::fabs(arc.radius.y)}, {}, std::cos(angle), std::sin(angle), 0};
+            const double magnitude = std::fabs(degrees);
+            if (magnitude == 90)
+            {
+                e.cosine = 0;
+                e.sine = std::copysign(1.0, degrees);
+            }
+            else if (magnitude == 180)
+            {
+                e.cosine = -1;
+                e.sine = 0;
+            }
+            else if (magnitude == 45 || magnitude == 135)
+            {
+                const double diagonal = std::sqrt(0.5);
+                e.cosine = std::copysign(diagonal, 90 - magnitude);
+                e.sine = std::copysign(diagonal, degrees);
+            }
+            const double dx = (static_cast<double>(from.x) - arc.end.x) / 2;
+            const double dy = (static_cast<double>(from.y) - arc.end.y) / 2;
+            const double u = (e.cosine * dx + e.sine * dy) / e.radius.x;
+            const double v = (-e.sine * dx + e.cosine * dy) / e.radius.y;
+            const double length = std::hypot(u, v);
+            const double halfChord = std::min(1.0, length);
+            const double normal = std::sqrt((1 - halfChord) * (1 + halfChord)) * (arc.large == arc.sweep ? -1 : 1);
+            e.start = {(u / length) * halfChord - (v / length) * normal,
+                       (v / length) * halfChord + (u / length) * normal};
+            e.radius.x *= std::max(1.0, length);
+            e.radius.y *= std::max(1.0, length);
+            e.sweep = 2 * std::asin(halfChord);
+            if (arc.large)
+                e.sweep = 2 * PI - e.sweep;
+            if (!arc.sweep)
+                e.sweep = -e.sweep;
+            return e;
         }
 
-        /*
-        ** Переход от концов к центру (SVG 1.1, F.6.5–F.6.6): точки в системе эллипса, слишком
-        ** малые радиусы растягиваются (λ > 1), центр по флагам, углы через atan2 — без acos и его
-        ** потери точности на краях.
-        **
-        ** The conversion from the endpoints to the center (SVG 1.1, F.6.5–F.6.6): the points in the ellipse system, too
-        ** small radii are stretched (λ > 1), the center by the flags, the angles via atan2 — without acos and its
-        ** precision loss at the edges.
-        */
-        ArcEllipse centerForm(Vec2 from, const ArcSpec& arc, Vec2 radius)
+        Point transform(const Ellipse& e, Point v)
         {
-            ArcEllipse ellipse;
-            float angle = arc.rotation * PI / 180.0f;
-            ellipse.cosine = std::cos(angle);
-            ellipse.sine = std::sin(angle);
-            float dx = (from.x - arc.end.x) * 0.5f;
-            float dy = (from.y - arc.end.y) * 0.5f;
-            float x1 = ellipse.cosine * dx + ellipse.sine * dy;
-            float y1 = -ellipse.sine * dx + ellipse.cosine * dy;
-            float lambda = (x1 * x1) / (radius.x * radius.x) + (y1 * y1) / (radius.y * radius.y);
-            if (lambda > 1.0f)
-                radius = Vec2{radius.x * std::sqrt(lambda), radius.y * std::sqrt(lambda)};
-            float rx2 = radius.x * radius.x;
-            float ry2 = radius.y * radius.y;
-            float factor = std::sqrt(std::max(0.0f, (rx2 * ry2 - rx2 * y1 * y1 - ry2 * x1 * x1) / (rx2 * y1 * y1 + ry2 * x1 * x1)));
-            if (arc.large == arc.sweep)
-                factor = -factor;
-            float cx = factor * radius.x * y1 / radius.y;
-            float cy = -factor * radius.y * x1 / radius.x;
-            ellipse.center = Vec2{ellipse.cosine * cx - ellipse.sine * cy + (from.x + arc.end.x) * 0.5f,
-                ellipse.sine * cx + ellipse.cosine * cy + (from.y + arc.end.y) * 0.5f};
-            ellipse.radius = radius;
-            ellipse.start = std::atan2((y1 - cy) / radius.y, (x1 - cx) / radius.x);
-            ellipse.sweep = std::atan2((-y1 - cy) / radius.y, (-x1 - cx) / radius.x) - ellipse.start;
-            return ellipse;
+            const double x = e.radius.x * v.x;
+            const double y = e.radius.y * v.y;
+            return {e.cosine * x - e.sine * y, e.sine * x + e.cosine * y};
         }
 
-        // Направление обхода по флагу sweep: размах в (−2π, 0] или [0, 2π) / The direction by the sweep flag: the sweep in (−2π, 0] or [0, 2π)
-        void orientSweep(ArcEllipse& ellipse, bool sweep) noexcept
+        // Смещение от начала через cos(t)-1 = -2 sin²(t/2) сохраняет малые дуги.
+        // Evaluate offsets from the known start using cos(t)-1 = -2 sin²(t/2) for small arcs.
+        Point endOffset(const Ellipse& e, double t)
         {
-            if (!sweep && ellipse.sweep > 0.0f)
-                ellipse.sweep -= 2.0f * PI;
-            if (sweep && ellipse.sweep < 0.0f)
-                ellipse.sweep += 2.0f * PI;
+            const double h = std::sin(t / 2);
+            const double c = -2 * h * h;
+            const double s = std::sin(t);
+            return transform(e, {e.start.x * c - e.start.y * s, e.start.x * s + e.start.y * c});
         }
 
-        // Кусок дуги не больше 90° одной кубической кривой (k = 4/3 · tg(Δ/4)) / An arc piece of at most 90° as one cubic curve (k = 4/3 · tan(Δ/4))
-        void arcSegment(PathBuilder& builder, const ArcEllipse& ellipse, float from, float delta, Vec2 end)
+        Point tangent(const Ellipse& e, double t)
         {
-            float k = 4.0f / 3.0f * std::tan(delta * 0.25f);
-            float to = from + delta;
-            Vec2 points[3] = {
-                mapUnit(ellipse, std::cos(from) - k * std::sin(from), std::sin(from) + k * std::cos(from)),
-                mapUnit(ellipse, std::cos(to) + k * std::sin(to), std::sin(to) - k * std::cos(to)),
-                end};
-
-            addVerb(builder, Verb::CUBIC, points, 3);
+            const double c = std::cos(t), s = std::sin(t);
+            return transform(e, {-e.start.x * s - e.start.y * c, e.start.x * c - e.start.y * s});
         }
     }
 
@@ -98,7 +87,7 @@ namespace gran::vector::internal
     ** An arc: equal endpoints — nothing, a zero radius — a segment (as SVG requires). Otherwise the center
     ** form and pieces of 90° or less; the end of the last piece is exactly the point from the data (without accumulated error).
     */
-    void addArc(PathBuilder& builder, const ArcSpec& arc)
+    void addArc(PathBuilder& builder, const ArcSpec& arc, const PathScanner& scanner)
     {
         Vec2 radius{std::fabs(arc.radius.x), std::fabs(arc.radius.y)};
         Vec2 from = builder.current;
@@ -110,17 +99,25 @@ namespace gran::vector::internal
             addVerb(builder, Verb::LINE, &arc.end, 1);
             return;
         }
-        ArcEllipse ellipse = centerForm(from, arc, radius);
-        orientSweep(ellipse, arc.sweep);
-        int pieces = std::max(1, static_cast<int>(std::ceil(std::fabs(ellipse.sweep) / (PI * 0.5f) - 1e-4f)));
-        float delta = ellipse.sweep / static_cast<float>(pieces);
-        for (int piece = 0; piece < pieces; ++piece)
+        const Ellipse e = centerForm(from, arc);
+        const int pieces = std::max(1, static_cast<int>(std::ceil(std::fabs(e.sweep) / (PI / 2))));
+        const double step = e.sweep / pieces;
+        const double k = 4.0 / 3 * std::tan(step / 4);
+        Point start{from.x, from.y};
+        for (int i = 0; i < pieces; ++i)
         {
-            float start = ellipse.start + delta * static_cast<float>(piece);
-            Vec2 end = mapUnit(ellipse, std::cos(start + delta), std::sin(start + delta));
-            if (piece == pieces - 1)
-                end = arc.end;
-            arcSegment(builder, ellipse, start, delta, end);
+            const double a = step * i, b = step * (i + 1);
+            const Point first = tangent(e, a), last = tangent(e, b);
+            const Point offset = endOffset(e, b);
+            Point end{from.x + offset.x, from.y + offset.y};
+            if (i + 1 == pieces)
+                end = {arc.end.x, arc.end.y};
+            Vec2 points[]{
+                {pathCoordinate(start.x + k * first.x, scanner), pathCoordinate(start.y + k * first.y, scanner)},
+                {pathCoordinate(end.x - k * last.x, scanner), pathCoordinate(end.y - k * last.y, scanner)},
+                {pathCoordinate(end.x, scanner), pathCoordinate(end.y, scanner)}};
+            addVerb(builder, Verb::CUBIC, points, 3);
+            start = end;
         }
     }
 }

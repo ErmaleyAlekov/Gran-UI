@@ -3,7 +3,7 @@
 
 // Идентификатор создавшего потока фиксируется один раз.
 // The creating thread identifier is captured once.
-gran_app::gran_app(gran::AppOptions options) : application(options), thread(std::this_thread::get_id()) {}
+gran_app::gran_app(gran::AppOptions options) : thread(std::this_thread::get_id()), application(options) {}
 
 namespace
 {

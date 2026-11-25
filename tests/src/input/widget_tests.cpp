@@ -212,6 +212,58 @@ namespace
         TEST_ASSERT(router.focused() == btn);
     }
 
+    void testWideSliderInput()
+    {
+        auto doc = support::layoutMarkup("<Window><Slider id=\"wide\" width=\"100\" height=\"20\"/></Window>", 400, 300);
+        auto* slider = gran::ui::findNode(*doc.root, "wide");
+        TEST_ASSERT(slider != nullptr);
+        slider->content.minimum = -3e38f;
+        slider->content.maximum = 3e38f;
+        slider->content.value = slider->content.minimum;
+        ActionSinkStub sink;
+        TextLocatorStub locator;
+        gran::platform::HeadlessWindow window;
+        gran::input::InputRouter router(*doc.root, sink, &window, locator);
+
+        const auto& frame = slider->layout.frame;
+        gran::platform::Event event;
+        event.kind = gran::platform::EventKind::MOUSE_DOWN;
+        event.button = gran::platform::MouseButton::LEFT;
+        event.position = {frame.x + frame.width * 0.5f, frame.y + frame.height * 0.5f};
+        router.handle(event);
+        event.kind = gran::platform::EventKind::MOUSE_UP;
+        router.handle(event);
+        TEST_ASSERT(slider->content.value == 0);
+
+        router.focus(slider);
+        event.kind = gran::platform::EventKind::KEY_DOWN;
+        event.key = gran::platform::Key::RIGHT;
+        router.handle(event);
+        TEST_ASSERT(std::abs(slider->content.value / 6e36f - 1.0f) < 1e-6f);
+        slider->content.step = 3e38f;
+        slider->content.value = 0;
+        router.handle(event);
+        TEST_ASSERT(slider->content.value == slider->content.maximum);
+
+        slider->content.minimum = -1e20f;
+        slider->content.maximum = 1e20f;
+        slider->content.step = 1e20f;
+        gran::input::RouterState state;
+        state.actions = &sink;
+        for (float value : {-1.0f, 1.0f})
+        {
+            slider->content.value = slider->content.maximum;
+            TEST_ASSERT(gran::input::setSliderValue(state, *slider, value));
+            TEST_ASSERT(slider->content.value == 0);
+        }
+        slider->content.minimum = 0;
+        slider->content.maximum = 10;
+        slider->content.step = 3;
+        slider->content.value = 9;
+        router.handle(event);
+        TEST_ASSERT(slider->content.value == 10);
+    }
+
     void testSwitchBehavior()
     {
         auto doc = support::layoutMarkup(
@@ -310,6 +362,7 @@ namespace suites
         runner.add("widgets: radio button group by name", testRadioButtonGroupByName);
         runner.add("widgets: radio button tab order", testRadioButtonTabOrder);
         runner.add("widgets: switch behavior", testSwitchBehavior);
+        runner.add("widgets: wide slider pointer and keyboard steps", testWideSliderInput);
         runner.add("widgets: tabs behavior", testTabsBehavior);
         runner.add("widgets: tabs no value", testTabsNoValue);
     }

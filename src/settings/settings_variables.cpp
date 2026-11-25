@@ -18,7 +18,8 @@ namespace gran::settings
     {
         auto found = _model.variables.find(name);
 
-        if (found != _model.variables.end() && found->second.type == value.type && found->second.text == value.text)
+        if (found != _model.variables.end() && found->second.type == value.type &&
+            found->second.text == value.text && found->second.items == value.items)
             return;
         _model.variables[name] = value;
         _modified = true;

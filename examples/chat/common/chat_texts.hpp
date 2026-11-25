@@ -55,6 +55,9 @@ namespace chat
         APP_FATAL,
         APP_MISSING_NODE,
 
+        JSON_CONTROL_CHAR,
+        APP_BAD_PORT,
+        APP_MISSING_VALUE,
         COUNT
     };
 

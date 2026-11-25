@@ -45,17 +45,23 @@ namespace gran::app
     */
     void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path)
     {
+        if (!state.running && state.reloading)
+            throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::APP_RELOAD_ACTIVE));
         validateFonts(document, sourceBase(path));
-        rememberLibraries(state, document);
+        auto stamps = libraryStamps(document);
         state.reloadFailure.clear();
         if (state.windows.empty())
         {
+            state.lists.validateDocument(document);
             addWindow(state, std::move(document), sourceBase(path));
             rememberSource(state, path);
+            state.libraryStamps = std::move(stamps);
             return;
         }
-        state.pendingDocument = std::make_unique<markup::UiDocument>(std::move(document));
+        auto pending = std::make_unique<markup::UiDocument>(std::move(document));
         state.pendingPath = path;
+        state.pendingDocument = std::move(pending);
+        state.pendingLibraryStamps = std::move(stamps);
         if (!state.running)
             applyReload(state);
     }

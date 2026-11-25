@@ -21,6 +21,8 @@ namespace gran::animation::internal
     // Пары теней; inset берётся у конца / The shadow pairs; inset is taken from the end
     std::vector<style::Shadow> mixShadows(const std::vector<style::Shadow>& from, const std::vector<style::Shadow>& to, float k)
     {
+        if (k == 0.0f) return from;
+        if (k == 1.0f) return to;
         std::vector<style::Shadow> result;
         std::size_t count = std::max(from.size(), to.size());
 

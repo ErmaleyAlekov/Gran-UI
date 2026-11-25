@@ -4,9 +4,37 @@
 #include "gran/app/application.hpp"
 #include "gran/platform/headless/headless_window.hpp"
 #include "gran/ui/node.hpp"
+#include <cmath>
 
 namespace
 {
+    void testLargeScrollThumb()
+    {
+        constexpr float extent = 1e20f;
+        gran::ui::Node scroll;
+        scroll.kind = gran::ui::ElementKind::SCROLL;
+        scroll.layout.frame = {0, 0, extent, extent};
+        scroll.layout.contentSize = {2 * extent, 2 * extent};
+        scroll.layout.scrollOffset = {extent / 2, extent / 2};
+        for (const bool vertical : {false, true})
+        {
+            gran::ui::ScrollBar bar;
+            TEST_ASSERT(gran::ui::scrollBar(scroll, vertical, bar));
+            const float length = vertical ? bar.thumb.height : bar.thumb.width;
+            const float place = vertical ? bar.thumb.y : bar.thumb.x;
+            TEST_ASSERT(std::isfinite(length) && std::isfinite(bar.travel));
+            TEST_ASSERT_NEAR(length / extent, 0.5f);
+            TEST_ASSERT_NEAR(bar.travel / extent, 0.5f);
+            TEST_ASSERT_NEAR(place / extent, 0.25f);
+        }
+        scroll.layout.frame = {0, 0, 10, 12};
+        gran::ui::ScrollBar small;
+        TEST_ASSERT(gran::ui::scrollBar(scroll, false, small));
+        TEST_ASSERT(small.thumb.width == 10 && small.travel == 0);
+        TEST_ASSERT(gran::ui::scrollBar(scroll, true, small));
+        TEST_ASSERT(small.thumb.height == 12 && small.travel == 0);
+    }
+
     // Окно 300×200, прокрутка во всё окно, содержимое высотой 1000: бегунок 40, путь 160, предел 800
     // A 300×200 window, a scroll over the whole window, 1000 high content: the thumb is 40, the travel 160, the limit 800
     const char* MARKUP = R"(<Window width="300" height="200"><Scroll id="s" grow="1"><Stack id="content" height="1000"><Button id="under" onClick="hit">под полосой</Button></Stack></Scroll></Window>)";
@@ -96,6 +124,7 @@ namespace suites
 {
     void registerScrollBarTests(test::TestRunner& runner)
     {
+        runner.add("scroll bar: keeps large finite ratios representable", testLargeScrollThumb);
         runner.add("scroll bar: thumb drag", testScrollBarThumbDrag);
         runner.add("scroll bar: track paging", testScrollBarTrackPaging);
     }

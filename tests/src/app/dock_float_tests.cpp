@@ -5,11 +5,27 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "gran/ui/node.hpp"
+#include "beresta.hpp"
 
 #include <string>
 
 namespace
 {
+    void testFloatTitleWhitespace()
+    {
+        gran::Application app;
+        app.loadString(R"(<Window><DockHost><Text>C</Text><DockPanel id="p" title="P" dock="left"><Text id="child">x</Text></DockPanel></DockHost></Window>)");
+        auto* panel = app.find("p");
+        auto* child = app.find("child");
+        const std::string expected = "A\nB\rC\tD\r\nE";
+        panel->content.text = expected;
+        app.floatDockPanel(*panel);
+        TEST_ASSERT(child->parent && child->parent->domElement);
+        auto* window = dynamic_cast<const beresta::Element*>(child->parent->domElement->getParent());
+        TEST_ASSERT(window && window->getLocalName() == "Window");
+        TEST_ASSERT(window->getAttribute("title").value_or("") == expected);
+    }
+
     // Окно в собственном состоянии теста (без окна ОС) / A window in the test own state (without an OS window)
     gran::app::AppWindow& addTestWindow(gran::Application::State& state, const char* markup)
     {
@@ -68,6 +84,7 @@ namespace suites
     void registerDockFloatTests(test::TestRunner& runner)
     {
         runner.add("dock float: float and return", testFloatAndReturn);
+        runner.add("dock float: title whitespace", testFloatTitleWhitespace);
         runner.add("dock float: return without panel", testReturnWithoutPanel);
     }
 }

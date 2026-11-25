@@ -45,9 +45,11 @@ namespace gran::res
                 base = gptr() - eback();
             else if (direction == std::ios_base::end)
                 base = egptr() - eback();
-            if (base + offset < 0 || base + offset > egptr() - eback())
+            else if (direction != std::ios_base::beg)
                 return pos_type(off_type(-1));
-            setg(eback(), eback() + base + offset, egptr());
+            if (offset < -base || offset > (egptr() - eback()) - base)
+                return pos_type(off_type(-1));
+            setg(eback(), eback() + (base + offset), egptr());
             return pos_type(base + offset);
         }
 

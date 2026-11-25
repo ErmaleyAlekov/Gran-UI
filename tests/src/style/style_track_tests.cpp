@@ -2,6 +2,7 @@
 #include "suites/test_suites.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/style/value_parsers.hpp"
+#include "gran/style/value_scanner.hpp"
 
 namespace
 {
@@ -46,6 +47,11 @@ namespace
         TEST_ASSERT_THROWS(gran::style::parseTracks("minmax(1fr, 100)"), gran::GranException);
         TEST_ASSERT_THROWS(gran::style::parseTracks("-5"), gran::GranException);
         TEST_ASSERT_THROWS(gran::style::parseTracks("12em"), gran::GranException);
+        for (const auto input : {",48", "48, , 1fr", "48, 1fr,"})
+            TEST_ASSERT_THROWS(gran::style::parseTracks(input), gran::GranException);
+        const std::vector<std::string_view> parts{"10px)", "20px"};
+        TEST_ASSERT(gran::style::splitTopLevel("10px), 20px", ',') == parts);
+        TEST_ASSERT(gran::style::splitSpaces("10px) 20px") == parts);
     }
 }
 

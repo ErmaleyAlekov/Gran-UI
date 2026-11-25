@@ -52,20 +52,26 @@ namespace gran::log::internal
     {
         DWORD written = 0;
 
-        WriteFile(file, text, static_cast<DWORD>(std::strlen(text)), &written, nullptr);
+        const DWORD length = static_cast<DWORD>(std::strlen(text));
+        if (!WriteFile(file, text, length, &written, nullptr) || written != length)
+            crashState().textWriteFailed = true;
     }
 
     // «адрес модуль+0xсмещение»; адрес вне модулей — только число / "address module+0xoffset"; an address outside the modules — only the number
     void writeAddress(HANDLE file, DWORD64 address) noexcept
     {
         HMODULE module = nullptr;
-        char path[MAX_PATH] = "?";
+        char path[MAX_PATH + 1]{};
         char line[MAX_PATH + 64];
         const char* name = path;
 
-        if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            reinterpret_cast<LPCSTR>(address), &module))
-            GetModuleFileNameA(module, path, MAX_PATH);
+        if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            reinterpret_cast<LPCSTR>(address), &module) || !GetModuleFileNameA(module, path, MAX_PATH))
+        {
+            std::snprintf(line, sizeof(line), "  0x%016llX\n", static_cast<unsigned long long>(address));
+            writeText(file, line);
+            return;
+        }
         if (std::strrchr(path, '\\') != nullptr)
             name = std::strrchr(path, '\\') + 1;
         std::snprintf(line, sizeof(line), "  0x%016llX %s+0x%llX\n", static_cast<unsigned long long>(address), name,

@@ -29,13 +29,12 @@ namespace gran::log::internal
         }
 
         // «папка\имя-ГГГГММДД-ЧЧММСС-процесс.расширение» / "folder\name-YYYYMMDD-HHMMSS-process.extension"
-        HANDLE createReportFile(const CrashState& state, const SYSTEMTIME& time, const wchar_t* extension) noexcept
+        using ReportPath = wchar_t[MAX_PATH + 192];
+        void reportPath(ReportPath& path, const CrashState& state, const SYSTEMTIME& time, const wchar_t* extension) noexcept
         {
-            wchar_t path[MAX_PATH + 64];
-
-            std::swprintf(path, MAX_PATH + 64, L"%ls\\%ls-%04u%02u%02u-%02u%02u%02u-%lu.%ls", state.folder, state.prefix,
+            std::swprintf(path, sizeof(path) / sizeof(path[0]), L"%ls\\%ls-%04u%02u%02u-%02u%02u%02u-%lu.%ls", state.folder, state.prefix,
                 time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, GetCurrentProcessId(), extension);
-            return CreateFileW(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+
         }
 
         // Минидамп с памятью, на которую ссылаются стеки, и сведениями о потоках / A minidump with the memory the stacks refer to and the thread information
@@ -48,7 +47,9 @@ namespace gran::log::internal
 
             if (state.writeDump == nullptr)
                 return;
-            file = createReportFile(state, time, L"dmp");
+            ReportPath path;
+            reportPath(path, state, time, L"dmp");
+            file = CreateFileW(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (file == INVALID_HANDLE_VALUE)
                 return;
             exception.ThreadId = state.threadId;
@@ -63,7 +64,10 @@ namespace gran::log::internal
         {
             static char recent[16384 + 1];
             char line[256];
-            HANDLE file = createReportFile(state, time, L"txt");
+            ReportPath temporary, finalPath;
+            reportPath(temporary, state, time, L"tmp");
+            reportPath(finalPath, state, time, L"txt");
+            HANDLE file = CreateFileW(temporary, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             const EXCEPTION_RECORD* record = state.pointers->ExceptionRecord;
 
             if (file == INVALID_HANDLE_VALUE)
@@ -82,7 +86,8 @@ namespace gran::log::internal
             writeText(file, "\nlog:\n");
             recent[copyRecent(recent, sizeof(recent) - 1)] = '\0';
             writeText(file, recent);
-            CloseHandle(file);
+            if (CloseHandle(file) && !state.textWriteFailed)
+                MoveFileExW(temporary, finalPath, MOVEFILE_REPLACE_EXISTING);
         }
     }
 

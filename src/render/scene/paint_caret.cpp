@@ -16,6 +16,8 @@ namespace gran::render::internal
     text::CaretStop caretStopAt(const text::TextLayout& layout, std::size_t caret, const std::string& shown) noexcept
     {
         std::size_t found = layout.carets.size();
+        if (caret > 0 && caret < shown.size() && shown[caret - 1] == '\r' && shown[caret] == '\n')
+            --caret;
 
         for (std::size_t index = 0; index < layout.carets.size(); ++index)
         {

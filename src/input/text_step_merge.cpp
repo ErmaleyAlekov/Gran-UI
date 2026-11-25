@@ -33,10 +33,13 @@ namespace gran::input::internal
     */
     bool TextStep::mergeWith(const undo::UndoStep& next)
     {
-        const TextStep& step = static_cast<const TextStep&>(next);
+        const auto* candidate = dynamic_cast<const TextStep*>(&next);
+        if (candidate == nullptr)
+            return false;
+        const TextStep& step = *candidate;
         TextEdit edit{step._position, step._position + step._removed.size(), step._inserted, step._kind};
 
-        if (&step._field != &_field || step._time - _time > TYPING_PAUSE)
+        if (&step._history != &_history || step._time - _time > TYPING_PAUSE)
             return false;
         if (!continues(_kind, _position, _position + _inserted.size(), edit))
             return false;

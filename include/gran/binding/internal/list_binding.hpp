@@ -188,6 +188,8 @@ namespace gran::binding
         ** the visible area, all in window coordinates.
         */
         float anchorShift(float start, float from, float to, bool horizontal) const;
+        // Начало строк после собственных детей контейнера / Row origin after the container's static children
+        float rowStart(bool horizontal) const noexcept;
 
         // Прокрутить ближайший Scroll на shift по главной оси; true — прокрутка сдвинута (нужна перекомпоновка) / Scroll the nearest Scroll by shift along the main axis; true — the scroll moved (a relayout is needed)
         bool anchorScroll(float shift, bool horizontal);

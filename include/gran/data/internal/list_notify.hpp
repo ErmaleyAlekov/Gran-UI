@@ -24,6 +24,8 @@ namespace gran::data::internal
     // Номер вне [0, size) → GranException(INVALID_ARGUMENT) / An index outside [0, size) → GranException(INVALID_ARGUMENT)
     void checkIndex(std::size_t index, std::size_t size);
 
+    void checkRange(std::size_t first, std::size_t count, std::size_t size);
+
     /*
     ** Рассылка по копии списка подписчиков: подписчик может отписать себя или другого
     ** (удаление узлов списка уничтожает вложенные привязки). Отписанный во время
@@ -33,7 +35,7 @@ namespace gran::data::internal
     ** (removing list nodes destroys the nested bindings). One unsubscribed during
     ** the delivery gets no more notifications.
     */
-    void deliver(const ListSource& source, std::vector<ListObserver*> observers, const ListEvent& event);
+    void deliver(const std::vector<std::shared_ptr<ListObserver* const>>& subscriptions, const ListEvent& event);
 
     // Перестановка oldToNew для списка из size записей после moved(from, count, to) / The oldToNew permutation for a list of size records after moved(from, count, to)
     std::vector<std::size_t> moveMapping(std::size_t size, std::size_t from, std::size_t count, std::size_t to);

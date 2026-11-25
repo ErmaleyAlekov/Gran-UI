@@ -3,6 +3,7 @@
 #include "gran/core/gran_exception.hpp"
 #include "gran/data/data_source.hpp"
 #include "gran/data/json_reader.hpp"
+#include "gran/res/resources.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -11,6 +12,34 @@
 
 namespace
 {
+    class NestedReplacement : public gran::data::TreeObserver
+    {
+    public:
+        explicit NestedReplacement(gran::data::TreeModel& tree) : model(tree) {}
+        void inserted(gran::data::NodeId, std::size_t, std::size_t) override {}
+        void moved(gran::data::NodeId, gran::data::NodeId, std::size_t) override {}
+        void changed(gran::data::NodeId) override {}
+        void removed(gran::data::NodeId, std::size_t, std::size_t) override
+        {
+            model.unsubscribe(this);
+            model.replaceItems({{{{"name", "nested"}}, {}}});
+        }
+    private:
+        gran::data::TreeModel& model;
+    };
+
+    void testNestedTreeReplacement()
+    {
+        gran::data::TreeModel tree;
+        const auto old = tree.append(tree.root(), {});
+        NestedReplacement observer(tree);
+        tree.subscribe(&observer);
+        tree.replaceItems({{{{"name", "outer"}}, {}}});
+        TEST_ASSERT(!tree.contains(old) && tree.childCount(tree.root()) == 2);
+        TEST_ASSERT(tree.record(tree.child(tree.root(), 0)).at("name") == "nested");
+        TEST_ASSERT(tree.record(tree.child(tree.root(), 1)).at("name") == "outer");
+    }
+
     // Файл во временном каталоге тестов / A file in the test temporary directory
     std::string writeFile(const std::string& name, const std::string& text)
     {
@@ -65,6 +94,55 @@ namespace
         gran::data::JsonReader extra(tail, "t.json");
         extra.skip(extra.next());
         TEST_ASSERT_THROWS(extra.next(), gran::DataException);
+    }
+
+    void testJsonReaderBomAndLeadingZeros()
+    {
+        std::istringstream bom("\xEF\xBB\xBF{}");
+        gran::data::JsonReader reader(bom, "bom.json");
+        TEST_ASSERT(reader.next() == gran::data::JsonToken::BEGIN_OBJECT);
+        TEST_ASSERT(reader.next() == gran::data::JsonToken::END_OBJECT);
+        TEST_ASSERT(reader.next() == gran::data::JsonToken::END);
+
+        for (const auto* text : {"\xEF\x01\x02{}", "\xEF\xBB\x01{}", "01", "-01"})
+        {
+            std::istringstream input(text);
+            gran::data::JsonReader invalid(input, "invalid.json");
+            TEST_ASSERT_THROWS(invalid.next(), gran::DataException);
+        }
+        for (const auto* text : {"0", "-0", "0.1", "0e1"})
+        {
+            std::istringstream input(text);
+            gran::data::JsonReader valid(input, "valid.json");
+            TEST_ASSERT(valid.next() == gran::data::JsonToken::NUMBER && valid.value() == text);
+            TEST_ASSERT(valid.next() == gran::data::JsonToken::END);
+        }
+    }
+
+    void testXmlResourceSource()
+    {
+        static const unsigned char xml[] = R"(<rows><row id="one"/><row id="two"/></rows>)";
+        static const gran::res::Entry entries[] = {{"tests/t161-records.xml", xml, sizeof(xml) - 1}};
+        gran::res::mount({"xml-source-test", entries, 1});
+        gran::data::SourceSpec spec;
+        spec.path = "res:/tests/t161-records.xml";
+
+        auto source = gran::data::openListSource(spec);
+        const auto rows = source->next();
+        TEST_ASSERT(rows.size() == 2 && rows[0].at("id") == "one" && rows[1].at("id") == "two");
+        spec.fetch = 1;
+        source = gran::data::openListSource(spec);
+        const auto first = source->next();
+        const auto second = source->next();
+        TEST_ASSERT(first.size() == 1 && first.front().at("id") == "one");
+        TEST_ASSERT(second.size() == 1 && second.front().at("id") == "two");
+        TEST_ASSERT(source->next().empty() && !source->hasMore());
+
+        spec.select = "/";
+        TEST_ASSERT_THROWS(gran::data::openListSource(spec), gran::GranException);
+        spec.select.clear();
+        spec.path = "res:/tests/t161-missing.xml";
+        TEST_ASSERT_THROWS(gran::data::openListSource(spec), gran::GranException);
     }
 
     // JSON-список: путь select, поля Field по развёрнутым именам, порции по 2 / A JSON list: the select path, Field fields by unfolded names, portions of 2
@@ -149,6 +227,10 @@ namespace
         gran::data::TreeModel tree;
         gran::data::fillTree(tree, tree.root(), nodes);
         TEST_ASSERT(tree.childCount(tree.root()) == 2 && tree.record(tree.child(tree.child(tree.root(), 0), 0)).at("name") == "A1");
+        const auto old = tree.child(tree.root(), 0);
+        tree.replaceItems(std::move(nodes));
+        TEST_ASSERT(!tree.contains(old) && tree.childCount(tree.root()) == 2);
+        TEST_ASSERT(tree.record(tree.child(tree.child(tree.root(), 0), 0)).at("name") == "A1");
     }
 
     // Ошибки источников: нет файла, неверный путь, испорченный XML, нет пути в JSON / Source errors: no file, a wrong path, a damaged XML, no path in JSON
@@ -187,10 +269,13 @@ namespace suites
     {
         runner.add("sources: json reader tokens", testJsonReaderTokens);
         runner.add("sources: json reader errors", testJsonReaderErrors);
+        runner.add("sources: json BOM and leading zeros", testJsonReaderBomAndLeadingZeros);
         runner.add("sources: json list", testJsonListSource);
         runner.add("sources: xml list", testXmlListSource);
+        runner.add("sources: XML resource and select", testXmlResourceSource);
         runner.add("sources: xml lazy fetch", testXmlLazyFetch);
         runner.add("sources: trees", testTreeSources);
+        runner.add("sources: nested tree replacement", testNestedTreeReplacement);
         runner.add("sources: errors", testSourceErrors);
     }
 }

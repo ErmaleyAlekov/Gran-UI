@@ -28,9 +28,11 @@ namespace chat
         */
         void feedLine(markdown::BlockParser& parser, std::string_view line)
         {
-            bool fence = markdown::stripIndent(line).compare(0, 3, "```") == 0;
+            auto body = markdown::stripIndent(line);
+            bool fence = body.compare(0, 3, "```") == 0;
 
-            if (parser.inCode && fence)
+            auto end = body.find_first_not_of('`');
+            if (parser.inCode && fence && (end == body.npos || trimSpaces(body.substr(end)).empty()))
                 pushCode(parser);
             else if (parser.inCode)
             {
@@ -42,7 +44,7 @@ namespace chat
             {
                 markdown::flushParagraph(parser);
                 parser.inCode = true;
-                parser.language = std::string(trimSpaces(markdown::stripIndent(line).substr(3)));
+                parser.language = std::string(trimSpaces(body.substr(3)));
             }
             else
                 markdown::textLine(parser, line);

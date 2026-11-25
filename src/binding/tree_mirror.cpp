@@ -11,11 +11,19 @@ namespace gran::binding
         // Item узла с вложенными Item его детей / The node Item with the nested Items of its children
         void appendNodes(const data::TreeModel& tree, data::NodeId parent, beresta::Element& target)
         {
-            for (std::size_t row = 0; row < tree.childCount(parent); ++row)
+            struct Frame { data::NodeId node; beresta::Element* target; std::size_t row; };
+            std::vector<Frame> stack{{parent, &target, 0}};
+            while (!stack.empty())
             {
-                data::NodeId child = tree.child(parent, row);
-                beresta::Node* item = target.appendChild(mirrorItem(tree.record(child)));
-                appendNodes(tree, child, static_cast<beresta::Element&>(*item));
+                Frame& frame = stack.back();
+                if (frame.row == tree.childCount(frame.node))
+                {
+                    stack.pop_back();
+                    continue;
+                }
+                const auto child = tree.child(frame.node, frame.row++);
+                auto* item = frame.target->appendChild(mirrorItem(tree.record(child)));
+                stack.push_back({child, static_cast<beresta::Element*>(item), 0});
             }
         }
     }
@@ -36,8 +44,9 @@ namespace gran::binding
     {
         if (!dirty)
             return;
+        beresta::Element replacement(name);
+        appendNodes(tree, tree.root(), replacement);
+        element = std::move(replacement);
         dirty = false;
-        element.clearChildren();
-        appendNodes(tree, tree.root(), element);
     }
 }

@@ -1,4 +1,6 @@
 #include "gran/platform/webview2/internal/webview2_host.hpp"
+#include "gran/platform/internal/web_message_limits.hpp"
+#include "gran/platform/win32/win32_window.hpp"
 
 #include <utility>
 
@@ -36,9 +38,14 @@ namespace gran::platform::webview2
     }
 
     // Сообщения до загрузки страницы ждут: раньше их некому принять / Messages before the page loads wait: nobody can receive them earlier
-    void WebView2Core::postMessage(std::wstring message)
+    void WebView2Core::postMessage(const std::string& message)
     {
-        _outbox.push_back(std::move(message));
-        flushMessages();
+        if (_view && _loaded)
+        {
+            _view->PostWebMessageAsString(win32::toWide(message).c_str());
+            return;
+        }
+        requireWebQueueSpace(_outbox.size(), message.size());
+        _outbox.push_back(win32::toWide(message));
     }
 }

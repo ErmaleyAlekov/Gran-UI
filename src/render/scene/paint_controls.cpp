@@ -34,6 +34,15 @@ namespace gran::render::internal
             paintToggleLabel(node, size, state, context);
         }
 
+        float rangeFraction(const ui::NodeContent& content)
+        {
+            const double range = static_cast<double>(content.maximum) - content.minimum;
+            if (!(range > 0))
+                return 0.0f;
+            const double offset = static_cast<double>(content.value) - content.minimum;
+            return static_cast<float>(std::min(1.0, std::max(0.0, offset / range)));
+        }
+
         // Ползунок: дорожка, заполненная часть до бегунка, круглый бегунок с тенью / A slider: the track, the filled part up to the thumb, a round thumb with a shadow
         void paintSlider(const ui::Node& node, const PaintState& state, SceneContext& context)
         {
@@ -41,8 +50,7 @@ namespace gran::render::internal
             const ui::NodeContent& content = node.content;
             Rect box = contentRect(node);
             float thumb = std::round(style.fontSize * 1.15f);
-            float range = std::max(content.maximum - content.minimum, 1e-6f);
-            float t = std::min(1.0f, std::max(0.0f, (content.value - content.minimum) / range));
+            float t = rangeFraction(content);
             float middle = box.y + box.height * 0.5f;
             float center = box.x + thumb * 0.5f + t * std::max(0.0f, box.width - thumb);
 
@@ -65,8 +73,7 @@ namespace gran::render::internal
         {
             const ui::NodeContent& content = node.content;
             Rect box = contentRect(node);
-            float range = std::max(content.maximum - content.minimum, 1e-6f);
-            float t = std::min(1.0f, std::max(0.0f, (content.value - content.minimum) / range));
+            float t = rangeFraction(content);
 
             if (t <= 0.0f)
                 return;

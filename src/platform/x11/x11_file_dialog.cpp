@@ -19,6 +19,8 @@ namespace gran::platform::x11
 
             if (folder.empty())
                 folder = ".";
+            if (folder.front() == '-')
+                folder.insert(0, "./");
             if (folder.back() != '/')
                 folder += '/';
             return folder + options.fileName;

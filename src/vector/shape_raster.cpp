@@ -92,12 +92,13 @@ namespace gran::vector
         std::vector<std::vector<Vec2>> points;
 
         bitmap = text::GlyphBitmap{};
+        if (shape.paths.empty() || !(shape.viewBox.width > 0.0f) || !(shape.viewBox.height > 0.0f))
+            return false;
         toPixels.a = width / shape.viewBox.width;
         toPixels.d = height / shape.viewBox.height;
         toPixels.tx = -shape.viewBox.x * toPixels.a;
         toPixels.ty = -shape.viewBox.y * toPixels.d;
-        if (shape.paths.empty() || shape.viewBox.width <= 0.0f || shape.viewBox.height <= 0.0f
-            || !frameShape(shape, toPixels, points, bitmap))
+        if (!frameShape(shape, toPixels, points, bitmap))
             return false;
         bitmap.coverage.assign(static_cast<std::size_t>(bitmap.width) * bitmap.height, 0);
         for (std::size_t index = 0; index < shape.paths.size(); ++index)

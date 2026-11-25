@@ -56,15 +56,16 @@ int main(int argc, char* argv[])
     std::string markup;
     std::string file;
     auto options = parseOptions(argc, argv, markup, file);
-    if (markup.empty()) markup = defaultMarkup(argv[0]);
+    if (markup.empty()) markup = defaultMarkup(arguments.empty() ? "" : argv[0]);
     try
     {
         gran::Application app(options);
         app.loadFile(markup);
         editor::Controller controller(app);
-        controller.start(file);
+        std::string workspace;
         if (file.empty())
-            controller.loadFolder(std::filesystem::absolute(std::filesystem::u8path(markup)).parent_path().parent_path().u8string());
+            workspace = std::filesystem::absolute(std::filesystem::u8path(markup)).parent_path().parent_path().u8string();
+        controller.start(file, workspace);
         return app.run();
     }
     catch (const std::exception& error)

@@ -1,6 +1,7 @@
 #include "gran/log/internal/log_state.hpp"
 
 #include <cstdio>
+#include <limits>
 
 #if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -21,13 +22,17 @@ namespace gran::log::internal
         */
         std::wstring toUtf16(std::string_view text)
         {
-            int count = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
+            if (text.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)()))
+                return {};
+            const auto length = static_cast<int>(text.size());
+            int count = MultiByteToWideChar(CP_UTF8, 0, text.data(), length, nullptr, 0);
             std::wstring wide;
 
             if (count <= 0)
                 return wide;
             wide.resize(static_cast<std::size_t>(count));
-            MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), wide.data(), count);
+            if (MultiByteToWideChar(CP_UTF8, 0, text.data(), length, wide.data(), count) == 0)
+                return {};
             return wide;
         }
     }
@@ -58,8 +63,8 @@ namespace gran::log::internal
                 DWORD written = 0;
 
                 // Ошибку вывода в консоль некуда сообщить: журнал в файле уже есть / A console output error has nowhere to go: the file log exists anyway
-                WriteConsoleW(handle, wide.data(), static_cast<DWORD>(wide.size()), &written, nullptr);
-                return;
+                if (!wide.empty() && WriteConsoleW(handle, wide.data(), static_cast<DWORD>(wide.size()), &written, nullptr))
+                    return;
             }
             catch (...)
             {

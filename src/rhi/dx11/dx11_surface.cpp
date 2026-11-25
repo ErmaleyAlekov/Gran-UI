@@ -2,6 +2,15 @@
 
 namespace gran::rhi::dx11
 {
+    void Dx11Backend::requireSurface() const
+    {
+        if (!_surface.target)
+        {
+            GRAN_DX11_CHECK(_device->GetDeviceRemovedReason());
+            invalid("surface");
+        }
+    }
+
     // Унифицированная текстура R8/RGBA8, при необходимости с RTV.
     // A unified R8/RGBA8 texture with an optional RTV.
     void makeTexture(ID3D11Device* device, Texture& texture, const TextureDesc& desc, bool target)
@@ -35,18 +44,20 @@ namespace gran::rhi::dx11
 
     // Flip-sequential swapchain совместим с D3D11 и не создаёт отдельную копию кадра.
     // A flip-sequential swapchain supports D3D11 without a separate frame copy.
-    void Dx11Backend::createSurface()
+    void Dx11Backend::createSurface(std::uint32_t width, std::uint32_t height)
     {
         DXGI_SWAP_CHAIN_DESC1 desc{};
+        Texture surface{};
 
         if (_options.nativeWindow == nullptr)
         {
-            makeTexture(_device.get(), _surface, TextureDesc{_options.width, _options.height,
+            makeTexture(_device.get(), surface, TextureDesc{width, height,
                 TextureFormat::RGBA8, "gran.dx11.offscreen"}, true);
+            _surface = std::move(surface);
             return;
         }
-        desc.Width = _options.width;
-        desc.Height = _options.height;
+        desc.Width = width;
+        desc.Height = height;
         desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         desc.SampleDesc.Count = 1;
         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -56,11 +67,12 @@ namespace gran::rhi::dx11
             GRAN_DX11_CHECK(_factory->CreateSwapChainForHwnd(_device.get(),
                 static_cast<HWND>(_options.nativeWindow), &desc, nullptr, nullptr, _swapchain.put()));
         GRAN_DX11_CHECK(_factory->MakeWindowAssociation(static_cast<HWND>(_options.nativeWindow), DXGI_MWA_NO_ALT_ENTER));
-        GRAN_DX11_CHECK(_swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(_surface.resource.put())));
-        GRAN_DX11_CHECK(_device->CreateRenderTargetView(_surface.resource.get(), nullptr, _surface.target.put()));
-        _surface.width = _options.width;
-        _surface.height = _options.height;
-        nameObject(_surface.resource.get(), "gran.dx11.swapchain");
-        nameObject(_surface.target.get(), "gran.dx11.target");
+        GRAN_DX11_CHECK(_swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(surface.resource.put())));
+        GRAN_DX11_CHECK(_device->CreateRenderTargetView(surface.resource.get(), nullptr, surface.target.put()));
+        surface.width = width;
+        surface.height = height;
+        nameObject(surface.resource.get(), "gran.dx11.swapchain");
+        nameObject(surface.target.get(), "gran.dx11.target");
+        _surface = std::move(surface);
     }
 }

@@ -2,6 +2,7 @@
 #include <X11/Xatom.h>
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 
 namespace gran::platform::x11
 {
@@ -130,12 +131,23 @@ namespace gran::platform::x11
         XSizeHints hints{};
         long supplied = 0;
 
-        if (saved.width <= 0 || saved.height <= 0 || saved.x + saved.width <= 0 || saved.y + saved.height <= 0
+        constexpr int MIN_POSITION = std::numeric_limits<std::int16_t>::min();
+        constexpr int MAX_POSITION = std::numeric_limits<std::int16_t>::max();
+        constexpr int MAX_EXTENT = std::numeric_limits<std::uint16_t>::max();
+        if (saved.x < MIN_POSITION || saved.x > MAX_POSITION || saved.y < MIN_POSITION || saved.y > MAX_POSITION
+            || saved.width <= 0 || saved.width > MAX_EXTENT || saved.height <= 0 || saved.height > MAX_EXTENT
+            || saved.x + saved.width <= 0 || saved.y + saved.height <= 0
             || saved.x >= DisplayWidth(display, screen) || saved.y >= DisplayHeight(display, screen))
             return;
         XGetWMNormalHints(display, _native.window, &hints, &supplied);
         hints.flags |= USPosition | USSize | PWinGravity;
         hints.x = saved.x; hints.y = saved.y; hints.width = saved.width; hints.height = saved.height;
+        if (!_resizable)
+        {
+            hints.flags |= PMinSize | PMaxSize;
+            hints.min_width = hints.max_width = saved.width;
+            hints.min_height = hints.max_height = saved.height;
+        }
         hints.win_gravity = StaticGravity;
         XSetWMNormalHints(display, _native.window, &hints);
         XMoveResizeWindow(display, _native.window, saved.x, saved.y, static_cast<unsigned>(saved.width),

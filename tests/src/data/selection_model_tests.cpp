@@ -108,6 +108,10 @@ namespace
         TEST_ASSERT(selection.current() == 4);
         TEST_ASSERT(selection.count() == 1);
         TEST_ASSERT(selection.isSelected(4));
+        gran::data::ListObserver& listener = selection;
+        listener.reordered({1, 2, 3, 0, 0});
+        TEST_ASSERT(selection.current() == 4 && selection.anchor() == 4);
+        TEST_ASSERT(selection.count() == 1 && selection.isSelected(4));
     }
 
     void testSelectionModelMulti()
@@ -153,9 +157,12 @@ namespace
             void selectionChanged() override
             {
                 ++count;
+                if (selection && selection->count() != 0)
+                    selection->clear();
             }
 
             int count = 0;
+            gran::data::SelectionModel* selection = nullptr;
         };
 
         Observer observer;
@@ -169,6 +176,16 @@ namespace
 
         selection.clear();
         TEST_ASSERT(observer.count == 3);
+
+        Observer clearingObserver;
+        clearingObserver.selection = &selection;
+        selection.unsubscribe(&observer);
+        selection.subscribe(&clearingObserver);
+        selection.subscribe(&observer);
+        selection.select(1);
+        TEST_ASSERT(clearingObserver.count == 2);
+        TEST_ASSERT(observer.count == 4);
+        TEST_ASSERT(selection.count() == 0);
     }
 }
 

@@ -76,6 +76,8 @@ namespace gran::settings::internal
                     attributeOf(element, "name")}] = attributeOf(element, "value");
             else if (kind == "Variable")
                 model.variables[attributeOf(element, "name")] = typedValue(element);
+            else if (kind == "VariableList")
+                model.variables[attributeOf(element, "name")] = listValue(element);
             else if (kind == "List")
                 model.values[attributeOf(element, "name")] = listValue(element);
             else
@@ -90,7 +92,7 @@ namespace gran::settings::internal
     ** Parsing with the gran-settings.xsd schema. Any XML or schema error is false: a damaged file
     ** must neither crash the program nor give it half-built settings.
     */
-    bool readSettings(std::string_view text, Settings::Model& model)
+    bool readSettings(std::string_view text, Settings::Model& model, std::string& detail)
     {
         static const std::shared_ptr<const beresta::xsd::Schema> SCHEMA = beresta::xsd::Schema::fromString(std::string_view(
             reinterpret_cast<const char*>(generated::GRAN_SETTINGS_SCHEMA), generated::GRAN_SETTINGS_SCHEMA_SIZE));
@@ -104,11 +106,20 @@ namespace gran::settings::internal
         {
             dom = beresta::XmlParser(options).parse(text);
         }
-        catch (const beresta::ParseException&)
+        catch (const beresta::ParseException& error)
         {
+            detail = error.getMessage();
             return false;
         }
-        if (handler.hasErrors() || dom.getRoot() == nullptr)
+        for (const auto& diagnostic : handler.getDiagnostics())
+        {
+            if (diagnostic.severity != beresta::ErrorSeverity::WARNING)
+            {
+                detail = diagnostic.message;
+                return false;
+            }
+        }
+        if (dom.getRoot() == nullptr)
             return false;
         for (const beresta::Node* node = dom.getRoot()->getFirstChild(); node != nullptr; node = node->getNextSibling())
         {

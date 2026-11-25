@@ -74,6 +74,9 @@ namespace gran::animation
         }
         if (clamped <= 0.0f || clamped >= 1.0f)
             return clamped;
+        if (!(easing.x1 >= 0 && easing.x1 <= 1 && easing.x2 >= 0 && easing.x2 <= 1)
+            || !std::isfinite(easing.y1) || !std::isfinite(easing.y2))
+            return clamped;
         return bezier(solveX(clamped, easing.x1, easing.x2), easing.y1, easing.y2);
     }
 }

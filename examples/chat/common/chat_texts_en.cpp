@@ -30,6 +30,9 @@ namespace chat
             {ChatText::NET_RECEIVE, "failed to receive the response (code {0})"},
             {ChatText::NET_CLOSED, "the server closed the connection before the end of the response"},
             {ChatText::OLLAMA_ERROR, "Ollama: {0}"},
+            {ChatText::JSON_CONTROL_CHAR, "Unescaped control character in a JSON string (position {0})"},
+            {ChatText::APP_BAD_PORT, "Port must be an integer from 1 to 65535."},
+            {ChatText::APP_MISSING_VALUE, "Option {0} requires a value."},
             {ChatText::APP_FATAL, "Gran Chat: {0}"},
             {ChatText::APP_MISSING_NODE, "the chat markup has no element id=\"{0}\""}
         };

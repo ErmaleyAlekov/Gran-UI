@@ -154,7 +154,7 @@ env -u DISPLAY ./build/bin/gran_snapshot tests/render/scenes/glass.xml glass.png
 `gran_vulkan_cpu` tests real CPU Vulkan offscreen. `-DGRAN_BUILD_WINDOW_TESTS=ON` also registers
 `gran_x11_vulkan`, which needs a running X11/XWayland server. Install the system Khronos validation
 layer for strict checks; runtime continues without it when unavailable. Tests reject validation diagnostics.
-For direct linking use `-lX11 -ldl -pthread` (the engine does not link `libvulkan`); CMake propagates these through the `gran` target.
+For direct linking use `-lX11 -lX11-xcb -lxcb -ldl -pthread` (the engine does not link `libvulkan`); CMake propagates these through the `gran` target.
 
 Astra Linux, ALT and RED OS use the same build path and OS capabilities, without distro-name checks.
 Use packages from the particular edition's repositories. Build binaries in the oldest target environment;
@@ -168,7 +168,7 @@ On GCC 8 `std::filesystem` is linked from `libstdc++fs` automatically (Makefile 
 
 | OS | Packages |
 |---|---|
-| Astra Linux, Debian | `g++ make libx11-dev libvulkan-dev` (+ `mesa-vulkan-drivers` for CPU) |
+| Astra Linux, Debian | `g++ make libx11-dev libx11-xcb-dev libxcb1-dev libvulkan-dev` (+ `mesa-vulkan-drivers` for CPU) |
 | ALT | `gcc-c++ make libX11-devel libvulkan-devel` |
 | RED OS | `gcc-c++ make libX11-devel vulkan-loader-devel` (+ `mesa-vulkan-drivers`) |
 

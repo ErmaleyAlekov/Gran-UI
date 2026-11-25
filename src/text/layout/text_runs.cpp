@@ -1,4 +1,7 @@
 #include "gran/text/internal/text_internal.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
+#include "gran/utils/utf8.hpp"
 
 #include <algorithm>
 
@@ -38,11 +41,26 @@ namespace gran::text
                 std::vector<std::shared_ptr<const FontFace>> runFaces;
                 if (run.begin >= run.end || run.end > text.size())
                     continue;
-                std::vector<ShapedGlyph> part = shapeText(text.substr(run.begin, run.end - run.begin), run.style, fonts,
+                auto begin = run.begin;
+                if (begin > 0 && text[begin] == '\n' && text[begin - 1] == '\r' && !glyphs.empty() &&
+                    glyphs.back().newline && glyphs.back().cluster == begin - 1)
+                    ++begin;
+                if (begin == run.end)
+                    continue;
+                std::vector<ShapedGlyph> part = shapeText(text.substr(begin, run.end - begin), run.style, fonts,
                     runFaces);
+                if (!part.empty() && !glyphs.empty())
+                {
+                    const auto& previous = runs[glyphs.back().run];
+                    std::size_t before = glyphs.back().cluster - previous.begin;
+                    std::size_t after = part.front().cluster;
+                    glyphs.back().breakAfter = breakOpportunityAfter(
+                        decodeUtf8(text.substr(previous.begin, previous.end - previous.begin), before),
+                        decodeUtf8(text.substr(begin, run.end - begin), after));
+                }
                 for (ShapedGlyph& glyph : part)
                 {
-                    glyph.cluster += run.begin;
+                    glyph.cluster += begin;
                     glyph.run = static_cast<std::uint16_t>(index);
                     glyphs.push_back(glyph);
                 }
@@ -67,6 +85,8 @@ namespace gran::text
         FontLibrary& fonts)
     {
         TextLayout layout;
+        if (runs.size() > UINT16_MAX || text.size() > UINT32_MAX)
+            throw GranException(ErrorCode::LIMIT_EXCEEDED, i18n::format(i18n::Message::TEXT_LAYOUT_LIMIT));
         std::shared_ptr<const FontFace> primary = fonts.match(style.family, style.weight, style.italic);
 
         if (!primary)

@@ -43,6 +43,8 @@ namespace editor
     // Язык берётся из общего выбора движка. / Use the engine's language selection.
     const char* message(Message id)
     {
+        if (static_cast<unsigned>(id) >= static_cast<unsigned>(Message::COUNT))
+            return "";
         if (std::strcmp(gran::i18n::language(), "ru") == 0)
             return russian[static_cast<unsigned>(id)];
         return english[static_cast<unsigned>(id)];

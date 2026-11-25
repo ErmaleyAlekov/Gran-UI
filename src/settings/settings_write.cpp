@@ -1,4 +1,5 @@
 #include "gran/settings/internal/settings_xml.hpp"
+#include "gran/utils/utf8.hpp"
 
 namespace gran::settings::internal
 {
@@ -21,6 +22,10 @@ namespace gran::settings::internal
                     result += "&quot;";
                 else if (symbol == '\n')
                     result += "&#10;";
+                else if (symbol == '\r')
+                    result += "&#13;";
+                else if (symbol == '\t')
+                    result += "&#9;";
                 else
                     result += symbol;
             }
@@ -38,14 +43,16 @@ namespace gran::settings::internal
         }
 
         // <Value>, <Variable> или <List> одного значения / <Value>, <Variable> or <List> of one value
-        void writeValue(std::string& out, const char* element, const std::string& name, const Value& value)
+        void writeValue(std::string& out, bool variable, const std::string& name, const Value& value)
         {
+            std::string element = variable ? "Variable" : "Value";
             if (value.type == ValueType::LIST)
             {
-                out += "  <List name=\"" + escape(name) + "\">\n";
+                element = variable ? "VariableList" : "List";
+                out += "  <" + element + " name=\"" + escape(name) + "\">\n";
                 for (const std::string& item : value.items)
                     out += "    <Item>" + escape(item) + "</Item>\n";
-                out += "  </List>\n";
+                out += "  </" + element + ">\n";
                 return;
             }
             out += std::string("  <") + element + " name=\"" + escape(name) + "\" type=\"" + typeName(value.type) + "\">"
@@ -79,10 +86,18 @@ namespace gran::settings::internal
 
         writeLayout(out, model);
         for (const std::pair<const std::string, Value>& value : model.values)
-            writeValue(out, "Value", value.first, value.second);
+            writeValue(out, false, value.first, value.second);
         for (const std::pair<const std::string, Value>& variable : model.variables)
-            writeValue(out, "Variable", variable.first, variable.second);
+            writeValue(out, true, variable.first, variable.second);
         out += "</Settings>\n";
+        for (std::size_t offset = 0; offset < out.size(); )
+        {
+            const auto start = offset;
+            const auto ch = decodeUtf8(out, offset);
+            if ((ch < 32 && ch != 9 && ch != 10 && ch != 13) || ch == 0xfffe || ch == 0xffff ||
+                (ch == REPLACEMENT_CHARACTER && offset - start == 1))
+                return {};
+        }
         return out;
     }
 }

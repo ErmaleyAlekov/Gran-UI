@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <utility>
 
 namespace gran::rhi::dx11
 {
@@ -21,11 +22,13 @@ namespace gran::rhi::dx11
             desc.ByteWidth = ((desc.ByteWidth + stride - 1) / stride) * stride;
             desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
             desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-            GRAN_DX11_CHECK(_device->CreateBuffer(&desc, nullptr, buffer.resource.put()));
-            GRAN_DX11_CHECK(_device->CreateShaderResourceView(buffer.resource.get(), nullptr, buffer.view.put()));
-            buffer.capacity = desc.ByteWidth;
-            nameObject(buffer.resource.get(), "gran.dx11.structured");
-            nameObject(buffer.view.get(), "gran.dx11.structured.view");
+            StructuredBuffer next{};
+            GRAN_DX11_CHECK(_device->CreateBuffer(&desc, nullptr, next.resource.put()));
+            GRAN_DX11_CHECK(_device->CreateShaderResourceView(next.resource.get(), nullptr, next.view.put()));
+            next.capacity = desc.ByteWidth;
+            nameObject(next.resource.get(), "gran.dx11.structured");
+            nameObject(next.view.get(), "gran.dx11.structured.view");
+            buffer = std::move(next);
         }
         if (count == 0)
             return;

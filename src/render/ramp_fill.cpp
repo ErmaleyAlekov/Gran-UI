@@ -8,9 +8,6 @@ namespace gran::render
 {
     namespace
     {
-        // Наибольшее число строк рампы / The largest ramp row count
-        constexpr std::uint32_t MAX_ROWS = 4096;
-
         // Цвет с предумноженной альфой / A color with premultiplied alpha
         Color premultiply(const Color& color) noexcept
         {
@@ -21,17 +18,17 @@ namespace gran::render
         // The color at t: between the neighbouring stops, beyond the edges — the edge colors
         Color colorAt(const std::vector<style::GradientStop>& stops, float t) noexcept
         {
-            if (t <= stops.front().position)
+            if (t < stops.front().position)
                 return premultiply(stops.front().color);
             for (std::size_t index = 1; index < stops.size(); ++index)
             {
                 const style::GradientStop& left = stops[index - 1];
                 const style::GradientStop& right = stops[index];
-                if (t > right.position)
+                if (t >= right.position)
                     continue;
                 float span = right.position - left.position;
                 float k = 0.0f;
-                if (span > 1e-6f)
+                if (span > 0.0f)
                     k = (t - left.position) / span;
                 return colorMix(premultiply(left.color), premultiply(right.color), k);
             }
@@ -71,17 +68,19 @@ namespace gran::render
     // Рост вдвое с сохранением строк; за пределом — сброс всех строк / Doubling keeping the rows; beyond the limit — resetting all rows
     void GradientRamps::growOrReset()
     {
-        _generation += 1;
-        _dirtyFirst = 0;
-        if (_capacity * 2 > MAX_ROWS)
+        if (_capacity > MAX_ROWS / 2)
         {
             _rows.clear();
             _used = 0;
             _dirtyLast = 0;
-            return;
         }
-        _capacity *= 2;
-        _pixels.resize(static_cast<std::size_t>(_capacity) * RAMP_WIDTH * 4, 0);
-        _dirtyLast = _used;
+        else
+        {
+            _pixels.resize(static_cast<std::size_t>(_capacity) * 2 * RAMP_WIDTH * 4, 0);
+            _capacity *= 2;
+            _dirtyLast = _used;
+        }
+        _generation += 1;
+        _dirtyFirst = 0;
     }
 }

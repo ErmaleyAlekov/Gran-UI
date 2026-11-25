@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -79,6 +80,14 @@ namespace gran::data
         virtual void reordered(const std::vector<std::size_t>& oldToNew);
     };
 
+    // Подписчик сохраняет ключи скрытых строк до смены источника / Observer keeps hidden row keys until a source change
+    class RowIdentityObserver
+    {
+    public:
+        virtual ~RowIdentityObserver() = default;
+        virtual void discardRowKeys() noexcept = 0;
+    };
+
     /*
     ** Источник записей для привязок и прокси (паттерн «Шаблонный метод» для уведомлений): хранилище
     ** ListModel, прокси сортировки и фильтра, плоское представление дерева. Привязки в разметке,
@@ -142,6 +151,7 @@ namespace gran::data
         bool subscribed(const ListObserver* observer) const noexcept;
 
     protected:
+        void notifySourceReplacement();
         // ---- list_source_notify.cpp ----
 
         // Разослать вставку / Deliver an insertion
@@ -160,7 +170,7 @@ namespace gran::data
         void notifyReordered(const std::vector<std::size_t>& oldToNew);
 
     private:
-        std::vector<ListObserver*> _observers;
+        std::vector<std::shared_ptr<ListObserver* const>> _observers;
     };
 }
 

@@ -37,8 +37,9 @@ namespace gran::layout::internal
             return std::max(0.0f, leftover / std::max(1.0f, fractions));
         }
 
-        // Одна доля при измерении по содержимому: наибольшее «содержимое / fr» / One fraction when measuring by content: the largest "content / fr"
-        float contentUnit(const std::vector<style::GridTrack>& tracks, const std::vector<float>& content) noexcept
+        // Одна доля учитывает содержимое и минимум дорожки / One fraction accounts for track content and minimum
+        float contentUnit(const std::vector<style::GridTrack>& tracks, const std::vector<float>& content,
+            const std::vector<float>& sizes) noexcept
         {
             float unit = 0.0f;
 
@@ -46,7 +47,7 @@ namespace gran::layout::internal
             {
                 float fraction = fractionOf(tracks, index);
                 if (fraction > 0.0f)
-                    unit = std::max(unit, content[index] / fraction);
+                    unit = std::max(unit, std::max(content[index], sizes[index]) / fraction);
             }
             return unit;
         }
@@ -75,7 +76,7 @@ namespace gran::layout::internal
         const std::vector<float>& content, float space)
     {
         std::vector<bool> flexible(sizes.size(), false);
-        float unit = contentUnit(tracks, content);
+        float unit = contentUnit(tracks, content, sizes);
 
         for (std::size_t index = 0; index < sizes.size(); ++index)
             flexible[index] = fractionOf(tracks, index) > 0.0f;

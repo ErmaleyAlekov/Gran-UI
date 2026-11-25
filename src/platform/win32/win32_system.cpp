@@ -1,6 +1,7 @@
 #include "gran/platform/win32/win32_window.hpp"
 
 #include <cstring>
+#include <cwchar>
 
 namespace gran::platform::win32
 {
@@ -44,7 +45,17 @@ namespace gran::platform::win32
             locked = static_cast<const wchar_t*>(GlobalLock(data));
         if (locked != nullptr)
         {
-            text = toUtf8(locked);
+            try
+            {
+                if (std::wmemchr(locked, L'\0', GlobalSize(data) / sizeof(wchar_t)) != nullptr)
+                    text = toUtf8(locked);
+            }
+            catch (...)
+            {
+                GlobalUnlock(data);
+                CloseClipboard();
+                throw;
+            }
             GlobalUnlock(data);
         }
         CloseClipboard();

@@ -91,6 +91,10 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_post(IntPtr app, TaskFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_event(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, EventFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_listen(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, int capture, EventFn callback, IntPtr user, out ulong result);
+    [StructLayout(LayoutKind.Sequential)] internal struct Listener {
+        internal uint Size; internal int Capture; internal EventFn Callback; internal IntPtr User; internal TaskFn Release;
+    }
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_listen_owned(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, ref Listener listener, out ulong result);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_unlisten(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, ulong listener);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_event_set_cell(IntPtr e, [MarshalAs(UnmanagedType.LPUTF8Str)] string? value, [MarshalAs(UnmanagedType.LPUTF8Str)] string? error);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_dispatch(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, [MarshalAs(UnmanagedType.LPUTF8Str)] string? detail, out int allowed);
@@ -131,6 +135,7 @@ internal sealed class Arguments : IDisposable
         if (text.Contains('\0')) throw new ArgumentException("embedded NUL", nameof(text));
         return text;
     }
+    internal static string? OptionalText(string? text) => text == null ? null : Text(text);
     internal IntPtr Utf8(string text) {
         var value = Marshal.StringToCoTaskMemUTF8(Text(text));
         memory.Add(value); return value;
@@ -151,6 +156,10 @@ internal sealed class Arguments : IDisposable
 public sealed partial class Application : IDisposable
 {
     IntPtr app;
+    readonly Native.TaskFn releaseListener;
+    readonly ConcurrentDictionary<long, Action<UiEvent>> listeners = new();
+    readonly Dictionary<(string Kind, string Name), Delegate> modelHandlers = new();
+    readonly Native.EventFn listenerEntry;
     readonly ConcurrentBag<Delegate> callbacks = new();
     // Один переходник на все задачи и таймеры: user — номер задачи (иначе каждый Post держал бы свой делегат до Dispose).
     // One trampoline for all tasks and timers: user is the task number (otherwise every Post would keep its own delegate until Dispose).
@@ -175,6 +184,8 @@ public sealed partial class Application : IDisposable
     public Application(int backend=0, double exitAfter=0, bool warp=false) {
         if (Native.gran_abi_version() != 1) throw new NotSupportedException("unsupported Gran UI ABI");
         var options = new Native.Options { Size=(uint)Marshal.SizeOf<Native.Options>(), Backend=backend, ExitAfter=exitAfter, Warp=warp ? 1 : 0 };
+        listenerEntry = (key, pointer) => listeners.TryGetValue((long)key, out var handler) ? RunEvent(handler, pointer) : 0;
+        releaseListener = key => listeners.TryRemove((long)key, out _);
         taskEntry = RunTask;
         undoEntry = user => RunUndo(user, false);
         redoEntry = user => RunUndo(user, true);
@@ -184,7 +195,7 @@ public sealed partial class Application : IDisposable
     public void Dispose() {
         if (app == IntPtr.Zero) return;
         Check(Native.gran_app_destroy(app));
-        app = IntPtr.Zero; callbacks.Clear(); tasks.Clear(); timerKeys.Clear(); keyTimers.Clear(); undoSteps.Clear(); undoHandler = null;
+        app = IntPtr.Zero; callbacks.Clear(); listeners.Clear(); modelHandlers.Clear(); tasks.Clear(); timerKeys.Clear(); keyTimers.Clear(); undoSteps.Clear(); undoHandler = null;
     }
     public void LoadString(string xml) => Check(Native.gran_app_load(Handle, Arguments.Text(xml), 0));
     public void LoadFile(string path) => Check(Native.gran_app_load(Handle, Arguments.Text(path), 1));
@@ -246,23 +257,24 @@ public sealed partial class Application : IDisposable
     // Переходник события: снимок, вызов под Protect, флаги — ядру / The event trampoline: a snapshot, a call under Protect, the flags go to the core
     Native.EventFn EventEntry(Action<UiEvent> callback) {
         ArgumentNullException.ThrowIfNull(callback);
-        Native.EventFn native = (_, pointer) => {
-            var n = Marshal.PtrToStructure<Native.InputEvent>(pointer);
-            var e = new UiEvent { Type=String(n.Type), Target=String(n.Target), Current=String(n.Current), Related=String(n.Related),
-                Key=String(n.Key), Detail=String(n.Detail), DragFormat=String(n.DragFormat), DragData=String(n.DragData),
-                Model=String(n.Model), RelatedModel=String(n.RelatedModel), Phase=n.Phase, Button=n.Button, Clicks=n.Clicks,
-                Modifiers=n.Modifiers, Index=n.Index, RelatedIndex=n.RelatedIndex, X=n.X, Y=n.Y, WindowX=n.WindowX,
-                WindowY=n.WindowY, WheelX=n.WheelX, WheelY=n.WheelY, Dropped=n.Dropped != 0,
-                CellField=String(n.CellField), CellOld=String(n.CellOld), CellValue=String(n.CellValue) };
-            if (n.CellRow != nuint.MaxValue) e.CellRow = n.CellRow;
-            e.OriginalValue = e.CellValue;
-            Protect(() => callback(e));
-            if (e.CellRow != null && (e.CellValue != e.OriginalValue || e.CellError.Length > 0))
-                Protect(() => AnswerCell(pointer, e));
-            return e.Flags;
-        };
+        Native.EventFn native = (_, pointer) => RunEvent(callback, pointer);
         callbacks.Add(native);
         return native;
+    }
+    int RunEvent(Action<UiEvent> callback, IntPtr pointer) {
+        var n = Marshal.PtrToStructure<Native.InputEvent>(pointer);
+        var e = new UiEvent { Type=String(n.Type), Target=String(n.Target), Current=String(n.Current), Related=String(n.Related),
+            Key=String(n.Key), Detail=String(n.Detail), DragFormat=String(n.DragFormat), DragData=String(n.DragData),
+            Model=String(n.Model), RelatedModel=String(n.RelatedModel), Phase=n.Phase, Button=n.Button, Clicks=n.Clicks,
+            Modifiers=n.Modifiers, Index=n.Index, RelatedIndex=n.RelatedIndex, X=n.X, Y=n.Y, WindowX=n.WindowX,
+            WindowY=n.WindowY, WheelX=n.WheelX, WheelY=n.WheelY, Dropped=n.Dropped != 0,
+            CellField=String(n.CellField), CellOld=String(n.CellOld), CellValue=String(n.CellValue) };
+        if (n.CellRow != nuint.MaxValue) e.CellRow = n.CellRow;
+        e.OriginalValue = e.CellValue;
+        Protect(() => callback(e));
+        if (e.CellRow != null && (e.CellValue != e.OriginalValue || e.CellError.Length > 0))
+            Protect(() => AnswerCell(pointer, e));
+        return e.Flags;
     }
     // Ответ cellEdit ядру — внутри callback, пока снимок события жив / The cellEdit answer to the core — inside the callback while the event snapshot lives
     void AnswerCell(IntPtr pointer, UiEvent e) {
@@ -274,8 +286,15 @@ public sealed partial class Application : IDisposable
     public void OnEvent(string name, Action<UiEvent> callback) =>
         Check(Native.gran_app_on_event(Handle, Arguments.Text(name), EventEntry(callback), IntPtr.Zero));
     public ulong Listen(string target, string type, Action<UiEvent> callback, bool capture=false) {
-        Check(Native.gran_app_listen(Handle, Arguments.Text(target), Arguments.Text(type), capture ? 1 : 0, EventEntry(callback), IntPtr.Zero, out var result));
-        return result;
+        ArgumentNullException.ThrowIfNull(callback);
+        long key = Interlocked.Increment(ref nextTask);
+        var listener = new Native.Listener { Size=(uint)Marshal.SizeOf<Native.Listener>(), Capture=capture ? 1 : 0,
+            Callback=listenerEntry, User=(IntPtr)key, Release=releaseListener };
+        listeners[key] = callback;
+        try {
+            Check(Native.gran_app_listen_owned(Handle, Arguments.Text(target), Arguments.Text(type), ref listener, out var result));
+            return result;
+        } catch { listeners.TryRemove(key, out _); throw; }
     }
     public void Unlisten(string target, ulong listener) => Check(Native.gran_app_unlisten(Handle, Arguments.Text(target), listener));
     public bool Dispatch(string target, string type, string? detail=null) {

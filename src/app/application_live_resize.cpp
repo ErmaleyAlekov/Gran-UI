@@ -1,4 +1,5 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/platform/internal/pixel_size.hpp"
 #include "gran/core/i18n.hpp"
 #include "gran/log/log.hpp"
 
@@ -21,9 +22,9 @@ namespace gran::app
         {
             Size pixels = win.window->pixelSize();
 
-            win.backend->resize(static_cast<std::uint32_t>(pixels.width), static_cast<std::uint32_t>(pixels.height));
+            win.backend->resize(platform::pixelExtent(pixels.width), platform::pixelExtent(pixels.height));
             ui::markDirty(*win.document.root, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
-            renderFrame(win);
+            renderFrame(win, false);
         }
 
         /*
@@ -41,7 +42,7 @@ namespace gran::app
 
             void operator()() const
             {
-                if (win->shared.reloading || !win->backend || !win->renderer)
+                if (win->shared.reloading || win->deviceLost || !win->backend || !win->renderer)
                     return;
                 Clock::time_point start = Clock::now();
                 try

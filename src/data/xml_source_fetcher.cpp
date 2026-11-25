@@ -1,5 +1,6 @@
 #include "gran/data/internal/source_readers.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/res/resources.hpp"
 
 #include "gran/utils/file_system.hpp"
 #include <utility>
@@ -12,7 +13,9 @@ namespace gran::data::internal
     {
         parseXmlPath(_spec.select);
         compileFields(_spec);
-        if (!fs::isRegularFile(_spec.path))
+        res::ResourceView view;
+        const bool available = res::isResourcePath(_spec.path) ? res::find(_spec.path, view) : fs::isRegularFile(_spec.path);
+        if (!available)
             throw GranException(ErrorCode::IO, i18n::format(i18n::Message::IO_READ_FAILED, {_spec.path}));
     }
 

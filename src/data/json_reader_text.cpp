@@ -87,7 +87,11 @@ namespace gran::data
         if (peek() == '-')
             _value.push_back(take());
         if (peek() == '0')
+        {
             _value.push_back(take());
+            if (peek() >= '0' && peek() <= '9')
+                fail(i18n::format(i18n::Message::DATA_JSON_NUMBER));
+        }
         else
             readDigits();
         if (peek() == '.')

@@ -32,7 +32,8 @@ int main(int argc, char* argv[])
     argv = utf8.data();
     if (argc < 3)
     {
-        std::cerr << "gran_snapshot <markup.xml> <frame.png> [width height [scale]]\n";
+        std::cerr << "gran_snapshot <markup.xml> <frame.png> [width height [scale]] "
+                     "[--d3d11|--d3d12|--vulkan|--metal] [--software|--warp]\n";
         return 1;
     }
     try

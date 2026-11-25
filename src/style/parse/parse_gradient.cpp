@@ -60,21 +60,29 @@ namespace gran::style
         */
         bool shapeHeader(std::string_view first, Gradient& gradient, std::string_view text)
         {
-            std::size_t at = first.find("at ");
+            std::size_t at = std::string_view::npos;
+            for (const auto token : splitSpaces(first))
+            {
+                if (equalsIgnoreCase(token, "at"))
+                {
+                    at = static_cast<std::size_t>(token.data() - first.data());
+                    break;
+                }
+            }
             std::string_view shape = trimSpaces(first.substr(0, at));
             ValueScanner scanner(shape);
             std::string_view word = scanner.readIdentifier();
 
             if (at != 0 && word.empty())
                 return false;
-            if (equalsIgnoreCase(word, "circle"))
+            if (gradient.kind == GradientKind::RADIAL && equalsIgnoreCase(word, "circle") && scanner.atEnd())
                 gradient.circle = true;
             else if (equalsIgnoreCase(word, "from") && gradient.kind == GradientKind::CONIC)
                 gradient.angle = parseAngle(scanner.rest());
-            else if (!word.empty() && !equalsIgnoreCase(word, "ellipse"))
+            else if (!word.empty() && !(gradient.kind == GradientKind::RADIAL && equalsIgnoreCase(word, "ellipse") && scanner.atEnd()))
                 return false;
             if (at != std::string_view::npos)
-                gradient.center = internal::parseGradientCenter(first.substr(at + 3), text);
+                gradient.center = internal::parseGradientCenter(first.substr(at + 2), text);
             return true;
         }
     }

@@ -10,7 +10,7 @@ namespace gran::text
     ** the glyph end does not go beyond the glyf table (its bounds are checked at load time).
     */
     bool glyphLocation(const FontReader& reader, const FaceTables& tables, bool longLoca, std::uint16_t glyph,
-        std::uint32_t& offset, std::uint32_t& end) noexcept
+        std::size_t& offset, std::size_t& end) noexcept
     {
         std::uint32_t first = 0;
         std::uint32_t last = 0;

@@ -262,6 +262,14 @@ namespace
         TEST_ASSERT(c->content.text == "Medium");
         TEST_ASSERT(c->content.option == "m");
 
+        gran::ui::Node foreign;
+        foreign.kind = gran::ui::ElementKind::MENU_ITEM;
+        foreign.content.text = "Foreign";
+        foreign.content.option = "other";
+        TEST_ASSERT(!gran::ui::selectOption(*c, &foreign));
+        TEST_ASSERT(c->content.text == "Medium" && c->content.option == "m");
+        TEST_ASSERT(m->content.checked && !s->content.checked);
+
         auto* list = c->children.back().get();
         TEST_ASSERT(list->visible == false);
 

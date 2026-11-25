@@ -18,9 +18,13 @@ namespace gran
     ** It is needed for frame snapshots in tests and the gran_snapshot tool.
     */
     std::vector<std::uint8_t> encodePng(const std::uint8_t* rgba, std::uint32_t width, std::uint32_t height);
+    // Размер буфера в байтах; без него вызывающий гарантирует width × height × 4 байт.
+    // Buffer size in bytes; callers omitting it must supply width × height × 4 bytes.
+    std::vector<std::uint8_t> encodePng(const std::uint8_t* rgba, std::size_t bytes, std::uint32_t width, std::uint32_t height);
 
     // Запись PNG в файл; false — файл не записан / Writing a PNG into a file; false — the file is not written
     bool writePng(const std::string& path, const std::uint8_t* rgba, std::uint32_t width, std::uint32_t height);
+    bool writePng(const std::string& path, const std::uint8_t* rgba, std::size_t bytes, std::uint32_t width, std::uint32_t height);
 
     // ---- png_checksums.cpp ----
 

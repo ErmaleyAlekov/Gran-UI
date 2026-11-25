@@ -15,7 +15,10 @@ namespace gran::capi
     void checkApp(gran_app* app, bool ownerThread)
     {
         require(app != nullptr);
-        if (ownerThread && app->thread != std::this_thread::get_id())
+        bool isOwner = app->thread == std::this_thread::get_id();
+        if (isOwner && app->releasingListener)
+            throw Failure{GRAN_BUSY, i18n::format(i18n::Message::CAPI_BUSY)};
+        if (ownerThread && !isOwner)
             throw Failure{GRAN_WRONG_THREAD, i18n::format(i18n::Message::CAPI_THREAD)};
     }
 

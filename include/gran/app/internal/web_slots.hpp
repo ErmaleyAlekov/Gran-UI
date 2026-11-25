@@ -86,6 +86,9 @@ namespace gran::app
     // Создать браузер слота (один раз; nullptr — недоступен) и отдать ему накопленные сообщения / Create the slot browser (once; nullptr — unavailable) and give it the accumulated messages
     void openWebView(AppWindow& win, WebSlot& slot);
 
+    // Передать ожидающие строки по порядку / Forward pending strings in order
+    void flushWebOutbox(WebSlot& slot);
+
     // Передать браузеру адрес или HTML узла, если они изменились / Pass the node address or HTML to the browser if they changed
     void sendContent(AppWindow& win, WebSlot& slot);
 

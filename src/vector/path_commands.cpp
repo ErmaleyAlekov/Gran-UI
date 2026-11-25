@@ -11,11 +11,11 @@ namespace gran::vector::internal
             float value = requireNumber(scanner);
 
             if (command == 'H' && relative)
-                point.x += value;
+                point.x = pathCoordinate(static_cast<double>(point.x) + value, scanner);
             else if (command == 'H')
                 point.x = value;
             else if (relative)
-                point.y += value;
+                point.y = pathCoordinate(static_cast<double>(point.y) + value, scanner);
             else
                 point.y = value;
             addVerb(builder, Verb::LINE, &point, 1);

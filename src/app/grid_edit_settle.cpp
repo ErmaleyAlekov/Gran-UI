@@ -1,21 +1,30 @@
 #include "gran/app/internal/app_state.hpp"
+#include "gran/ui/internal/preorder.hpp"
 
 namespace gran::app
 {
     namespace
     {
         // Номер столбца правки по ключу (столбцы могли переставить во время правки); NO_COLUMN — нет такого / The edited column index by the key (the columns might be reordered during the edit); NO_COLUMN — none
-        std::size_t editedColumn(const GridEdit& edit) noexcept
+        std::size_t editedColumn(const ui::Node& grid, const std::string& key) noexcept
         {
-            if (edit.grid == nullptr)
-                return ui::NO_COLUMN;
-            const std::vector<ui::GridColumn>& columns = edit.grid->content.grid->columns;
+            const auto& columns = grid.content.grid->columns;
             for (std::size_t index = 0; index < columns.size(); ++index)
             {
-                if (columns[index].key == edit.key)
+                if (columns[index].key == key)
                     return index;
             }
             return ui::NO_COLUMN;
+        }
+
+        // Идентичность узла сохраняется при перемещении / A node keeps its identity when moved
+        ui::Node* liveNode(ui::Node* root, std::uint64_t serial)
+        {
+            if (!root || !serial) return nullptr;
+            ui::internal::Preorder traversal(*root);
+            while (auto* node = traversal.next())
+                if (node->serial == serial) return node;
+            return nullptr;
         }
 
         /*
@@ -54,14 +63,24 @@ namespace gran::app
         GridEdit& edit = *win.gridEdit;
         GridEditEnd pending = edit.pending;
         GridTab tab = edit.tab;
-        ui::Node* grid = edit.grid;
-        ui::Node* rows = edit.rows;
-        std::size_t column = editedColumn(edit);
+        const auto gridSerial = edit.grid ? edit.grid->serial : 0;
+        const auto rowsSerial = edit.rows ? edit.rows->serial : 0;
+        const auto key = edit.key;
+        const auto record = edit.record;
         edit.pending = GridEditEnd::NONE;
         edit.tab = GridTab::NONE;
         if (finishGridEdit(win, pending != GridEditEnd::CANCEL))
         {
-            if (tab != GridTab::NONE && grid != nullptr && rows != nullptr && column != ui::NO_COLUMN)
+            if (pending != GridEditEnd::SUBMIT || tab == GridTab::NONE || win.gridEdit || !record || !record->alive())
+                return true;
+            auto* grid = liveNode(win.document.root.get(), gridSerial);
+            auto* rows = liveNode(grid, rowsSerial);
+            if (!rows || !grid->content.grid) return true;
+            const auto* selection = win.shared.lists.selection(rows->content.selection);
+            if (!selection || &selection->source() != &record->source() || selection->current() != record->index())
+                return true;
+            const auto column = editedColumn(*grid, key);
+            if (column != ui::NO_COLUMN)
                 tabOnward(win, *grid, *rows, column, tab == GridTab::BACKWARD);
             return true;
         }

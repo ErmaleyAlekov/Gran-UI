@@ -12,7 +12,7 @@ namespace gran::rhi::dx11
         _options.height = std::max(1u, options.height);
         createDevice();
         createPipeline();
-        createSurface();
+        createSurface(_options.width, _options.height);
     }
 
     // Деструктор не выпускает исключений даже после потери устройства.
@@ -28,20 +28,22 @@ namespace gran::rhi::dx11
     // Release all context references to old swapchain buffers before ResizeBuffers.
     void Dx11Backend::resize(std::uint32_t width, std::uint32_t height)
     {
-        if (width == 0 || height == 0 || (width == _options.width && height == _options.height))
+        if (width == 0 || height == 0 || (_surface.target && width == _options.width && height == _options.height))
             return;
         if (width > 16384 || height > 16384)
             invalid("surface");
         waitIdle();
         _context->ClearState();
-        _surface = Texture{};
         for (Texture& level : _blur)
             level = Texture{};
+        if (_swapchain)
+        {
+            _surface = Texture{};
+            GRAN_DX11_CHECK(_swapchain->ResizeBuffers(2, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+        }
+        createSurface(width, height);
         _options.width = width;
         _options.height = height;
-        if (_swapchain)
-            GRAN_DX11_CHECK(_swapchain->ResizeBuffers(2, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
-        createSurface();
     }
 
     // EVENT query используется только там, где необходим полный простой.

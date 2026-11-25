@@ -34,17 +34,22 @@ namespace gran::ui
     };
 
     /*
-    ** Снимок поддерева. Ключ узла — "#id", а у узла без id — ключ родителя и номер среди детей
-    ** ("#panel/2/0"): так вставка в другой ветви не сдвигает ключи. focus — ключ узла в фокусе (пусто — нет).
+    ** Снимок поддерева. Уникальный id сохраняет состояние при переносе узла между ветвями.
+    ** Повторяющийся id уточняется ключом родителя и порядком среди одноимённых соседей,
+    ** узел без id — порядком среди всех детей. При смене уникальности ищется совпавший путь.
+    ** focus хранит ключ узла в фокусе, hasFocus отмечает наличие фокуса.
     **
-    ** A subtree snapshot. The node key is "#id", and for a node without an id — the parent key and the index among the children
-    ** ("#panel/2/0"): this way an insertion in another branch does not shift the keys. focus is the focused node key (empty — none).
+    ** A subtree snapshot. A unique ID preserves state when its node moves between branches.
+    ** A repeated ID is qualified by the parent key and its occurrence among siblings with the same ID.
+    ** A node without an ID uses its index among all siblings. A change in uniqueness uses a matching path.
+    ** focus holds the focused node key, and hasFocus records whether a node had focus.
     */
     struct TreeState
     {
         std::map<std::string, SavedState> nodes;
         std::string focus;
         bool hasFocus = false;
+        std::map<std::string, std::string> pathKeys;
     };
 
     // ---- node_state.cpp ----

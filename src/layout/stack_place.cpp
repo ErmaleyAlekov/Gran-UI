@@ -7,9 +7,9 @@ namespace gran::layout::internal
     namespace
     {
         // Начальное смещение и добавка к промежутку по justify / The start offset and the gap addition by justify
-        void justifyOffsets(int justify, float leftover, std::size_t count, float& start, float& gap) noexcept
+        void justifyOffsets(int justify, double leftover, std::size_t count, double& start, double& gap) noexcept
         {
-            float n = static_cast<float>(count);
+            double n = static_cast<double>(count);
 
             start = 0.0f;
             gap = 0.0f;
@@ -79,15 +79,15 @@ namespace gran::layout::internal
         LayoutPass& pass)
     {
         bool horizontal = stack.computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL);
-        float used = stack.computed.spacing * static_cast<float>(line.last - line.first - 1);
-        float start = 0.0f;
-        float gap = 0.0f;
+        double used = stack.computed.spacing * static_cast<double>(line.last - line.first - 1);
+        double start = 0.0;
+        double gap = 0.0;
 
         for (std::size_t index = line.first; index < line.last; ++index)
-            used += items[index].target + items[index].marginMain;
+            used += static_cast<double>(items[index].target) + items[index].marginMain;
         justifyOffsets(stack.computed.justify, mainOf(Size{content.width, content.height}, horizontal) - used,
             line.last - line.first, start, gap);
-        float main = start;
+        double main = start;
         for (std::size_t index = line.first; index < line.last; ++index)
         {
             const FlexItem& item = items[index];
@@ -96,10 +96,11 @@ namespace gran::layout::internal
             crossPlacement(stack, item, line.crossSize, crossSize, crossOffset);
             Vec2 margin = startMargins(*item.node, horizontal);
             Size size = sizeFrom(item.target, crossSize, horizontal);
-            Size position = sizeFrom(main + margin.x, line.crossOffset + crossOffset + margin.y, horizontal);
-            arrangeNode(*item.node, Rect{content.x + position.width, content.y + position.height,
-                size.width, size.height}, pass);
-            main += item.target + item.marginMain + stack.computed.spacing + gap;
+            float mainStart = static_cast<float>(main + margin.x + (horizontal ? content.x : content.y));
+            float crossStart = line.crossOffset + crossOffset + margin.y + (horizontal ? content.y : content.x);
+            Size position = sizeFrom(mainStart, crossStart, horizontal);
+            arrangeNode(*item.node, Rect{position.width, position.height, size.width, size.height}, pass);
+            main += static_cast<double>(item.target) + item.marginMain + stack.computed.spacing + gap;
         }
     }
 }

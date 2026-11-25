@@ -19,6 +19,7 @@ namespace gran
         void editAttribute(Application::State& state, ui::Node& node, const std::string& name,
             const std::optional<std::string>& value)
         {
+            state.lists.requireStableDocument();
             app::AppWindow* win = app::findWindow(state, node);
 
             if (win == nullptr)

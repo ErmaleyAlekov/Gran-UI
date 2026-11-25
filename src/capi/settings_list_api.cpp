@@ -24,7 +24,10 @@ gran_status gran_settings_set_list(gran_app* app, const char* name, const char* 
     gran::capi::require(name != nullptr && (items != nullptr || count == 0));
     std::vector<std::string> list;
     for (size_t index = 0; index < count; ++index)
-        list.push_back(gran::capi::text(items[index]));
+    {
+        gran::capi::require(items[index] != nullptr);
+        list.emplace_back(items[index]);
+    }
     app->application.settings().setList(name, list);
     GRAN_CAPI_END
 }

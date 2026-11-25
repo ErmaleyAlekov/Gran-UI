@@ -12,7 +12,7 @@ namespace editor
     {
     public:
         explicit Controller(gran::Application& application);
-        void start(const std::string& path);
+        void start(const std::string& path, const std::string& initialFolder = {});
         void bindActions();
         void enqueue(const std::string& action, gran::ui::Node& node);
         void execute(const std::string& action, unsigned id);

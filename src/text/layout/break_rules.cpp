@@ -34,6 +34,6 @@ namespace gran::text
             return true;
         if ((symbol == '-' || symbol == 0x2010) && isLetter(next))
             return true;
-        return isCjk(symbol) || isCjk(next);
+        return symbol != 0x00A0 && next != 0x00A0 && (isCjk(symbol) || isCjk(next));
     }
 }

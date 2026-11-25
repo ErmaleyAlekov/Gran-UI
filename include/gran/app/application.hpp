@@ -150,6 +150,17 @@ namespace gran
         ** A parse error preserves the old tree. After replacement call find again: old nodes may be
         ** deleted. Handlers, timers and external models remain; XML data is loaded again on a full replacement.
         **
+        ** Если инициализация полной замены или уведомление подписчика модели завершается исключением,
+        ** окно сохраняет прежний документ. Gran восстанавливает данные с уведомлениями тем же подписчикам.
+        ** Внешние действия обработчика остаются в силе. Во время замены подписчику доступны ранее
+        ** опубликованные модели; создание окон, структурные правки и получение новых моделей откладывайте
+        ** до завершения загрузки.
+        **
+        ** If full replacement initialization or a model notification throws, the window retains its document.
+        ** Gran restores its data and notifies the same subscribers. External callback effects remain.
+        ** Subscribers can access previously published models during replacement. Defer opening windows,
+        ** structural edits and acquisition of new models until loading finishes.
+        **
         ** Перезагрузка частичная: если <Window> и <Resources> не изменились, новый DOM сравнивается со старым,
         ** и перестраиваются только изменившиеся ветви (остальные узлы и данные моделей остаются как были);
         ** иначе дерево заменяется целиком. В обоих случаях текст полей, отметки, выбор, вкладки, прокрутка
@@ -468,9 +479,11 @@ namespace gran
         /*
         ** Строка в страницу (событие message у window.chrome.webview). До создания браузера
         ** и загрузки страницы сообщения копятся и уходят по порядку. Не WebView — GranException.
+        ** До показа очередь принимает 256 строк до 64 КиБ UTF-8 каждая. Переполнение — LIMIT_EXCEEDED.
         **
         ** A string into the page (the message event of window.chrome.webview). Before the browser is created
         ** and the page is loaded the messages accumulate and go out in order. Not a WebView — GranException.
+        ** Before display the queue accepts 256 strings of up to 64 KiB UTF-8 each. Overflow raises LIMIT_EXCEEDED.
         */
         void postWebMessage(ui::Node& webView, const std::string& message);
 

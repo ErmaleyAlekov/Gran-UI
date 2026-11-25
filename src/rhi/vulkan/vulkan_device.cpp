@@ -100,8 +100,13 @@ namespace gran::rhi::vk
 #endif
         info.enabledExtensionCount = static_cast<unsigned>(extensions.size());
         info.ppEnabledExtensionNames = extensions.data();
-        if (vkCreateDevice(candidate, &info, nullptr, _device.put(std::bind(vkDestroyDevice, std::placeholders::_1, nullptr)))
-            != VK_SUCCESS) return false;
+        Owned<VkDevice> device;
+        auto* slot = device.put(std::bind(vkDestroyDevice, std::placeholders::_1, nullptr));
+        VkDevice created{};
+        if (vkCreateDevice(candidate, &info, nullptr, &created) != VK_SUCCESS)
+            return false;
+        *slot = created;
+        _device = std::move(device);
         _waitForPresent = nullptr;
         if (presentWait) _waitForPresent = vkGetDeviceProcAddr(_device.get(), "vkWaitForPresentKHR");
         _presentWait = _waitForPresent != nullptr;

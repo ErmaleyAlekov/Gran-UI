@@ -108,7 +108,7 @@ namespace chat::json
         for (char symbol = peekChar(cursor); symbol != '"'; symbol = peekChar(cursor))
         {
             if (static_cast<unsigned char>(symbol) < 0x20)
-                expectChar(cursor, '"');
+                failAt(cursor, ChatText::JSON_CONTROL_CHAR);
             ++cursor.position;
             if (symbol == '\\')
                 readEscape(cursor, out);

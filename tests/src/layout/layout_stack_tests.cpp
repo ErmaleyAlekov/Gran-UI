@@ -1,9 +1,32 @@
 #include "framework/test_framework.hpp"
+#include "gran/layout/internal/layout_internal.hpp"
 #include "suites/test_suites.hpp"
 #include "support/layout_helpers.hpp"
 
 namespace
 {
+    void testStackFractionalPlacement()
+    {
+        constexpr std::size_t COUNT = 1024;
+        std::vector<gran::ui::Node> children(COUNT);
+        std::vector<gran::layout::internal::FlexItem> items(COUNT);
+        for (std::size_t index = 0; index < COUNT; ++index)
+        {
+            children[index].kind = gran::ui::ElementKind::BOX;
+            items[index].node = &children[index];
+            items[index].target = 0.1f;
+        }
+        gran::ui::Node stack;
+        stack.computed.orientation = static_cast<int>(gran::style::Orientation::HORIZONTAL);
+        stack.computed.spacing = 0.01f;
+        support::FixedMeasurer measurer;
+        gran::layout::internal::LayoutPass pass{measurer, 1};
+        gran::layout::internal::placeFlexLine(stack, items, {0, COUNT, 0, 10}, {0, 0, 200, 10}, pass);
+        const auto expected = static_cast<float>((static_cast<double>(items[0].target) + stack.computed.spacing)
+            * static_cast<double>(COUNT - 1));
+        TEST_ASSERT_NEAR(children.back().layout.frame.x, expected, 0.00002f);
+    }
+
     void testStackLayoutVertical()
     {
         const char* markup = R"(<Window><Stack id="s" padding="10" spacing="5"><Box id="a" height="20"/><Box id="b" height="30"/></Stack></Window>)";
@@ -137,5 +160,6 @@ namespace suites
         runner.add("layout: stack horizontal", testStackLayoutHorizontal);
         runner.add("layout: stack center", testStackLayoutCenter);
         runner.add("layout: stack advanced", testStackLayoutAdvanced);
+        runner.add("layout: stack fractional placement", testStackFractionalPlacement);
     }
 }

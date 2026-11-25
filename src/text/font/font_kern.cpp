@@ -34,19 +34,29 @@ namespace gran::text
     */
     float kernTableValue(const FontReader& reader, const TableSpan& kern, std::uint16_t left, std::uint16_t right) noexcept
     {
+        if (kern.length < 4 || !reader.contains(kern.offset, kern.length))
+            return 0.0f;
         std::size_t position = kern.offset + 4;
+        std::size_t remaining = kern.length - 4;
         std::uint16_t tables = reader.u16(kern.offset + 2);
 
         if (reader.u16(kern.offset) != 0)
             return 0.0f;
         for (std::uint16_t table = 0; table < tables; ++table)
         {
+            if (remaining < 6)
+                return 0.0f;
+            const auto length = reader.u16(position + 2);
+            if (length < 6 || length > remaining)
+                return 0.0f;
             std::uint16_t coverage = reader.u16(position + 4);
             if ((coverage >> 8) == 0 && (coverage & 0x0005) == 0x0001)
+            {
+                if (length < 14 || reader.u16(position + 6) > (length - 14) / 6)
+                    return 0.0f;
                 return findPair(reader, position, (static_cast<std::uint32_t>(left) << 16) | right);
-            std::uint16_t length = reader.u16(position + 2);
-            if (length == 0)
-                return 0.0f;
+            }
+            remaining -= length;
             position += length;
         }
         return 0.0f;

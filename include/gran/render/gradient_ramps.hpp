@@ -49,8 +49,9 @@ namespace gran::render
         void growOrReset();
 
         std::unordered_map<std::string, std::uint32_t> _rows;
-        std::vector<std::uint8_t> _pixels;
+        static constexpr std::uint32_t MAX_ROWS = 4096;
         std::uint32_t _capacity;
+        std::vector<std::uint8_t> _pixels;
         std::uint32_t _used = 0;
         std::uint32_t _generation = 1;
         std::uint32_t _dirtyFirst;

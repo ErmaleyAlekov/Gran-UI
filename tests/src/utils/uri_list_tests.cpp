@@ -23,6 +23,13 @@ namespace
         TEST_ASSERT(gran::fileUriPath("file:///tmp/a.txt", path) && path == "/tmp/a.txt");
         TEST_ASSERT(gran::fileUriPath("FILE://LocalHost/x", path) && path == "/x");
         TEST_ASSERT(gran::fileUriPath("file:/y", path) && path == "/y");
+#if defined(_WIN32)
+        TEST_ASSERT(gran::fileUriPath("file:///C:/test.txt", path) && path == "C:/test.txt");
+        TEST_ASSERT(gran::fileUriPath("file://localhost/d:/a%20b", path) && path == "d:/a b");
+#else
+        TEST_ASSERT(gran::fileUriPath("file:///C:/test.txt", path) && path == "/C:/test.txt");
+#endif
+        TEST_ASSERT(gran::fileUriPath("file:///C:relative", path) && path == "/C:relative");
         TEST_ASSERT(gran::fileUriPath("file:///a%20b?q#f", path) && path == "/a b");
         TEST_ASSERT(!gran::fileUriPath("file://server/x", path));
         TEST_ASSERT(!gran::fileUriPath("http://x/y", path));

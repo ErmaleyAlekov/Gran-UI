@@ -37,6 +37,32 @@ namespace
         return result;
     }
 
+    void testRevealAfterStaticChildren()
+    {
+        support::FixedMeasurer measurer;
+        auto doc = gran::markup::loadMarkupString(R"(<Window><Scroll id="s"><Stack id="list" items="rows" spacing="4" virtual="true"><Box height="80" margin="6"/><Box height="90" visible="false"/><ItemTemplate><Box height="20"/></ItemTemplate></Stack></Scroll></Window>)", {});
+        gran::binding::ListBindings lists;
+        for (std::size_t index = 0; index < 100; ++index)
+            lists.model("rows").append({});
+        lists.bind(*doc.root);
+        settle(doc, lists, measurer);
+
+        auto* list = gran::ui::findNode(*doc.root, "list");
+        auto* scroll = gran::ui::findNode(*doc.root, "s");
+        TEST_ASSERT(list != nullptr && scroll != nullptr);
+        constexpr std::size_t target = 70;
+        TEST_ASSERT(lists.itemNode(*list, target) == nullptr);
+        TEST_ASSERT(lists.revealItem(*list, target));
+        settle(doc, lists, measurer);
+
+        const auto* item = lists.itemNode(*list, target);
+        TEST_ASSERT(item != nullptr);
+        const auto& row = item->layout.frame;
+        const auto& viewport = scroll->layout.frame;
+        TEST_ASSERT(row.y >= viewport.y - 0.5f);
+        TEST_ASSERT_NEAR(row.y + row.height, viewport.y + viewport.height, 0.5f);
+    }
+
     void testVariableListCoversViewport()
     {
         support::FixedMeasurer measurer;
@@ -316,6 +342,7 @@ namespace suites
     void registerVariableListTests(test::TestRunner& runner)
     {
         runner.add("variable list: covers viewport", testVariableListCoversViewport);
+        runner.add("variable list: reveal after static children", testRevealAfterStaticChildren);
         runner.add("variable list: exact offsets", testVariableListExactOffsets);
         runner.add("variable list: anchor", testVariableListAnchor);
         runner.add("variable list: jump to top", testVariableListJumpToTop);

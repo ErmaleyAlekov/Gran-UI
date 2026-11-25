@@ -1,20 +1,10 @@
 #include "gran/ui/node.hpp"
+#include "tool_group_walk.hpp"
 
 namespace gran::ui
 {
     namespace
     {
-        // Подпись пункта-зеркала: текст кнопки, без него — подсказка или имя для дикторов (кнопка-значок)
-        // The mirror item label: the button text, without it — the tooltip or the screen reader name (an icon button)
-        const std::string& overflowLabel(const Node& source) noexcept
-        {
-            if (!source.content.text.empty())
-                return source.content.text;
-            if (!source.content.tooltip.empty())
-                return source.content.tooltip;
-            return source.content.accessibleName;
-        }
-
         /*
         ** Узел панели → пункты-зеркала меню «ещё»: разделитель — разделитель, группа — зеркала её детей по порядку,
         ** прочее — пункт с той же подписью, командой, onClick и значением (у заголовка вкладки — значение страницы). Подпись, включённость и сочетание команды пункт
@@ -26,12 +16,6 @@ namespace gran::ui
         */
         void appendMirror(Node& menu, const Node& source)
         {
-            if (source.kind == ElementKind::TOOL_GROUP)
-            {
-                for (const std::unique_ptr<Node>& child : source.children)
-                    appendMirror(menu, *child);
-                return;
-            }
             std::unique_ptr<Node> item = std::make_unique<Node>();
             item->line = source.line;
             item->column = source.column;
@@ -39,7 +23,11 @@ namespace gran::ui
             item->kind = ElementKind::MENU_ITEM;
             if (source.kind == ElementKind::SEPARATOR)
                 item->kind = ElementKind::SEPARATOR;
-            item->content.text = overflowLabel(source);
+            item->content.text = internal::overflowLabel(source);
+            item->content.mnemonic = source.content.mnemonic;
+            item->content.mnemonicAt = source.content.mnemonicAt;
+            item->content.shortcut = source.content.shortcut;
+            item->content.inheritedCaption = source.content.inheritedCaption;
             item->content.command = source.content.command;
             item->content.onClick = source.content.onClick;
             item->content.option = source.content.option;
@@ -78,7 +66,7 @@ namespace gran::ui
         menu->kind = ElementKind::POPUP;
         menu->visible = false;
         for (const std::unique_ptr<Node>& child : bar.children)
-            appendMirror(*menu, *child);
+            internal::visitToolItems(*child, false, [&](const Node& source, bool) { appendMirror(*menu, source); });
         appendChild(*more, std::move(menu));
         appendChild(bar, std::move(more));
     }

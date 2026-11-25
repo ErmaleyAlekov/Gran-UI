@@ -102,6 +102,7 @@ namespace gran::input
     {
         if (event.kind == platform::EventKind::KEY_DOWN)
         {
+            state.suppressCharacter = false;
             if (dragKey(state, event))
                 return true;
             state.suppressCharacter = !fireKey(state, event);
@@ -112,6 +113,7 @@ namespace gran::input
         }
         if (event.kind == platform::EventKind::KEY_UP)
         {
+            state.suppressCharacter = false;
             // Отпускание Alt учитывается и при отменённом keyUp: иначе Alt остался бы «зажатым»
             // The Alt release counts even with a cancelled keyUp: otherwise Alt would stay "held"
             fireKey(state, event);

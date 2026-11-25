@@ -1,5 +1,6 @@
 #include "gallery_actions.hpp"
 
+#include <cmath>
 #include <string>
 
 namespace gallery
@@ -35,7 +36,9 @@ namespace gallery
     void registerSettings(gran::Application& application)
     {
         gran::settings::Settings& settings = application.settings();
-        double launches = settings.getNumber("launches") + 1.0;
+        const double previous = settings.getNumber("launches");
+        const double launches = previous >= 0 && previous < 0x1p53 && std::floor(previous) == previous
+            ? previous + 1.0 : 1.0;
         gran::ui::Node* info = application.find("settingsInfo");
 
         application.onAction("settingsBar", SettingsBar{&application});

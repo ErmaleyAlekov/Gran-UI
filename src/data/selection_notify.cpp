@@ -1,4 +1,5 @@
 #include "gran/data/selection_model.hpp"
+#include "gran/data/internal/observer_errors.hpp"
 
 #include <algorithm>
 
@@ -32,11 +33,16 @@ namespace gran::data
     {
         std::vector<SelectionObserver*> observers = _observers;
 
-        ++_version;
+        const auto version = ++_version;
         for (SelectionObserver* observer : observers)
         {
+            if (_version != version)
+                break;
             if (std::find(_observers.begin(), _observers.end(), observer) != _observers.end())
-                observer->selectionChanged();
+            {
+                try { observer->selectionChanged(); }
+                catch (...) { internal::ObserverErrors::capture(); }
+            }
         }
     }
 

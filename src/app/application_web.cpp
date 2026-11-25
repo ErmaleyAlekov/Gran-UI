@@ -1,6 +1,7 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
+#include "gran/platform/internal/web_message_limits.hpp"
 
 #include <utility>
 
@@ -29,9 +30,15 @@ namespace gran
         requireWebView(webView);
         app::WebSlot& slot = app::webSlot(app::windowOf(*_state, webView), webView);
         if (slot.view)
+        {
+            app::flushWebOutbox(slot);
             slot.view->postMessage(message);
+        }
         else
+        {
+            platform::requireWebQueueSpace(slot.outbox.size(), message.size());
             slot.outbox.push_back(message);
+        }
     }
 
     // Новый адрес уйдёт в браузер после ближайшего кадра (sendContent) / The new address goes to the browser after the nearest frame (sendContent)

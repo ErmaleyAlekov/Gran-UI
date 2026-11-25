@@ -15,7 +15,10 @@ namespace gran::log
         {
             static const char* const NAMES[] = {"SEVERE ", "WARNING", "INFO   ", "VERBOSE"};
 
-            return NAMES[static_cast<std::size_t>(level)];
+            const auto index = static_cast<std::size_t>(level);
+            if (index >= sizeof(NAMES) / sizeof(*NAMES))
+                return "UNKNOWN";
+            return NAMES[index];
         }
 
         // Местное время с миллисекундами: «2026-11-03 10:20:07.123» / The local time with milliseconds: "2026-11-03 10:20:07.123"
@@ -75,6 +78,8 @@ namespace gran::log
     */
     void write(Level level, std::string_view category, std::string_view text) noexcept
     {
+        if (level > Level::VERBOSE)
+            return;
         try
         {
             internal::LogState& state = internal::logState();

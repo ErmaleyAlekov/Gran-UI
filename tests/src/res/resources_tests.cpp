@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -45,6 +46,13 @@ namespace
         gran::res::mount(BUNDLE);
         std::unique_ptr<std::istream> stream = gran::res::openStream("res:/data/digits.txt");
         stream->seekg(4);
+        for (auto offset : {std::numeric_limits<std::streamoff>::min(), std::numeric_limits<std::streamoff>::max()})
+        {
+            stream->seekg(offset, std::ios::cur);
+            TEST_ASSERT(stream->fail());
+            stream->clear();
+            TEST_ASSERT(stream->tellg() == std::streampos(4));
+        }
         *stream >> text;
         TEST_ASSERT(text == "456789");
         stream->clear();
@@ -53,8 +61,14 @@ namespace
         TEST_ASSERT(!*gran::res::openStream("res:/missing.txt"));
         TEST_ASSERT(gran::res::readFile("res:/data/digits.txt", bytes) && bytes.size() == 10);
         TEST_ASSERT(!gran::res::readFile("res:/missing.txt", bytes));
+        const auto digits = bytes;
+        TEST_ASSERT(!gran::res::readFile(".", bytes) && bytes == digits);
         std::shared_ptr<const gran::MappedFile> mapped = gran::MappedFile::open("res:/data/digits.txt");
         TEST_ASSERT(mapped && mapped->size() == 10 && mapped->data() == DATA);
+        const gran::res::Entry empty{"data/empty.txt", DATA, 0};
+        gran::res::mount({"empty", &empty, 1});
+        TEST_ASSERT(gran::res::readFile("res:/data/empty.txt", bytes) && bytes.empty());
+        TEST_ASSERT(!gran::MappedFile::open("res:/data/empty.txt"));
     }
 
     void testMarkupFromResources()
@@ -85,6 +99,10 @@ namespace
         TEST_ASSERT(manifest.files[0].alias == "icons/a.svg" && manifest.files[1].alias == "icons/deep/c.svg");
         std::string blob = gran::res::generateBlob(manifest);
         gran::res::mountBlob(blob.data(), blob.size());
+        gran::res::mount(BUNDLE);
+        TEST_ASSERT(gran::res::find("res:/ui/main.xml", view) && view.data == WINDOW);
+        gran::res::mountBlob(blob.data(), blob.size());
+        TEST_ASSERT(gran::res::find("res:/ui/main.xml", view) && view.data != WINDOW);
         TEST_ASSERT(gran::res::find("res:/icons/deep/c.svg", view) && view.size == 4);
         TEST_ASSERT(gran::res::generateSource(manifest).find("granResources_probe()") != std::string::npos);
         TEST_ASSERT(gran::res::generateDepfile(manifest, "out.cpp").find("main.xml") != std::string::npos);

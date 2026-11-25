@@ -26,7 +26,7 @@ namespace gran::log::internal
         */
         void onTerminate()
         {
-            static char text[512];
+            thread_local char text[512];
             std::exception_ptr current = std::current_exception();
 
             std::snprintf(text, sizeof(text), "std::terminate");
@@ -72,12 +72,10 @@ namespace gran::log::internal
         EXCEPTION_RECORD record{};
         EXCEPTION_POINTERS pointers{&record, &context};
 
-        if (message != nullptr)
-            std::strncpy(state.message, message, sizeof(state.message) - 1);
         RtlCaptureContext(&context);
         record.ExceptionCode = code;
-        if (state.installed)
-            crashFilter(&pointers);
+        if (submitCrash(&pointers, message) == EXCEPTION_CONTINUE_SEARCH)
+            WaitForSingleObject(state.done, 100);
         TerminateProcess(GetCurrentProcess(), code);
         for (;;)
             Sleep(INFINITE);

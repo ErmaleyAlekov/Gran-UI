@@ -35,15 +35,28 @@ namespace gran::rhi::dx12
     // Уже пройдено — без ожидания; иначе событие и блокировка потока / Already passed — no waiting; otherwise an event and blocking
     void FenceSync::wait(std::uint64_t value)
     {
-        if (value == 0 || _fence->GetCompletedValue() >= value)
-            return;
-        GRAN_CHECK_HR(_fence->SetEventOnCompletion(value, _event));
-        WaitForSingleObject(_event, INFINITE);
+        while (value != 0 && completed() < value)
+        {
+            GRAN_CHECK_HR(_fence->SetEventOnCompletion(value, _event));
+            const DWORD result = WaitForSingleObject(_event, INFINITE);
+            if (result != WAIT_OBJECT_0)
+            {
+                const auto error = result == WAIT_FAILED ? GetLastError() : ERROR_GEN_FAILURE;
+                // Без события сам D3D12 ждёт завершения перед возвратом.
+                // With no event D3D12 waits synchronously before returning.
+                GRAN_CHECK_HR(_fence->SetEventOnCompletion(value, nullptr));
+                completed();
+                GRAN_CHECK_HR(HRESULT_FROM_WIN32(error ? error : ERROR_GEN_FAILURE));
+            }
+        }
     }
 
     // Пройденное значение / The passed value
     std::uint64_t FenceSync::completed() const
     {
-        return _fence->GetCompletedValue();
+        const auto value = _fence->GetCompletedValue();
+        if (value == UINT64_MAX)
+            GRAN_CHECK_HR(DXGI_ERROR_DEVICE_REMOVED);
+        return value;
     }
 }

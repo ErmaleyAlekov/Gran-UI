@@ -1,5 +1,7 @@
 #include "gran/layout/internal/layout_internal.hpp"
 
+#include <cmath>
+
 namespace gran::layout::internal
 {
     namespace
@@ -30,7 +32,11 @@ namespace gran::layout::internal
         for (std::uint8_t index = 0; index < node.layout.cacheCount; ++index)
         {
             const ui::MeasureEntry& entry = node.layout.cache[index];
-            if (entry.available.width == available.width && entry.available.height == available.height)
+            const bool sameWidth = entry.available.width == available.width
+                || (std::isnan(entry.available.width) && std::isnan(available.width));
+            const bool sameHeight = entry.available.height == available.height
+                || (std::isnan(entry.available.height) && std::isnan(available.height));
+            if (sameWidth && sameHeight)
             {
                 result = entry.result;
                 return true;

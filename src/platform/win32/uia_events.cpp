@@ -78,12 +78,14 @@ namespace gran::platform::win32
                 raiseExpandChange(element, old.expand, now.expand);
             if (old.value != now.value && (patterns & a11y::PATTERN_TEXT) != 0)
             {
+                const std::wstring beforeValue = toWide(old.value);
+                const std::wstring afterValue = toWide(now.value);
                 VariantInit(&before);
                 VariantInit(&after);
                 before.vt = VT_BSTR;
-                before.bstrVal = SysAllocString(toWide(old.value).c_str());
+                before.bstrVal = SysAllocString(beforeValue.c_str());
                 after.vt = VT_BSTR;
-                after.bstrVal = SysAllocString(toWide(now.value).c_str());
+                after.bstrVal = SysAllocString(afterValue.c_str());
                 raiseProperty(element, UIA_ValueValuePropertyId, before, after);
             }
             if (old.current != now.current && (patterns & a11y::PATTERN_RANGE) != 0)

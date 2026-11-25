@@ -28,7 +28,8 @@ gran_status gran_app_undo_push(gran_app* app, const char* stack, const gran_undo
 {
     GRAN_CAPI_TRY
     gran::capi::checkApp(app);
-    gran::capi::require(step != nullptr && step->size == sizeof(gran_undo_step));
+    gran::capi::require(step != nullptr && step->size >= sizeof(gran_undo_step));
+    gran::capi::require(step->undo != nullptr && step->redo != nullptr);
     app->application.undoStack(gran::capi::text(stack)).push(gran::capi::callbackStep(*step));
     GRAN_CAPI_END
 }

@@ -28,16 +28,22 @@ namespace gran::text
         }
 
         // Формат 1: набор пар для первого глифа, двоичный поиск второго / Format 1: the pair set of the first glyph, a binary search of the second
-        bool pairFormat1(const FontReader& reader, std::size_t subtable, int covered, std::uint16_t right, float& value)
+        PairResult pairFormat1(const FontReader& reader, std::size_t subtable, int covered, std::uint16_t right, float& value)
         {
             std::uint16_t format1 = reader.u16(subtable + 4);
             std::size_t record = 2 + valueSize(format1) + valueSize(reader.u16(subtable + 6));
             std::size_t low = 0;
 
-            if (static_cast<std::size_t>(covered) >= reader.u16(subtable + 8))
-                return false;
+            const std::size_t count = reader.u16(subtable + 8);
+            if (static_cast<std::size_t>(covered) >= count ||
+                !reader.contains(subtable + 10, count * 2))
+                return PairResult::DAMAGED;
             std::size_t set = subtable + reader.u16(subtable + 10 + static_cast<std::size_t>(covered) * 2);
             std::size_t high = reader.u16(set);
+            if (set < subtable + 10 + count * 2 || !reader.contains(set, 2) || !reader.contains(set + 2, high * record))
+                return PairResult::DAMAGED;
+            if ((format1 & 4) == 0)
+                return PairResult::ABSENT;
             while (low < high)
             {
                 std::size_t middle = (low + high) / 2;
@@ -45,45 +51,61 @@ namespace gran::text
                 if (second == right)
                 {
                     value = reader.i16(set + 2 + middle * record + 2 + advanceOffset(format1));
-                    return (format1 & 0x0004) != 0;
+                    return PairResult::MATCH;
                 }
                 if (second < right)
                     low = middle + 1;
                 else
                     high = middle;
             }
-            return false;
+            return PairResult::ABSENT;
         }
 
         // Формат 2: классы обоих глифов → ячейка матрицы / Format 2: the classes of both glyphs → a matrix cell
-        bool pairFormat2(const FontReader& reader, std::size_t subtable, std::uint16_t left, std::uint16_t right, float& value)
+        PairResult pairFormat2(const FontReader& reader, std::size_t subtable, std::uint16_t left, std::uint16_t right, float& value)
         {
             std::uint16_t format1 = reader.u16(subtable + 4);
             std::size_t record = valueSize(format1) + valueSize(reader.u16(subtable + 6));
-            std::uint16_t first = glyphClass(reader, subtable + reader.u16(subtable + 8), left);
-            std::uint16_t second = glyphClass(reader, subtable + reader.u16(subtable + 10), right);
+            int first = glyphClass(reader, subtable + reader.u16(subtable + 8), left);
+            int second = glyphClass(reader, subtable + reader.u16(subtable + 10), right);
             std::uint16_t columns = reader.u16(subtable + 14);
+            const auto rows = reader.u16(subtable + 12);
+            const std::size_t rowSize = columns * record;
 
-            if (first >= reader.u16(subtable + 12) || second >= columns || (format1 & 0x0004) == 0)
-                return false;
+            if (first < 0 || second < 0 || first >= rows || second >= columns ||
+                (rowSize && rows > SIZE_MAX / rowSize) || !reader.contains(subtable + 16, rows * rowSize))
+                return PairResult::DAMAGED;
+            const auto matrixEnd = 16 + rows * rowSize;
+            if (reader.u16(subtable + 2) < matrixEnd || reader.u16(subtable + 8) < matrixEnd ||
+                reader.u16(subtable + 10) < matrixEnd)
+                return PairResult::DAMAGED;
+            if ((format1 & 4) == 0)
+                return PairResult::ABSENT;
             value = reader.i16(subtable + 16 + (static_cast<std::size_t>(first) * columns + second) * record
                 + advanceOffset(format1));
-            return true;
+            return PairResult::MATCH;
         }
     }
 
     // Левый глиф должен быть в покрытии подтаблицы / The left glyph must be in the subtable coverage
-    bool pairAdjustment(const FontReader& reader, std::size_t subtable, std::uint16_t left, std::uint16_t right,
+    PairResult pairAdjustment(const FontReader& reader, std::size_t subtable, std::uint16_t left, std::uint16_t right,
         float& value) noexcept
     {
-        int covered = coverageIndex(reader, subtable + reader.u16(subtable + 2), left);
+        const auto table = reader.from(subtable);
+        if (!table.contains(0, 10) || (table.u16(0) != 1 && table.u16(0) != 2) ||
+            (table.u16(4) | table.u16(6)) > 255)
+            return PairResult::DAMAGED;
+        const std::size_t header = table.u16(0) == 1 ? 10u + 2u * table.u16(8) : 16u;
+        if (!table.contains(0, header) || table.u16(2) < header)
+            return PairResult::DAMAGED;
+        int covered = coverageIndex(table, table.u16(2), left);
 
         if (covered < 0)
-            return false;
-        if (reader.u16(subtable) == 1)
-            return pairFormat1(reader, subtable, covered, right, value);
-        if (reader.u16(subtable) == 2)
-            return pairFormat2(reader, subtable, left, right, value);
-        return false;
+            return covered == -1 ? PairResult::ABSENT : PairResult::DAMAGED;
+        if (table.u16(0) == 1)
+            return pairFormat1(table, 0, covered, right, value);
+        if (table.u16(8) >= header && table.u16(10) >= header)
+            return pairFormat2(table, 0, left, right, value);
+        return PairResult::DAMAGED;
     }
 }

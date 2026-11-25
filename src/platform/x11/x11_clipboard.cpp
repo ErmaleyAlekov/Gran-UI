@@ -21,8 +21,12 @@ namespace gran::platform::x11
     // The window owns CLIPBOARD until application exit or transfer to another owner.
     void X11Window::setClipboardText(const std::string& text)
     {
+        const Time time = clipboardTimestamp();
+        if (time == CurrentTime)
+            return;
         _clipboard = text;
-        XSetSelectionOwner(_native.display, atom("CLIPBOARD"), _native.window, CurrentTime);
+        _clipboardTime = time;
+        XSetSelectionOwner(_native.display, atom("CLIPBOARD"), _native.window, time);
         XFlush(_native.display);
     }
 
@@ -31,8 +35,11 @@ namespace gran::platform::x11
     std::string X11Window::clipboardText()
     {
         if (XGetSelectionOwner(_native.display, atom("CLIPBOARD")) == _native.window) return _clipboard;
-        _clipboardReady = false; _clipboard.clear();
-        XConvertSelection(_native.display, atom("CLIPBOARD"), atom("UTF8_STRING"), atom("GRAN_CLIPBOARD"), _native.window, CurrentTime);
+        _clipboardReadTime = clipboardTimestamp();
+        if (_clipboardReadTime == CurrentTime)
+            return {};
+        _clipboardReady = false; _clipboardReply.clear();
+        XConvertSelection(_native.display, atom("CLIPBOARD"), atom("UTF8_STRING"), atom("GRAN_CLIPBOARD"), _native.window, _clipboardReadTime);
         XFlush(_native.display);
         auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
         while (!_clipboardReady && std::chrono::steady_clock::now() < deadline)
@@ -42,14 +49,14 @@ namespace gran::platform::x11
                 pollfd descriptor{ConnectionNumber(_native.display), POLLIN, 0};
                 ::poll(&descriptor, 1, 10);
             }
-            while (XPending(_native.display) != 0)
+            while (!_clipboardReady && std::chrono::steady_clock::now() < deadline && XPending(_native.display) != 0)
             { XEvent event{}; XNextEvent(_native.display, &event); if (!XFilterEvent(&event, _native.window)) dispatch(event); }
         }
-        return _clipboard;
+        _clipboardReadTime = CurrentTime;
+        return _clipboardReply;
     }
 
-    // TARGETS сообщает UTF-8 и STRING; размер ответа ограничен безопасным размером X-запроса.
-    // TARGETS advertises UTF-8 and STRING; reply size is limited to a safe X request size.
+    // TIMESTAMP — время получения владения, TARGETS — поддерживаемые форматы / TIMESTAMP is the ownership acquisition time, TARGETS lists supported formats
     void X11Window::selectionRequest(const XSelectionRequestEvent& request)
     {
         XEvent reply{};
@@ -59,9 +66,15 @@ namespace gran::platform::x11
         if (property == None) property = request.target;
         if (request.target == atom("TARGETS"))
         {
-            Atom targets[] = {atom("TARGETS"), atom("UTF8_STRING"), XA_STRING};
+            Atom targets[] = {atom("TARGETS"), atom("TIMESTAMP"), atom("UTF8_STRING"), XA_STRING};
+            const int count = asciiOnly(_clipboard) ? 4 : 3;
             XChangeProperty(_native.display, request.requestor, property, XA_ATOM, 32, PropModeReplace,
-                reinterpret_cast<unsigned char*>(targets), 3); reply.xselection.property = property;
+                reinterpret_cast<unsigned char*>(targets), count); reply.xselection.property = property;
+        }
+        else if (request.target == atom("TIMESTAMP") && _clipboardTime != CurrentTime)
+        {
+            XChangeProperty(_native.display, request.requestor, property, XA_INTEGER, 32, PropModeReplace,
+                reinterpret_cast<const unsigned char*>(&_clipboardTime), 1); reply.xselection.property = property;
         }
         else if ((request.target == atom("UTF8_STRING") || (request.target == XA_STRING && asciiOnly(_clipboard)))
             && _clipboard.size() <= 200000)
@@ -81,6 +94,9 @@ namespace gran::platform::x11
         if (event.type == SelectionClear) return;
         // Данные броска XDND, а не буфера обмена / The XDND drop data, not the clipboard
         if (event.xselection.selection == atom("XdndSelection")) { dndData(event.xselection); return; }
+        if (_clipboardReadTime == CurrentTime || event.xselection.time != _clipboardReadTime
+            || event.xselection.requestor != _native.window || event.xselection.selection != atom("CLIPBOARD") || event.xselection.target != atom("UTF8_STRING")
+            || (event.xselection.property != None && event.xselection.property != atom("GRAN_CLIPBOARD"))) return;
         _clipboardReady = true;
         if (event.xselection.property == None) return;
         Atom type = 0; int format = 0; unsigned long count = 0; unsigned long remaining = 0;
@@ -88,7 +104,7 @@ namespace gran::platform::x11
         int result = XGetWindowProperty(_native.display, _native.window, event.xselection.property, 0, 4194304,
             True, AnyPropertyType, &type, &format, &count, &remaining, &bytes);
         if (result == Success && type == atom("UTF8_STRING") && format == 8 && remaining == 0 && bytes != nullptr)
-            _clipboard.assign(reinterpret_cast<char*>(bytes), count);
+            _clipboardReply.assign(reinterpret_cast<char*>(bytes), count);
         if (bytes != nullptr) XFree(bytes);
     }
 }

@@ -1,5 +1,6 @@
 #include "gran/ui/command.hpp"
 #include "gran/ui/node.hpp"
+#include "gran/ui/internal/preorder.hpp"
 
 namespace gran::ui
 {
@@ -31,12 +32,20 @@ namespace gran::ui
         setEnabled(node, command.enabled);
         if (!command.keys.empty())
             shortcut = shortcutText(command.keys.front());
-        if (node.content.text.empty() && !command.text.empty() && node.children.empty())
+        if (node.children.empty() && (node.content.text.empty() || node.content.text == node.content.inheritedCaption))
         {
+            const auto previous = node.content.text;
+            const auto previousMnemonic = node.content.mnemonic;
+            const auto previousOffset = node.content.mnemonicAt;
             node.content.text = command.text;
             takeMnemonic(node);
-            markDirty(node, DIRTY_LAYOUT | DIRTY_PAINT);
+            node.content.inheritedCaption = node.content.text;
+            if (node.content.text != previous || node.content.mnemonic != previousMnemonic ||
+                node.content.mnemonicAt != previousOffset)
+                markDirty(node, DIRTY_LAYOUT | DIRTY_PAINT);
         }
+        else
+            node.content.inheritedCaption.clear();
         if (node.content.shortcut != shortcut)
         {
             node.content.shortcut = shortcut;
@@ -47,15 +56,13 @@ namespace gran::ui
     // Шаблоны списков — тоже: копии записей берутся из шаблона уже привязанными / The list templates too: the record copies are taken from a template already bound
     void bindCommandTree(Node& subtree, const std::vector<Command>& commands)
     {
-        const Command* command = nullptr;
-
-        if (!subtree.content.command.empty())
-            command = commandById(commands, subtree.content.command);
-        if (command != nullptr)
-            applyCommand(subtree, *command);
-        for (const std::unique_ptr<Node>& child : subtree.children)
-            bindCommandTree(*child, commands);
-        if (subtree.itemTemplate)
-            bindCommandTree(*subtree.itemTemplate, commands);
+        internal::Preorder<Node> walk(subtree, true);
+        while (Node* node = walk.next())
+        {
+            if (node->content.command.empty())
+                continue;
+            if (const Command* command = commandById(commands, node->content.command))
+                applyCommand(*node, *command);
+        }
     }
 }

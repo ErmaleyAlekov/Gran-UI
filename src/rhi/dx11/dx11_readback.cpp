@@ -13,6 +13,7 @@ namespace gran::rhi::dx11
         D3D11_TEXTURE2D_DESC desc{};
         D3D11_MAPPED_SUBRESOURCE mapped{};
 
+        requireSurface();
         _surface.resource->GetDesc(&desc);
         desc.BindFlags = desc.MiscFlags = 0;
         desc.Usage = D3D11_USAGE_STAGING;
@@ -21,12 +22,13 @@ namespace gran::rhi::dx11
         nameObject(staging.get(), "gran.dx11.readback");
         width = desc.Width;
         height = desc.Height;
-        rgba.resize(static_cast<std::size_t>(width) * height * 4);
+        const auto rowBytes = static_cast<std::size_t>(width) * 4;
+        rgba.resize(rowBytes * height);
         _context->CopyResource(staging.get(), _surface.resource.get());
         GRAN_DX11_CHECK(_context->Map(staging.get(), 0, D3D11_MAP_READ, 0, &mapped));
         for (UINT row = 0; row < height; ++row)
-            std::memcpy(rgba.data() + static_cast<std::size_t>(row) * width * 4,
-                static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(row) * mapped.RowPitch, width * 4);
+            std::memcpy(rgba.data() + row * rowBytes,
+                static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(row) * mapped.RowPitch, rowBytes);
         _context->Unmap(staging.get(), 0);
     }
 

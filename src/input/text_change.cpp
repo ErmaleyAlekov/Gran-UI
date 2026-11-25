@@ -15,23 +15,18 @@ namespace gran::input::internal
         ** The step is recorded before the replacement: it needs the caret and the selection "before". A field with undo="false"
         ** keeps no history (and lets the former one go if the attribute was changed from code).
         */
-        void recordEdit(ui::Node& input, const TextEdit& edit)
+        std::shared_ptr<ui::TextHistory> recordEdit(ui::Node& input, const TextEdit& edit)
         {
-            ui::TextHistory* history = currentHistory(input);
+            auto history = input.content.history;
 
-            if (!input.content.undoable)
+            if (history == nullptr || history->expectedText != input.content.text)
             {
-                input.content.history.reset();
-                return;
-            }
-            if (history == nullptr)
-            {
-                input.content.history = std::make_shared<ui::TextHistory>();
-                history = input.content.history.get();
+                history = std::make_shared<ui::TextHistory>();
                 history->steps.setLimit(FIELD_UNDO_LIMIT);
             }
             std::string removed = input.content.text.substr(edit.from, edit.to - edit.from);
-            history->steps.push(std::make_unique<TextStep>(input, edit, std::move(removed)));
+            history->steps.push(std::make_unique<TextStep>(*history, input, edit, std::move(removed)));
+            return history;
         }
     }
 
@@ -44,12 +39,23 @@ namespace gran::input::internal
 
         if (content.readOnly || (from == to && edit.inserted.empty()))
             return false;
-        recordEdit(input, TextEdit{from, to, edit.inserted, edit.kind});
-        content.text.replace(from, to - from, edit.inserted);
+        if (content.undoable)
+        {
+            std::string next = content.text;
+            next.replace(from, to - from, edit.inserted);
+            std::string expected = next;
+            auto history = recordEdit(input, TextEdit{from, to, edit.inserted, edit.kind});
+            content.text.swap(next);
+            history->expectedText.swap(expected);
+            content.history = std::move(history);
+        }
+        else
+        {
+            content.text.replace(from, to - from, edit.inserted);
+            content.history.reset();
+        }
         content.caret = from + edit.inserted.size();
         content.anchor = content.caret;
-        if (content.history)
-            content.history->textSize = content.text.size();
         textChanged(state, input);
         return true;
     }
@@ -60,12 +66,12 @@ namespace gran::input::internal
             node.content.history->steps.breakMerge();
     }
 
-    // Проверка длины дешёвая и ловит почти любую замену текста из кода / The length check is cheap and catches almost any text replacement from code
+    // Сверяем байты целиком: внешняя замена может оставить ту же длину / Compare all bytes: an external replacement may leave the length intact
     ui::TextHistory* currentHistory(ui::Node& input)
     {
         ui::TextHistory* history = input.content.history.get();
 
-        if (history != nullptr && history->textSize != input.content.text.size())
+        if (history != nullptr && history->expectedText != input.content.text)
         {
             input.content.history.reset();
             return nullptr;

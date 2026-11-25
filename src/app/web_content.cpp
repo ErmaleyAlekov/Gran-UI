@@ -15,11 +15,15 @@ namespace gran::app
             return;
         options.devTools = win.shared.options.debugLayer;
         slot.view = platform::createWebView(*win.window, slot, options);
-        if (!slot.view)
-            return;
-        for (const std::string& message : slot.outbox)
-            slot.view->postMessage(message);
-        slot.outbox.clear();
+    }
+
+    void flushWebOutbox(WebSlot& slot)
+    {
+        while (slot.view && !slot.outbox.empty())
+        {
+            slot.view->postMessage(slot.outbox.front());
+            slot.outbox.erase(slot.outbox.begin());
+        }
     }
 
     /*

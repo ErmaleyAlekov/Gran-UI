@@ -465,7 +465,7 @@ Elements reference it via the `command` attribute; a disabled command disables a
 | `id` | command name (unique together with `id` of window elements) |
 | `action` | action (`onAction`, `gran:…`); without it — action with the name `id` |
 | `text` | label for buttons and menu items that do not have their own |
-| `key` | combinations separated by spaces: modifiers `Mod` (= Ctrl), `Ctrl`, `Shift`, `Alt` through `+` and key — `S`, `F5`, `Enter`, `Del`, `Esc`, `Left`, `PgUp`, `Insert`… (case does not matter) |
+| `key` | combinations separated by spaces: modifiers `Mod` and `Ctrl` (Ctrl on Windows and Linux, Cmd on macOS), `Shift`, `Alt`, `Meta` joined with `+` and a key such as `S`, `F5`, `Enter`, `Del`, `Esc`, `Left`, `PgUp`, or `Insert` (case-insensitive). `Meta` means the Windows key, Super on X11, or physical Control on macOS. System-reserved combinations might not reach the application. |
 | `scope` | `window` (by default) — in its own window; `focus` — while focus is inside the element `within`; `global` — in all program windows |
 | `enabled` | `false` — command and its elements are disabled |
 

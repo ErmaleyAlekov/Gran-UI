@@ -46,6 +46,12 @@ namespace
         gran::log::write(gran::log::Level::VERBOSE, "unit", "hidden detail");
         std::string path = gran::log::filePath();
         TEST_ASSERT(std::filesystem::u8path(path) == folder / "LogTest.log");
+        options.appName = "group/name";
+        TEST_ASSERT(!gran::log::open(options));
+        TEST_ASSERT(gran::log::filePath() == path);
+        options.appName = ".";
+        TEST_ASSERT(!gran::log::open(options));
+        TEST_ASSERT(gran::log::filePath() == path);
         TEST_ASSERT(gran::log::directory() == folder.u8string());
         std::string text = readText(std::filesystem::u8path(path));
         TEST_ASSERT(text.find("| INFO    | ") != std::string::npos);
@@ -79,10 +85,11 @@ namespace
     {
         char buffer[256];
 
+        gran::log::write(gran::log::Level::INFO, "ring", std::string(17 * 1024, 'x'));
         gran::log::write(gran::log::Level::INFO, "ring", "последняя запись");
         std::size_t count = gran::log::copyRecent(buffer, sizeof(buffer));
         std::string tail(buffer, count);
-        TEST_ASSERT(count > 0 && count <= sizeof(buffer));
+        TEST_ASSERT(count == sizeof(buffer));
         TEST_ASSERT(tail.find("| ring | последняя запись\n") != std::string::npos);
         TEST_ASSERT(tail.back() == '\n');
     }

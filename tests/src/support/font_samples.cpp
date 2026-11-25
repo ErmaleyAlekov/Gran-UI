@@ -45,14 +45,15 @@ namespace font_samples
         // Каталог из семи таблиц и сами таблицы с выравниванием на 4 / The directory of seven tables and the tables aligned to 4
         Bytes assemble(const std::vector<Bytes>& tables)
         {
-            static const char* const TAGS[7] = {"head", "hhea", "maxp", "hmtx", "cmap", "loca", "glyf"};
+            static const char* const TAGS[] = {"head", "hhea", "maxp", "hmtx", "cmap", "loca", "glyf", "kern", "GPOS", "name"};
             Bytes out;
-            std::uint32_t offset = 12 + 16 * 7;
+            const auto count = static_cast<std::uint32_t>(tables.size());
+            std::uint32_t offset = 12 + 16 * count;
 
             put(out, 0x00010000u, 4);
-            put(out, 7, 2);
+            put(out, count, 2);
             put(out, 0, 6);
-            for (std::size_t index = 0; index < 7; ++index)
+            for (std::size_t index = 0; index < tables.size(); ++index)
             {
                 for (int letter = 0; letter < 4; ++letter)
                     out.push_back(static_cast<std::uint8_t>(TAGS[index][letter]));
@@ -71,7 +72,7 @@ namespace font_samples
     }
 
     // loca — смещения начала каждого глифа и конец последнего / loca — the start offset of every glyph and the end of the last one
-    Bytes buildFont(const std::vector<Bytes>& glyphs)
+    Bytes buildFont(const std::vector<Bytes>& glyphs, const Bytes& kern, const Bytes& gpos, const Bytes& name)
     {
         std::vector<Bytes> tables = fixedTables(glyphs.size());
         Bytes loca;
@@ -85,6 +86,12 @@ namespace font_samples
         put(loca, static_cast<std::uint32_t>(glyf.size()), 4);
         tables.push_back(loca);
         tables.push_back(glyf);
+        if (!kern.empty() || !gpos.empty() || !name.empty())
+            tables.push_back(kern);
+        if (!gpos.empty() || !name.empty())
+            tables.push_back(gpos);
+        if (!name.empty())
+            tables.push_back(name);
         return assemble(tables);
     }
 

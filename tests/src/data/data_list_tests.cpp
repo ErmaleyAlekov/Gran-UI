@@ -2,7 +2,9 @@
 #include "suites/test_suites.hpp"
 #include "gran/data/template_text.hpp"
 #include "gran/data/list_model.hpp"
+#include "gran/data/internal/list_notify.hpp"
 #include "gran/core/gran_exception.hpp"
+#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -62,10 +64,17 @@ namespace
             ListObserverStub::inserted(index, count);
             if (model != nullptr)
                 model->unsubscribe(victim);
+            if (model != nullptr && resubscribe)
+            {
+                model->subscribe(victim);
+                resubscribe = false;
+                model = nullptr;
+            }
         }
 
         gran::data::ListModel* model = nullptr;
         gran::data::ListObserver* victim = nullptr;
+        bool resubscribe = false;
     };
 
     // Ожидаемый журнал событий / The expected event log
@@ -97,6 +106,47 @@ namespace
         model.clear();
         TEST_ASSERT(sameEvents(observer, {"ins 0 1", "ins 0 1", "chg 1", "rem 0 1", "rem 0 1"}));
         TEST_ASSERT(model.size() == 0);
+    }
+
+    void testListRangeBoundaries()
+    {
+        gran::data::ListModel model;
+        ListObserverStub observer;
+        model.append({{"id", "a"}});
+        model.append({{"id", "b"}});
+        model.subscribe(&observer);
+        TEST_ASSERT_THROWS(model.remove(1, 2), gran::GranException);
+        TEST_ASSERT_THROWS(model.move(1, 2, 0), gran::GranException);
+        TEST_ASSERT_THROWS(model.move(0, 2, 1), gran::GranException);
+        TEST_ASSERT(model.size() == 2 && model.at(0).at("id") == "a" && model.at(1).at("id") == "b");
+        TEST_ASSERT(observer.events.empty());
+        model.remove(1, 1);
+        TEST_ASSERT(sameEvents(observer, {"rem 1 1"}));
+    }
+
+    void testMoveMappingBoundaries()
+    {
+        using gran::data::internal::moveMapping;
+        const std::vector<std::size_t> identity{0, 1, 2, 3};
+        const std::vector<std::size_t> forward{0, 2, 3, 1};
+        const std::vector<std::size_t> backward{0, 3, 1, 2};
+        TEST_ASSERT(moveMapping(4, 1, 2, 2) == forward);
+        TEST_ASSERT(moveMapping(4, 2, 2, 1) == backward);
+        TEST_ASSERT(moveMapping(4, 3, 2, 0) == identity);
+        TEST_ASSERT(moveMapping(4, 0, 2, 3) == identity);
+        TEST_ASSERT(moveMapping(4, 4, 0, 0) == identity);
+    }
+
+    void testObserverRangeBoundary()
+    {
+        const auto last = std::numeric_limits<std::size_t>::max();
+        ListObserverStub observer;
+        observer.changedRange(last, 0);
+        TEST_ASSERT(observer.events.empty());
+        observer.changedRange(last, 1);
+        TEST_ASSERT(sameEvents(observer, {"chg " + std::to_string(last)}));
+        TEST_ASSERT_THROWS(observer.changedRange(last, 2), gran::GranException);
+        TEST_ASSERT(observer.events.size() == 1);
     }
 
     void testListModelObserverUnsubscribe()
@@ -132,6 +182,24 @@ namespace
         TEST_ASSERT(second.events.empty());
         TEST_ASSERT(!model.subscribed(&second));
     }
+
+    void testListModelObserverResubscribe()
+    {
+        gran::data::ListModel model;
+        UnsubscribingObserver first;
+        ListObserverStub second;
+
+        first.model = &model;
+        first.victim = &second;
+        first.resubscribe = true;
+        model.subscribe(&first);
+        model.subscribe(&second);
+        model.append({{"name", "Alice"}});
+        TEST_ASSERT(second.events.empty());
+        TEST_ASSERT(model.subscribed(&second));
+        model.append({{"name", "Bob"}});
+        TEST_ASSERT(sameEvents(second, {"ins 1 1"}));
+    }
 }
 
 namespace suites
@@ -141,7 +209,11 @@ namespace suites
         runner.add("data: expand template", testExpandTemplate);
         runner.add("data: has placeholders", testHasPlaceholders);
         runner.add("data: list model", testListModel);
+        runner.add("data: list range boundaries", testListRangeBoundaries);
+        runner.add("data: move mapping boundaries", testMoveMappingBoundaries);
+        runner.add("data: observer range boundary", testObserverRangeBoundary);
         runner.add("data: list model observer unsubscribe", testListModelObserverUnsubscribe);
         runner.add("data: list model observer nested unsubscribe", testListModelObserverNestedUnsubscribe);
+        runner.add("data: list model observer resubscribe", testListModelObserverResubscribe);
     }
 }

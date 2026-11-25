@@ -7,14 +7,20 @@ namespace gran::ui
         // Тексты видимых потомков по порядку через пробел / The visible descendant texts in order by spaces
         void appendStatus(const Node& node, std::string& out)
         {
-            for (const std::unique_ptr<Node>& child : node.children)
+            std::vector<const Node*> pending;
+            for (auto it = node.children.rbegin(); it != node.children.rend(); ++it)
+                pending.push_back(it->get());
+            while (!pending.empty())
             {
+                const Node* child = pending.back();
+                pending.pop_back();
                 if (!child->visible || isLayer(*child))
                     continue;
                 if (!child->content.text.empty() && !out.empty())
                     out += ' ';
                 out += child->content.text;
-                appendStatus(*child, out);
+                for (auto it = child->children.rbegin(); it != child->children.rend(); ++it)
+                    pending.push_back(it->get());
             }
         }
 
@@ -25,21 +31,27 @@ namespace gran::ui
         ** A walk over the visible tree outside the layers: for every status bar section the text is compared with the announced one.
         ** The first reading only remembers the text — on loading a window the screen reader does not list the whole status bar.
         */
-        void visitStatus(Node& node, std::vector<Node*>& changed)
+        void visitStatus(Node& root, std::vector<Node*>& changed)
         {
-            if (!node.visible || isLayer(node))
-                return;
-            if (node.kind == ElementKind::STATUS_SECTION)
+            std::vector<Node*> pending{&root};
+            while (!pending.empty())
             {
-                std::string text = statusText(node);
-                if (node.content.announcedReady && text != node.content.announced)
-                    changed.push_back(&node);
-                node.content.announced = std::move(text);
-                node.content.announcedReady = true;
-                return;
+                Node& node = *pending.back();
+                pending.pop_back();
+                if (!node.visible || isLayer(node))
+                    continue;
+                if (node.kind == ElementKind::STATUS_SECTION)
+                {
+                    std::string text = statusText(node);
+                    if (node.content.announcedReady && text != node.content.announced)
+                        changed.push_back(&node);
+                    node.content.announced = std::move(text);
+                    node.content.announcedReady = true;
+                    continue;
+                }
+                for (auto it = node.children.rbegin(); it != node.children.rend(); ++it)
+                    pending.push_back(it->get());
             }
-            for (const std::unique_ptr<Node>& child : node.children)
-                visitStatus(*child, changed);
         }
     }
 

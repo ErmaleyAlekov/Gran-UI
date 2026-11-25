@@ -22,7 +22,9 @@ namespace gran::platform::x11
     {
         std::vector<std::string> paths;
 
-        if (!_dnd.converting)
+        expireDrop();
+        if (!_dnd.converting || event.requestor != _native.window || event.time != _dnd.conversionTime
+            || event.target != atom("text/uri-list") || (event.property != None && event.property != atom("GRAN_XDND")))
             return;
         if (event.property != None)
             paths = dndReadPaths(event.property);

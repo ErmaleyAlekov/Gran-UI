@@ -84,6 +84,8 @@ namespace gran::markup
         ui::ElementKind kind = parent.kind;
         ui::ElementKind own = child.kind;
 
+        if (child.appendedByApplication && child.domElement == nullptr)
+            return true;
         if (child.domElement != nullptr || !parent.content.items.empty())
             return false;
         // Части, которые строит сам построитель (кнопка «ещё», ручки, полосы дока), появятся заново — это не дети программы

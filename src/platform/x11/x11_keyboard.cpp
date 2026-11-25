@@ -92,6 +92,7 @@ namespace gran::platform::x11
         if (state & ShiftMask) result |= MODIFIER_SHIFT;
         if (state & ControlMask) result |= MODIFIER_CONTROL;
         if (state & Mod1Mask) result |= MODIFIER_ALT;
+        if (state & Mod4Mask) result |= MODIFIER_META;
         return result;
     }
 

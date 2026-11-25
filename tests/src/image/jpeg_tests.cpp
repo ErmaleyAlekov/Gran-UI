@@ -123,6 +123,17 @@ namespace
         }
         TEST_ASSERT(thrown);
     }
+
+    void testScanTableIndex()
+    {
+        std::vector<std::uint8_t> bytes(jpeg_samples::BASELINE_420,
+            jpeg_samples::BASELINE_420 + jpeg_samples::BASELINE_420_SIZE);
+        const std::uint8_t marker[] = {0xFF, 0xDA};
+        auto scan = std::search(bytes.begin(), bytes.end(), marker, marker + 2);
+        TEST_ASSERT(bytes.end() - scan >= 7);
+        scan[6] |= 0x40;
+        TEST_ASSERT_THROWS(gran::image::decodeJpeg(bytes.data(), bytes.size(), "test"), gran::GranException);
+    }
 }
 
 namespace suites
@@ -135,6 +146,7 @@ namespace suites
         runner.add("image: decodeJpeg progressive gray", testProgressiveGray);
         runner.add("image: decodeImage baseline 420", testDecodeImageBaseline420);
         runner.add("image: decodeJpeg rejects a duplicate scan component", testDuplicateScanComponent);
+        runner.add("image: decodeJpeg rejects an invalid scan table", testScanTableIndex);
         runner.add("image: exceptions", testExceptions);
     }
 }

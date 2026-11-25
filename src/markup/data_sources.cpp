@@ -3,7 +3,11 @@
 
 #include "beresta.hpp"
 
-#include <cstdlib>
+#include "gran/core/i18n.hpp"
+#include "gran/style/value_scanner.hpp"
+
+#include <charconv>
+#include <limits>
 
 #include "gran/utils/file_system.hpp"
 
@@ -37,7 +41,7 @@ namespace gran::markup::internal
             if (const std::string* children = findAttribute(element, "children"))
                 spec.children = *children;
             if (const std::string* fetch = findAttribute(element, "fetch"))
-                spec.fetch = static_cast<std::size_t>(std::strtoul(fetch->c_str(), nullptr, 10));
+                spec.fetch = readCount(element, "fetch", *fetch);
             const std::string* format = findAttribute(element, "format");
             if (format != nullptr && *format == "json")
                 spec.format = data::SourceFormat::JSON;
@@ -46,6 +50,22 @@ namespace gran::markup::internal
             readFields(element, spec);
             return spec;
         }
+    }
+
+    // Диапазон счётчика зависит от платформы / The counter range is platform dependent
+    std::size_t readCount(const beresta::Element& element, std::string_view attribute, const std::string& text)
+    {
+        std::string_view digits = style::trimSpaces(text);
+        const bool negative = !digits.empty() && digits.front() == '-';
+        if (negative || (!digits.empty() && digits.front() == '+'))
+            digits.remove_prefix(1);
+        std::size_t count = 0;
+        const char* end = digits.data() + digits.size();
+        const auto parsed = std::from_chars(digits.data(), end, count);
+        if (parsed.ec != std::errc{} || parsed.ptr != end || (negative && count != 0))
+            throwAttributeError(element, attribute, i18n::format(i18n::Message::STYLE_INTEGER_RANGE,
+                {text, "0", std::to_string(std::numeric_limits<std::size_t>::max())}));
+        return count;
     }
 
     // Ошибка файла становится ошибкой разметки с позицией элемента <Data> / A file error becomes a markup error with the <Data> element position
@@ -59,9 +79,10 @@ namespace gran::markup::internal
                 set.records.push_back(node.record);
             return;
         }
+        const auto spec = readSpec(element, context);
         try
         {
-            std::shared_ptr<data::ListFetcher> fetcher = data::openListSource(readSpec(element, context));
+            std::shared_ptr<data::ListFetcher> fetcher = data::openListSource(spec);
             set.records = fetcher->next();
             if (fetcher->hasMore())
                 set.fetcher = std::move(fetcher);
@@ -80,9 +101,10 @@ namespace gran::markup::internal
             set.nodes = readNodes(element);
             return;
         }
+        const auto spec = readSpec(element, context);
         try
         {
-            set.nodes = data::readTreeSource(readSpec(element, context));
+            set.nodes = data::readTreeSource(spec);
         }
         catch (const GranException& error)
         {

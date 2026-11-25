@@ -1,11 +1,18 @@
-#include "gran/data/list_source.hpp"
+#include "gran/data/internal/list_notify.hpp"
+
+#include <limits>
 
 namespace gran::data
 {
     void ListObserver::changedRange(std::size_t first, std::size_t count)
     {
-        for (std::size_t index = first; index < first + count; ++index)
-            changed(index);
+        if (count == 0)
+            return;
+        const auto max = std::numeric_limits<std::size_t>::max();
+        if (count - 1 > max - first)
+            internal::checkIndex(max, max);
+        for (std::size_t offset = 0; offset < count; ++offset)
+            changed(first + offset);
     }
 
     void ListObserver::moved(std::size_t from, std::size_t count, std::size_t to)

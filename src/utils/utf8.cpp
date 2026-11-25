@@ -44,9 +44,11 @@ namespace gran
     {
         static const char32_t MINIMUM[5] = {0, 0, 0x80, 0x800, 0x10000};
         char32_t symbol = 0;
+        if (position >= text.size())
+            return REPLACEMENT_CHARACTER;
         std::size_t length = sequenceLength(static_cast<unsigned char>(text[position]), symbol);
 
-        if (length == 0 || position + length > text.size())
+        if (length == 0 || length > text.size() - position)
         {
             ++position;
             return REPLACEMENT_CHARACTER;

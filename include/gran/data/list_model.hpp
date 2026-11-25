@@ -5,6 +5,8 @@
 
 #include <memory>
 
+namespace gran::binding { class ReloadCheckpoint; }
+
 namespace gran::data
 {
     /*
@@ -91,6 +93,7 @@ namespace gran::data
         void fetchMore() override;
 
     private:
+        friend class gran::binding::ReloadCheckpoint;
         std::vector<Record> _records;
         ColumnSet _columns;
         std::shared_ptr<ListFetcher> _fetcher;

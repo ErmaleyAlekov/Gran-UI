@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "gran/app/application.hpp"
 #include "ui/controller.hpp"
+#include "../../examples/editor/core/messages.hpp"
 #include "../../examples/editor/core/text.hpp"
 
 namespace fs = std::filesystem;
@@ -26,7 +27,21 @@ void setupTestEnvironment() {
     b.close();
 }
 
+void checkEditorReviewFiles() {
+    const std::string emptyFile = "scratchpad/editor-test-data/review-empty.txt";
+    const std::string replacementFile = "scratchpad/editor-test-data/review-replacement.txt";
+    const std::string replacement = "\xEF\xBF\xBD";
+    std::ofstream(emptyFile, std::ios::binary).close();
+    std::ofstream(replacementFile, std::ios::binary) << replacement;
 
+    std::string text;
+    require(!editor::readDocument("scratchpad/editor-test-data", text), "Reject directories");
+    require(editor::readDocument(emptyFile, text) && text.empty(), "Read empty regular files");
+    require(editor::readDocument(replacementFile, text) && text == replacement,
+        "Preserve a valid replacement character read from a document");
+    require(std::string(editor::message(editor::Message::COUNT)).empty(),
+        "The message count has no catalog entry");
+}
 
 int main() {
     setupTestEnvironment();
@@ -43,6 +58,7 @@ int main() {
     unsigned docId5 = 0;
 
     try {
+        checkEditorReviewFiles();
         // Test initial new doc
         docId1 = 1;
         require(app.find("editorTabs")->children.size() == 1, "Initial document count should be 1");

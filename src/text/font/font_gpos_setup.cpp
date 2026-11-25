@@ -11,10 +11,16 @@ namespace gran::text
 
         // Подтаблицы одного поиска; тип 9 (расширение) раскрывается в настоящий тип и смещение
         // The subtables of one lookup; type 9 (an extension) is unfolded into the real type and offset
-        void lookupSubtables(const FontReader& reader, std::size_t lookup, std::vector<std::uint32_t>& subtables)
+        void lookupSubtables(const FontReader& reader, std::size_t lookup, std::vector<std::size_t>& subtables,
+            bool& damaged)
         {
             std::uint16_t type = reader.u16(lookup);
             std::uint16_t count = reader.u16(lookup + 4);
+            if (!reader.contains(lookup, 6) || !reader.contains(lookup + 6, count * 2u))
+            {
+                damaged = true;
+                return;
+            }
 
             for (std::uint16_t index = 0; index < count && subtables.size() < MAX_SUBTABLES; ++index)
             {
@@ -22,28 +28,49 @@ namespace gran::text
                 std::uint16_t real = type;
                 if (type == 9)
                 {
+                    if (!reader.contains(subtable, 8) || reader.u16(subtable) != 1)
+                    {
+                        damaged = true;
+                        continue;
+                    }
                     real = reader.u16(subtable + 2);
-                    subtable += reader.u32(subtable + 4);
+                    const auto relative = reader.u32(subtable + 4);
+                    if (relative < 8 || !reader.contains(subtable, relative))
+                    {
+                        damaged = true;
+                        continue;
+                    }
+                    subtable += relative;
                 }
                 bool known = std::find(subtables.begin(), subtables.end(), subtable) != subtables.end();
-                if (real == 2 && !known && reader.contains(subtable, 16))
-                    subtables.push_back(static_cast<std::uint32_t>(subtable));
+                if (real == 2 && !reader.contains(subtable, 10))
+                    damaged = true;
+                else if (real == 2 && !known)
+                    subtables.push_back(subtable);
             }
         }
 
         // Поиски одного признака kern / The lookups of one kern feature
         void featureLookups(const FontReader& reader, std::size_t feature, std::size_t lookupList,
-            std::vector<std::uint32_t>& subtables)
+            std::vector<std::size_t>& subtables, bool& damaged)
         {
             std::uint16_t count = reader.u16(feature + 2);
+            if (!reader.contains(feature, 4) || !reader.contains(feature + 4, count * 2u))
+            {
+                damaged = true;
+                return;
+            }
 
             for (std::uint16_t index = 0; index < count; ++index)
             {
                 std::uint16_t lookupIndex = reader.u16(feature + 4 + static_cast<std::size_t>(index) * 2);
                 if (lookupIndex >= reader.u16(lookupList))
+                {
+                    damaged = true;
                     continue;
+                }
                 lookupSubtables(reader, lookupList + reader.u16(lookupList + 2 + static_cast<std::size_t>(lookupIndex) * 2),
-                    subtables);
+                    subtables, damaged);
             }
         }
     }
@@ -57,19 +84,26 @@ namespace gran::text
     */
     void FaceBuilder::collectPairSubtables(FontFace& face)
     {
-        FontReader reader(face._file->data(), face._file->size());
         const TableSpan& gpos = face._tables.gpos;
 
         if (gpos.length < 10)
             return;
-        std::size_t features = gpos.offset + reader.u16(gpos.offset + 6);
-        std::size_t lookups = gpos.offset + reader.u16(gpos.offset + 8);
+        FontReader reader(face._file->data() + gpos.offset, gpos.length);
+        std::size_t features = reader.u16(6);
+        std::size_t lookups = reader.u16(8);
         std::uint16_t count = reader.u16(features);
+        if (features < 10 || lookups < 10 || !reader.contains(features, 2) || !reader.contains(lookups, 2) ||
+            !reader.contains(features + 2, count * 6u) ||
+            !reader.contains(lookups + 2, reader.u16(lookups) * 2u))
+            return;
         for (std::uint16_t index = 0; index < count; ++index)
         {
             std::size_t record = features + 2 + static_cast<std::size_t>(index) * 6;
             if (reader.u32(record) == fontTag("kern"))
-                featureLookups(reader, features + reader.u16(record + 4), lookups, face._pairSubtables);
+                featureLookups(reader, features + reader.u16(record + 4), lookups, face._pairSubtables,
+                    face._damagedPairLookup);
         }
+        for (auto& offset : face._pairSubtables)
+            offset += gpos.offset;
     }
 }

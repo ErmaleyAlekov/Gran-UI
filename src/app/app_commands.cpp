@@ -15,7 +15,7 @@ namespace gran::app
         }
         for (const std::unique_ptr<AppWindow>& other : state.windows)
         {
-            if (other.get() == &own)
+            if (other.get() == &own || other.get() == own.replacing)
                 continue;
             for (ui::Command& command : other->document.commands)
             {

@@ -19,6 +19,7 @@ namespace gran::style::internal
     ** at the start or there is something after the unit.
     */
     bool splitNumberUnit(std::string_view text, float& value, std::string_view& unit) noexcept;
+    float parseTime(std::string_view text, bool allowNegative);
 
     // Сравнение ASCII без учёта регистра / An ASCII case-insensitive comparison
     bool equalsIgnoreCase(std::string_view first, std::string_view second) noexcept;

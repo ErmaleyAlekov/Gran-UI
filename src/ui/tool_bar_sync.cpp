@@ -1,4 +1,5 @@
 #include "gran/ui/node.hpp"
+#include "tool_group_walk.hpp"
 
 namespace gran::ui
 {
@@ -13,17 +14,19 @@ namespace gran::ui
         */
         void syncMirror(const Node& source, Node& menu, std::size_t& next, bool shown)
         {
-            if (source.kind == ElementKind::TOOL_GROUP)
-            {
-                for (const std::unique_ptr<Node>& child : source.children)
-                    syncMirror(*child, menu, next, shown && child->visible);
-                return;
-            }
             if (next >= menu.children.size())
                 return;
             Node& mirror = *menu.children[next++];
-            if (mirror.visible == shown)
+            setEnabled(mirror, source.enabled);
+            const auto& label = internal::overflowLabel(source);
+            if (mirror.visible == shown && mirror.content.text == label && mirror.content.shortcut == source.content.shortcut
+                && mirror.content.mnemonic == source.content.mnemonic && mirror.content.mnemonicAt == source.content.mnemonicAt)
                 return;
+            mirror.content.text = label;
+            mirror.content.shortcut = source.content.shortcut;
+            mirror.content.mnemonic = source.content.mnemonic;
+            mirror.content.mnemonicAt = source.content.mnemonicAt;
+            mirror.content.inheritedCaption = source.content.inheritedCaption;
             mirror.visible = shown;
             markDirty(mirror, DIRTY_STYLE | DIRTY_LAYOUT | DIRTY_PAINT);
         }
@@ -41,7 +44,9 @@ namespace gran::ui
         for (const std::unique_ptr<Node>& child : bar.children)
         {
             if (child.get() != more)
-                syncMirror(*child, menu, next, child->content.overflowed);
+                internal::visitToolItems(*child, child->content.overflowed, [&](const Node& source, bool shown) {
+                    syncMirror(source, menu, next, shown);
+                });
         }
     }
 

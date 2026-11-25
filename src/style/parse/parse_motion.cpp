@@ -94,20 +94,29 @@ namespace gran::style
             std::vector<std::string_view> tokens = splitSpaces(part);
             TransitionSpec spec;
             int times = 0;
+            bool hasEasing = false;
             if (tokens.size() < 2 || tokens.size() > 4)
                 throwValueError(i18n::Message::STYLE_BAD_TRANSITION, part);
             spec.property = std::string(tokens[0]);
             for (std::size_t index = 1; index < tokens.size(); ++index)
             {
-                bool isTime = tokens[index][0] >= '0' && tokens[index][0] <= '9';
+                const auto first = tokens[index].front();
+                bool isTime = (first >= '0' && first <= '9') || first == '.' || first == '-' || first == '+';
                 if (isTime && times == 0)
                     spec.duration = parseDuration(tokens[index]);
                 else if (isTime && times == 1)
-                    spec.delay = parseDuration(tokens[index]);
-                else
+                    spec.delay = internal::parseTime(tokens[index], true);
+                else if (!isTime && !hasEasing)
+                {
                     spec.easing = parseEasing(tokens[index]);
+                    hasEasing = true;
+                }
+                else
+                    throwValueError(i18n::Message::STYLE_BAD_TRANSITION, part);
                 times += static_cast<int>(isTime);
             }
+            if (times == 0)
+                throwValueError(i18n::Message::STYLE_BAD_TRANSITION, part);
             transitions.push_back(spec);
         }
         return transitions;

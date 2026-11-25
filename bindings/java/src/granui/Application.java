@@ -23,6 +23,12 @@ public final class Application implements AutoCloseable {
     private final SymbolLookup symbols;
     private final ConcurrentMap<String,MethodHandle> functions = new ConcurrentHashMap<>();
     private final Queue<Object> callbacks = new ConcurrentLinkedQueue<>();
+    private MemorySegment releaseListenerEntry;
+    private final Map<String,Long> eventKeys = new HashMap<>();
+    private final Map<Long,Consumer<UiEvent>> events = new ConcurrentHashMap<>();
+    private final Map<String,Consumer<String>> fetchHandlers = new HashMap<>(), selectionHandlers = new HashMap<>();
+    private UndoListener undoHandler;
+    private MemorySegment eventEntry, nameCallbackEntry, undoChangedEntry;
     private final AtomicReference<Throwable> pending = new AtomicReference<>();
     // Один переходник на все задачи и таймеры: user — номер задачи (иначе каждый post оставлял бы upcall stub в арене до close).
     // One trampoline for all tasks and timers: user is the task number (otherwise every post would leave an upcall stub in the arena until close).
@@ -242,16 +248,14 @@ public final class Application implements AutoCloseable {
         public void stopPropagation() { flags |= 2; }
         public void stopImmediatePropagation() { flags |= 6; }
     }
-    private final class EventCallback {
-        private final Consumer<UiEvent> handler;
-        EventCallback(Consumer<UiEvent> handler) { this.handler=handler; }
-        int event(MemorySegment user, MemorySegment pointer) {
-            UiEvent event=new UiEvent(pointer.reinterpret(200));
-            protect(() -> handler.accept(event));
-            if (event.cellRow != -1 && (!Objects.equals(event.cellValue, event.originalValue) || !event.cellError.isEmpty()))
-                protect(() -> answerCell(pointer, event));
-            return event.flags;
-        }
+    private int runEvent(MemorySegment user, MemorySegment pointer) {
+        Consumer<UiEvent> handler=events.get(user.address());
+        if (handler == null) return 0;
+        UiEvent event=new UiEvent(pointer.reinterpret(200));
+        protect(() -> handler.accept(event));
+        if (event.cellRow != -1 && (!Objects.equals(event.cellValue, event.originalValue) || !event.cellError.isEmpty()))
+            protect(() -> answerCell(pointer, event));
+        return event.flags;
     }
     // Ответ cellEdit ядру — внутри callback, пока снимок события жив / The cellEdit answer to the core — inside the callback while the event snapshot lives
     private void answerCell(MemorySegment pointer, UiEvent event) {
@@ -262,29 +266,41 @@ public final class Application implements AutoCloseable {
             check((int)invoke("gran_event_set_cell",JAVA_INT,pointer,value,error));
         }
     }
-    private MemorySegment eventStub(Consumer<UiEvent> handler) {
+    private MemorySegment eventStub() {
         ensureOpen();
-        try {
-            EventCallback callback=new EventCallback(Objects.requireNonNull(handler));
-            MethodHandle method=MethodHandles.lookup().findVirtual(EventCallback.class,"event",
-                MethodType.methodType(int.class,MemorySegment.class,MemorySegment.class)).bindTo(callback);
-            MemorySegment result=Linker.nativeLinker().upcallStub(method,FunctionDescriptor.of(JAVA_INT,ADDRESS,ADDRESS),lifetime);
-            callbacks.add(callback); return result;
-        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+        if (eventEntry == null)
+            eventEntry=entry("runEvent",MethodType.methodType(int.class,MemorySegment.class,MemorySegment.class),
+                FunctionDescriptor.of(JAVA_INT,ADDRESS,ADDRESS),this);
+        return eventEntry;
     }
     public void onEvent(String name, Consumer<UiEvent> handler) {
-        MemorySegment function=eventStub(handler);
-        try (Arena scope=Arena.ofConfined()) { status("gran_app_on_event",app,utf8(scope,name),function,MemorySegment.NULL); }
+        Objects.requireNonNull(handler);
+        long key=nextTask.incrementAndGet();
+        try (Arena scope=Arena.ofConfined()) {
+            status("gran_app_on_event",app,utf8(scope,name),eventStub(),MemorySegment.ofAddress(key));
+            Long old=eventKeys.put(name,key);
+            if (old != null) events.remove(old);
+            events.put(key,handler);
+        }
     }
     public long listen(String target, String type, Consumer<UiEvent> handler) { return listen(target,type,handler,false); }
     public long listen(String target, String type, Consumer<UiEvent> handler, boolean capture) {
-        MemorySegment function=eventStub(handler);
+        Objects.requireNonNull(handler);
+        long key=nextTask.incrementAndGet();
+        events.put(key,handler);
         try (Arena scope=Arena.ofConfined()) {
-            MemorySegment output=scope.allocate(JAVA_LONG);
-            status("gran_app_listen",app,utf8(scope,target),utf8(scope,type),capture ? 1 : 0,function,MemorySegment.NULL,output);
+            if (releaseListenerEntry == null)
+                releaseListenerEntry=entry("releaseListener",MethodType.methodType(void.class,MemorySegment.class),
+                    FunctionDescriptor.ofVoid(ADDRESS),this);
+            MemorySegment listener=scope.allocate(32,8), output=scope.allocate(JAVA_LONG);
+            listener.set(JAVA_INT,0,32); listener.set(JAVA_INT,4,capture ? 1 : 0);
+            listener.set(ADDRESS,8,eventStub()); listener.set(ADDRESS,16,MemorySegment.ofAddress(key));
+            listener.set(ADDRESS,24,releaseListenerEntry);
+            status("gran_app_listen_owned",app,utf8(scope,target),utf8(scope,type),listener,output);
             return output.get(JAVA_LONG,0);
-        }
+        } catch (RuntimeException | Error error) { events.remove(key); throw error; }
     }
+    private void releaseListener(MemorySegment user) { events.remove(user.address()); }
     public void unlisten(String target, long listener) {
         try (Arena scope=Arena.ofConfined()) { status("gran_app_unlisten",app,utf8(scope,target),listener); }
     }
@@ -363,23 +379,18 @@ public final class Application implements AutoCloseable {
         if (limit < 0) throw new IllegalArgumentException("limit");
         command("setUndoLimit",stack,Integer.toString(limit));
     }
-    private final class UndoCallback {
-        private final UndoListener listener;
-        UndoCallback(UndoListener listener) { this.listener=listener; }
-        void changed(MemorySegment user, MemorySegment stack, int flags) {
-            protect(() -> listener.changed(text(stack),UndoState.of(flags)));
-        }
+    private void undoChanged(MemorySegment user, MemorySegment stack, int flags) {
+        UndoListener handler=undoHandler;
+        if (handler != null) protect(() -> handler.changed(text(stack),UndoState.of(flags)));
     }
     // Обработчик смены любого стека; null снимает / A handler of any stack change; null removes it
     public void onUndoChanged(UndoListener listener) {
-        MemorySegment function=MemorySegment.NULL;
-        if (listener != null) {
-            UndoCallback callback=new UndoCallback(listener);
-            function=entry("changed",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class,int.class),
-                FunctionDescriptor.ofVoid(ADDRESS,ADDRESS,JAVA_INT),callback);
-            callbacks.add(callback);
-        }
-        status("gran_app_on_undo",app,function,MemorySegment.NULL);
+        ensureOpen();
+        if (listener != null && undoChangedEntry == null)
+            undoChangedEntry=entry("undoChanged",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class,int.class),
+                FunctionDescriptor.ofVoid(ADDRESS,ADDRESS,JAVA_INT),this);
+        status("gran_app_on_undo",app,listener == null ? MemorySegment.NULL : undoChangedEntry,MemorySegment.NULL);
+        undoHandler=listener;
     }
     // Переменные $имя выражений {…}: текст сохраняет тип переменной, число и boolean задают его / The $name variables of the {…} expressions: a text keeps the variable type, a number and a boolean set it
     public void setVariable(String name, String value) {
@@ -701,24 +712,29 @@ public final class Application implements AutoCloseable {
     // Текущая запись (-1 — нет) и отмеченные по возрастанию / The current record (-1 — none) and the marked ones ascending
     public record SelectionState(long current, long[] selected) {}
     // Обработчик с именем модели / A handler with the model name
-    private final class NameCallback {
-        private final Consumer<String> function;
-        NameCallback(Consumer<String> function) { this.function=function; }
-        void call(MemorySegment user, MemorySegment name) { protect(() -> function.accept(text(name))); }
-    }
-    // Подгрузчик детей ленивого узла: имя дерева и номер узла / A lazy node children fetcher: the tree name and the node number
     public interface TreeFetcher { void fetch(String tree, long node); }
     private final class TreeCallback {
         private final TreeFetcher function;
         TreeCallback(TreeFetcher function) { this.function=function; }
         void call(MemorySegment user, MemorySegment name, long node) { protect(() -> function.fetch(text(name),node)); }
     }
-    private MemorySegment nameEntry(Consumer<String> function) {
-        if (function == null) return MemorySegment.NULL;
-        NameCallback callback=new NameCallback(function);
-        callbacks.add(callback);
-        return entry("call",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class),
-            FunctionDescriptor.ofVoid(ADDRESS,ADDRESS),callback);
+    private void runNamed(MemorySegment user, MemorySegment name) {
+        String id=text(name);
+        Consumer<String> handler=(user.address() == 0 ? fetchHandlers : selectionHandlers).get(id);
+        if (handler != null) protect(() -> handler.accept(id));
+    }
+    private void setNamed(String name, Consumer<String> handler, boolean selection) {
+        ensureOpen();
+        if (handler != null && nameCallbackEntry == null)
+            nameCallbackEntry=entry("runNamed",MethodType.methodType(void.class,MemorySegment.class,MemorySegment.class),
+                FunctionDescriptor.ofVoid(ADDRESS,ADDRESS),this);
+        try (Arena scope=Arena.ofConfined()) {
+            status(selection ? "gran_selection_on_change" : "gran_model_on_fetch",app,utf8(scope,name),
+                handler == null ? MemorySegment.NULL : nameCallbackEntry,MemorySegment.ofAddress(selection ? 1 : 0));
+        }
+        Map<String,Consumer<String>> handlers=selection ? selectionHandlers : fetchHandlers;
+        if (handler == null) handlers.remove(name);
+        else handlers.put(name,handler);
     }
     // gran_record (index, fields, count) в памяти scope / gran_record (index, fields, count) in the scope memory
     private static MemorySegment recordOf(Arena scope, long index, Map<String,String> fields) {
@@ -761,7 +777,7 @@ public final class Application implements AutoCloseable {
     }
     // callback(модель) вставляет следующую порцию; конец — setMore(model, false); null снимает / callback(model) inserts the next portion; the end — setMore(model, false); null drops it
     public void onFetch(String model, Consumer<String> callback) {
-        try (Arena scope=Arena.ofConfined()) { status("gran_model_on_fetch",app,utf8(scope,model),nameEntry(callback),MemorySegment.NULL); }
+        setNamed(model,callback,false);
     }
     public void setMore(String model, boolean more) {
         try (Arena scope=Arena.ofConfined()) { status("gran_model_set_more",app,utf8(scope,model),more ? 1 : 0); }
@@ -869,7 +885,7 @@ public final class Application implements AutoCloseable {
         }
     }
     public void onSelectionChanged(String selection, Consumer<String> callback) {
-        try (Arena scope=Arena.ofConfined()) { status("gran_selection_on_change",app,utf8(scope,selection),nameEntry(callback),MemorySegment.NULL); }
+        setNamed(selection,callback,true);
     }
     public int run() {
         try (Arena scope=Arena.ofConfined()) {
@@ -885,6 +901,7 @@ public final class Application implements AutoCloseable {
     public void close() {
         if (app.address() == 0) return;
         status("gran_app_destroy",app);
+        events.clear(); eventKeys.clear(); fetchHandlers.clear(); selectionHandlers.clear(); undoHandler=null;
         app=MemorySegment.NULL; callbacks.clear(); tasks.clear(); timerKeys.clear(); keyTimers.clear(); undoSteps.clear(); lifetime.close();
     }
 }

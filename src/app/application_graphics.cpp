@@ -1,5 +1,6 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/rhi/backend_factory.hpp"
+#include "gran/platform/internal/pixel_size.hpp"
 #include "gran/rhi/null/null_backend.hpp"
 #include "gran/platform/headless/headless_window.hpp"
 #include "gran/core/i18n.hpp"
@@ -27,8 +28,8 @@ namespace gran::app
 
             options.nativeWindow = win.window->nativeHandle();
             options.nativeDisplay = win.window->nativeDisplay();
-            options.width = static_cast<std::uint32_t>(pixels.width);
-            options.height = static_cast<std::uint32_t>(pixels.height);
+            options.width = platform::pixelExtent(pixels.width);
+            options.height = platform::pixelExtent(pixels.height);
             options.vsync = win.shared.options.vsync;
             options.debugLayer = win.shared.options.debugLayer;
             options.backend = win.shared.options.backend;
@@ -37,6 +38,8 @@ namespace gran::app
                 win.backend = std::make_unique<rhi::NullBackend>();
             else
                 win.backend = rhi::createPlatformBackend(options);
+            win.window->enableFrameRequests(win.backend->canConfirmPresentation());
+            win.presentationRetry = -1;
             win.renderer = std::make_unique<render::Renderer>(*win.backend, win.shared.fonts,
                 win.document.baseDirectory);
         }

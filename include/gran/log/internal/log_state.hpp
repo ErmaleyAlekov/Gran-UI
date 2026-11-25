@@ -3,6 +3,7 @@
 
 #include "gran/log/log.hpp"
 
+#include <atomic>
 #include <cstdint>
 #include <fstream>
 #include <string>
@@ -12,6 +13,8 @@ namespace gran::log::internal
 {
     // Размер кольца последних записей (байт) / The size of the ring of the latest records (bytes)
     constexpr std::size_t RING_BYTES = 16384;
+    static_assert(std::atomic<char>::is_always_lock_free);
+    static_assert(std::atomic<std::size_t>::is_always_lock_free);
 
     /*
     ** Состояние журнала процесса. Кольцо — массив без выделений памяти: его копирует обработчик сбоя
@@ -30,9 +33,9 @@ namespace gran::log::internal
         std::ofstream file;
         std::uint64_t size = 0;
         bool open = false;
-        char ring[RING_BYTES] = {};
-        std::size_t ringHead = 0;
-        bool ringFull = false;
+        std::atomic<char> ring[RING_BYTES] = {};
+        // RING_BYTES в значении курсора отмечает полный круг / RING_BYTES in the cursor marks a completed turn
+        std::atomic<std::size_t> ringCursor{0};
     };
 
     // ---- log_open.cpp ----

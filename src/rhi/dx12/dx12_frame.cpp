@@ -80,6 +80,11 @@ namespace gran::rhi::dx12
         validate(frame);
         try
         {
+            if (!_surface->target())
+            {
+                GRAN_CHECK_HR(_context.device->GetDeviceRemovedReason());
+                GRAN_CHECK_HR(E_FAIL);
+            }
             FrameContext& context = beginFrame(frame);
             FrameAddresses addresses = uploadFrame(frame, context);
             recordDraws(frame, addresses);

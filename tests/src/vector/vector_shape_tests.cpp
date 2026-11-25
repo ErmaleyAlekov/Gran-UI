@@ -1,10 +1,80 @@
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
 #include "gran/core/gran_exception.hpp"
+#include "gran/render/image_store.hpp"
+#include "gran/res/resources.hpp"
+#include "gran/rhi/null/null_backend.hpp"
 #include "gran/vector/shape.hpp"
+#include <cmath>
 
 namespace
 {
+    void mountSvg(const char* name, std::string_view svg)
+    {
+        const gran::res::Entry entry{name, reinterpret_cast<const std::uint8_t*>(svg.data()), svg.size()};
+        gran::res::mount({"svg-fixtures", &entry, 1});
+    }
+
+    void testSvgDimensions()
+    {
+        mountSvg("svg-tests/view-box.svg", R"(<svg viewBox="1 2 30 40" width="0" height="-10"/>)");
+        mountSvg("svg-tests/width.svg", R"(<svg width="18"/>)");
+        mountSvg("svg-tests/height.svg", R"(<svg height="19" viewBox="0 0 0 20"/>)");
+        const auto view = gran::vector::loadSvgFile("res:/svg-tests/view-box.svg")->viewBox;
+        TEST_ASSERT(view.x == 1 && view.y == 2 && view.width == 30 && view.height == 40);
+        const auto width = gran::vector::loadSvgFile("res:/svg-tests/width.svg")->viewBox;
+        TEST_ASSERT(width.width == 18 && width.height == 24);
+        const auto height = gran::vector::loadSvgFile("res:/svg-tests/height.svg")->viewBox;
+        TEST_ASSERT(height.width == 24 && height.height == 19);
+    }
+
+    void testInvalidSvgDimensions()
+    {
+        constexpr const char* resource = "svg-tests/invalid-size.svg";
+        constexpr const char* path = "res:/svg-tests/invalid-size.svg";
+        for (const auto svg : {R"(<svg width="0" height="24"/>)", R"(<svg width="24" height="-1"/>)"})
+        {
+            mountSvg(resource, svg);
+            bool rejected = false;
+            try { gran::vector::loadSvgFile(path); }
+            catch (const gran::GranException& error) { rejected = error.getCode() == gran::ErrorCode::MARKUP; }
+            TEST_ASSERT(rejected);
+        }
+        gran::rhi::NullBackend backend;
+        gran::render::ImageStore cache(backend, {});
+        TEST_ASSERT(cache.shape(path) == nullptr);
+        mountSvg(resource, R"(<svg width="24" height="24"><rect width="10" height="10"/></svg>)");
+        TEST_ASSERT(gran::vector::loadSvgFile(path) != nullptr);
+        TEST_ASSERT(cache.shape(path) == nullptr);
+    }
+
+    void testSvgRectRadii()
+    {
+        mountSvg("svg-tests/rect-radii.svg", R"(<svg viewBox="0 0 10 10"><rect width="10" height="10" rx="0" ry="3"/>
+            <rect width="10" height="10" rx="2"/><rect width="10" height="10"/></svg>)");
+        const auto shape = gran::vector::loadSvgFile("res:/svg-tests/rect-radii.svg");
+        TEST_ASSERT(shape->paths.size() == 3);
+        gran::vector::Shape single;
+        single.viewBox = shape->viewBox;
+        single.paths = {shape->paths[0]};
+        gran::text::GlyphBitmap bitmap;
+        TEST_ASSERT(gran::vector::rasterizeShape(single, 10, 10, bitmap));
+        single.paths = {shape->paths[2]};
+        gran::text::GlyphBitmap plain;
+        TEST_ASSERT(gran::vector::rasterizeShape(single, 10, 10, plain));
+        TEST_ASSERT(bitmap.width == plain.width && bitmap.height == plain.height);
+        TEST_ASSERT(bitmap.left == plain.left && bitmap.top == plain.top && bitmap.coverage == plain.coverage);
+        const auto& rounded = shape->paths[1].points;
+        TEST_ASSERT(rounded.size() > 4);
+        TEST_ASSERT(rounded[0].x == 2 && rounded[4].x == 10 && rounded[4].y == 2);
+
+        single.viewBox.width = 0;
+        TEST_ASSERT(!gran::vector::rasterizeShape(single, 10, 10, bitmap) && bitmap.coverage.empty());
+        single.viewBox.width = 10;
+        single.viewBox.height = 0;
+        TEST_ASSERT(!gran::vector::rasterizeShape(single, 10, 10, bitmap) && bitmap.coverage.empty());
+    }
+
     void testParsePathData()
     {
         auto path = gran::vector::parsePathData("M1 2 L3 4 Z");
@@ -78,6 +148,64 @@ namespace
         TEST_ASSERT_THROWS(gran::vector::parsePathData("M0 0 L1"), gran::GranException);
         TEST_ASSERT_THROWS(gran::vector::parsePathData("M0 0 X1 1"), gran::GranException);
         TEST_ASSERT_THROWS(gran::vector::parsePathData("M0 0 Z 1 1"), gran::GranException);
+        TEST_ASSERT_THROWS(gran::vector::parsePathData("M0 0 L1e500 0"), gran::GranException);
+    }
+
+    void testArcExtremeRadii()
+    {
+        for (const auto* input : {"M0 0 A1e20 1e20 0 0 1 100 0", "M0 0 A1e-25 1e-25 0 0 1 100 0"})
+        {
+            const auto path = gran::vector::parsePathData(input);
+            TEST_ASSERT(path.verbs.size() >= 2 && path.verbs.size() <= 5);
+            TEST_ASSERT(path.points.back().x == 100.0f && path.points.back().y == 0.0f);
+            for (const auto& point : path.points)
+                TEST_ASSERT(std::isfinite(point.x) && std::isfinite(point.y));
+        }
+    }
+
+    void testShallowRelativeArc()
+    {
+        const auto path = gran::vector::parsePathData("M10 20 a1e20 1e20 0 0 1 90 0");
+        TEST_ASSERT(path.verbs.size() == 2 && path.verbs.back() == gran::vector::Verb::CUBIC);
+        TEST_ASSERT(path.points.size() == 4);
+        TEST_ASSERT_NEAR(path.points[1].x, 40.0f);
+        TEST_ASSERT_NEAR(path.points[2].x, 70.0f);
+        TEST_ASSERT_NEAR(path.points[1].y, 20.0f);
+        TEST_ASSERT_NEAR(path.points[2].y, 20.0f);
+        TEST_ASSERT(path.points.back().x == 100 && path.points.back().y == 20);
+    }
+
+    void testArcRotationAndFollowingCurve()
+    {
+        const auto orthogonal = gran::vector::parsePathData("M0 0 A1e20 1e-20 90 0 1 0 100");
+        TEST_ASSERT(orthogonal.points.size() == 4);
+        TEST_ASSERT_NEAR(orthogonal.points[1].x, 0.0f);
+        TEST_ASSERT_NEAR(orthogonal.points[1].y, 100.0f / 3);
+
+        const auto diagonal = gran::vector::parsePathData("M0 0 A1e20 1e-20 45 0 1 100 100");
+        TEST_ASSERT(diagonal.points.size() == 4);
+        TEST_ASSERT_NEAR(diagonal.points[1].x, 100.0f / 3);
+        TEST_ASSERT_NEAR(diagonal.points[1].y, 100.0f / 3);
+        TEST_ASSERT_NEAR(diagonal.points[2].x, 200.0f / 3);
+        TEST_ASSERT_NEAR(diagonal.points[2].y, 200.0f / 3);
+
+        const auto smooth = gran::vector::parsePathData("M0 0 A5 5 0 0 1 10 0 S12 2 15 0");
+        const auto& control = smooth.points[smooth.points.size() - 3];
+        TEST_ASSERT(control.x == 10 && control.y == 0);
+    }
+
+    void testArcOutOfRange()
+    {
+        bool badPath = false;
+        try
+        {
+            gran::vector::parsePathData("M0 0 A3e38 3e38 0 1 1 100 0");
+        }
+        catch (const gran::GranException& error)
+        {
+            badPath = error.getCode() == gran::ErrorCode::MARKUP;
+        }
+        TEST_ASSERT(badPath);
     }
 
     void testParseViewBox()
@@ -201,7 +329,14 @@ namespace suites
 {
     void registerVectorShapeTests(test::TestRunner& runner)
     {
+        runner.add("vector: valid viewBox wins and missing dimensions default independently", testSvgDimensions);
+        runner.add("vector: rejects invalid explicit SVG dimensions and caches the failure", testInvalidSvgDimensions);
+        runner.add("vector: rectangle radii and a zero-sized viewBox", testSvgRectRadii);
         runner.add("vector: parsePathData", testParsePathData);
+        runner.add("vector: extreme arc radii yield finite path points", testArcExtremeRadii);
+        runner.add("vector: shallow relative arcs keep their control points along the chord", testShallowRelativeArc);
+        runner.add("vector: rotates extreme ellipses and resets the cubic reflection after an arc", testArcRotationAndFollowingCurve);
+        runner.add("vector: rejects an arc with unrepresentable control points", testArcOutOfRange);
         runner.add("vector: parseViewBox", testParseViewBox);
         runner.add("vector: rasterizeShape", testRasterizeShape);
         runner.add("vector: evenOdd", testEvenOdd);

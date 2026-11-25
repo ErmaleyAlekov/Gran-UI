@@ -16,7 +16,8 @@ namespace gran::render::internal
     ** to the right of the frozen edge — having gone under the frozen ones, they do not show through their transparent background
     ** (the selected row background is visible under all the cells); the frozen ones are painted on top.
     */
-    bool paintGridLine(const ui::Node& line, const PaintState& inner, SceneContext& context)
+    bool queueGridCells(const ui::Node& line, const PaintState& inner, SceneContext& context,
+        std::vector<PaintVisit>& pending)
     {
         if ((line.kind != ui::ElementKind::GRID_ROW && line.kind != ui::ElementKind::GRID_HEADER) || ui::gridOf(line) == nullptr)
             return false;
@@ -29,13 +30,13 @@ namespace gran::render::internal
             scrolled = pushClip(Rect{edge, frame.y, std::fmax(0.0f, frame.x + frame.width - edge), frame.height},
                 CornerRadii{}, inner, context);
         }
-        for (std::size_t index = frozen; index < line.children.size(); ++index)
+        for (std::size_t index = frozen; index > 0; --index)
+            pending.push_back({line.children[index - 1].get(), inner});
+        for (std::size_t index = line.children.size(); index > frozen; --index)
         {
-            if (ui::gridCellShown(line, index))
-                paintNode(*line.children[index], scrolled, context);
+            if (ui::gridCellShown(line, index - 1))
+                pending.push_back({line.children[index - 1].get(), scrolled});
         }
-        for (std::size_t index = 0; index < frozen; ++index)
-            paintNode(*line.children[index], inner, context);
         return true;
     }
 }

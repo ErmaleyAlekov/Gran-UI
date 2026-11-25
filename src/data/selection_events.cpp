@@ -32,10 +32,12 @@ namespace gran::data
     // Удалённая текущая запись передаёт роль соседу (следующей, у конца — предыдущей) / A removed current record passes the role to a neighbour (the next one, at the end — the previous one)
     void SelectionModel::removed(std::size_t index, std::size_t count)
     {
+        if (index > _marks.size() || count > _marks.size() - index)
+            return;
         bool lostCurrent = _current != NO_ROW && afterRemoval(_current, index, count) == NO_ROW;
 
         hideRemoved(index, count);
-        for (std::size_t row = index; row < index + count && row < _marks.size(); ++row)
+        for (std::size_t row = index; row < index + count; ++row)
             mark(row, false);
         auto first = _marks.begin() + static_cast<std::ptrdiff_t>(index);
         _marks.erase(first, first + static_cast<std::ptrdiff_t>(count));
@@ -63,10 +65,18 @@ namespace gran::data
 
     void SelectionModel::reordered(const std::vector<std::size_t>& oldToNew)
     {
-        std::vector<std::uint8_t> marks(_marks.size(), static_cast<std::uint8_t>(0));
+        if (oldToNew.size() != _marks.size())
+            return;
+        constexpr std::uint8_t UNMAPPED = 2;
+        std::vector<std::uint8_t> marks(_marks.size(), UNMAPPED);
 
-        for (std::size_t row = 0; row < oldToNew.size() && row < _marks.size(); ++row)
-            marks[oldToNew[row]] = _marks[row];
+        for (std::size_t row = 0; row < oldToNew.size(); ++row)
+        {
+            const auto target = oldToNew[row];
+            if (target >= marks.size() || marks[target] != UNMAPPED)
+                return;
+            marks[target] = _marks[row];
+        }
         _marks = std::move(marks);
         if (_current != NO_ROW && _current < oldToNew.size())
             _current = oldToNew[_current];

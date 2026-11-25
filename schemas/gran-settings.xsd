@@ -46,6 +46,13 @@
     </xs:simpleContent>
   </xs:complexType>
 
+  <xs:complexType name="ListValue">
+    <xs:sequence>
+      <xs:element name="Item" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+  </xs:complexType>
+
   <xs:element name="Settings">
     <xs:complexType>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -71,14 +78,8 @@
         </xs:element>
         <xs:element name="Value" type="TypedValue"/>
         <xs:element name="Variable" type="TypedValue"/>
-        <xs:element name="List">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="Item" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
-            </xs:sequence>
-            <xs:attribute name="name" type="xs:string" use="required"/>
-          </xs:complexType>
-        </xs:element>
+        <xs:element name="List" type="ListValue"/>
+        <xs:element name="VariableList" type="ListValue"/>
       </xs:choice>
       <xs:attribute name="version" type="xs:positiveInteger" default="1"/>
     </xs:complexType>
@@ -92,7 +93,7 @@
       <xs:field xpath="@name"/>
     </xs:unique>
     <xs:unique name="uniqueVariable">
-      <xs:selector xpath="Variable"/>
+      <xs:selector xpath="Variable | VariableList"/>
       <xs:field xpath="@name"/>
     </xs:unique>
   </xs:element>

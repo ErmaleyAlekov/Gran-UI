@@ -1,5 +1,6 @@
 #include "gran/markup/internal/build_context.hpp"
 #include "gran/style/value_parsers.hpp"
+#include "gran/core/gran_exception.hpp"
 
 #include "beresta.hpp"
 
@@ -87,8 +88,16 @@ namespace gran::markup::internal
 
         for (const beresta::Attribute& attribute : element.getAttributes())
         {
-            if (!readWindowParameter(attribute, window))
-                readDeclaration(element, attribute, window.declared.base, context);
+            try
+            {
+                if (readWindowParameter(attribute, window))
+                    continue;
+            }
+            catch (const GranException& error)
+            {
+                throwAttributeError(element, attribute.name, error.getMessage());
+            }
+            readDeclaration(element, attribute, window.declared.base, context);
         }
     }
 }

@@ -34,7 +34,7 @@ set -euo pipefail
 # have deb package names; ALT has the same apt-get, but the packages are RPMs with other names
 linux_tools() {
     if command -v dpkg > /dev/null; then
-        apt_install g++ make git libx11-dev libvulkan-dev
+        apt_install g++ make git libx11-dev libx11-xcb-dev libxcb1-dev libvulkan-dev
     else
         apt_install gcc-c++ make git libX11-devel libvulkan-devel
     fi

@@ -84,7 +84,14 @@ namespace gran
         std::size_t tail = rest.find_first_of("?#");
         if (tail != std::string_view::npos)
             rest = rest.substr(0, tail);
-        return percentDecode(rest, path);
+        if (!percentDecode(rest, path))
+            return false;
+#if defined(_WIN32)
+        if (path.size() >= 4 && path[0] == '/' && path[2] == ':' && path[3] == '/' &&
+            ((path[1] >= 'A' && path[1] <= 'Z') || (path[1] >= 'a' && path[1] <= 'z')))
+            path.erase(0, 1);
+#endif
+        return true;
     }
 
     // Строки по LF с отрезанием CR; комментарии и не-файловые адреса пропускаются / Lines by LF with CR cut off; comments and non-file addresses are skipped

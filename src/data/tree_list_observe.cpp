@@ -18,7 +18,7 @@ namespace gran::data
     {
         for (auto node = _expanded.begin(); node != _expanded.end();)
         {
-            if (_tree.contains(*node))
+            if (_tree->contains(*node))
                 ++node;
             else
                 node = _expanded.erase(node);

@@ -44,7 +44,8 @@ namespace gran::markup::internal
     // ---- markup_parse.cpp ----
 
     // Разбор текста «Берёстой» со схемой; ошибки → MarkupException / Parsing a text by Beresta with the schema; errors → MarkupException
-    beresta::Document parseMarkupText(std::string_view text);
+    beresta::Document parseMarkupText(std::string_view text,
+        const std::shared_ptr<const beresta::xsd::Schema>& schema = markupSchema());
 
     // Разбор файла; ошибка чтения → GranException(IO) / Parsing a file; a read error → GranException(IO)
     beresta::Document parseMarkupFile(const std::string& path);
@@ -96,6 +97,8 @@ namespace gran::markup::internal
     // ---- data_resources.cpp ----
 
     // <Data name><Item …/>…</Data>: записи модели списка; уникальность имён проверила схема; <Variable> — переменная привязок / <Data name><Item …/>…</Data>: the list model records; the schema has checked the name uniqueness; <Variable> is a binding variable
+    std::size_t readCount(const beresta::Element& element, std::string_view attribute, const std::string& text);
+
     void readDataSet(const beresta::Element& data, BuildContext& context);
 
     // ---- data_sources.cpp ----

@@ -1,19 +1,16 @@
 #include "gran/app/internal/app_state.hpp"
 #include "gran/ui/node_state.hpp"
+#include "gran/core/gran_exception.hpp"
+#include "gran/core/i18n.hpp"
+#include "gran/log/log.hpp"
+#include <utility>
 
 namespace gran::app
 {
     namespace
     {
-        /*
-        ** Флаг замены снимается и при исключении (сторож RAII): иначе окно навсегда перестало бы
-        ** рисоваться. Ошибка посередине замены (GPU, привязки) выходит из run() — прежнее дерево
-        ** к этому моменту уже удалено, продолжать с полусобранным окном нельзя.
-        **
-        ** The replacement flag is cleared on an exception too (an RAII guard): otherwise the window would never
-        ** render again. An error in the middle of the replacement (GPU, bindings) leaves run() — the former tree
-        ** is already deleted by then, continuing with a half-built window is impossible.
-        */
+        // На время замены цикл не рисует промежуточное состояние окна.
+        // The loop skips rendering the intermediate window state during replacement.
         struct ReloadGuard
         {
             explicit ReloadGuard(Application::State& owner) : state(owner) { state.reloading = true; }
@@ -24,67 +21,18 @@ namespace gran::app
             Application::State& state;
         };
 
-        // Снимок состояния пользователя, затем отключаем потребителей дерева и очищаем очередь UI Automation до удаления узлов.
-        // A snapshot of the user state, then disconnect tree consumers and clear the UI Automation queue before deleting nodes.
-        ui::TreeState detachDocument(AppWindow& win)
-        {
-            ui::TreeState saved;
+    }
 
-            if (win.document.root && win.router)
-                saved = ui::captureState(*win.document.root, win.router->focused());
-            else if (win.document.root)
-                saved = ui::captureState(*win.document.root, nullptr);
-            if (win.window)
-                win.window->setAccessTree(nullptr);
-            win.access.root = nullptr;
-            win.access.focus = nullptr;
-            win.access.changed = nullptr;
-            win.access.added.clear();
-            win.access.requests.clear();
-            win.router.reset();
-            win.renderer.reset();
-            win.pendingFocus = nullptr;
-            win.gridEdit.reset();
-            win.dropNode = nullptr;
-            win.revealNode = nullptr;
-            win.tooltip = nullptr;
-            win.tooltipText = nullptr;
-            win.tooltipSource = nullptr;
-            win.tooltipShown = false;
-            win.tooltipSuppressed = false;
-            return saved;
-        }
-
-        /*
-        ** Состояние пользователя переходит на новые узлы по id или месту. Окно и бэкенд сохраняются;
-        ** рендерер получает новый каталог ресурсов и кэши; фокус — узлу, совпавшему с прежним.
-        **
-        ** The user state moves to the new nodes by id or place. Keep the window and backend;
-        ** the renderer receives the new resource directory and caches; the focus goes to the node matching the former one.
-        */
-        void attachDocument(AppWindow& win, const ui::TreeState& saved)
-        {
-            ui::Node* focus = nullptr;
-
-            if (win.document.root)
-            {
-                focus = ui::restoreState(*win.document.root, saved, false);
-                win.shared.lists.refreshGridFilters(*win.document.root);
-            }
-            if (!win.window)
-                return;
-            win.renderer = std::make_unique<render::Renderer>(*win.backend, win.shared.fonts, win.document.baseDirectory);
-            win.router = std::make_unique<input::InputRouter>(*win.document.root, win, win.window.get(), win);
-            win.access.root = win.document.root.get();
-            win.window->setAccessTree(&win.access);
-            createTooltip(win);
-            win.animating = true;
-            win.caretVisible = true;
-            win.changed = true;
-            ui::markDirty(*win.document.root, ui::DIRTY_STYLE | ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);
-            if (focus != nullptr)
-                win.router->focus(focus);
-        }
+    // Вызывается из обработчика исключения. Вне цикла исходное исключение получает вызывающий код.
+    // Called from an exception handler. Outside the loop the caller receives the original exception.
+    bool reportReloadFailure(Application::State& state)
+    {
+        if (!state.running) throw;
+        try { throw; }
+        catch (const std::exception& error) { state.reloadFailure = error.what(); }
+        catch (...) { state.reloadFailure = i18n::format(i18n::Message::APP_RELOAD_FAILED); }
+        log::write(log::Level::SEVERE, "markup", state.reloadFailure);
+        return false;
     }
 
     /*
@@ -101,16 +49,31 @@ namespace gran::app
         AppWindow& win = *state.windows.front();
         std::unique_ptr<markup::UiDocument> document = std::move(state.pendingDocument);
         std::string path = std::move(state.pendingPath);
+        auto stamps = std::move(state.pendingLibraryStamps);
         ReloadGuard guard(state);
 
         state.pendingPath.clear();
-        if (!patchDocument(win, *document))
+        try
         {
-            ui::TreeState saved = detachDocument(win);
-            adoptDocument(win, std::move(*document), sourceBase(path));
-            attachDocument(win, saved);
+            state.lists.validateDocument(*document);
+        }
+        catch (const GranException&)
+        {
+            return reportReloadFailure(state);
+        }
+        const bool full = !patchDocument(win, *document);
+        if (full)
+        {
+            if (!replaceDocument(win, std::move(*document), sourceBase(path))) return false;
         }
         rememberSource(state, path);
+        state.libraryStamps = std::move(stamps);
+        if (full && win.router && win.pendingFocus)
+        {
+            auto* focus = std::exchange(win.pendingFocus, nullptr);
+            try { win.router->focus(focus); }
+            catch (...) { reportReloadFailure(state); }
+        }
         return true;
     }
 }

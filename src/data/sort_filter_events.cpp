@@ -6,6 +6,14 @@ namespace gran::data
     // Сначала сдвиг номеров прежних записей, затем каждая новая встаёт на своё место / First the indices of the former records shift, then each new one takes its place
     void SortFilterProxy::inserted(std::size_t index, std::size_t count)
     {
+        const auto size = _source->size();
+        if (index > size || count > size - index)
+            return;
+        for (std::size_t source : _map)
+        {
+            if (source >= size - count)
+                return;
+        }
         for (std::size_t& source : _map)
         {
             if (source >= index)
@@ -69,17 +77,29 @@ namespace gran::data
     // Перемещение в источнике — частный случай перестановки / A move in the source is a special case of a permutation
     void SortFilterProxy::moved(std::size_t from, std::size_t count, std::size_t to)
     {
-        reordered(internal::moveMapping(_source.size(), from, count, to));
+        reordered(internal::moveMapping(_source->size(), from, count, to));
     }
 
     // Равные по ключам записи следуют новому порядку источника / Records equal by the keys follow the new source order
     void SortFilterProxy::reordered(const std::vector<std::size_t>& oldToNew)
     {
-        for (std::size_t& source : _map)
+        const auto size = _source->size();
+        if (oldToNew.size() != size)
+            return;
+        std::vector<bool> seen(size, false);
+        for (std::size_t target : oldToNew)
         {
-            if (source < oldToNew.size())
-                source = oldToNew[source];
+            if (target >= size || seen[target])
+                return;
+            seen[target] = true;
         }
+        for (std::size_t source : _map)
+        {
+            if (source >= size)
+                return;
+        }
+        for (std::size_t& source : _map)
+            source = oldToNew[source];
         _reverseValid = false;
         resort();
     }

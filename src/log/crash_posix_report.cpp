@@ -3,6 +3,7 @@
 #include "gran/log/internal/crash_posix.hpp"
 #include "gran/log/log.hpp"
 
+#include <cstdio>
 #include <ctime>
 #include <execinfo.h>
 #include <fcntl.h>
@@ -13,9 +14,9 @@ namespace gran::log::internal
     namespace
     {
         // «папка/имя-секунды-процесс.расширение»; -1 — файл не открылся / "folder/name-seconds-process.extension"; -1 — the file did not open
-        int openReport(const PosixCrash& state, std::time_t seconds, const char* extension) noexcept
+        using ReportPath = char[sizeof(PosixCrash::folder) + sizeof(PosixCrash::prefix) + 64];
+        void reportPath(ReportPath& path, const PosixCrash& state, std::time_t seconds, const char* extension) noexcept
         {
-            char path[sizeof(state.folder) + sizeof(state.prefix) + 64];
             std::size_t position = appendText(path, sizeof(path), 0, state.folder);
 
             position = appendText(path, sizeof(path), position, "/");
@@ -26,7 +27,6 @@ namespace gran::log::internal
             position = appendNumber(path, sizeof(path), position, static_cast<std::uint64_t>(getpid()));
             position = appendText(path, sizeof(path), position, ".");
             appendText(path, sizeof(path), position, extension);
-            return ::open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
         }
 
         // Регистры в отчёт (crash_posix_context.cpp); указатель стека — для дампа байтов / The registers into the report (crash_posix_context.cpp); the stack pointer is for the byte dump
@@ -63,7 +63,9 @@ namespace gran::log::internal
             const std::uint64_t end = pointer + 16 * page;
             if (pointer == 0)
                 return;
-            int fd = openReport(state, seconds, "stack");
+            ReportPath path;
+            reportPath(path, state, seconds, "stack");
+            int fd = ::open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
             if (fd < 0)
                 return;
             while (pointer < end)
@@ -81,13 +83,16 @@ namespace gran::log::internal
     }
 
     // Только async-signal-safe вызовы; backtrace подгружен заранее при установке / Only async-signal-safe calls; backtrace is loaded in advance on installing
-    void writeSignalReport(int signal, siginfo_t* info, void* context) noexcept
+    void writeSignalReport(int signal, siginfo_t* info, void* context, const char* message) noexcept
     {
         static char recent[16384 + 1];
         static void* frames[64];
         PosixCrash& state = posixCrash();
         std::time_t seconds = std::time(nullptr);
-        int fd = openReport(state, seconds, "txt");
+        ReportPath temporary, finalPath;
+        reportPath(temporary, state, seconds, "tmp");
+        reportPath(finalPath, state, seconds, "txt");
+        int fd = ::open(temporary, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
 
         if (fd < 0)
             return;
@@ -102,7 +107,7 @@ namespace gran::log::internal
         else
             putNumber(fd, 0, 16);
         putText(fd, "\nmessage: ");
-        putText(fd, state.message);
+        putText(fd, message);
         putText(fd, "\n");
         std::uint64_t pointer = writeRegisters(fd, context);
         putText(fd, "\nbacktrace:\n");
@@ -112,7 +117,8 @@ namespace gran::log::internal
         putText(fd, "\nlog:\n");
         recent[copyRecent(recent, sizeof(recent) - 1)] = '\0';
         putText(fd, recent);
-        ::close(fd);
+        if (::close(fd) == 0 && !state.textWriteFailed)
+            ::rename(temporary, finalPath);
         writeStackBytes(state, seconds, pointer);
     }
 }

@@ -21,7 +21,8 @@ namespace gran::log::internal
     {
         char folder[1024] = {};
         char prefix[128] = {};
-        char message[512] = {};
+        // Только поток записи отчёта / Accessed only by the report writer
+        bool textWriteFailed = false;
         bool installed = false;
     };
 
@@ -33,7 +34,7 @@ namespace gran::log::internal
     // ---- crash_posix_report.cpp ----
 
     // Отчёт о сигнале: .txt (сигнал, регистры, backtrace, maps, журнал) и .stack (байты стека) / The signal report: .txt (the signal, the registers, backtrace, maps, the log) and .stack (the stack bytes)
-    void writeSignalReport(int signal, siginfo_t* info, void* context) noexcept;
+    void writeSignalReport(int signal, siginfo_t* info, void* context, const char* message) noexcept;
 
     // ---- crash_posix_context.cpp: то, что зависит от ОС и процессора / what depends on the OS and the processor ----
 

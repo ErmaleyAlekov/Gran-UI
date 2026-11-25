@@ -15,6 +15,59 @@ class Program
             throw new Exception("Assertion failed");
     }
 
+    static void CheckTextArguments(GranUI.Application app)
+    {
+        AssertArgumentException(() => app.LoadSettings(appName: "invalid\0name"));
+        AssertArgumentException(() => app.LoadSettings(path: "invalid\0path"));
+        AssertArgumentException(() => app.SetFilter("view", "invalid\0expression"));
+    }
+
+    static void AssertArgumentException(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+        Assert(false);
+    }
+
+    static void CheckNativeCallingConventions()
+    {
+        var assembly = typeof(GranUI.Application).Assembly;
+        const System.Reflection.BindingFlags nativeMethods = System.Reflection.BindingFlags.Static
+            | System.Reflection.BindingFlags.NonPublic;
+        foreach (string name in new[] { "GranUI.NativeModels", "GranUI.NativeProgram" })
+        {
+            var methods = assembly.GetType(name, throwOnError: true)!.GetMethods(nativeMethods);
+            Assert(methods.Length > 0);
+            foreach (var method in methods)
+            {
+                var import = (DllImportAttribute?)Attribute.GetCustomAttribute(method, typeof(DllImportAttribute));
+                Assert(import?.CallingConvention == CallingConvention.Cdecl);
+            }
+        }
+    }
+
+    static void CheckActiveDelivery(GranUI.Application app)
+    {
+        var seen = new List<int>();
+        ulong second = 0;
+        ulong first = app.Listen("root", "snapshot", _ =>
+        {
+            seen.Add(1);
+            if (seen.Count == 1)
+                app.Unlisten("root", second);
+        });
+        second = app.Listen("root", "snapshot", _ => seen.Add(2));
+        Assert(app.Dispatch("root", "snapshot") && seen.SequenceEqual(new[] { 1, 2 }));
+        Assert(app.Dispatch("root", "snapshot") && seen.SequenceEqual(new[] { 1, 2, 1 }));
+        app.Unlisten("root", first);
+    }
+
     // Windows — D3D11 и ввод клавиш через PostMessage; Linux — Vulkan (CPU), ввод клавиш пропускается
     // Windows — D3D11 and key input through PostMessage; Linux — Vulkan (CPU), key input is skipped
     static readonly bool Windows = OperatingSystem.IsWindows();
@@ -59,8 +112,11 @@ class Program
 
         try
         {
+            CheckNativeCallingConventions();
             const string xml = "<Window title=\"BindingsCSharp\"><Stack id=\"root\"><Button id=\"go\" text=\"Пуск 🌲\" onClick=\"business\"/><Text id=\"text\">Привет 🌲</Text></Stack></Window>";
             app.LoadString(xml);
+            CheckTextArguments(app);
+            CheckActiveDelivery(app);
 
             Assert(app.Read("text", "text") == "Привет 🌲");
 

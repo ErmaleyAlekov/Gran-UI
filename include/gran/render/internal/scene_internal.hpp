@@ -142,7 +142,15 @@ namespace gran::render::internal
     // ---- paint_grid.cpp ----
 
     // Ячейки строки таблицы: видимые незакреплённые под отсечением, закреплённые поверх; false — узел не строка таблицы / The table line cells: the visible non-frozen ones under a clip, the frozen ones on top; false — the node is not a table line
-    bool paintGridLine(const ui::Node& line, const PaintState& inner, SceneContext& context);
+    struct PaintVisit
+    {
+        const ui::Node* node;
+        PaintState state;
+        bool overlay = false;
+    };
+
+    bool queueGridCells(const ui::Node& line, const PaintState& inner, SceneContext& context,
+        std::vector<PaintVisit>& pending);
 
     // ---- instance_place.cpp ----
 

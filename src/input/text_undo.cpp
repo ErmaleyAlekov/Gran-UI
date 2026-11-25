@@ -3,12 +3,37 @@
 
 namespace gran::input::internal
 {
+    namespace
+    {
+        // История переживает замену поля: цель нужна только во время операции.
+        // History survives field replacement: the target is only needed during the operation.
+        void applyHistory(ui::Node& input, bool undo)
+        {
+            const auto history = input.content.history;
+            auto* previous = history->activeField;
+            history->activeField = &input;
+            try
+            {
+                if (undo)
+                    history->steps.undo();
+                else
+                    history->steps.redo();
+            }
+            catch (...)
+            {
+                history->activeField = previous;
+                throw;
+            }
+            history->activeField = previous;
+        }
+    }
+
     // Отмена в поле только для чтения не идёт: его текст правит лишь код / Undo does not run in a read-only field: only the code edits its text
     bool undoText(RouterState& state, ui::Node& input)
     {
         if (!canUndoText(input))
             return false;
-        input.content.history->steps.undo();
+        applyHistory(input, true);
         textChanged(state, input);
         return true;
     }
@@ -17,7 +42,7 @@ namespace gran::input::internal
     {
         if (!canRedoText(input))
             return false;
-        input.content.history->steps.redo();
+        applyHistory(input, false);
         textChanged(state, input);
         return true;
     }
