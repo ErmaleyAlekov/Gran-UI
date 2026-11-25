@@ -39,8 +39,22 @@ namespace gran::vector::internal
             }
             const double dx = (static_cast<double>(from.x) - arc.end.x) / 2;
             const double dy = (static_cast<double>(from.y) - arc.end.y) / 2;
-            const double u = (e.cosine * dx + e.sine * dy) / e.radius.x;
-            const double v = (-e.sine * dx + e.cosine * dy) / e.radius.y;
+            double localX, localY;
+            if (magnitude == 45 || magnitude == 135)
+            {
+                // Общий множитель оставляет точный ноль на диагонали даже при FMA.
+                // Factor out the common scale to preserve exact diagonal cancellation with FMA.
+                const double signedDy = std::copysign(1.0, e.cosine * e.sine) * dy;
+                localX = e.cosine * (dx + signedDy);
+                localY = e.sine * (signedDy - dx);
+            }
+            else
+            {
+                localX = e.cosine * dx + e.sine * dy;
+                localY = -e.sine * dx + e.cosine * dy;
+            }
+            const double u = localX / e.radius.x;
+            const double v = localY / e.radius.y;
             const double length = std::hypot(u, v);
             const double halfChord = std::min(1.0, length);
             const double normal = std::sqrt((1 - halfChord) * (1 + halfChord)) * (arc.large == arc.sweep ? -1 : 1);
