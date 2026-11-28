@@ -10,6 +10,8 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-28
+
 ### Added
 - User customization by stable element ID. Applications declare permissions, a palette, and editable style tokens in XML. The editor example supports edit mode, composite buttons, shortcuts, and named profiles. The exchange format is defined in `schemas/gran-overlay.xsd`. [Guide](docs/guide.en.md#user-customization).
 - D3D11, D3D12 and Vulkan report the local memory budget and usage when available from the driver. The `gran_video_memory` example shows the texture counter changing after allocation. Applications with logging enabled record atlas, texture and buffer sizes after the first frame and once per minute while rendering.
