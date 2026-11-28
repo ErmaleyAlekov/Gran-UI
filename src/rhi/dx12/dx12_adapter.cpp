@@ -16,4 +16,25 @@ namespace gran::rhi::dx12
             return std::string();
         return describeDeviceLoss(_context.device->GetDeviceRemovedReason());
     }
+
+    std::uint64_t TextureTable::textureBytes() const
+    {
+        std::uint64_t bytes = 0;
+        for (const auto& entry : _entries)
+        {
+            if (!entry.resource) continue;
+            std::uint64_t pixels = std::uint64_t(entry.desc.width) * entry.desc.height;
+            if (entry.desc.format == TextureFormat::RGBA8) pixels *= 4;
+            bytes += pixels;
+        }
+        return bytes;
+    }
+
+    VideoMemoryInfo Dx12Backend::videoMemoryInfo() const
+    {
+        auto info = dxgiMemory(_context.adapter.get());
+        info.textureBytes = _textures.textureBytes();
+        for (const auto& frame : _frames) info.bufferBytes += frame.ring.capacity();
+        return info;
+    }
 }

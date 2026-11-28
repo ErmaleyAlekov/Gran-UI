@@ -7,6 +7,7 @@ namespace gran::app
     UndoLink::UndoLink(Application::State& state, std::string name) : _state(state), _name(std::move(name))
     {
         stack.setObserver(this);
+        stack.setGroupTarget(&state.groupUndo);
     }
 
     // Обработчик копируется: он может сам заменить себя через onUndoChanged / The handler is copied: it may replace itself through onUndoChanged

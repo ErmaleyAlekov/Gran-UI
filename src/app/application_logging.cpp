@@ -41,6 +41,23 @@ namespace gran
                 log::write(log::Level::WARNING, "app", i18n::format(i18n::Message::LOG_PREVIOUS_CRASH, {state.previousCrash}));
         }
 
+        // Снимок после первого кадра и раз в минуту при отрисовке.
+        // Sample after the first frame and once a minute while rendering.
+        void logVideoMemory(AppWindow& win)
+        {
+            if (win.shared.options.appName.empty()) return;
+            const auto time = now();
+            if (time < win.nextMemoryLog) return;
+            win.nextMemoryLog = time + 60;
+            const auto memory = win.backend->videoMemoryInfo();
+            std::string text = "atlasBytes=" + std::to_string(win.renderer->atlasBytes())
+                + " textureBytes=" + std::to_string(memory.textureBytes)
+                + " bufferBytes=" + std::to_string(memory.bufferBytes);
+            if (memory.budgetAvailable)
+                text += " budgetBytes=" + std::to_string(memory.budgetBytes) + " usageBytes=" + std::to_string(memory.usageBytes);
+            log::write(log::Level::INFO, "gpu", text);
+        }
+
         // «Direct3D 12 · AMD Radeon RX 9070 · 32.0.21025.1024»; программный адаптер помечается / A software adapter is marked
         void logAdapter(const AppWindow& win)
         {

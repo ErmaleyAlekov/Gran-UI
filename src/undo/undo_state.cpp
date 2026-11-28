@@ -4,7 +4,7 @@ namespace gran::undo
 {
     bool UndoStack::canUndo() const noexcept
     {
-        return _index > 0;
+        return _index > 0 || pendingRedoProgress() != 0;
     }
 
     bool UndoStack::canRedo() const noexcept
@@ -14,13 +14,14 @@ namespace gran::undo
 
     bool UndoStack::isClean() const noexcept
     {
-        return _clean == _index;
+        return _clean == _index && _cleanProgress == pendingRedoProgress();
     }
 
     // Сохранение закрывает верхний шаг: следующая правка — уже после сохранения / Saving closes the top step: the next edit is after the saving
     void UndoStack::setClean()
     {
         _clean = _index;
+        _cleanProgress = pendingRedoProgress();
         _merge = false;
         notify();
     }

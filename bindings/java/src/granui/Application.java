@@ -145,6 +145,32 @@ public final class Application implements AutoCloseable {
     }
     // Живая разметка окна (null — главного) как XML / The live markup of the window (null — the main one) as XML
     public String saveMarkup() { return saveMarkup(null); }
+    public void setEditMode(boolean enabled) { status("gran_app_edit_mode", app, enabled ? 1 : 0); }
+    public void importProfile(String name, String xml) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_profile_import",app,utf8(scope,name),utf8(scope,xml)); }
+    }
+    public String exportProfile(String name) {
+        try (Arena scope=Arena.ofConfined()) { return ownedString("gran_profile_export",app,utf8(scope,name)); }
+    }
+    public void selectProfile(String name) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_profile_select",app,utf8(scope,name)); }
+    }
+    public void resetProfile(String scopeId) {
+        try (Arena scope=Arena.ofConfined()) { status("gran_profile_reset",app,utf8(scope,scopeId)); }
+    }
+    private Runnable layoutListener;
+    private MemorySegment layoutEntry;
+    private void layoutChanged(MemorySegment user) {
+        if (layoutListener != null) protect(layoutListener);
+    }
+    public void onLayoutChanged(Runnable listener) {
+        ensureOpen();
+        if (listener != null && layoutEntry == null)
+            layoutEntry=entry("layoutChanged",MethodType.methodType(void.class,MemorySegment.class),
+                FunctionDescriptor.ofVoid(ADDRESS),this);
+        status("gran_app_on_layout_changed",app,listener == null ? MemorySegment.NULL : layoutEntry,MemorySegment.NULL);
+        layoutListener=listener;
+    }
     public String saveMarkup(String window) {
         try (Arena scope=Arena.ofConfined()) { return ownedString("gran_app_markup_save",app,utf8(scope,window)); }
     }

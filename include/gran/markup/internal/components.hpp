@@ -133,6 +133,8 @@ namespace gran::markup::internal
 
     // <xi:include> в Resources: библиотеки, их схема и проверка документа ею / <xi:include> in Resources: the libraries, their schema and the document check by it
     void loadComponents(const beresta::Element& resources, BuildContext& context);
+    void validatePalette(const beresta::Element& resources, BuildContext& context);
+    const ComponentSpec& lookupComponent(const beresta::Element& instance, const BuildContext& context);
 
 
     // ---- component_read.cpp ----

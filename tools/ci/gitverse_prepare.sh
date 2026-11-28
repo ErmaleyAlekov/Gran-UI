@@ -37,7 +37,7 @@ as_root() {
 install_packages() {
     local packages="g++ make git ca-certificates clang"
     if [ "$mode" = "full" ]; then
-        packages="$packages libx11-dev libx11-xcb-dev libxcb1-dev libvulkan-dev mesa-vulkan-drivers"
+        packages="$packages python3 libx11-dev libx11-xcb-dev libxcb1-dev libvulkan-dev mesa-vulkan-drivers"
     fi
     as_root apt-get update -qq
     # Пакеты перечислены через пробел — разбиение на слова здесь намеренное

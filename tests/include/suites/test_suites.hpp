@@ -21,6 +21,13 @@ namespace suites
 
     // ---- Разметка и компоновка / Markup and layout ----
     void registerMarkupTests(test::TestRunner& runner);
+    void registerCustomizationTests(test::TestRunner& runner);
+    void registerLayoutCreationTests(test::TestRunner& runner);
+    void registerLayoutEditModeTests(test::TestRunner& runner);
+    void registerLayoutPreviewTests(test::TestRunner& runner);
+    void registerProfileRuntimeTests(test::TestRunner& runner);
+    void registerProfileSafetyTests(test::TestRunner& runner);
+    void registerProfileMacroTests(test::TestRunner& runner);
     void registerLayoutStackTests(test::TestRunner& runner);
     void registerLayoutGridTests(test::TestRunner& runner);
 

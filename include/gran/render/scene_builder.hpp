@@ -11,6 +11,7 @@
 
 namespace gran::render
 {
+    enum class DropEdge { INSIDE, LEFT, RIGHT, TOP, BOTTOM };
     /*
     ** Отметки ввода на кадре (объект параметров Renderer::render): поле с видимой кареткой, узел с видимым
     ** выделением текста (оба могут быть nullptr) и видны ли подчёркивания букв доступа меню.
@@ -23,6 +24,10 @@ namespace gran::render
         const ui::Node* caret = nullptr;
         const ui::Node* selection = nullptr;
         bool mnemonics = false;
+        const ui::Node* editSelection = nullptr;
+        const ui::Node* editDrop = nullptr;
+        const ui::Node* editWindow = nullptr;
+        DropEdge dropEdge = DropEdge::INSIDE;
     };
 
     // Ресурсы, которые сцена наполняет по ходу обхода / The resources the scene fills while walking
@@ -40,6 +45,10 @@ namespace gran::render
         // При повторном обходе координаты выданных глифов и градиентов должны остаться действительными.
         // On a second traversal previously issued glyph and gradient coordinates must remain valid.
         bool preserveLayout = false;
+        const ui::Node* editSelection = nullptr;
+        const ui::Node* editDrop = nullptr;
+        const ui::Node* editWindow = nullptr;
+        DropEdge dropEdge = DropEdge::INSIDE;
     };
 
     // Результат: экземпляры, отсечения (0 — «без отсечения»), сегменты, цвет фона

@@ -94,6 +94,7 @@ namespace gran
         std::map<std::string, bool> commandStates;
         // Стеки отмены приложения по имени ("" — основной) и обработчик их смены / The application undo stacks by name ("" is the main one) and their change handler
         std::map<std::string, std::unique_ptr<app::UndoLink>> undoStacks;
+        undo::UndoStack* groupUndo = nullptr;
         UndoHandler undoHandler;
         // Именованные обработчики событий разметки (onEvent) / The named markup event handlers (onEvent)
         std::map<std::string, EventHandler> eventHandlers;
@@ -116,6 +117,29 @@ namespace gran
         // Перезагрузка главного окна: документ ждёт границы цикла, чтобы обработчик не удалил свой узел.
         // Reloading the main window: the document waits for a loop boundary so a handler does not delete its own node.
         std::unique_ptr<markup::UiDocument> pendingDocument;
+        struct ProfileChange
+        {
+            std::shared_ptr<const std::string> base;
+            std::string name;
+            std::string xml;
+            bool persist = false;
+            std::string undoXml;
+            bool preview = false;
+            const std::string& effectiveXml() const;
+        };
+        ProfileChange currentProfile;
+        ProfileChange pendingProfile;
+        bool editMode = false;
+        std::string editSelection;
+        std::string editDrop;
+        render::DropEdge dropEdge = render::DropEdge::INSIDE;
+        bool editDragging = false;
+        Vec2 editGrip;
+        ui::Node* layoutPanel = nullptr;
+        bool recordLayoutEdit = false;
+        bool applyingProfile = false;
+        bool previewActive = false;
+        Task layoutChanged;
         std::string pendingPath;
         std::vector<app::FileStamp> pendingLibraryStamps;
         // Наблюдаемый файл главного окна (пусто — разметка из строки) / The watched main window file (empty — markup from a string)
@@ -218,7 +242,28 @@ namespace gran
         ** The main window document: the first one creates the window, the next one waits for a loop boundary (inside run)
         ** or replaces at once. path — the absolute file path, empty — markup from a string.
         */
-        void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path);
+        void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path,
+            Application::State::ProfileChange change = {});
+        void stageBaseDocument(Application::State& state, markup::UiDocument document, const std::string& path);
+        void runSequence(AppWindow& win, const ui::Command& command);
+        bool handleLayoutInput(AppWindow& win, const platform::Event& event);
+        ui::Node* layoutInspector(AppWindow& win);
+        void closeLayoutInspector(AppWindow& win);
+        bool receivesChildren(ui::ElementKind kind);
+        void openLayoutCreator(AppWindow& win);
+        void openLayoutInspector(AppWindow& win, ui::Node* target);
+        void openLayoutPanel(Application::State& state);
+        void refreshLayoutChoices(Application::State& state);
+        void layoutPanelAction(AppWindow& win, ui::Node& source, const std::string& action);
+        bool resizeLayout(AppWindow& win, const platform::Event& event);
+        markup::TokenMap layoutDrop(AppWindow& win, ui::Node* target, Vec2 point, render::DropEdge* edge = nullptr);
+        ui::Node* layoutMark(AppWindow& win, const std::string& id);
+        void commitProfile(Application::State& state, Application::State::ProfileChange change);
+        void stageProfileXml(Application::State& state, Application::State::ProfileChange change, std::string_view xml);
+        void previewStyle(Application::State& state, const markup::TokenMap& values);
+        void cancelStylePreview(Application::State& state);
+        bool hasApplicationChildren(const ui::Node& node);
+        void moveApplicationChildren(AppWindow& current, AppWindow& next);
 
         // Применить отложенный документ; true — заменён (нужен кадр) / Apply the pending document; true — replaced (a frame is needed)
         bool replaceDocument(AppWindow& win, markup::UiDocument document, const std::string& base);
@@ -327,6 +372,7 @@ namespace gran
         void startLogging(Application::State& state);
 
         // Видеокарта и драйвер окна — в журнал / The window video card and driver go into the log
+        void logVideoMemory(AppWindow& win);
         void logAdapter(const AppWindow& win);
 
         // ---- application_settings.cpp ----

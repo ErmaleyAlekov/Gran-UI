@@ -50,7 +50,7 @@ namespace gran::input
 
         if (tabs == nullptr)
             return;
-        Vec2 local = ui::windowToNode(*header.parent, point);
+        Vec2 local = ui::pointerToNode(*header.parent, point);
         for (std::size_t index = 0; index < header.parent->children.size(); ++index)
         {
             const ui::Node& other = *header.parent->children[index];

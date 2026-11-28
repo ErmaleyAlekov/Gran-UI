@@ -15,9 +15,10 @@ namespace gran::undo
     */
     bool UndoStack::undo()
     {
-        if (_busy || _index == 0)
+        if (_busy || _group || !canUndo())
             return false;
-        --_index;
+        const auto progress = pendingRedoProgress();
+        if (!progress) --_index;
         _busy = true;
         try
         {
@@ -26,7 +27,8 @@ namespace gran::undo
         catch (...)
         {
             _busy = false;
-            ++_index;
+            if (!progress) ++_index;
+            else if (pendingRedoProgress() != progress) notify();
             throw;
         }
         _busy = false;
@@ -38,8 +40,9 @@ namespace gran::undo
     // Зеркально undo / Mirrors undo
     bool UndoStack::redo()
     {
-        if (_busy || _index >= _steps.size())
+        if (_busy || _group || _index >= _steps.size())
             return false;
+        const auto previous = pendingRedoProgress();
         _busy = true;
         try
         {
@@ -48,6 +51,7 @@ namespace gran::undo
         catch (...)
         {
             _busy = false;
+            if (pendingRedoProgress() != previous) notify();
             throw;
         }
         _busy = false;
@@ -59,9 +63,12 @@ namespace gran::undo
 
     void UndoStack::clear()
     {
+        if (_busy || _group)
+            return;
         _steps.clear();
         _index = 0;
         _clean = 0;
+        _cleanProgress = 0;
         _merge = false;
         notify();
     }

@@ -99,10 +99,11 @@ namespace gran::rhi::vk
 
         // ---- vulkan_adapter.cpp ----
         AdapterInfo adapterInfo() const override;
+        VideoMemoryInfo videoMemoryInfo() const override;
         std::string lostReason() const override;
         void waitPresented() override;
-        bool canConfirmPresentation() const override { return _presentWait; }
-        std::uint64_t lastPresentation() const override { return _waitId; }
+        bool canConfirmPresentation() const override;
+        std::uint64_t lastPresentation() const override;
         Presentation pollPresentation(std::uint64_t id) override;
         void readPixels(std::vector<std::uint8_t>& rgba, unsigned& width, unsigned& height) override;
     private:
@@ -202,6 +203,8 @@ namespace gran::rhi::vk
         // Waiting for presentation (vulkan_present_wait.cpp): the instance version, whether the extensions are on,
         // vkWaitForPresentKHR, the number of the last sent frame and the number of the frame not waited for yet (0 — none)
         std::uint32_t _apiVersion = VK_API_VERSION_1_0;
+        bool supportsMemoryBudget(VkPhysicalDevice candidate) const;
+        bool _memoryBudget = false;
         bool _presentWait = false;
         PFN_vkVoidFunction _waitForPresent = nullptr;
         std::uint64_t _presentId = 0;

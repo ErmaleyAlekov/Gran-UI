@@ -38,6 +38,10 @@ namespace gran::render
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
 
+        // Размер GPU-зеркала атласа R8
+        // Size of the R8 atlas mirror on the GPU
+        std::uint64_t atlasBytes() const noexcept;
+
         // Измеритель текста для компоновки / The text measurer for layout
         TextEngine& textEngine() noexcept;
 

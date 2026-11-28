@@ -117,6 +117,8 @@ namespace gran
         ** Together with backend = NONE the application works entirely without a screen and a graphics card.
         */
         bool headless = false;
+        // Безопасный запуск с авторской разметкой / Safe startup with the author's markup
+        bool skipCustomization = false;
     };
 
     /*
@@ -140,6 +142,18 @@ namespace gran
 
         // Разметка из строки / Markup from a string
         void loadString(std::string_view markup);
+
+        // Именованные профили главного окна / Named customization profiles for the main window
+        void importProfile(const std::string& name, std::string_view xml);
+        void selectProfile(const std::string& name);
+        std::string exportProfile(const std::string& name) const;
+        std::vector<std::string> profiles() const;
+        void resetProfile(const std::string& scope = {});
+        void setEditMode(bool enabled);
+        void editLayout(const std::string& operation, const std::map<std::string, std::string, std::less<>>& attributes,
+            const std::map<std::string, std::string, std::less<>>& parameters = {});
+        bool editMode() const;
+        void onLayoutChanged(Task handler);
 
         /*
         ** Перезагрузить последний файл; внутри run замена откладывается до границы цикла.

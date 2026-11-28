@@ -12,6 +12,7 @@ namespace editor
     void Controller::start(const std::string& path, const std::string& initialFolder)
     {
         bindActions();
+        app.onLayoutChanged(std::bind(&Controller::refresh, this));
         auto folder = initialFolder.empty() ? std::filesystem::current_path() : std::filesystem::u8path(initialFolder);
         if (!path.empty()) folder = std::filesystem::absolute(std::filesystem::u8path(path)).parent_path();
         loadFolder(folder.u8string());

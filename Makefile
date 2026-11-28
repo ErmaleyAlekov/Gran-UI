@@ -293,7 +293,8 @@ RES_SCHEMA_OBJ := $(OBJ_DIR)/$(GEN_DIR)/res/gran_resources_schema.o
 SET_SCHEMA_XSD := schemas/gran-settings.xsd
 SET_SCHEMA_CPP := $(GEN_DIR)/settings/gran_settings_schema.cpp
 SET_SCHEMA_OBJ := $(OBJ_DIR)/$(GEN_DIR)/settings/gran_settings_schema.o
-LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ) $(RES_SCHEMA_OBJ) $(SET_SCHEMA_OBJ)
+OVERLAY_CPP   := $(GEN_DIR)/markup/gran_overlay_schema.cpp
+LIB_OBJ       += $(SCHEMA_OBJ) $(THEME_OBJ) $(RES_SCHEMA_OBJ) $(SET_SCHEMA_OBJ) $(OBJ_DIR)/$(OVERLAY_CPP:.cpp=.o)
 
 # Metal (macOS): тексты MSL из исходников → AIR → gran.metallib → массив gen/rhi/metal_library.cpp (gran_embed).
 # Нужен компилятор Metal из Xcode (xcrun metal); в движке шейдеры не компилируются. Код бэкенда — Objective-C++ (.mm, ARC).
@@ -321,6 +322,8 @@ EMBED_BIN     := $(BIN_DIR)/gran_embed$(EXE)
 # Встраивание ресурсов программы в exe (gran_rcc, нужна библиотека) / Embedding the program resources into the exe (gran_rcc, needs the library)
 RCC_OBJ       := $(OBJ_DIR)/$(TOOL_DIR)/rcc/rcc_main.o
 RCC_BIN       := $(BIN_DIR)/gran_rcc$(EXE)
+LINT_OBJ      := $(OBJ_DIR)/$(TOOL_DIR)/lint/lint_main.o
+LINT_BIN      := $(BIN_DIR)/gran_lint$(EXE)
 
 TEST_SRC      := $(call rwildcard,$(TEST_DIR)/src,*.cpp)
 TEST_OBJ      := $(TEST_SRC:$(TEST_DIR)/src/%.cpp=$(OBJ_DIR)/$(TEST_DIR)/%.o)
@@ -359,7 +362,7 @@ example_libs  = $(if $(wildcard $(EXAMPLE_DIR)/$(1)/system_libs.txt),$(addprefix
 example_gui   = $(if $(and $(filter windows,$(PLATFORM_OS)),$(wildcard $(EXAMPLE_DIR)/$(1)/windows_gui.txt)),-mwindows)
 
 LIB_BIN       := $(BIN_DIR)/$(NAME)
-ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(RCC_OBJ) $(CHAT_COMMON) $(CHAT_OPTIONS) $(CHAT_VIEW) \
+ALL_OBJ       := $(LIB_OBJ) $(TEST_OBJ) $(EMBED_OBJ) $(RCC_OBJ) $(LINT_OBJ) $(CHAT_COMMON) $(CHAT_OPTIONS) $(CHAT_VIEW) \
                  $(foreach e,$(EXAMPLES),$(call example_resources,$(e))) \
                  $(foreach e,$(EXAMPLES),$(patsubst %.cpp,$(OBJ_DIR)/%.o,$(call rwildcard,$(EXAMPLE_DIR)/$(e),*.cpp)))
 ALL_DEP       := $(call dep_of,$(ALL_OBJ))
@@ -376,10 +379,10 @@ DEPFLAGS      = -MMD -MP -MF $(call dep_of,$@) -MT $@
 # GPU-тесты запускаются отдельно; эталоны обновляются только явной целью.
 # GPU tests run separately; baselines update only through an explicit target.
 ifeq ($(PLATFORM_OS)-$(NATIVE),linux-1)
-RENDER_TEST_SRC := $(wildcard tests/linux/*.cpp)
+RENDER_TEST_SRC := $(wildcard tests/linux/*.cpp) tests/render/device_recovery.cpp
 RENDER_TEST_BIN := $(BIN_DIR)/gran_linux_tests
 .PHONY: test-render test-window update-render-baselines
-$(RENDER_TEST_BIN): $(RENDER_TEST_SRC) tests/linux/linux_tests.hpp $(LIB_BIN)
+$(RENDER_TEST_BIN): $(RENDER_TEST_SRC) tests/linux/linux_tests.hpp tests/render/render_tests.hpp $(LIB_BIN)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDES) $(RENDER_TEST_SRC) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 test-render: $(RENDER_TEST_BIN)
 	$(RENDER_TEST_BIN)
@@ -422,7 +425,7 @@ update-render-baselines: $(RENDER_TEST_BIN)
 	$(call native,$(RENDER_TEST_BIN)) --update
 endif
 
-all: $(LIB_BIN) $(RCC_BIN) $(EXAMPLE_BINS) $(WEBVIEW2_DLL)
+all: $(LIB_BIN) $(RCC_BIN) $(LINT_BIN) $(EXAMPLE_BINS) $(WEBVIEW2_DLL)
 
 # Языки загружают одну библиотеку; C++-примеры продолжают использовать статическую.
 # Languages load one library; C++ examples continue to use the static library.
@@ -496,6 +499,9 @@ $(foreach e,$(EXAMPLES),$(if $(wildcard $(EXAMPLE_DIR)/$(e)/resources.xml),$(eva
 
 $(RCC_BIN): $(RCC_OBJ) $(LIB_BIN) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(RCC_OBJ) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
+
+$(LINT_BIN): $(LINT_OBJ) $(LIB_BIN) | $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LINT_OBJ) $(LIB_BIN) $(BERESTA_LIB) $(SYSTEM_LIBS) -o $@
 $(foreach e,$(EXAMPLES),$(eval $(call EXAMPLE_RULE,$(e))))
 
 # Загрузчик WebView2 рядом с программами: движок ищет его только в каталоге программы и System32
@@ -516,6 +522,9 @@ $(RES_SCHEMA_CPP): $(RES_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(RES_SCHEMA_C
 	$(call native,$(EMBED_BIN)) $(RES_SCHEMA_XSD) $@ GRAN_RESOURCES_SCHEMA
 
 # Схема файла настроек — GRAN_SETTINGS_SCHEMA / The settings file schema — GRAN_SETTINGS_SCHEMA
+$(OVERLAY_CPP): schemas/gran-overlay.xsd $(EMBED_BIN) | $(call dir_of,$(SCHEMA_CPP))
+	$(call native,$(EMBED_BIN)) $< $@ GRAN_OVERLAY_SCHEMA
+
 $(SET_SCHEMA_CPP): $(SET_SCHEMA_XSD) $(EMBED_BIN) | $(call dir_of,$(SET_SCHEMA_CPP))
 	$(call native,$(EMBED_BIN)) $(SET_SCHEMA_XSD) $@ GRAN_SETTINGS_SCHEMA
 
@@ -630,6 +639,9 @@ $(OBJ_DIR)/$(TOOL_DIR)/%.o: $(TOOL_DIR)/%.cpp | $(ALL_DIRS)
 # gran_rcc пользуется библиотекой (схема, разбор манифеста) — ему нужны её заголовки
 # gran_rcc uses the library (the schema, the manifest parsing) — it needs its headers
 $(RCC_OBJ): $(TOOL_DIR)/rcc/rcc_main.cpp | $(ALL_DIRS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
+
+$(LINT_OBJ): $(TOOL_DIR)/lint/lint_main.cpp | $(ALL_DIRS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(DEPFLAGS) -c $< -o $@
 
 $(ALL_DIRS):

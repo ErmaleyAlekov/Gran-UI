@@ -15,7 +15,9 @@ namespace gran::markup::internal
         constexpr std::string_view XINCLUDE_NAMESPACE = "http://www.w3.org/2001/XInclude";
 
         // Объявление по пространству имён и локальному имени экземпляра / The declaration by the instance namespace and local name
-        const ComponentSpec& findComponent(const beresta::Element& instance, const BuildContext& context)
+    }
+
+    const ComponentSpec& lookupComponent(const beresta::Element& instance, const BuildContext& context)
         {
             std::string namespaceUri = instance.getNamespaceURI().value_or(std::string());
             const ComponentSet* set = context.document.components.get();
@@ -37,6 +39,8 @@ namespace gran::markup::internal
             throwElementError(instance, i18n::format(i18n::Message::MARKUP_NO_LIBRARY, {instance.getName(), namespaceUri}));
         }
 
+    namespace
+    {
         // Компонент уже разворачивается выше по телам — бесконечная развёртка / The component is already being expanded higher up the bodies — an endless expansion
         void checkRecursion(const ComponentSpec& spec, const beresta::Element& instance, BuildContext& context)
         {
@@ -74,7 +78,7 @@ namespace gran::markup::internal
     */
     std::unique_ptr<ui::Node> expandComponent(const beresta::Element& instance, BuildContext& context)
     {
-        const ComponentSpec& spec = findComponent(instance, context);
+        const ComponentSpec& spec = lookupComponent(instance, context);
         ComponentScope scope{&spec, &instance, context.scope};
         std::shared_ptr<beresta::Document> shadow;
         std::unique_ptr<ui::Node> node;

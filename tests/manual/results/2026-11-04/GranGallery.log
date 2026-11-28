@@ -1,0 +1,22 @@
+2026-11-05 18:04:30.845 | INFO    | faad | app | запуск: Windows 10.0.26300
+2026-11-05 18:04:30.994 | INFO    | faad | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 18:42:54.830 | INFO    | a686 | app | запуск: Windows 10.0.26300
+2026-11-05 18:42:54.954 | INFO    | a686 | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 19:07:07.978 | INFO    | faad | app | запуск: Windows 10.0.26300
+2026-11-05 19:07:08.077 | INFO    | faad | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 19:07:20.120 | INFO    | faad | app | запуск: Windows 10.0.26300
+2026-11-05 19:07:20.219 | INFO    | faad | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 19:22:31.947 | INFO    | 3ba3 | app | запуск: Windows 10.0.26300
+2026-11-05 19:22:33.004 | INFO    | 3ba3 | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 19:56:47.558 | INFO    | fa9f | app | запуск: Windows 10.0.26300
+2026-11-05 19:56:47.907 | INFO    | fa9f | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 20:08:11.681 | INFO    | 2ba4 | app | запуск: Windows 10.0.26300
+2026-11-05 20:08:11.791 | INFO    | 2ba4 | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 22:12:54.160 | INFO    | efe1 | app | запуск: Windows 10.0.26300
+2026-11-05 22:12:54.256 | INFO    | efe1 | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 22:14:03.497 | WARNING | efe1 | gpu | устройство GPU потеряно, графика окна создана заново
+2026-11-05 22:14:03.884 | INFO    | efe1 | gpu | Direct3D 12 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 22:19:12.356 | INFO    | faad | app | запуск: Windows 10.0.26300
+2026-11-05 22:19:12.450 | INFO    | faad | gpu | Direct3D 11 · AMD Radeon RX 9070 · 32.0.32015.7029
+2026-11-05 22:19:30.186 | WARNING | faad | gpu | устройство GPU потеряно, графика окна создана заново
+2026-11-05 22:19:30.252 | INFO    | faad | gpu | Direct3D 11 · AMD Radeon RX 9070 · 32.0.32015.7029

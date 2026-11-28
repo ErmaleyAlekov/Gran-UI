@@ -21,7 +21,10 @@ namespace gran::markup::internal
         {
             for (const beresta::Element* token = firstElementChild(theme); token != nullptr;
                  token = nextElementSibling(*token))
+            {
+                validateEditableToken(*token);
                 context.tokens[*findAttribute(*token, "name")] = *findAttribute(*token, "value");
+            }
         }
 
         // <Font family source [weight] [italic]/> / <Font family source [weight] [italic]/>

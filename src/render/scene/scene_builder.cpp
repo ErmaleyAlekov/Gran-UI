@@ -86,7 +86,8 @@ namespace gran::render::internal
         paintBox(node, state, context);
         PaintState inner = clipChildren(node, state, context);
         paintContent(node, inner, context);
-        if (node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::TEXT_AREA ||
+        if (&node == context.resources.editWindow || &node == context.resources.editSelection || &node == context.resources.editDrop ||
+            node.kind == ui::ElementKind::SCROLL || node.kind == ui::ElementKind::TEXT_AREA ||
             (node.kind == ui::ElementKind::DOCK_HOST && node.content.dock.dropSide >= 0))
             pending.push_back({&node, inner, true});
         if (!queueGridCells(node, inner, context, pending))
@@ -106,10 +107,15 @@ namespace gran::render::internal
             pending.pop_back();
             if (!visit.overlay)
                 visitNode(*visit.node, visit.state, context, pending);
-            else if (visit.node->kind == ui::ElementKind::DOCK_HOST)
-                paintDockDrop(*visit.node, visit.state, context);
             else
-                paintScrollbars(*visit.node, visit.state, context);
+            {
+                if (visit.node->kind == ui::ElementKind::DOCK_HOST && visit.node->content.dock.dropSide >= 0)
+                    paintDockDrop(*visit.node, visit.state, context);
+                if (visit.node->kind == ui::ElementKind::SCROLL || visit.node->kind == ui::ElementKind::TEXT_AREA)
+                    paintScrollbars(*visit.node, visit.state, context);
+                if (visit.node == context.resources.editWindow || visit.node == context.resources.editSelection || visit.node == context.resources.editDrop)
+                    paintEditFrame(*visit.node, visit.state, context);
+            }
         }
     }
 

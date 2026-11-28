@@ -18,7 +18,8 @@ namespace gran::markup::internal
         ** of the generated schema (component_schema.cpp: id, visible, enabled and the BoxAttributes group).
         */
         const char* const HOST_ATTRIBUTES[] = {
-            "id", "visible", "enabled", "width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight",
+            "id", "visible", "enabled", "customizable", "minTextContrast", "minTargetSize", "requireAccessibleName",
+            "width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight",
             "margin", "padding", "grow", "shrink", "alignSelf", "gridRow", "gridColumn", "gridRowSpan",
             "gridColumnSpan", "left", "top", "right", "bottom", "zIndex"};
 

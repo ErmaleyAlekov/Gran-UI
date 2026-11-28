@@ -14,7 +14,7 @@ namespace gran::app
         struct ReloadGuard
         {
             explicit ReloadGuard(Application::State& owner) : state(owner) { state.reloading = true; }
-            ~ReloadGuard() { state.reloading = false; }
+            ~ReloadGuard() { state.reloading = false; state.applyingProfile = false; }
             ReloadGuard(const ReloadGuard&) = delete;
             ReloadGuard& operator=(const ReloadGuard&) = delete;
 
@@ -35,6 +35,28 @@ namespace gran::app
         return false;
     }
 
+    // Выбираем общий снимок окна, если частичное восстановление потеряет состояние.
+    // Choose a window-wide snapshot when a partial restore would lose state.
+    static bool installReload(AppWindow& win, markup::UiDocument& document, bool profile, const std::string& path, bool& full)
+    {
+        auto& state = win.shared;
+        try
+        {
+            state.lists.validateDocument(document);
+        }
+        catch (const GranException&)
+        {
+            return reportReloadFailure(state);
+        }
+        state.applyingProfile = profile;
+        full = (state.applyingProfile && hasApplicationChildren(*win.document.root)) || !patchDocument(win, document);
+        if (full)
+        {
+            if (!replaceDocument(win, std::move(document), sourceBase(path))) return false;
+        }
+        return true;
+    }
+
     /*
     ** На границе цикла обработчики уже не используют старые узлы главного окна. Сначала — частичная
     ** замена (те же окно и ресурсы); не вышло — полная, с переносом состояния пользователя.
@@ -50,29 +72,21 @@ namespace gran::app
         std::unique_ptr<markup::UiDocument> document = std::move(state.pendingDocument);
         std::string path = std::move(state.pendingPath);
         auto stamps = std::move(state.pendingLibraryStamps);
+        auto profile = std::move(state.pendingProfile);
         ReloadGuard guard(state);
 
         state.pendingPath.clear();
-        try
-        {
-            state.lists.validateDocument(*document);
-        }
-        catch (const GranException&)
-        {
-            return reportReloadFailure(state);
-        }
-        const bool full = !patchDocument(win, *document);
-        if (full)
-        {
-            if (!replaceDocument(win, std::move(*document), sourceBase(path))) return false;
-        }
+        bool full = false;
+        if (!installReload(win, *document, profile.base || state.currentProfile.base, path, full)) return false;
         rememberSource(state, path);
         state.libraryStamps = std::move(stamps);
+        commitProfile(state, std::move(profile));
         if (full && win.router && win.pendingFocus)
         {
             auto* focus = std::exchange(win.pendingFocus, nullptr);
             try { win.router->focus(focus); }
-            catch (...) { reportReloadFailure(state); }
+            catch (const std::exception& error) { log::write(log::Level::WARNING, "focus", error.what()); }
+            catch (...) { log::write(log::Level::WARNING, "focus", "onFocus"); }
         }
         return true;
     }

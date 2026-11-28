@@ -36,6 +36,10 @@ namespace gran::render
         const FrameMarks& marks)
     {
         SceneResources resources{_text, _atlas, _ramps, _images, marks.caret, marks.selection, marks.mnemonics};
+        resources.editSelection = marks.editSelection;
+        resources.editDrop = marks.editDrop;
+        resources.editWindow = marks.editWindow;
+        resources.dropEdge = marks.dropEdge;
         rhi::FrameData frame;
 
         std::uint32_t atlasGeneration = _atlas.generation();

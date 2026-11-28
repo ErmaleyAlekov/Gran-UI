@@ -43,7 +43,8 @@ namespace gran::app
     ** inside run() waits for a loop boundary (a handler does not delete the node it is called from), outside run()
     ** it is replaced at once. Reloading does not touch the other windows (openWindow).
     */
-    void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path)
+    void stageDocument(Application::State& state, markup::UiDocument document, const std::string& path,
+        Application::State::ProfileChange change)
     {
         if (!state.running && state.reloading)
             throw GranException(ErrorCode::INVALID_ARGUMENT, i18n::format(i18n::Message::APP_RELOAD_ACTIVE));
@@ -56,11 +57,13 @@ namespace gran::app
             addWindow(state, std::move(document), sourceBase(path));
             rememberSource(state, path);
             state.libraryStamps = std::move(stamps);
+            commitProfile(state, std::move(change));
             return;
         }
         auto pending = std::make_unique<markup::UiDocument>(std::move(document));
         state.pendingPath = path;
         state.pendingDocument = std::move(pending);
+        state.pendingProfile = std::move(change);
         state.pendingLibraryStamps = std::move(stamps);
         if (!state.running)
             applyReload(state);
@@ -76,7 +79,7 @@ namespace gran::app
         try
         {
             if (sourceChanged(state))
-                stageDocument(state, markup::loadMarkupFile(state.sourcePath, markup::LoadOptions{}), state.sourcePath);
+                stageBaseDocument(state, markup::loadMarkupFile(state.sourcePath, markup::LoadOptions{}), state.sourcePath);
         }
         catch (const std::exception& error)
         {

@@ -61,4 +61,9 @@ namespace gran::render
             _backend.updateTexture(_rampTexture.slot, rhi::TextureRegion{0, first, RAMP_WIDTH, count},
                 _ramps.pixels() + static_cast<std::size_t>(first) * pitch, pitch);
     }
+    std::uint64_t Renderer::atlasBytes() const noexcept
+    {
+        if (_atlasTexture.slot == NO_TEXTURE) return 0;
+        return std::uint64_t(_atlas.size()) * _atlas.size();
+    }
 }

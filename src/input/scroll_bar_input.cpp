@@ -36,7 +36,7 @@ namespace gran::input
 
         for (ui::Node* node = pickNode(state, point); node != nullptr; node = node->parent)
         {
-            Vec2 local = ui::windowToNode(*node, point);
+            Vec2 local = ui::pointerToNode(*node, point);
             for (int axis = 0; axis < 2; ++axis)
             {
                 vertical = axis == 0;
@@ -64,7 +64,7 @@ namespace gran::input
 
         if (scroll == nullptr || !ui::scrollBar(*scroll, vertical, bar))
             return false;
-        float point = along(ui::windowToNode(*scroll, event.position), vertical);
+        float point = along(ui::pointerToNode(*scroll, event.position), vertical);
         float thumbStart = along(Vec2{bar.thumb.x, bar.thumb.y}, vertical);
         float thumbLength = bar.thumb.height;
         float current = along(scroll->layout.scrollOffset, vertical);
@@ -92,7 +92,7 @@ namespace gran::input
         if (scroll == nullptr || !ui::scrollBar(*scroll, state.scrollVertical, bar))
             return;
         float trackStart = along(Vec2{bar.track.x, bar.track.y}, state.scrollVertical);
-        float place = along(ui::windowToNode(*scroll, point), state.scrollVertical) - state.scrollGrab - trackStart;
+        float place = along(ui::pointerToNode(*scroll, point), state.scrollVertical) - state.scrollGrab - trackStart;
         setOffset(*scroll, state.scrollVertical, ui::scrollForThumb(bar, place));
     }
 }

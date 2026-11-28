@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Пользовательский профиль содержит только операции и ссылки на каталог приложения.
+     A user profile contains only operations and references to the application's catalog. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:complexType name="Target">
+    <xs:attribute name="id" type="xs:NCName" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="Placement">
+    <xs:complexContent>
+      <xs:extension base="Target">
+        <xs:attribute name="parent" type="xs:NCName" use="required"/>
+        <xs:attribute name="before" type="xs:NCName"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="Overlay">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Hide" type="Target"/>
+        <xs:element name="Move" type="Placement"/>
+        <xs:element name="Resize">
+          <xs:complexType>
+            <xs:attribute name="id" type="xs:NCName" use="required"/>
+            <xs:attribute name="width" type="xs:nonNegativeInteger" use="required"/>
+            <xs:attribute name="height" type="xs:nonNegativeInteger" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Rebind">
+          <xs:complexType>
+            <xs:attribute name="id" type="xs:NCName" use="required"/>
+            <xs:attribute name="command" type="xs:NCName" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Shortcut">
+          <xs:complexType>
+            <xs:attribute name="command" type="xs:NCName" use="required"/>
+            <xs:attribute name="key" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Insert">
+          <xs:complexType>
+            <xs:complexContent>
+              <xs:extension base="Placement">
+                <xs:sequence>
+                  <xs:element name="Param" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                      <xs:attribute name="name" type="xs:NCName" use="required"/>
+                      <xs:attribute name="value" type="xs:string" use="required"/>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+                <xs:attribute name="template" type="xs:NCName"/>
+                <xs:attribute name="command" type="xs:NCName"/>
+                <xs:attribute name="sequence" type="xs:string"/>
+                <xs:attribute name="text" type="xs:string"/>
+                <xs:attribute name="token" type="xs:NCName"/>
+                <xs:attribute name="value" type="xs:string"/>
+                <xs:assert test="exists(@token) = exists(@value)"/>
+                <xs:assert test="not(@token) or exists(@template)"/>
+                <xs:assert test="not(@sequence) or exists(@template) or exists(@text)"/>
+                <xs:assert test="not(Param) or exists(@template)"/>
+                <xs:assert test="(exists(@template) and not(@command)) or
+                    (exists(@command) and not(@template or @sequence)) or
+                    (exists(@sequence) and exists(@text) and not(@command or @template))"/>
+              </xs:extension>
+            </xs:complexContent>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Attribute">
+          <xs:complexType>
+            <xs:attribute name="id" type="xs:NCName" use="required"/>
+            <xs:attribute name="name" use="required">
+              <xs:simpleType>
+                <xs:restriction base="xs:NCName">
+                  <xs:enumeration value="width"/>
+                  <xs:enumeration value="height"/>
+                  <xs:enumeration value="margin"/>
+                  <xs:enumeration value="padding"/>
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="value" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Token">
+          <xs:complexType>
+            <xs:attribute name="id" type="xs:NCName"/>
+            <xs:attribute name="name" type="xs:NCName" use="required"/>
+            <xs:attribute name="value" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+      <xs:attribute name="version" type="xs:positiveInteger" use="required" fixed="1"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

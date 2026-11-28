@@ -26,13 +26,15 @@ namespace gran::undo
     */
     void UndoStack::setLimit(std::size_t limit)
     {
+        if (_busy || _group)
+            return;
         _limit = limit;
         // Отменённых больше, чем помещается: дальние отменённые уходят / More undone steps than fit: the far undone ones go
         if (limit != 0 && limit < _steps.size() - _index)
         {
             const std::size_t keep = _index + limit;
             _steps.erase(_steps.begin() + static_cast<std::ptrdiff_t>(keep), _steps.end());
-            if (_clean != NO_CLEAN && _clean > keep)
+            if (_clean != NO_CLEAN && (_clean > keep || (_clean == keep && _cleanProgress)))
                 _clean = NO_CLEAN;
         }
         trim();

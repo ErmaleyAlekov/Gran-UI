@@ -259,7 +259,7 @@
     <xs:union memberTypes="xs:NCName">
       <xs:simpleType>
         <xs:restriction base="xs:string">
-          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit|setVariable|toggleVariable|expand|collapse|toggle|dockShow|dockHide|dockToggle|dockReset)(:.*)?"/>
+          <xs:pattern value="gran:(close|minimize|maximize|restore|reload|focus|remove|showDialog|hideDialog|showPopup|hidePopup|navigate|loadHtml|postMessage|appendMarkup|capturePointer|releasePointer|runCommand|enableCommand|disableCommand|undo|redo|clearUndo|setUndoClean|setUndoLimit|setVariable|toggleVariable|expand|collapse|toggle|dockShow|dockHide|dockToggle|dockReset)(:.*)?|gran:customize|gran:profiles|gran:createElement|gran:paste|gran:layout:(create|rebind|dismiss|parameters|move|hide|resize|insert|shortcut|step|compose|style|preview|switch|save|import|export|resetScope|reset)"/>
         </xs:restriction>
       </xs:simpleType>
     </xs:union>
@@ -694,8 +694,36 @@
     The base of all elements. mixed="true" is needed by Text and Button (text inside the tag);
     the container type assertions forbid text in containers. The base assertions are inherited by all elements.
   -->
+  <!-- Ближайший список заменяет родительский; пустой запрещает всё.
+       The nearest list replaces its ancestor's list; an empty list denies all edits. -->
+  <xs:simpleType name="CustomizationPermission">
+    <xs:restriction base="xs:NCName">
+      <xs:enumeration value="move"/>
+      <xs:enumeration value="hide"/>
+      <xs:enumeration value="style"/>
+      <xs:enumeration value="insert"/>
+      <xs:enumeration value="command"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="CustomizationList">
+    <xs:list itemType="CustomizationPermission"/>
+  </xs:simpleType>
+  <xs:simpleType name="ContrastRatio">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="1"/>
+      <xs:maxInclusive value="21"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:attributeGroup name="DesignLimits">
+    <xs:attribute name="minTargetSize" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="minTextContrast" type="ContrastRatio"/>
+    <xs:attribute name="requireAccessibleName" type="xs:boolean"/>
+  </xs:attributeGroup>
+
   <xs:complexType name="ElementBase" mixed="true">
     <xs:group ref="States"/>
+    <xs:attributeGroup ref="DesignLimits"/>
+    <xs:attribute name="customizable" type="CustomizationList"/>
     <xs:attribute name="id" type="xs:NCName"/>
     <xs:attribute name="style" type="xs:NCName"/>
     <xs:attribute name="visible" type="BindableBoolean"/>
@@ -731,6 +759,7 @@
     <!-- Канвас задаёт либо left, либо right (иначе ширина неоднозначна вместе с width) -->
     <!-- A canvas child sets left or right, not both together with width (the width would be ambiguous) -->
     <xs:assert test="not(@left and @right and @width)"/>
+    <xs:assert test="not(@minTargetSize) or not(number(@width) lt @minTargetSize or number(@height) lt @minTargetSize)"/>
     <xs:assert test="not(@top and @bottom and @height)"/>
   </xs:complexType>
 
@@ -1522,11 +1551,29 @@
 
   <!-- ================= Ресурсы / Resources ================= -->
 
+  <!-- Тип открывает токен для настройки / A type exposes the token for customization -->
+  <xs:simpleType name="EditableTokenKind">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="color"/>
+      <xs:enumeration value="font"/>
+      <xs:enumeration value="size"/>
+      <xs:enumeration value="density"/>
+      <xs:enumeration value="radius"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:complexType name="TokenType">
     <xs:attribute name="name" type="xs:NCName" use="required"/>
     <xs:attribute name="value" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="EditableTokenKind"/>
+    <xs:attribute name="min" type="xs:decimal"/>
+    <xs:attribute name="max" type="xs:decimal"/>
     <!-- Значение темы не ссылается на другое: подстановка в один проход / A theme value does not refer to another -->
     <xs:assert test="not(contains(@value, '$'))"/>
+    <xs:assert test="not(@min or @max) or @type = 'size' or @type = 'density' or @type = 'radius'"/>
+    <xs:assert test="not(@type = 'size' or @type = 'density' or @type = 'radius') or number(@value) ge 0"/>
+    <xs:assert test="not(@min) or number(@value) ge @min"/>
+    <xs:assert test="not(@max) or number(@value) le @max"/>
   </xs:complexType>
 
   <xs:complexType name="ThemeType">
@@ -1740,7 +1787,11 @@
     action is the action (without it — the action named id), text is the label of the controls without their own, enabled="false" —
     the command and its controls are disabled (the code changes it with setCommandEnabled).
   -->
+  <xs:simpleType name="CommandNames">
+    <xs:list itemType="xs:NCName"/>
+  </xs:simpleType>
   <xs:complexType name="CommandType">
+    <xs:attribute name="sequence" type="CommandNames"/>
     <xs:attribute name="id" type="xs:NCName" use="required"/>
     <xs:attribute name="text" type="xs:string"/>
     <xs:attribute name="action" type="PlainAction"/>
@@ -1780,6 +1831,28 @@
     <xs:attribute name="name" type="xs:NCName" use="required"/>
   </xs:complexType>
 
+  <!-- Образцы палитры принадлежат приложению. Параметры экземпляра проверяет схема его библиотеки.
+       Palette prototypes belong to the application. The library schema validates instance parameters. -->
+  <xs:complexType name="PaletteType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="CommandRef">
+        <xs:complexType>
+          <xs:attribute name="ref" type="xs:NCName" use="required"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Template">
+        <xs:complexType>
+          <xs:choice>
+            <xs:group ref="UiElement"/>
+            <xs:element name="Tab" type="TabType"/>
+          </xs:choice>
+          <xs:attribute name="name" type="xs:NCName" use="required"/>
+          <xs:attribute name="parameters" type="CommandNames"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:choice>
+  </xs:complexType>
+
   <xs:complexType name="ResourcesType">
     <xs:sequence>
       <xs:element name="Theme" type="ThemeType" minOccurs="0"/>
@@ -1797,6 +1870,7 @@
       </xs:choice>
       <xs:element name="Variable" type="VariableType" minOccurs="0" maxOccurs="unbounded"/>
       <xs:element name="Command" type="CommandType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="Palette" type="PaletteType" minOccurs="0"/>
       <!-- Библиотеки компонентов: <xi:include href="файл.xml"/>, корень файла — <Library> / Component libraries: <xi:include href="file.xml"/>, the file root is <Library> -->
       <xs:any namespace="http://www.w3.org/2001/XInclude" processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
@@ -1929,6 +2003,8 @@
       <xs:element name="Resources" type="ResourcesType" minOccurs="0"/>
       <xs:group ref="UiElement"/>
     </xs:sequence>
+    <xs:attributeGroup ref="DesignLimits"/>
+    <xs:attribute name="customizable" type="CustomizationList"/>
     <xs:attribute name="title" type="xs:string"/>
     <xs:attribute name="width" type="NonNegativeNumber" default="800"/>
     <xs:attribute name="height" type="NonNegativeNumber" default="600"/>
@@ -1971,6 +2047,22 @@
     <!-- Имена значений темы уникальны / Theme value names are unique -->
     <xs:unique name="uniqueToken">
       <xs:selector xpath="Resources/Theme/Token"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
+    <xs:key name="commandKey">
+      <xs:selector xpath="Resources/Command"/>
+      <xs:field xpath="@id"/>
+    </xs:key>
+    <xs:keyref name="paletteCommandRef" refer="commandKey">
+      <xs:selector xpath="Resources/Palette/CommandRef"/>
+      <xs:field xpath="@ref"/>
+    </xs:keyref>
+    <xs:unique name="uniquePaletteCommand">
+      <xs:selector xpath="Resources/Palette/CommandRef"/>
+      <xs:field xpath="@ref"/>
+    </xs:unique>
+    <xs:unique name="uniquePaletteTemplate">
+      <xs:selector xpath="Resources/Palette/Template"/>
       <xs:field xpath="@name"/>
     </xs:unique>
     <!-- Имена наборов ключевых кадров уникальны / Keyframe set names are unique -->

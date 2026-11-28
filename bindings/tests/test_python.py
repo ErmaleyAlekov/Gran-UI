@@ -25,6 +25,19 @@ class TestApplication(unittest.TestCase):
             self.assertIsNotNone(app._app)
         self.assertFalse(app._app)
 
+    def test_layout_callback_can_unsubscribe_itself(self):
+        self.app.load_string('<Window><Stack customizable="hide"><Box id="item"/></Stack></Window>')
+        seen = []
+
+        def unsubscribe():
+            seen.append("layout")
+            self.app.on_layout_changed(None)
+
+        self.app.on_layout_changed(unsubscribe)
+        self.app.import_profile("hidden", '<Overlay version="1"><Hide id="item"/></Overlay>')
+        self.app.import_profile("normal", '<Overlay version="1"/>')
+        self.assertEqual(seen, ["layout"])
+
     def test_utf8_non_bmp_text(self):
         self.app.load_string('<Window title="BindingsPython" width="320" height="200"><Stack id="root"><Button id="go" text="Go" onClick="business"/><Text id="text">Привет 🌲</Text></Stack></Window>')
         text = self.app.read("text", "text")

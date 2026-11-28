@@ -92,7 +92,7 @@ namespace gran::input
         if (layer.kind == ui::ElementKind::DIALOG)
         {
             target = nextFocusable(layer, nullptr, false);
-            clearSelection(state);
+            clearSelection(state, layer.layoutInspector && state.selection == state.focus);
             changeFocus(state, target);
             if (target != nullptr && ui::isTextField(*target))
                 state.selection = target;

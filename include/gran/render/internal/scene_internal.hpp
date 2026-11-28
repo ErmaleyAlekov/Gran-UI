@@ -127,6 +127,7 @@ namespace gran::render::internal
 
     // Подсветка места, куда упадёт перетаскиваемая панель DockHost (paint_dock.cpp) / The highlight of the place the dragged DockHost panel will drop onto (paint_dock.cpp)
     void paintDockDrop(const ui::Node& host, const PaintState& state, SceneContext& context);
+    void paintEditFrame(const ui::Node& node, const PaintState& state, SceneContext& context);
 
     // ---- paint_state.cpp ----
 

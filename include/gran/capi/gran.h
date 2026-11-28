@@ -86,6 +86,14 @@ GRAN_API gran_status gran_app_create(const gran_options* options, gran_app** res
 GRAN_API gran_status gran_app_destroy(gran_app* app);
 GRAN_API gran_status gran_app_load(gran_app* app, const char* source, int32_t is_file);
 GRAN_API gran_status gran_app_run(gran_app* app, int32_t* exit_code);
+/* Профиль — XML по gran-overlay.xsd; export возвращает строку для gran_string_free.
+ * A profile is XML conforming to gran-overlay.xsd; release the exported string with gran_string_free. */
+GRAN_API gran_status gran_profile_import(gran_app* app, const char* name, const char* xml);
+GRAN_API gran_status gran_profile_select(gran_app* app, const char* name);
+GRAN_API gran_status gran_profile_export(gran_app* app, const char* name, char** xml);
+GRAN_API gran_status gran_profile_reset(gran_app* app, const char* scope);
+GRAN_API gran_status gran_app_edit_mode(gran_app* app, int32_t enabled);
+GRAN_API gran_status gran_app_on_layout_changed(gran_app* app, gran_task_fn callback, void* user);
 GRAN_API gran_status gran_app_on_action(gran_app* app, const char* name, gran_action_fn callback, void* user);
 GRAN_API gran_status gran_app_on_message(gran_app* app, const char* name, gran_action_fn callback, void* user);
 GRAN_API gran_status gran_app_post(gran_app* app, gran_task_fn callback, void* user);

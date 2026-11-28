@@ -63,17 +63,19 @@ namespace gran::binding
     }
 
     // Обход поддерева: у каждой таблицы со строкой фильтров — синхронизация её модели / A subtree walk: every table with a filter row syncs its model
-    void ListBindings::refreshGridFilters(ui::Node& subtree)
+    bool ListBindings::refreshGridFilters(ui::Node& subtree)
     {
         ui::Node* rows = ui::gridRows(subtree);
         ListBinding* binding = nullptr;
 
         if (rows != nullptr)
             binding = bindingOf(*rows);
-        if (binding != nullptr)
+        bool refreshed = binding != nullptr && ownsColumnFilter(*rows);
+        if (refreshed)
             syncGridFilter(*rows, binding->model());
         for (const std::unique_ptr<ui::Node>& child : subtree.children)
-            refreshGridFilters(*child);
+            refreshed |= refreshGridFilters(*child);
+        return refreshed;
     }
 
     bool ownsColumnFilter(const ui::Node& rows) noexcept

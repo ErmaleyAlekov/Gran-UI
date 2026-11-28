@@ -89,6 +89,12 @@ internal static class Native
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_action(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ActionFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_message(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ActionFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_post(IntPtr app, TaskFn callback, IntPtr user);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_edit_mode(IntPtr app, int enabled);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_layout_changed(IntPtr app, TaskFn? callback, IntPtr user);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_profile_import(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string xml);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_profile_export(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, out IntPtr xml);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_profile_select(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+    [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_profile_reset(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string scope);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_on_event(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, EventFn callback, IntPtr user);
     [DllImport(Library, CallingConvention=CallingConvention.Cdecl)] internal static extern int gran_app_listen(IntPtr app, [MarshalAs(UnmanagedType.LPUTF8Str)] string target, [MarshalAs(UnmanagedType.LPUTF8Str)] string type, int capture, EventFn callback, IntPtr user, out ulong result);
     [StructLayout(LayoutKind.Sequential)] internal struct Listener {
@@ -199,6 +205,20 @@ public sealed partial class Application : IDisposable
     }
     public void LoadString(string xml) => Check(Native.gran_app_load(Handle, Arguments.Text(xml), 0));
     public void LoadFile(string path) => Check(Native.gran_app_load(Handle, Arguments.Text(path), 1));
+    Native.TaskFn? layoutCallback;
+    public void SetEditMode(bool enabled) => Check(Native.gran_app_edit_mode(Handle, enabled ? 1 : 0));
+    public void ImportProfile(string name, string xml) => Check(Native.gran_profile_import(Handle, Arguments.Text(name), Arguments.Text(xml)));
+    public void SelectProfile(string name) => Check(Native.gran_profile_select(Handle, Arguments.Text(name)));
+    public void ResetProfile(string scope="") => Check(Native.gran_profile_reset(Handle, Arguments.Text(scope)));
+    public string ExportProfile(string name) {
+        Check(Native.gran_profile_export(Handle, Arguments.Text(name), out var xml));
+        return OwnedString(xml);
+    }
+    public void OnLayoutChanged(Action? callback) {
+        Native.TaskFn? next = callback == null ? null : _ => Protect(callback);
+        Check(Native.gran_app_on_layout_changed(Handle, next, IntPtr.Zero));
+        layoutCallback = next;
+    }
     public string Read(string target, string property) {
         Check(Native.gran_app_read(Handle, Arguments.Text(target), Arguments.Text(property), out var value));
         return OwnedString(value);

@@ -15,6 +15,14 @@ namespace gran::undo
     {
         if (!step || _busy)
             return;
+        if (_groupTarget && *_groupTarget && *_groupTarget != this && (*_groupTarget)->_group)
+            return (*_groupTarget)->push(std::move(step));
+        if (_group)
+        {
+            _group->push_back(std::move(step));
+            return;
+        }
+        commitRedoPrefix();
         if (tryMerge(*step))
         {
             dropUndone();
@@ -39,7 +47,7 @@ namespace gran::undo
     {
         if (_index == _steps.size())
             return;
-        if (_clean != NO_CLEAN && _clean > _index)
+        if (_clean != NO_CLEAN && (_clean > _index || (_clean == _index && _cleanProgress)))
             _clean = NO_CLEAN;
         _steps.erase(_steps.begin() + static_cast<std::ptrdiff_t>(_index), _steps.end());
     }

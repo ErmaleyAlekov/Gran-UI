@@ -22,4 +22,18 @@ namespace gran::rhi::dx11
             return std::string();
         return dx12::describeDeviceLoss(_device->GetDeviceRemovedReason());
     }
+
+    VideoMemoryInfo Dx11Backend::videoMemoryInfo() const
+    {
+        ComRef<IDXGIDevice> device;
+        ComRef<IDXGIAdapter> adapter;
+        if (SUCCEEDED(_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(device.put()))))
+            device->GetAdapter(adapter.put());
+        auto info = dx12::dxgiMemory(adapter.get());
+        for (const auto& texture : _textures)
+            if (texture.resource) info.textureBytes += std::uint64_t(texture.width) * texture.height * texture.bytes;
+        info.bufferBytes = std::uint64_t(_instances.capacity) + _clips.capacity;
+        if (_constants) info.bufferBytes += sizeof(render::FrameConstants);
+        return info;
+    }
 }

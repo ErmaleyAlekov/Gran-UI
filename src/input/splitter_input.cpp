@@ -59,7 +59,7 @@ namespace gran::input
             return;
         // windowToNode даёт точку в пространстве рамок (как у ползунка): начало содержимого — рамка + граница + отступ
         // windowToNode gives the point in the frame space (as for the slider): the content start is the frame + the border + the padding
-        Vec2 local = ui::windowToNode(*splitter, point);
+        Vec2 local = ui::pointerToNode(*splitter, point);
         const style::ComputedStyle& style = splitter->computed;
         const Rect& frame = splitter->layout.frame;
         if (style.orientation == static_cast<int>(style::Orientation::HORIZONTAL))

@@ -11,6 +11,9 @@ Version sections: "Added", "Changed", "Incompatible Changes", "Deprecated", "Rem
 ## [Unreleased]
 
 ### Added
+- User customization by stable element ID. Applications declare permissions, a palette, and editable style tokens in XML. The editor example supports edit mode, composite buttons, shortcuts, and named profiles. The exchange format is defined in `schemas/gran-overlay.xsd`. [Guide](docs/guide.en.md#user-customization).
+- D3D11, D3D12 and Vulkan report the local memory budget and usage when available from the driver. The `gran_video_memory` example shows the texture counter changing after allocation. Applications with logging enabled record atlas, texture and buffer sizes after the first frame and once per minute while rendering.
+- CI checks the public C ABI and validates samples, test documents and guide excerpts from the release tag against the current markup schema.
 - The `<DataGrid>` table (step 2.2.2): `<GridColumn>` columns with a px, `auto`, `fr`, `minmax` width and the
   `minWidth`/`maxWidth` limits, a header row, cells — a record field (a long value — with an ellipsis) or an own
   `<CellTemplate>` cell, virtual rows of different heights, row selection by a `<Selection>` model, the current cell by the

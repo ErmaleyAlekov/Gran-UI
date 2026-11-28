@@ -181,6 +181,10 @@ def _configure(lib):
         "app_create": (C.c_int32, [C.POINTER(_Options), C.POINTER(p)]),
         "app_destroy": (C.c_int32, [p]), "app_load": (C.c_int32, [p, s, C.c_int32]),
         "app_run": (C.c_int32, [p, C.POINTER(C.c_int32)]),
+        "app_edit_mode": (C.c_int32, [p, C.c_int32]),
+        "profile_import": (C.c_int32, [p, s, s]), "profile_select": (C.c_int32, [p, s]),
+        "profile_export": (C.c_int32, [p, s, C.POINTER(p)]), "profile_reset": (C.c_int32, [p, s]),
+        "app_on_layout_changed": (C.c_int32, [p, _Task, p]),
         "app_on_action": (C.c_int32, [p, s, _Action, p]), "app_on_message": (C.c_int32, [p, s, _Action, p]),
         "app_post": (C.c_int32, [p, _Task, p]),
         "app_on_event": (C.c_int32, [p, s, _EventFn, p]),
@@ -330,6 +334,26 @@ class Application:
             return C.string_at(output).decode("utf-8")
         finally:
             self._lib.gran_string_free(output)
+
+    def set_edit_mode(self, enabled):
+        self._call("app_edit_mode", int(bool(enabled)))
+
+    def import_profile(self, name, xml):
+        self._call("profile_import", _encode(name), _encode(xml))
+
+    def select_profile(self, name):
+        self._call("profile_select", _encode(name))
+
+    def export_profile(self, name):
+        return self._string("profile_export", _encode(name))
+
+    def reset_profile(self, scope=None):
+        self._call("profile_reset", _encode(scope))
+
+    def on_layout_changed(self, callback):
+        wrapped = _Task(lambda _: self._protect(callback)) if callback is not None else _Task()
+        self._call("app_on_layout_changed", wrapped, None)
+        self._layout_callback = wrapped
 
     def set_markup_attribute(self, target, name, value):
         """Записать атрибут в разметку (None — удалить) и перестроить узел; ошибка схемы — RuntimeError.

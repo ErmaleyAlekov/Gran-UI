@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <stdexcept>
 #include "gran/app/application.hpp"
+#include "gran/app/app_driver.hpp"
 #include "ui/controller.hpp"
 #include "../../examples/editor/core/messages.hpp"
 #include "../../examples/editor/core/text.hpp"
@@ -43,6 +44,32 @@ void checkEditorReviewFiles() {
         "The message count has no catalog entry");
 }
 
+// Создание элемента сохраняет представление открытого документа и его историю.
+// Creating an element preserves the active document view and its history.
+void checkDocumentAfterInsert() {
+    gran::AppOptions options;
+    options.headless = true;
+    options.backend = gran::rhi::BackendKind::NONE;
+    gran::Application app(options);
+    editor::Controller controller(app);
+    app.loadFile("samples/editor.xml");
+    controller.start("");
+    gran::AppDriver driver(app);
+    driver.start();
+    auto* page = controller.document(1)->page;
+    app.focus(page);
+    driver.type("draft");
+    driver.press(gran::platform::Key::LEFT, gran::platform::MODIFIER_SHIFT);
+    const auto caret = page->content.caret, anchor = page->content.anchor;
+    app.importProfile("insert", R"(<Overlay version="1"><Insert id="newField" parent="sidebarTools" template="NotesField"/></Overlay>)");
+    driver.settle();
+    require(app.find("newField") && !app.find("emptyEditor")->visible, "Insertion must keep the document on screen");
+    require(page == app.find("document-1") && page->visible && page->content.text == "draft", "Keep the active draft");
+    require(anchor != caret && page->content.caret == caret && page->content.anchor == anchor, "Keep the selection");
+    driver.press(gran::platform::Key::Z, gran::platform::MODIFIER_CONTROL);
+    require(page->content.text != "draft", "Keep the document undo history");
+}
+
 int main() {
     setupTestEnvironment();
 
@@ -59,6 +86,7 @@ int main() {
 
     try {
         checkEditorReviewFiles();
+        checkDocumentAfterInsert();
         // Test initial new doc
         docId1 = 1;
         require(app.find("editorTabs")->children.size() == 1, "Initial document count should be 1");

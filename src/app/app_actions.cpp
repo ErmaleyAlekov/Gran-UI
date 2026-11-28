@@ -26,7 +26,7 @@ namespace gran
     {
         if (!renderer)
             return 0;
-        return render::textOffsetAt(renderer->textEngine(), node, ui::windowToNode(node, point));
+        return render::textOffsetAt(renderer->textEngine(), node, ui::pointerToNode(node, point));
     }
 
     // Без рендерера каретка остаётся на месте / Without a renderer the caret stays in place

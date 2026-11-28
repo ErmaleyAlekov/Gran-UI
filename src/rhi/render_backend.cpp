@@ -18,4 +18,8 @@ namespace gran::rhi
     void RenderBackend::waitPresented()
     {
     }
+    VideoMemoryInfo RenderBackend::videoMemoryInfo() const
+    {
+        return {};
+    }
 }

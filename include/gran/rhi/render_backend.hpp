@@ -76,6 +76,19 @@ namespace gran::rhi
         bool software = false;
     };
 
+    // Локальная память драйвера и логические размеры живых текстур и буферов загрузки в байтах.
+    // Driver-local memory and logical sizes of live texture slots and upload buffers, in bytes.
+    struct VideoMemoryInfo
+    {
+        // DXGI: локальный сегмент узла 0. Vulkan: сумма локальных куч устройства.
+        // DXGI: local segment of node 0. Vulkan: sum over device-local heaps.
+        bool budgetAvailable = false;
+        std::uint64_t budgetBytes = 0;
+        std::uint64_t usageBytes = 0;
+        std::uint64_t textureBytes = 0;
+        std::uint64_t bufferBytes = 0;
+    };
+
     enum class FrameStatus : std::uint8_t
     {
         PRESENTED,      // кадр показан / the frame is shown
@@ -122,6 +135,7 @@ namespace gran::rhi
 
         // Видеокарта и драйвер для журнала; по умолчанию — пусто / The video card and the driver for the log; empty by default
         virtual AdapterInfo adapterInfo() const;
+        virtual VideoMemoryInfo videoMemoryInfo() const;
 
         // Причина потери устройства для журнала (вызывается после FrameStatus::DEVICE_LOST, до разрушения
         // бэкенда); по умолчанию — пусто
@@ -135,9 +149,9 @@ namespace gran::rhi
         // manager during a resize, T-24); waits for nothing by default
         virtual void waitPresented();
         enum class Presentation { PENDING, SHOWN, RETRY_FRAME, DEVICE_LOST };
-        virtual bool canConfirmPresentation() const { return false; }
-        virtual std::uint64_t lastPresentation() const { return 0; }
-        virtual Presentation pollPresentation(std::uint64_t) { return Presentation::RETRY_FRAME; }
+        virtual bool canConfirmPresentation() const;
+        virtual std::uint64_t lastPresentation() const;
+        virtual Presentation pollPresentation(std::uint64_t);
     };
 
     /*

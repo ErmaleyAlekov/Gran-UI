@@ -137,6 +137,9 @@ namespace gran::markup::internal
     // Значение атрибута или пустая строка / The attribute value or an empty string
     const std::string* findAttribute(const beresta::Element& element, std::string_view name) noexcept;
 
+    // Значение открытого токена проверяется и без потребителей / Validate exposed tokens even without consumers
+    void validateEditableToken(const beresta::Element& token);
+
     // Ошибка элемента → MarkupException с его позицией / An element error → MarkupException with its position
     [[noreturn]] void throwElementError(const beresta::Element& element, const std::string& message);
 

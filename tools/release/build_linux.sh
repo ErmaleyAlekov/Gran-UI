@@ -60,7 +60,7 @@ build_gran() {
         echo "Повторный make пересобирает файлы / A repeated make rebuilds files" >&2
         return 1
     fi
-    echo "glibc:$(objdump -T bin/libgran_c.so bin/gran_snapshot bin/gran_rcc \
+    echo "glibc:$(objdump -T bin/libgran_c.so bin/gran_snapshot bin/gran_rcc bin/gran_lint \
         | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)"
 }
 
@@ -72,7 +72,7 @@ package_linux() {
     stage="$(mktemp -d)"
     sdk_stage "$stage" "$name" "$beresta"
     cp bin/libgran.a bin/libgran_c.so "$beresta/bin/libberesta.a" "$stage/$name/lib/"
-    cp bin/gran_rcc bin/gran_snapshot "$stage/$name/bin/"
+    cp bin/gran_rcc bin/gran_snapshot bin/gran_lint "$stage/$name/bin/"
     sdk_pack "$stage" "$name" "$out" tar.gz
     rm -rf "$stage"
 }

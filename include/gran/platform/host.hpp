@@ -18,6 +18,8 @@ namespace gran::platform
 
     // ОС сборки (host_os.cpp; выбор — при компиляции) / The build OS (host_os.cpp; chosen at compile time)
     HostOs hostOs() noexcept;
+    // Shift при первом открытии окна отключает профиль / Shift at first window load bypasses the profile
+    bool bypassProfileKey() noexcept;
 }
 
 #endif

@@ -252,7 +252,7 @@ namespace gran::binding
 
         // Перенос состояния полей закончен (перезагрузка, перестройка ветки): фильтры таблиц поддерева — по тексту их полей
         // The input state transfer is over (a reload, a branch rebuild): the subtree table filters follow the text of their inputs
-        void refreshGridFilters(ui::Node& subtree);
+        bool refreshGridFilters(ui::Node& subtree);
 
         // ---- list_bindings_adopt.cpp ----
 

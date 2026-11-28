@@ -11,7 +11,7 @@ namespace gran::input
     */
     void pressSplitter(RouterState& state, ui::Node& handle, const platform::Event& event)
     {
-        Vec2 local = ui::windowToNode(handle, event.position);
+        Vec2 local = ui::pointerToNode(handle, event.position);
         bool horizontal = handle.parent != nullptr
             && handle.parent->computed.orientation == static_cast<int>(style::Orientation::HORIZONTAL);
 
@@ -42,7 +42,7 @@ namespace gran::input
         if (control.kind != ui::ElementKind::SLIDER)
             return;
         state.drag = &control;
-        dragSlider(state, control, ui::windowToNode(control, event.position).x);
+        dragSlider(state, control, ui::pointerToNode(control, event.position).x);
     }
 
     // Конец перетаскивания или шаг клавишей: onChange разделителя (значение — handle.content.value) / The drag end or a key step: the splitter onChange (the value is handle.content.value)
@@ -66,7 +66,7 @@ namespace gran::input
         else if (control.kind == ui::ElementKind::GRID_HEADER_CELL)
             dragGridHeader(state, control, point);
         else
-            dragSlider(state, control, ui::windowToNode(control, point).x);
+            dragSlider(state, control, ui::pointerToNode(control, point).x);
     }
 
     // Отпускание: у ручки — onChange разделителя (один раз за перетаскивание), захват снимается / The release: for a handle — the splitter onChange (once per drag), the capture is removed

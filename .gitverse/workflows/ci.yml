@@ -76,6 +76,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: gran
+          fetch-depth: 0
       - name: Пакеты и «Берёста» / Packages and Beresta
         shell: bash
         run: bash gran/tools/ci/gitverse_prepare.sh full beresta
@@ -85,6 +86,11 @@ jobs:
           cd gran
           make -j"$(nproc)" BERESTA_DIR=../beresta bindings
           nm -D --defined-only bin/libgran_c.so | grep -c " gran_"
+      - name: Совместимость выпуска / Release compatibility
+        working-directory: gran
+        env:
+          TARGET_BRANCH: ${{ gitverse.event.pull_request.base.ref || gitverse.base_ref || gitverse.ref_name }}
+        run: python3 -B tools/ci/compatibility.py --branch "$TARGET_BRANCH" --library bin/libgran_c.so --beresta ../beresta
 
   # ---- GPU-проверки на программном Vulkan (Mesa lavapipe, без окна) -------------
   # ---- The GPU checks on software Vulkan (Mesa lavapipe, without a window) -------------

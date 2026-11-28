@@ -81,6 +81,8 @@ namespace gran::markup::internal
                 writeParam(out, param);
             out += "      <xs:attribute name=\"id\" type=\"xs:NCName\"/>\n"
                    "      <xs:attribute name=\"slot\" type=\"xs:NCName\"/>\n"
+                   "      <xs:attribute name=\"customizable\" type=\"CustomizationList\"/>\n"
+                   "      <xs:attributeGroup ref=\"DesignLimits\"/>\n"
                    "      <xs:attribute name=\"visible\" type=\"BindableBoolean\"/>\n"
                    "      <xs:attribute name=\"enabled\" type=\"BindableBoolean\"/>\n"
                    "      <xs:attributeGroup ref=\"BoxAttributes\"/>\n"

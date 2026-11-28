@@ -93,6 +93,8 @@ namespace gran::input
             return;
         if (returnTo != nullptr && !ui::isShown(*returnTo))
             returnTo = nullptr;
+        if (popup.layoutInspector && returnTo && ui::isTextField(*returnTo))
+            state.selection = returnTo;
         changeFocus(state, returnTo);
     }
 

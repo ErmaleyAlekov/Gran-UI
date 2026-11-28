@@ -137,7 +137,9 @@ namespace gran
             if (caret == nullptr || !ui::isTextField(*caret) || !win.caretVisible)
                 caret = nullptr;
             const auto status = win.renderer->render(root, win.windowStyle, scale,
-                render::FrameMarks{caret, win.router->selected(), win.router->mnemonicsShown()});
+                render::FrameMarks{caret, win.router->selected(), win.router->mnemonicsShown(),
+                    layoutMark(win, win.shared.editSelection), layoutMark(win, win.shared.editDrop),
+                    win.shared.editMode && win.shared.windows.front().get() == &win ? &root : nullptr, win.shared.dropEdge});
             if (status == rhi::FrameStatus::DEVICE_LOST)
             {
                 win.deviceLost = true;
@@ -147,6 +149,7 @@ namespace gran
                 win.deviceLost = false;
                 return;
             }
+            if (status == rhi::FrameStatus::PRESENTED) logVideoMemory(win);
             checkGraphicsDiagnostics(win);
             syncAfterFrame(win, status);
             win.window->accessRefresh();

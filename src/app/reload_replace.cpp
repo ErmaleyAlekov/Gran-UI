@@ -12,8 +12,8 @@ namespace gran::app
         void prepareWindow(AppWindow& win, AppWindow& next, const ui::TreeState& saved)
         {
             next.pendingFocus = ui::restoreState(*next.document.root, saved, false);
-            win.shared.lists.refreshGridFilters(*next.document.root);
-            if (saved.hasFocus) next.pendingFocus = ui::restoreState(*next.document.root, saved, false);
+            if (win.shared.lists.refreshGridFilters(*next.document.root))
+                next.pendingFocus = ui::restoreState(*next.document.root, saved, false);
             if (!win.window) return;
             next.renderer = std::make_unique<render::Renderer>(*win.backend, win.shared.fonts, next.document.baseDirectory);
             next.router = std::make_unique<input::InputRouter>(*next.document.root, win, win.window.get(), win);
@@ -96,6 +96,10 @@ namespace gran::app
             checkpoint.check();
             prepareWindow(win, next, saved);
             checkpoint.check();
+            if (win.shared.applyingProfile)
+                moveApplicationChildren(win, next);
+            if ((win.shared.applyingProfile || win.shared.previewActive) && next.router && win.router)
+                next.router->adoptProfileInput(*win.router, layoutInspector(next), next.pendingFocus);
         }
         catch (...)
         {

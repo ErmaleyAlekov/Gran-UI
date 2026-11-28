@@ -35,6 +35,8 @@ namespace gran::app
     */
     void runCommand(AppWindow& win, const ui::Command& command, ui::Node& node)
     {
+        if (!command.sequence.empty())
+            return runSequence(win, command);
         std::string name = command.action;
 
         if (name.empty())

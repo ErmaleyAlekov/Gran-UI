@@ -38,7 +38,7 @@ build_mingw() {
     "$make_cmd" -j"$NUMBER_OF_PROCESSORS" BERESTA_DIR="$beresta" all bindings
     "$make_cmd" BERESTA_DIR="$beresta" test
     cp bin/libgran.a bin/gran_c.dll "$beresta/bin/libberesta.a" "$root/lib/"
-    cp bin/gran_rcc.exe bin/gran_snapshot.exe "$root/bin/"
+    cp bin/gran_rcc.exe bin/gran_snapshot.exe bin/gran_lint.exe "$root/bin/"
 }
 
 # Ищет в каталоге сборки CMake файл выпускной конфигурации по имени (ровно один,
@@ -70,7 +70,7 @@ build_msvc() {
     for file in gran.lib beresta_static.lib gran_c.dll gran_c.lib; do
         cp "$(find_release_file "$build" "$file")" "$root/lib/"
     done
-    for file in gran_rcc.exe gran_snapshot.exe; do
+    for file in gran_rcc.exe gran_snapshot.exe gran_lint.exe; do
         cp "$(find_release_file "$build" "$file")" "$root/bin/"
     done
     # Точная версия cl.exe известна только после настройки CMake — дописывается в сведения о сборке

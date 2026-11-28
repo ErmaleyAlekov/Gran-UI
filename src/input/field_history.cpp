@@ -21,6 +21,14 @@ namespace gran::input
         return node;
     }
 
+    // Команда панели использует поле, в которое вернётся фокус после меню.
+    // The toolbar command uses the field that regains focus after the menu.
+    bool InputRouter::pasteField()
+    {
+        auto* field = editingField(_state);
+        return field && _state.window && insertText(_state, *field, _state.window->clipboardText());
+    }
+
     bool InputRouter::canUndoField(bool redo)
     {
         ui::Node* field = editingField(_state);

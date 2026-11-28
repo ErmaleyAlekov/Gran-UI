@@ -83,7 +83,7 @@ namespace gran::input
         // A path node: current, the phase, the point in its system; at the target — the capture handlers first, then the bubbling ones
         void visit(ui::Node& node, ui::UiEvent& event, ActionSink& sink, ui::EventPhase phase, std::uint32_t version)
         {
-            Vec2 point = ui::windowToNode(node, event.position);
+            Vec2 point = ui::pointerToNode(node, event.position);
 
             event.current = &node;
             event.phase = phase;

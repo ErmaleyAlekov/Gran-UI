@@ -146,6 +146,7 @@ namespace gran::app
         // Окну нужен кадр в этом проходе цикла / The window needs a frame in this loop pass
         bool changed = false;
         bool deviceLost = false;
+        double nextMemoryLog = 0;
         double presentationRetry = -1;
         std::uint64_t presentationId = 0;
         std::uint64_t presentationRequest = 0;

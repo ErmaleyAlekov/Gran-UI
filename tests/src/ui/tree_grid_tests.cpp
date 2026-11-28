@@ -221,6 +221,32 @@ namespace
         TEST_ASSERT(app.find("og")->content.grid->columns[0].filterText == "ан");
     }
 
+    void testFilterFocusKeptOnFullProfileInstall()
+    {
+        gran::Application app(headless());
+        std::string markup = MARKUP;
+        markup.replace(markup.find("<Stack>"), 7, "<Stack id=\"host\">");
+        app.loadString(markup);
+        auto runtime = std::make_unique<gran::ui::Node>();
+        runtime->kind = gran::ui::ElementKind::TEXT;
+        runtime->id = "runtime";
+        app.append(*app.find("host"), std::move(runtime));
+        gran::AppDriver driver(app);
+        driver.start();
+        driver.click(*filterInput(app, "og", 0));
+        driver.type("ан");
+        TEST_ASSERT(app.proxy("view").size() == 1);
+        app.importProfile("filtered", R"(<Overlay version="1"/>)");
+        driver.settle();
+        TEST_ASSERT(app.settings().getString("gran.activeProfile") == "filtered");
+        TEST_ASSERT(filterInput(app, "og", 0)->content.text == "ан");
+        TEST_ASSERT(app.find("og")->content.grid->columns[0].filterText == "ан");
+        TEST_ASSERT(app.proxy("view").size() == 1);
+        driver.type("н");
+        TEST_ASSERT(filterInput(app, "og", 0)->content.text == "анн");
+        TEST_ASSERT(app.proxy("view").size() == 1);
+    }
+
     // Числа: driver.click(*filterInput(app,"og",1)); driver.type(">=10") -> app.proxy("view").size() == 2; стереть 4 раза BACKSPACE, type("abc") -> size() == 0.
     // Numbers: driver.click(*filterInput(app,"og",1)); driver.type(">=10") -> app.proxy("view").size() == 2; erase 4 times BACKSPACE, type("abc") -> size() == 0.
     void testNumberFilter()
@@ -322,6 +348,7 @@ namespace suites
         runner.add("tree grid: Above Filter", testAboveFilter);
         runner.add("tree grid: Column Reordering", testColumnReordering);
         runner.add("tree grid: filter kept on rebuild", testFilterKeptOnRebuild);
+        runner.add("tree grid: full profile install restores filter focus", testFilterFocusKeptOnFullProfileInstall);
         runner.add("tree grid: filter dropped with the table", testFilterDroppedWithTable);
         runner.add("tree grid: filter dropped without filterRow", testFilterDroppedWithoutFilterRow);
         runner.add("tree grid: other table keeps the filter", testOtherTableKeepsFilter);

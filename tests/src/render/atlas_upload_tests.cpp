@@ -183,6 +183,32 @@ namespace
         TEST_ASSERT(!scene.instances.empty() && scene.instances.back().kind == gran::render::KIND_IMAGE);
     }
 
+    void testLayoutDropMarkGeometry()
+    {
+        using namespace gran;
+        rhi::NullBackend backend;
+        text::FontLibrary fonts;
+        render::TextEngine text(fonts);
+        text::GlyphAtlas atlas;
+        render::GradientRamps ramps;
+        render::ImageStore images(backend, "");
+        render::SceneResources resources{text, atlas, ramps, images};
+        render::Scene scene;
+        ui::Node root;
+        auto& target = ui::appendChild(root, std::make_unique<ui::Node>());
+        target.layout.frame = {20, 30, 80, 40};
+        resources.editDrop = &target;
+        render::buildScene(root, {}, 1, resources, scene);
+        TEST_ASSERT(scene.instances.size() == 1);
+        const auto frame = scene.instances.back();
+        TEST_ASSERT(frame.rect[0] == 20 && frame.rect[1] == 30 && frame.rect[2] == 80 && frame.rect[3] == 40);
+        resources.dropEdge = render::DropEdge::BOTTOM;
+        render::buildScene(root, {}, 1, resources, scene);
+        TEST_ASSERT(scene.instances.size() == 1);
+        const auto edge = scene.instances.back();
+        TEST_ASSERT(edge.rect[0] == 20 && edge.rect[1] == 67 && edge.rect[2] == 80 && edge.rect[3] == 3);
+    }
+
     void testUnrepresentableGlyphSizes()
     {
         auto bytes = font_samples::buildFont({font_samples::squareGlyph()});
@@ -299,6 +325,7 @@ namespace suites
         runner.add("renderer: skips an empty image box", testEmptyImageBox);
         runner.add("renderer: small switch and wide control ranges", testExtremeControlGeometry);
         runner.add("renderer: visits a deep programmatic scene", testDeepScene);
+        runner.add("renderer: layout drop paints either the frame or its edge", testLayoutDropMarkGeometry);
         runner.add("renderer: releases failed image uploads and shares cached textures", testImageUploadRetry);
         runner.add("renderer: keeps gradient rows stable during replay", testPinnedGradientRows);
         runner.add("renderer: selects the last stop on a gradient edge", testCoincidentGradientStops);

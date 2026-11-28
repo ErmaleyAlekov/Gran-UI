@@ -59,4 +59,19 @@ namespace gran::rhi::dx12
         info.driver = driverVersion(adapter);
         return info;
     }
+
+    VideoMemoryInfo dxgiMemory(IDXGIAdapter* adapter)
+    {
+        VideoMemoryInfo info;
+        ComRef<IDXGIAdapter3> local;
+        DXGI_QUERY_VIDEO_MEMORY_INFO memory{};
+        if (adapter && SUCCEEDED(adapter->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(local.put())))
+            && SUCCEEDED(local->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memory)))
+        {
+            info.budgetAvailable = true;
+            info.budgetBytes = memory.Budget;
+            info.usageBytes = memory.CurrentUsage;
+        }
+        return info;
+    }
 }

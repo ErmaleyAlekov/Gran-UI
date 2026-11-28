@@ -25,10 +25,12 @@ namespace
     gran::AppOptions parseOptions(int argc, char* argv[], std::string& markup, std::string& file)
     {
         gran::AppOptions options;
+        options.appName = "Gran UI Editor";
         for (int index = 1; index < argc; ++index)
         {
             std::string argument = argv[index];
             if (argument == "--debug") options.debugLayer = true;
+            else if (argument == "--no-overlay") options.skipCustomization = true;
             else if (argument == "--d3d11") options.backend = gran::rhi::BackendKind::D3D11;
             else if (argument == "--d3d12") options.backend = gran::rhi::BackendKind::D3D12;
             else if (argument == "--vulkan") options.backend = gran::rhi::BackendKind::VULKAN;

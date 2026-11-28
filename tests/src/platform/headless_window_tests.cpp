@@ -131,6 +131,20 @@ namespace
         TEST_ASSERT_THROWS(backend.releaseTexture(7), gran::GranException);
     }
 
+    // Без GPU бюджет недоступен, а счётчики пусты.
+    // Without a GPU the budget is unavailable and the counters are zero.
+    void testNullBackendVideoMemoryInfo()
+    {
+        const gran::rhi::NullBackend backend;
+        const auto info = backend.videoMemoryInfo();
+
+        TEST_ASSERT(!info.budgetAvailable);
+        TEST_ASSERT(info.budgetBytes == 0u);
+        TEST_ASSERT(info.usageBytes == 0u);
+        TEST_ASSERT(info.textureBytes == 0u);
+        TEST_ASSERT(info.bufferBytes == 0u);
+    }
+
     void testNullBackendRender()
     {
         gran::rhi::NullBackend backend;
@@ -161,6 +175,7 @@ namespace suites
         runner.add("headless: dropFiles", testHeadlessWindowDropFiles);
         runner.add("headless: stateChanges", testHeadlessWindowStateChanges);
         runner.add("headless: nullBackendTextureManagement", testNullBackendTextureManagement);
+        runner.add("headless: nullBackendVideoMemoryInfo", testNullBackendVideoMemoryInfo);
         runner.add("headless: nullBackendRender", testNullBackendRender);
     }
 }

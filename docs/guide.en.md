@@ -1,5 +1,6 @@
 # Gran UI — Guide
 
+
 [Русский](guide.md) · **English**
 
 ← [Back to Description](../README.md)
@@ -1649,3 +1650,46 @@ All engine errors are exceptions `gran::GranException` (`gran/core/gran_exceptio
 Message texts are stored in the message catalog (Russian and English). The language is changed by calling
 `gran::i18n::setLanguage("en")` (`gran/core/i18n.hpp`).
 
+## User customization
+
+Press **Ctrl+Shift+F12** (**Cmd+Shift+F12** on macOS) or choose **View → Customize Layout**. A colored border marks the editing window. Drag a button or region to a sibling edge to reorder it, or into the center of a container that accepts inserts. Drag a corner to resize in four logical pixel increments. Delete hides the selection.
+
+Right-click an element to open its properties inside the working window. With the keyboard, focus it using Tab and press Shift+F10 or the context menu key. Use the inspector to adjust dimensions, apply a style token locally or globally, and assign an action from the author’s palette. The `command` permission allows a `Rebind` operation to replace the button’s previous `onClick` and `popup`. Escape closes the inspector. Press Escape again to leave edit mode.
+
+When the author exposes only global tokens, press Shift+F10 in the working window to edit them.
+
+Press **Ctrl+F12** (**Cmd+F12** on macOS) or choose **View → Layout Profiles** to save or select a profile. This separate command, `gran:profiles`, also works outside edit mode.
+
+The nearest explicit `customizable` list replaces the inherited permissions. An empty list disables editing. `move` permits moving the element, `insert` permits receiving elements, `hide` permits hiding it, and `style` permits local style and size changes. Reordering within the same parent requires `move` on the source. Give each addressable element a stable `id`.
+
+```xml
+<Window>
+  <Resources>
+    <Theme><Token name="captionSize" type="size" value="16" min="12" max="24"/></Theme>
+    <Command id="save" text="Save"/>
+    <Palette><CommandRef ref="save"/></Palette>
+  </Resources>
+  <Stack id="tools" customizable="insert" minTargetSize="24" requireAccessibleName="true">
+    <Button id="saveButton" command="save" customizable="move hide style"
+            fontSize="$captionSize"/>
+  </Stack>
+</Window>
+```
+
+A palette `<Template name="…">` can contain an instance of a component from an included library with its parameters. Exposed token types are `color`, `font`, `size`, `density`, and `radius`. Numeric values support `min` and `max`. Untyped theme tokens keep their original behavior. Set `minTargetSize`, `minTextContrast`, and `requireAccessibleName` on the window or a region. `minTargetSize` sets the minimum hit target size after applying `transform` to the element and its ancestors, including state transforms. During animation, the hit target expands around the current center of the element as needed. Drawing continues to follow the animation. In the style editor select a token and either a region or the entire window. Validation errors appear in the panel and preserve the active profile.
+
+In the palette, add commands to a sequence in execution order, enter a caption and create the button. One undo covers the steps recorded by the handlers on the main and named application undo stacks. External effects such as sending a message occur when the button is pressed and persist after undo. The palette also accepts custom shortcuts.
+
+Compound commands run in the specified order, including nested commands. Markup and profile validation reject cycles. One run can execute up to 1024 actions, including each repeated occurrence in nested sequences. Disabled and missing commands are skipped. The initial sequence is checked before its first action. If a handler makes a new branch available, the branch is checked against the remaining budget before running any of its actions. In Paste → Save, Save still runs when the clipboard is empty or the focused field is read-only. A handler exception stops the sequence. If a group redo throws, the reversible steps already replayed are automatically undone. If that undo also fails, the applied portion can still be undone and the remaining portion can be redone.
+
+A profile stores operations by ID. Save profiles under distinct names, switch between them, export or import a file, or reset the entire profile or the selected region. An exported file can contain:
+
+```xml
+<Overlay version="1">
+  <Insert id="extraSave" parent="tools" command="save"/>
+  <Hide id="saveButton"/>
+  <Token name="captionSize" value="18"/>
+</Overlay>
+```
+
+Set `AppOptions::appName` or `settingsFile` to persist profiles between sessions. Hold Shift when opening the application or run `gran_editor --no-overlay` for safe startup. Run `gran_lint window.xml --previous old-window.xml` to validate a window and report missing stable IDs. C applications can use `gran_app_edit_mode`, `gran_profile_import/select/export/reset`, and `gran_app_on_layout_changed`. Release exported strings with `gran_string_free`. The Python, C#, and Java wrappers expose corresponding methods.

@@ -52,6 +52,7 @@ namespace gran::ui
         CommandScope scope = CommandScope::WINDOW;
         std::string within;
         bool enabled = true;
+        std::vector<std::string> sequence;
     };
 
     // ---- shortcut_parse.cpp ----

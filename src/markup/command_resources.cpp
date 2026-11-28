@@ -5,6 +5,7 @@
 #include "beresta.hpp"
 
 #include <utility>
+#include <sstream>
 
 namespace gran::markup::internal
 {
@@ -48,6 +49,9 @@ namespace gran::markup::internal
         result.id = attributeText(command, "id");
         result.text = attributeText(command, "text");
         result.action = attributeText(command, "action");
+        std::istringstream sequence(attributeText(command, "sequence"));
+        for (std::string id; sequence >> id;)
+            result.sequence.push_back(std::move(id));
         result.scope = readScope(command);
         result.within = attributeText(command, "within");
         if (enabled != nullptr)

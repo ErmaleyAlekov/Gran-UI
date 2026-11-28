@@ -60,6 +60,9 @@ namespace gran::app
 
         if (next.baseDirectory != win.document.baseDirectory || !markup::planPatch(win.document, next, plan))
             return false;
+        // При переносе между ветвями нужен общий снимок полей, выделения и истории.
+        // A cross-branch move needs one window-wide snapshot of fields, selections and history.
+        if (win.shared.applyingProfile && plan.rebuild.size() > 1) return false;
         if (!buildBranches(win, plan, branches))
             return false;
         std::shared_ptr<beresta::Document> previous = std::move(win.document.dom);

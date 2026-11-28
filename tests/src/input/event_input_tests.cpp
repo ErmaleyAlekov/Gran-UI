@@ -1,6 +1,8 @@
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
 #include "gran/input/input_router.hpp"
+#include "gran/animation/animator.hpp"
+#include "gran/markup/theme.hpp"
 #include "gran/markup/markup_loader.hpp"
 #include "gran/ui/node.hpp"
 #include "support/layout_helpers.hpp"
@@ -32,6 +34,11 @@ namespace
             else if (name == "prevent")
             {
                 event.preventDefault();
+            }
+            else if (name == "animatedUp")
+            {
+                TEST_ASSERT_NEAR(event.local.x, 22.0f, 0.001f);
+                TEST_ASSERT_NEAR(event.local.y, 22.0f, 0.001f);
             }
             else if (name == "mv")
             {
@@ -133,6 +140,84 @@ namespace
 
         TEST_ASSERT((sink.log == std::vector<std::string>{"dbl:b:2"}));
         TEST_ASSERT(sink.doubleClickHandled);
+    }
+
+    int clickDuringTransform(const char* minimum, float releaseX, bool animateParent)
+    {
+        using namespace gran;
+        const std::string transform = R"xml( transform="scale(1,1)" transition="transform 1s linear">)xml";
+        const std::string pressed = R"xml(<Pressed transform="scale(-1,1)"/>)xml";
+        const auto button = R"(<Button id="target" width="44" height="44" text="Click" onClick="act" onPointerUp="animatedUp")";
+        const auto body = animateParent
+            ? "<Stack id=\"parent\" width=\"44\" height=\"44\"" + transform + pressed + button + R"xml(><Pressed transform="none"/></Button></Stack>)xml"
+            : button + transform + pressed + "</Button>";
+        auto doc = markup::loadMarkupString(std::string("<Window") + minimum + ">" + body + "</Window>", {});
+        auto& target = *ui::findNode(*doc.root, "target");
+        auto& animated = animateParent ? *doc.root : target;
+        target.layout.frame = animated.layout.frame = {0, 0, 44, 44};
+        const auto& theme = markup::defaultTheme();
+        const auto windowStyle = markup::windowStyle(theme, doc.window);
+        animation::Animator animator;
+        ActionSinkStub sink;
+        TextLocatorStub locator;
+        platform::HeadlessWindow window;
+        input::InputRouter router(*doc.root, sink, &window, locator);
+
+        animator.setTime(0);
+        ui::resolveStyles(*doc.root, windowStyle, theme.kinds, &animator);
+        platform::Event event;
+        event.kind = platform::EventKind::MOUSE_DOWN;
+        event.button = platform::MouseButton::LEFT;
+        event.position = {22, 22};
+        router.handle(event);
+        if (animateParent)
+            animated.stateMask = style::stateBit(style::State::PRESSED);
+        ui::markDirty(animated, ui::DIRTY_STYLE);
+        ui::resolveStyles(*doc.root, windowStyle, theme.kinds, &animator);
+        animator.setTime(0.5);
+        animator.tick();
+        TEST_ASSERT(ui::nodeTransform(animated).a == 0);
+        event.kind = platform::EventKind::MOUSE_UP;
+        event.position.x = releaseX;
+        router.handle(event);
+        return sink.actionCount;
+    }
+
+    void testAnimatedTargetClick()
+    {
+        const auto minimum = R"( minTargetSize="44")";
+        TEST_ASSERT(clickDuringTransform(minimum, 22, false) == 1);
+        TEST_ASSERT(clickDuringTransform(minimum, 22, true) == 1);
+        TEST_ASSERT(clickDuringTransform(minimum, 45, false) == 0);
+        TEST_ASSERT(clickDuringTransform("", 22, false) == 0);
+    }
+
+    void testExpandedTargetClipsAndStacks()
+    {
+        using namespace gran;
+        auto doc = markup::loadMarkupString(R"(<Window minTargetSize="44"><Stack>
+            <Stack id="clip" overflow="hidden"><Button id="target" text="Target"/></Stack>
+            <Box id="cover"/>
+            </Stack></Window>)", {});
+        auto& clip = *ui::findNode(*doc.root, "clip");
+        auto& target = *ui::findNode(*doc.root, "target");
+        auto& cover = *ui::findNode(*doc.root, "cover");
+        clip.layout.frame = {0, 0, 34, 44};
+        target.layout.frame = {0, 0, 44, 44};
+        cover.layout.frame = {20, 0, 14, 44};
+        const auto& theme = markup::defaultTheme();
+        ui::resolveStyles(*doc.root, markup::windowStyle(theme, doc.window), theme.kinds, nullptr);
+        target.computed.transform = {{style::TransformKind::SCALE, 0, 1}};
+        TEST_ASSERT(input::hitTest(*doc.root, {12, 22}) == &target);
+        TEST_ASSERT(input::hitTest(*doc.root, {25, 22}) == &cover);
+        TEST_ASSERT(input::hitTest(*doc.root, {40, 22}) != &target);
+        target.computed.transform = {{style::TransformKind::SCALE, 0.5f, 1}};
+        TEST_ASSERT(input::hitTest(*doc.root, {10, 22}) == &target);
+        TEST_ASSERT(input::hitTest(*doc.root, {11, 22}) == &target);
+        const auto expanded = ui::pointerToNode(target, {10, 22});
+        const auto edge = ui::pointerToNode(target, {11, 22});
+        TEST_ASSERT_NEAR(expanded.x, edge.x, 0.001f);
+        TEST_ASSERT_NEAR(expanded.x, target.layout.frame.x, 0.001f);
     }
 
     // Сдвиг прокрутки после одного щелчка колеса / The scroll shift after one wheel notch
@@ -324,6 +409,8 @@ namespace suites
     void registerEventInputTests(test::TestRunner& runner)
     {
         runner.add("events: double click", testDoubleClick);
+        runner.add("events: minimum target click during a singular transform", testAnimatedTargetClick);
+        runner.add("events: expanded hit target preserves clip and stacking", testExpandedTargetClipsAndStacks);
         runner.add("events: wheel", testWheel);
         runner.add("events: pointer capture", testPointerCapture);
         runner.add("events: drag and drop", testDragAndDrop);

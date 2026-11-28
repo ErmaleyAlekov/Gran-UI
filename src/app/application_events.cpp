@@ -64,6 +64,8 @@ namespace gran::app
         // Окно под модальным: ввод не доходит до дерева / A window under a modal one: the input does not reach the tree
         if (dropBlockedInput(win, event))
             return false;
+        if (handleLayoutInput(win, event))
+            return true;
         // Открытая правка ячейки записывается до onClose: обработчик сохраняет данные уже с набранным значением (Т-69)
         // An open cell edit is written before onClose: the handler saves the data with the typed value already (T-69)
         bool edited = win.gridEdit != nullptr;
@@ -86,7 +88,10 @@ namespace gran::app
                 // Before and after the input — safe points: a deferred cell edit (an editor key, the focus leaving, the program
                 // code between the events) finishes outside the router work (review T-69)
                 edited = settleGridEdit(win);
+                auto* inspector = win.shared.editMode ? layoutInspector(win) : nullptr;
+                const bool inspecting = inspector && inspector->visible;
                 edited = win.router->handle(event) || edited;
+                if (inspecting && layoutInspector(win) == inspector && !inspector->visible) cancelStylePreview(win.shared);
                 return settleGridEdit(win) || edited;
         }
         ui::markDirty(*win.document.root, ui::DIRTY_LAYOUT | ui::DIRTY_PAINT);

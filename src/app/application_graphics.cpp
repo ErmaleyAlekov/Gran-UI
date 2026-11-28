@@ -39,6 +39,7 @@ namespace gran::app
             else
                 win.backend = rhi::createPlatformBackend(options);
             win.window->enableFrameRequests(win.backend->canConfirmPresentation());
+            win.nextMemoryLog = 0;
             win.presentationRetry = -1;
             win.renderer = std::make_unique<render::Renderer>(*win.backend, win.shared.fonts,
                 win.document.baseDirectory);

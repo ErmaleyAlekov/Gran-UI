@@ -1,4 +1,5 @@
 #include "linux_tests.hpp"
+#include "../render/render_tests.hpp"
 #include <iostream>
 #include <string>
 
@@ -42,7 +43,14 @@ int main(int argc, char* argv[])
             else throw std::invalid_argument(argument);
         }
         if (window) linux_tests::window();
-        else linux_tests::backend();
+        else
+        {
+            linux_tests::backend();
+            render_tests::Options options;
+            options.backend = gran::rhi::BackendKind::VULKAN;
+            options.warp = !linux_tests::hardwareMode();
+            if (!render_tests::runDeviceRecovery(options)) return 1;
+        }
         std::cout << "Linux checks passed\n";
         return 0;
     }

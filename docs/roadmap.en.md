@@ -101,9 +101,9 @@ Recommendations without which it is hard to use the engine in serious programs. 
 
 **P.2. Release Build by Tag.** *Done 2026-11-15* ([release archives](building.en.md#prebuilt-release-archives)): the `vX.Y.Z` tag builds the Windows x64 (MinGW and MSVC) and Linux x86_64 (GCC 8 in the Astra 1.7 image and GCC 10 in the ALT p10 image) archives with the headers, the libraries, `gran_c`, `gran_rcc`, `gran_snapshot`, SHA-256 and the notes from CHANGELOG — on GitHub and Gitverse. Remaining: the Linux aarch64 and macOS universal archives; signing the archives is P.9.
 
-**P.3. Binary Interface Verification.** For each public structure in `gran.h` — `static_assert` on `sizeof` and `offsetof` fields (already done for GPU structures). A custom script compares the list of exported symbols in `gran_c` and signatures in `gran.h` with tag `vX.Y.0`; any difference on the `release/X.Y` branch — CI failure.
+**P.3. Binary interface verification.** Implemented 2026-11-27. Windows and Linux builds check the size and field offsets of public C structures. CI checks the exported functions, signatures, callback types and constants against the release tag. Pull requests targeting `release/X.Y` use the strict `vX.Y.0` baseline.
 
-**P.4. Markup Compatibility Check.** The markup corpus (examples in `samples/`, documentation fragments, tests) version X.Y.0 must pass the release branch schema. Schema comparison: only fixes are allowed on the branch, only extensions (new elements and optional attributes) in the minor version.
+**P.4. Markup compatibility.** Implemented 2026-11-27. CI compares the UI schemas and runs Beresta on samples, test XML and documentation examples from the baseline. Minor releases can extend the schema with compatible elements and optional attributes. Changes to existing constraints require an explicitly reviewed correction.
 
 **P.5. Integration Package.** `cmake --install` distributes headers, libraries, and `GranUIConfig.cmake` with `GranUIConfigVersion.cmake` (compatibility `SameMinorVersion` up to 1.0, `SameMajorVersion` after), so the program writes `find_package(GranUI 0.3 CONFIG REQUIRED)`; file `gran-ui.pc` for pkg-config; correct soname for the Linux library `libgran_c.so.<ABI>`; VERSIONINFO resource with the number from `gran_version.h`, icon, and manifest for `gran_c.dll` and example programs. The build checks the minimum version of Beresta.
 
@@ -152,7 +152,11 @@ The section is compiled according to the recommendations of the project's lead d
 ### R.2 Video memory and long sessions
 
 **Currently:** D3D12, D3D11, Vulkan, software WARP and lavapipe. **Risk:** transitioning between backends (backup path D3D12 → D3D11, device loss, GPU change) requires consistently recreating pipelines, texture caches, and atlases; during sessions in hours and days, video memory can grow and fragment (glyph atlas, texture table, image buffers).
+
+**Implemented for 0.3.0.** RHI memory queries, logging and the `gran_video_memory` example. A regression test compares pixels across the normal graphics recovery path after a synthetic `DEVICE_LOST`. Displaying counters in the inspector is tracked under C.1.
+
 **What we do:**
+
 - video memory accounting: budget and usage through `IDXGIAdapter3::QueryVideoMemoryInfo` and `VK_EXT_memory_budget`, engine counters (atlas, textures, upload buffers)—in logs and in the inspector (C.1);
 - large block allocation with suballocation (instead of separate allocation for each resource), reuse of freed areas, compaction of the glyph atlas when fragmentation exceeds a threshold;
 - recreation check: a test that forcibly "loses" the device (D3D12 `RemoveDevice`, backend switch on the fly) and compares frames before and after—the scene is stored on the CPU, so the frames must match;
@@ -233,6 +237,8 @@ Steps (split on 2026-11-16; every step brings tests, snapshots, XSD, UIA, the C 
 
 ## C. User-Customizable Interface
 
+See the [guide](guide.en.md#user-customization) for the implementation of C.1–C.7 and the editor example. [T-253](../tests/manual/tasks/2026-11-27-customization.md) covers the live window, screen reader, and profiles across upgrades.
+
 Decision of 2026-11-16 (the user): moved from "Future Ideas" into the plan, release 0.4.0 — right after DataGrid.
 This is the showcase of the engine: every user of a program changes the interface to suit themselves — the placement,
 the functions and the styles — without touching XML and without breaking the program. Qt, WPF and Electron have nothing
@@ -268,8 +274,8 @@ zones (1.1), dockable panels with moving and floating (2.1).
 | **C.1** | Limits from the developer: the `customizable` attribute (move, hide, restyle) inherited down the tree, `<Palette>` — commands and component templates with parameters, `<Token name type min max>` — open style tokens bounded by XSD facets; the schema, `gran_lint` checks of the limits |
 | **C.2** | The overlay: the `gran-overlay.xsd` format (move, hide, insert from the palette, set an attribute or a token — by `id`), applying to the live DOM at load and on the fly, schema checking with rollback, skipping unknown `id`s with a warning, storage in the OS settings folder, reset entirely and per area, safe start |
 | **C.3** | The edit mode: a layer over the window — frames, handles, insertion zones, snapping and minimum sizes; dragging panels, buttons, tabs, hiding; undo and redo of layout edits; editing from the keyboard and in UI Automation (the mode is available to the screen reader) |
-| **C.4** | The palette and compound commands: adding commands and templates from the palette, a compound button — a list of commands with a common undo step (no scripts), own shortcuts with conflict checking |
-| **C.5** | User styles: an editor of the open tokens (color, font, size, density, radii) for the whole program or an area; the `xs:assert` rules check the edits, a violation is shown with the reason; live preview |
+| **C.4** | The palette and compound commands: adding commands and templates from the palette, a compound button — a list of commands with one undo step, ordered execution of nested commands and cycle validation (no scripts). A run allows up to 1024 actions, including nested and repeated occurrences. The initial sequence is checked before its first action, and new branches are checked against the remaining budget before entry. A failed group redo rolls back the completed steps. A paste that leaves the document unchanged still allows the subsequent save. Custom shortcuts with conflict checking |
+| **C.5** | User styles: an editor of the open tokens (color, font, size, density, radii) for the whole program or an area; the `xs:assert` rules check the edits, minimum hit target size is checked after transforms, including state transforms, and maintained during animations; a violation is shown with the reason; live preview |
 | **C.6** | Profiles: several overlay sets, switching on the fly, export and import as a file with schema checking on import |
 | **C.7** | The C interface and wrappers (turning the edit mode on, profiles, reset, layout change events), the RU/EN guide, an example — an editor with the edit mode, manual check tasks (live window, screen reader, a program update over an overlay) |
 

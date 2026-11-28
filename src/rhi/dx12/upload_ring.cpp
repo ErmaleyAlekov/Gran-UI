@@ -69,4 +69,8 @@ namespace gran::rhi::dx12
         _offset = start + size;
         return true;
     }
+    std::uint64_t UploadRing::capacity() const noexcept
+    {
+        return _capacity;
+    }
 }

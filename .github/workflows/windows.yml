@@ -59,6 +59,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           path: gran
+          fetch-depth: 0
       - uses: actions/checkout@v5
         with:
           repository: ErmaleyAlekov/beresta
@@ -98,6 +99,11 @@ jobs:
         timeout-minutes: 25
         working-directory: gran
         run: mingw32-make BERESTA_DIR=../beresta bindings 2>&1 | tee -a "$GITHUB_WORKSPACE/$CI_LOG"
+      - name: Совместимость выпуска / Release compatibility
+        working-directory: gran
+        env:
+          TARGET_BRANCH: ${{ github.base_ref || github.ref_name }}
+        run: python -B tools/ci/compatibility.py --branch "$TARGET_BRANCH" --library bin/gran_c.dll --beresta ../beresta
       - name: Журнал в аннотации / The log into annotations
         if: failure() || cancelled()
         run: bash gran/tools/ci/annotate_log.sh "$GITHUB_WORKSPACE/$CI_LOG" "Windows make"

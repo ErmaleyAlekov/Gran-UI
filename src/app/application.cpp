@@ -34,13 +34,13 @@ namespace gran
         if (!res::isResourcePath(path))
             absolute = fs::absolutePath(path);
 
-        app::stageDocument(*_state, markup::loadMarkupFile(absolute, markup::LoadOptions{}), absolute);
+        app::stageBaseDocument(*_state, markup::loadMarkupFile(absolute, markup::LoadOptions{}), absolute);
     }
 
     // Разметка из строки (шрифты — относительно текущего каталога) / Markup from a string (the fonts are relative to the current directory)
     void Application::loadString(std::string_view markup)
     {
-        app::stageDocument(*_state, markup::loadMarkupString(markup, markup::LoadOptions{}), "");
+        app::stageBaseDocument(*_state, markup::loadMarkupString(markup, markup::LoadOptions{}), "");
     }
 
     // Обработчик заменяет прежний с тем же именем / The handler replaces a former one with the same name

@@ -91,6 +91,8 @@ namespace gran::rhi::vk
         auto info = structure<VkDeviceCreateInfo>(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
         info.queueCreateInfoCount = 1; info.pQueueCreateInfos = &queue;
         std::vector<const char*> extensions;
+        _memoryBudget = supportsMemoryBudget(candidate);
+        if (_memoryBudget) extensions.push_back("VK_EXT_memory_budget");
         if (_surface.get() != VK_NULL_HANDLE) extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 #if defined(VK_KHR_present_wait) && defined(VK_KHR_present_id)
         auto wait = structure<VkPhysicalDevicePresentWaitFeaturesKHR>(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR);

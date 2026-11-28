@@ -15,7 +15,7 @@ namespace gran::input
         */
         int dropSideAt(const ui::Node& host, Vec2 point) noexcept
         {
-            Vec2 local = ui::windowToNode(host, point);
+            Vec2 local = ui::pointerToNode(host, point);
             const Rect& frame = host.layout.frame;
             float x = (local.x - frame.x) / std::fmax(1.0f, frame.width);
             float y = (local.y - frame.y) / std::fmax(1.0f, frame.height);

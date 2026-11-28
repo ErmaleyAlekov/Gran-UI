@@ -39,6 +39,13 @@ namespace gran::app
         {
             platform::Window* window = win.window.get();
 
+            if (command == "paste" || command == "profiles" || command == "createElement")
+            {
+                if (command == "profiles") openLayoutPanel(win.shared);
+                else if (command == "createElement") openLayoutCreator(win);
+                else if (win.router) win.router->pasteField();
+                return true;
+            }
             if (command != "close" && command != "minimize" && command != "maximize" && command != "restore")
                 return false;
             if (window == nullptr)
@@ -72,6 +79,8 @@ namespace gran::app
         // A menu anchor without an argument is the node itself (it needs no id); the pointer capture without an id is the node itself too
         void runBuiltin(Application::State& state, const BuiltinCall& call, ui::Node& node)
         {
+            if (call.command == "layout")
+                return layoutPanelAction(windowOf(state, node), node, call.target);
             if ((!call.target.empty() || !call.argument.empty())
                 && (call.command == "minimize" || call.command == "maximize" || call.command == "restore"))
                 throw GranException(ErrorCode::INVALID_ARGUMENT, "gran:" + call.command);
@@ -84,12 +93,10 @@ namespace gran::app
                 std::string result = call.target;
                 if (!call.argument.empty())
                     result += ":" + call.argument;
-                markClosing(state, node, result);
-                return;
+                return markClosing(state, node, result);
             }
-            if (call.target.empty() && fieldHistory(windowOf(state, node), call.command))
-                return;
-            if (call.target.empty() && (treeRowBuiltin(state, call.command, node) || gridHeaderBuiltin(state, call.command, node)))
+            if (call.target.empty() && (fieldHistory(windowOf(state, node), call.command)
+                || treeRowBuiltin(state, call.command, node) || gridHeaderBuiltin(state, call.command, node)))
                 return;
             if (call.target.empty() && call.command == "capturePointer")
                 state.owner->capturePointer(node);

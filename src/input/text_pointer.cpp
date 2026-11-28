@@ -1,4 +1,5 @@
 #include "gran/input/internal/text_cursor.hpp"
+#include "gran/input/internal/text_history.hpp"
 
 namespace gran::input
 {
@@ -47,12 +48,16 @@ namespace gran::input
         internal::placeCaret(*state.selecting, state.text->offsetAt(*state.selecting, point), true);
     }
 
-    // Выделение схлопывается в каретку; узел перерисовывается / The selection collapses into the caret; the node is repainted
-    void clearSelection(RouterState& state)
+    // Инспектор временно забирает ввод, сохраняя диапазон редактируемого текста.
+    // The layout inspector temporarily takes input while preserving the edited text range.
+    void clearSelection(RouterState& state, bool preserveRange)
     {
         if (state.selection == nullptr)
             return;
-        internal::placeCaret(*state.selection, state.selection->content.caret, false);
+        if (preserveRange)
+            internal::breakTyping(*state.selection);
+        else
+            internal::placeCaret(*state.selection, state.selection->content.caret, false);
         state.selection = nullptr;
         state.selecting = nullptr;
     }

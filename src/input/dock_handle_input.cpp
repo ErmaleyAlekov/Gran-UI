@@ -7,7 +7,7 @@ namespace gran::input
     // Точка окна над крестиком у правого края заголовка (вкладки документов, заголовок панели) / A window point over the cross at the header right edge (document tabs, a panel title)
     bool closeMarkHit(const ui::Node& header, Vec2 point)
     {
-        Vec2 local = ui::windowToNode(header, point);
+        Vec2 local = ui::pointerToNode(header, point);
         const Rect& frame = header.layout.frame;
         float right = frame.x + frame.width - header.computed.padding.right - header.computed.borderWidth.right;
         float mark = header.computed.fontSize * ui::TAB_CLOSE_SIZE;
@@ -47,7 +47,7 @@ namespace gran::input
         const auto index = static_cast<std::size_t>(side);
         if (index >= ui::DOCK_SIDES)
             return;
-        Vec2 local = ui::windowToNode(*host, point);
+        Vec2 local = ui::pointerToNode(*host, point);
         const Rect& frame = host->layout.frame;
         float length = local.x - frame.x;
         if (side == ui::DockSide::RIGHT)

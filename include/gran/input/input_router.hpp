@@ -329,6 +329,7 @@ namespace gran::input
         // Открыть слой у рамки якоря (окно); passive — подсказка: не ловит мышь, не забирает фокус
         // Opening a layer at the anchor frame (window); passive — a tooltip: does not catch the mouse, does not take the focus
         void openPopup(ui::Node& popup, const Rect& anchor, bool passive);
+        void adoptProfileInput(InputRouter& previous, ui::Node* dialog, ui::Node* focus);
 
         // Закрыть слой (фокус из него возвращается туда, где был до открытия) / Closing a layer (the focus in it returns where it was before opening)
         void closePopup(ui::Node& popup);
@@ -372,6 +373,7 @@ namespace gran::input
 
         // Отменить / повторить правку редактируемого поля; false — нечего (тогда — стек приложения) / Undo / redo an edit of the edited field; false — nothing (then — the application stack)
         bool undoField(bool redo);
+        bool pasteField();
 
     private:
         RouterState _state;
@@ -868,7 +870,7 @@ namespace gran::input
     void dragTextSelection(RouterState& state, Vec2 point);
 
     // Снять выделение с узла selection / Removing the selection from the selection node
-    void clearSelection(RouterState& state);
+    void clearSelection(RouterState& state, bool preserveRange = false);
 
     // Выделить весь текст узла и сделать его узлом выделения / Selecting the whole node text and making it the selection node
     void selectAll(RouterState& state, ui::Node& node);

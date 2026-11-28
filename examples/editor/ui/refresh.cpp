@@ -31,6 +31,7 @@ namespace editor
     // The empty state is a valid result of closing the last tab.
     void Controller::refresh()
     {
+        if (!workspace.empty()) setText("workspaceName", fileLabel(workspace));
         for (auto& item : documents) refreshDocument(item);
         show("emptyEditor", documents.empty());
         auto* current = document(active);

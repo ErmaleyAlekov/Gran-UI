@@ -372,6 +372,9 @@ namespace gran::ui
         style::ComputedStyle computed;
         LayoutBox layout;
         bool visible = true;
+        // Отрицательное значение наследует минимум области нажатия от родителя.
+        // A negative value inherits the minimum hit extent from the parent.
+        float minimumHitSize = -1;
         bool enabled = true;
         bool styled = false;
         std::uint16_t stateMask = 0;
@@ -389,6 +392,7 @@ namespace gran::ui
         ** The pointer is valid while the node is in a window tree: removing and rebuilding the node drop it together with the element.
         */
         const beresta::Element* domElement = nullptr;
+        bool layoutInspector = false;
         bool appendedByApplication = false;
         /*
         ** Развёртки компонентов, корнем которых стал узел (<c:Card> → тело Card): копии тел с подставленными
@@ -740,6 +744,10 @@ namespace gran::ui
 
     // Точка окна → координаты компоновки узла (для попадания, ползунка, текста) / A window point → the node layout coordinates (for hits, sliders, text)
     Vec2 windowToNode(const Node& node, Vec2 point) noexcept;
+    float inheritedHitSize(const Node* node) noexcept;
+    bool minimumHitPoint(const Node& node, const Affine2D& toWindow, float minimum,
+        Vec2 windowPoint, Vec2& localPoint) noexcept;
+    Vec2 pointerToNode(const Node& node, Vec2 point) noexcept;
 }
 
 #endif

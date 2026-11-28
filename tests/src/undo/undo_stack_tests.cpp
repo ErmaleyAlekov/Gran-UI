@@ -1,6 +1,7 @@
 #include "framework/test_framework.hpp"
 #include "suites/test_suites.hpp"
 #include "gran/undo/undo_stack.hpp"
+#include <stdexcept>
 
 #include <limits>
 #include <memory>
@@ -240,8 +241,99 @@ namespace
 
 namespace suites
 {
+    static void testCompensatedGroupRedo()
+    {
+        gran::undo::UndoStack stack;
+        int value = 3;
+        bool fail = false;
+        stack.group([&] {
+            stack.push(std::make_unique<gran::undo::ActionStep>([&] { --value; }, [&] { ++value; }));
+            stack.push(std::make_unique<gran::undo::ActionStep>([&] { value -= 2; }, [&] {
+                if (fail) throw std::runtime_error("redo");
+                value += 2;
+            }));
+        });
+        TEST_ASSERT(stack.undo() && value == 0);
+        stack.setClean();
+        fail = true;
+        TEST_ASSERT_THROWS(stack.redo(), std::runtime_error);
+        TEST_ASSERT(value == 0 && stack.index() == 0 && stack.isClean() && stack.canRedo() && !stack.canUndo());
+        fail = false;
+        TEST_ASSERT(stack.redo() && value == 3 && stack.index() == 1 && !stack.isClean());
+        TEST_ASSERT(stack.undo() && value == 0 && stack.isClean());
+    }
+
+    static void verifyFailedGroupRedoCompensation(bool retryImmediately)
+    {
+        gran::undo::UndoStack stack(1);
+        int value = 3;
+        bool failUndo = false, failRedo = false;
+        stack.group([&] {
+            stack.push(std::make_unique<gran::undo::ActionStep>([&] {
+                if (failUndo) throw std::runtime_error("compensation");
+                --value;
+            }, [&] { ++value; }));
+            stack.push(std::make_unique<gran::undo::ActionStep>([&] { value -= 2; }, [&] {
+                if (failRedo) throw std::runtime_error("redo");
+                value += 2;
+            }));
+        });
+        stack.setClean();
+        TEST_ASSERT(stack.undo() && value == 0);
+        failUndo = failRedo = true;
+        TEST_ASSERT_THROWS(stack.redo(), std::runtime_error);
+        TEST_ASSERT(value == 1 && stack.index() == 0 && stack.count() == 1 && stack.canUndo() && stack.canRedo() && !stack.isClean());
+        stack.setClean();
+        TEST_ASSERT(stack.isClean());
+        failUndo = failRedo = false;
+        if (!retryImmediately)
+            TEST_ASSERT(stack.undo() && value == 0 && !stack.isClean());
+        TEST_ASSERT(stack.redo() && value == 3 && stack.index() == 1 && stack.count() == 1 && !stack.isClean());
+        TEST_ASSERT(stack.undo() && value == 0 && !stack.isClean());
+    }
+
+    static void testFailedGroupRedoCompensation()
+    {
+        verifyFailedGroupRedoCompensation(true);
+        verifyFailedGroupRedoCompensation(false);
+    }
+
+    static void testPartialGroupUndoNotifiesObserver()
+    {
+        struct Observer final : gran::undo::UndoObserver
+        {
+            void undoChanged(const gran::undo::UndoStack& stack) override { ++calls; clean = stack.isClean(); }
+            int calls = 0;
+            bool clean = false;
+        } observer;
+        gran::undo::UndoStack stack(1);
+        int value = 7;
+        bool failA = false, failB = false, failC = false;
+        stack.group([&] {
+            stack.push(std::make_unique<gran::undo::ActionStep>([&] { if (failA) throw std::runtime_error("A"); --value; }, [&] { ++value; }));
+            stack.push(std::make_unique<gran::undo::ActionStep>([&] { if (failB) throw std::runtime_error("B"); value -= 2; }, [&] { value += 2; }));
+            stack.push(std::make_unique<gran::undo::ActionStep>([&] { value -= 4; }, [&] { if (failC) throw std::runtime_error("C"); value += 4; }));
+        });
+        TEST_ASSERT(stack.undo() && value == 0);
+        failB = failC = true;
+        TEST_ASSERT_THROWS(stack.redo(), std::runtime_error);
+        TEST_ASSERT(value == 3);
+        stack.setObserver(&observer);
+        stack.setClean();
+        TEST_ASSERT(observer.clean);
+        const int before = observer.calls;
+        failA = true;
+        failB = false;
+        TEST_ASSERT_THROWS(stack.undo(), std::runtime_error);
+        TEST_ASSERT(value == 1 && stack.index() == 0 && stack.canUndo() && stack.canRedo());
+        TEST_ASSERT(observer.calls == before + 1 && !observer.clean && !stack.isClean());
+    }
+
     void registerUndoStackTests(test::TestRunner& runner)
     {
+        runner.add("undo: failed group redo compensates applied steps", testCompensatedGroupRedo);
+        runner.add("undo: failed compensation preserves the prefix and suffix", testFailedGroupRedoCompensation);
+        runner.add("undo: a partial group undo notifies the observer of dirty state", testPartialGroupUndoNotifiesObserver);
         runner.add("undo: push one", testUndoStackPushOne);
         runner.add("undo: push after undo", testUndoStackPushAfterUndo);
         runner.add("undo: merge steps", testUndoStackMergeSteps);

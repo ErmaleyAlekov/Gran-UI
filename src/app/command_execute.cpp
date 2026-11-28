@@ -13,6 +13,7 @@ namespace gran::app
         else if (command == "maximize") app.maximize();
         else if (command == "restore") app.restore();
         else if (command == "reload") app.reload();
+        else if (command == "customize") app.setEditMode(!app.editMode());
         else return false;
         return true;
     }

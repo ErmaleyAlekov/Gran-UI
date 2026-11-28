@@ -109,6 +109,12 @@ namespace gran::undo
 
         // Записать выполненный шаг (или вобрать его в верхний); пустой указатель — ничего / Record a done step (or absorb it into the top one); a null pointer — nothing
         void push(std::unique_ptr<UndoStep> step);
+        // Объединить записанные действием шаги; внешние эффекты выполняются один раз.
+        // Combine the steps recorded by the action; external effects run once.
+        void group(const std::function<void()>& action);
+        // Именованные стеки приложения делят группу во время составной команды.
+        // Application-owned stacks share the current group during a composite command.
+        void setGroupTarget(UndoStack* const* target) noexcept;
 
         // Выполняет ли шаг сейчас undo/redo / Whether a step is running undo/redo now
         bool busy() const noexcept;
@@ -145,6 +151,8 @@ namespace gran::undo
     private:
         // ---- undo_stack.cpp ----
         void notify();
+        std::size_t pendingRedoProgress() const noexcept;
+        void commitRedoPrefix();
 
         // ---- undo_push.cpp ----
         void dropUndone();
@@ -157,12 +165,15 @@ namespace gran::undo
         std::vector<std::unique_ptr<UndoStep>> _steps;
         std::size_t _index = 0;
         std::size_t _clean = 0;
+        std::size_t _cleanProgress = 0;
         std::size_t _limit = 0;
         UndoObserver* _observer = nullptr;
         // Верхний шаг открыт для объединения / The top step is open for merging
         bool _merge = false;
         // Шаг выполняет undo/redo / A step is running undo/redo
         bool _busy = false;
+        std::vector<std::unique_ptr<UndoStep>>* _group = nullptr;
+        UndoStack* const* _groupTarget = nullptr;
     };
 }
 

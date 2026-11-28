@@ -56,7 +56,7 @@ namespace gran::input
             || !grid->content.grid->view.resizable)
             return ui::NO_COLUMN;
         const std::vector<ui::GridColumn>& columns = grid->content.grid->columns;
-        float x = ui::windowToNode(*cell.parent, point).x;
+        float x = ui::pointerToNode(*cell.parent, point).x;
         const Rect& frame = cell.layout.frame;
         std::size_t index = ui::cellColumn(*cell.parent, cell);
         std::size_t column = ui::NO_COLUMN;
@@ -83,7 +83,7 @@ namespace gran::input
 
         if (grid == nullptr || cell.parent == nullptr)
             return;
-        state.gridOrigin = ui::windowToNode(*cell.parent, event.position).x;
+        state.gridOrigin = ui::pointerToNode(*cell.parent, event.position).x;
         state.gridResize = edge;
         state.gridMoved = false;
         if (edge != ui::NO_COLUMN)
@@ -103,7 +103,7 @@ namespace gran::input
 
         if (grid == nullptr || cell.parent == nullptr)
             return;
-        float x = ui::windowToNode(*cell.parent, point).x;
+        float x = ui::pointerToNode(*cell.parent, point).x;
         if (state.gridResize != ui::NO_COLUMN)
         {
             float width = state.gridGrab + x - state.gridOrigin;

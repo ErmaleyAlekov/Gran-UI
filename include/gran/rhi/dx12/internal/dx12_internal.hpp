@@ -26,6 +26,10 @@ namespace gran::rhi::dx12
 {
     // ---- dxgi_adapter.cpp ----
 
+    // Бюджет локального сегмента памяти DXGI
+    // Budget of the DXGI local memory segment
+    VideoMemoryInfo dxgiMemory(IDXGIAdapter* adapter);
+
     // Имя адаптера DXGI (UTF-8), версия драйвера пользовательского режима и признак программного адаптера
     // The DXGI adapter name (UTF-8), the user mode driver version and the software adapter flag
     AdapterInfo describeDxgiAdapter(IDXGIAdapter* adapter, const char* api);
@@ -183,6 +187,7 @@ namespace gran::rhi::dx12
     class UploadRing
     {
     public:
+        std::uint64_t capacity() const noexcept;
         UploadRing() = default;
         ~UploadRing();
         UploadRing(const UploadRing&) = delete;
@@ -250,6 +255,7 @@ namespace gran::rhi::dx12
 
         // Байтов буфера загрузки нужно на очередь загрузок / The upload buffer bytes needed for the upload queue
         std::uint64_t pendingBytes() const;
+        std::uint64_t textureBytes() const;
 
         /*
         ** Копирование очереди в текстуры, затем все текстуры в COPY_DEST (и новые без загрузок —

@@ -1,7 +1,9 @@
 #include "gran/markup/internal/components.hpp"
+#include "gran/markup/internal/overlay.hpp"
 #include "gran/core/gran_exception.hpp"
 #include "gran/core/i18n.hpp"
 #include "gran/style/value_parsers.hpp"
+#include "gran/ui/internal/command_sequence.hpp"
 
 #include "beresta.hpp"
 
@@ -9,6 +11,23 @@
 
 namespace gran::markup::internal
 {
+    static void checkSequences(const beresta::Element& resources, const std::vector<ui::Command>& commands)
+    {
+        std::vector<const ui::Command*> roots;
+        std::map<std::string, const ui::Command*> byId;
+        for (const auto& command : commands)
+        {
+            if (!command.sequence.empty()) roots.push_back(&command);
+            byId.emplace(command.id, &command);
+        }
+        ui::SequenceSizes sizes;
+        const auto cycle = ui::inspectCommandSequences(roots, [&](const std::string& id)
+        {
+            const auto found = byId.find(id);
+            return found == byId.end() ? nullptr : found->second;
+        }, sizes);
+        if (!cycle.empty()) throwElementError(resources, i18n::format(i18n::Message::COMMAND_SEQUENCE_CYCLE, {cycle}));
+    }
     /*
     ** Порядок: сначала ресурсы (тема нужна для подстановки $значений везде) и библиотеки компонентов,
     ** затем параметры окна, затем единственный корневой элемент содержимого и его ссылки на команды.
@@ -30,7 +49,9 @@ namespace gran::markup::internal
         if (child != nullptr && child->getLocalName() == "Resources")
         {
             readResources(*child, context);
+            checkSequences(*child, document.commands);
             loadComponents(*child, context);
+            validatePalette(*child, context);
             child = nextElementSibling(*child);
         }
         readWindow(window, context);
@@ -42,6 +63,7 @@ namespace gran::markup::internal
         document.baseDirectory = options.baseDirectory;
         document.tokens = std::move(context.tokens);
         document.dom = std::move(dom);
+        checkOverlayDesign(document);
         return document;
     }
 }

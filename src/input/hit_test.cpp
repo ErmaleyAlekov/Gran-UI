@@ -23,30 +23,41 @@ namespace gran::input
         ** order (the top one is painted last). Outside a clipping node its descendants are not visible;
         ** outside a plain one the descendants may still stick out of its edge.
         */
-        ui::Node* hitNode(ui::Node& node, Vec2 point, const ui::Node* layer)
+        struct HitPath
+        {
+            Affine2D matrix;
+            Vec2 point;
+            float minimum = 0;
+            bool invertible = true;
+        };
+
+        ui::Node* hitNode(ui::Node& node, Vec2 windowPoint, HitPath path, const ui::Node* layer)
         {
             Affine2D inverse;
 
             // Слой (Popup, Dialog) проверяется отдельно (hitLayer), до дерева / A layer (a Popup, a Dialog) is checked separately (hitLayer), before the tree
             if (ui::isLayer(node) && &node != layer)
                 return nullptr;
-            if (!node.visible || !affineInvert(ui::nodeTransform(node), inverse))
-                return nullptr;
-            point = affineApply(inverse, point);
-            bool inside = rectContains(node.layout.frame, point);
+            if (!node.visible) return nullptr;
+            if (node.minimumHitSize >= 0) path.minimum = node.minimumHitSize;
+            const auto transform = ui::nodeTransform(node);
+            path.matrix = affineMultiply(path.matrix, transform);
+            path.invertible = path.invertible && affineInvert(transform, inverse);
+            if (path.invertible) path.point = affineApply(inverse, path.point);
+            const bool inside = path.invertible && rectContains(node.layout.frame, path.point);
             if (!inside && clipsChildren(node))
-                return nullptr;
+                return ui::minimumHitPoint(node, path.matrix, path.minimum, windowPoint, path.point) ? &node : nullptr;
             for (std::size_t index = node.children.size(); index > 0; --index)
             {
                 // Ячейка строки таблицы ловит мышь, только где видна (столбец вне окна прокрутки, под закреплёнными — нет)
                 // A table line cell catches the mouse only where it is visible (a column outside the scroll viewport, under the frozen ones — no)
-                if (!ui::gridCellVisibleAt(node, index - 1, point.x))
+                if (!ui::gridCellVisibleAt(node, index - 1, path.point.x))
                     continue;
-                ui::Node* hit = hitNode(*node.children[index - 1], point, layer);
+                ui::Node* hit = hitNode(*node.children[index - 1], windowPoint, path, layer);
                 if (hit != nullptr)
                     return hit;
             }
-            if (inside)
+            if (inside || ui::minimumHitPoint(node, path.matrix, path.minimum, windowPoint, path.point))
                 return &node;
             return nullptr;
         }
@@ -55,12 +66,12 @@ namespace gran::input
     // Попадание от корня / A hit from the root
     ui::Node* hitTest(ui::Node& root, Vec2 point)
     {
-        return hitNode(root, point, nullptr);
+        return hitNode(root, point, {{}, point, ui::inheritedHitSize(root.parent)}, nullptr);
     }
 
     // Слой живёт в координатах окна: преобразования предков не применяются / A layer lives in window coordinates: the ancestor transforms are not applied
     ui::Node* hitLayer(ui::Node& popup, Vec2 point)
     {
-        return hitNode(popup, point, &popup);
+        return hitNode(popup, point, {{}, point, ui::inheritedHitSize(popup.parent)}, &popup);
     }
 }
