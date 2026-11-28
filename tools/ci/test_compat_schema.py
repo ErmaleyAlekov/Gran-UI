@@ -34,6 +34,30 @@ class CompatibilityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             compare(old, schema(f"<xs:sequence>{last}{first}</xs:sequence>"), False, False)
 
+    def test_release_assertion(self):
+        existing = '<xs:assert test="not(contains(@value, &quot;$&quot;))"/>'
+        reviewed = '<xs:assert test="not(@min) or number(@value) ge @min"/>'
+        old, new = schema(existing), schema(reviewed + existing)
+        compare(old, new, False, True, "schema/TokenType")
+        for strict, transition, path in [(True, False, "schema/TokenType"), (False, True, "schema/Window")]:
+            with self.assertRaises(ValueError):
+                compare(old, new, strict, transition, path)
+
+    def test_release_key_selector(self):
+        key = ('<xs:key name="commandKey"><xs:selector xpath="Resources/Command"/>'
+               '<xs:field xpath="@id"/></xs:key>')
+        compare(schema(""), schema(key), False, True, "schema/Window")
+        with self.assertRaises(ValueError):
+            compare(schema(""), schema(key.replace("Resources/Command", ".//*")), False, True, "schema/Window")
+
+    def test_plain_action_extension(self):
+        path = "schema/PlainAction/union/simpleType/restriction/pattern"
+        old = schema('<xs:pattern value="a|b"/>')[0]
+        new = schema('<xs:pattern value="a|b|c"/>')[0]
+        compare(old, new, False, True, path)
+        with self.assertRaises(ValueError):
+            compare(new, old, False, True, path)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,6 @@
 """Совместимость схемы разметки / Markup schema compatibility."""
 from xml.etree import ElementTree as ET
+from compat_schema_02 import reviewed_addition
 
 XSD = "{http://www.w3.org/2001/XMLSchema}"
 # Исправления сравнений xs:boolean между 0.2 и 0.3 / Typed boolean fixes between 0.2 and 0.3
@@ -27,6 +28,10 @@ def addition(parent, child):
 
 def compare(old, new, strict, boolean_fixes, path="schema"):
     attrs = dict(old.attrib)
+    transition = boolean_fixes and not strict
+    if (transition and path == "schema/PlainAction/union/simpleType/restriction/pattern"
+            and new.get("value", "").startswith(old.attrib["value"] + "|")):
+        attrs["value"] = new.get("value")
     if boolean_fixes and old.tag == XSD + "assert" and BOOLEAN_FIXES.get(old.get("test")) == new.get("test"):
         attrs["test"] = new.get("test")
     if identity(old) != identity(new) or attrs != new.attrib:
@@ -35,6 +40,8 @@ def compare(old, new, strict, boolean_fixes, path="schema"):
     index = 0
     for node in new:
         if node.tag == XSD + "annotation":
+            continue
+        if transition and reviewed_addition(path, node):
             continue
         label = path + "/" + (node.get("name") or node.tag.removeprefix(XSD))
         if index < len(before) and identity(before[index]) == identity(node):
